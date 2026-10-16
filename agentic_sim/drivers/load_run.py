@@ -19,7 +19,7 @@ import time
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from sim import Params, World, check_all          # noqa: E402
 from sim.engine import F                          # noqa: E402
-from drivers.results import RunRecorder           # noqa: E402
+from drivers.results import RunRecorder, fingerprint  # noqa: E402
 
 PERMITTED = ["post_root (human H, beta 20)", "award (price 18, tau 1, chosen round-robin by availability)",
              "submit", "assign_initial (first free on-duty reviewer)", "complete_review F cost 0", "advance"]
@@ -95,11 +95,12 @@ def main(argv=None):
         audit = {"full_audit": "passed", "full_audit_s": round(time.time() - t1, 1)}
     except AssertionError as e:                      # InvariantError is an AssertionError
         audit = {"full_audit": f"FAILED: {e}", "full_audit_s": round(time.time() - t1, 1)}
+    fp = fingerprint(w)                              # before close: in record mode it reads the archive
     on_disk = None
     if a.record_dir:
         w.close()
         on_disk = {f: os.path.getsize(os.path.join(a.record_dir, f)) for f in sorted(os.listdir(a.record_dir))}
-    out = rec.finish(w, status="completed" if audit["full_audit"] == "passed" else "audit failed",
+    out = rec.finish(fp=fp, status="completed" if audit["full_audit"] == "passed" else "audit failed",
                      run_s=round(run_s, 1), ticks_per_s=round(a.ticks / run_s, 1), maxrss_mb=round(rss_mb(), 1),
                      record_bytes=on_disk, **audit)
     print(f"{audit['full_audit']} in {audit['full_audit_s']}s; results in {os.path.relpath(out)}")

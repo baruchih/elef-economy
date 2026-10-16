@@ -105,10 +105,12 @@ class RunRecorder:
         self.manifest[key] = value
         self._write_manifest()
 
-    def finish(self, w, status: str = "completed", **conclusions):
+    def finish(self, w=None, status: str = "completed", fp: dict | None = None, **conclusions):
+        """Close the run. Pass the world, or a fingerprint taken from it earlier — in record mode
+        the fingerprint must be taken before `w.close()`, since it reads the archive."""
         if self._metrics is not None:
             self._metrics.close()
-        fp = fingerprint(w)
+        fp = fingerprint(w) if fp is None else fp
         with open(os.path.join(self.dir, "fingerprint.json"), "w") as f:
             json.dump(fp, f, indent=2)
             f.write("\n")

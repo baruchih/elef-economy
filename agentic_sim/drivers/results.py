@@ -37,7 +37,8 @@ def git_commit() -> str:
         root = os.path.dirname(HERE)
         h = subprocess.run(["git", "rev-parse", "--short", "HEAD"], cwd=root, capture_output=True,
                            text=True, check=True).stdout.strip()
-        dirty = subprocess.run(["git", "status", "--porcelain", "--", "."],
+        # results written by the code are not a change to the code
+        dirty = subprocess.run(["git", "status", "--porcelain", "--", ".", ":!results"],
                                cwd=root, capture_output=True, text=True, check=True).stdout.strip()
         return h + ("-dirty" if dirty else "")
     except Exception:  # noqa: BLE001
@@ -72,11 +73,12 @@ class RunRecorder:
         stamp = _dt.datetime.now().strftime("%Y%m%d-%H%M%S")
         self.run_id = f"{stamp}-{name}"
         self.dir = os.path.join(root, "runs", self.run_id)
+        env = environment()                       # before this run's own directory exists
         os.makedirs(self.dir, exist_ok=False)
         self._t0 = time.time()
         self.manifest = {
             "run_id": self.run_id, "name": name, "kind": kind, "started": now(),
-            "environment": environment(),
+            "environment": env,
             "params": asdict(params) if hasattr(params, "__dataclass_fields__") else dict(params),
             "declared": declared,          # actors, ticks, seed, permitted operations, what is not in the run
             "status": "running",

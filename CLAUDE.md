@@ -72,7 +72,9 @@ While building strategy runs, the baseline stays frozen. Drivers live in their o
   The per-tick check is not configurable: `advance` always runs it. `full_check_every` only adds
   the full audit on a cadence (0 = not scheduled; runs call `check_all` at the end), and
   `record_dir` only moves where the record is stored. `python3 run_tests.py --record` runs the
-  whole suite in record mode as the storage layer's conformance check.
+  whole suite in record mode as the storage layer's conformance check. The per-tick check is the
+  incremental audit; the full audit is from genesis by definition, so scheduling it makes a run
+  quadratic — strategy runs use the per-tick check plus one final `check_all`.
 - The engine keeps every case and review ever created in `cases` and `reviews`, and a working set
   (`_live_cases`, `_live_reviews`) that the tick loop and `check_tick` read. A settled case leaves
   the working set and comes back through `_dirty_cases` when touched again. New engine code that

@@ -138,7 +138,18 @@ Measured, 200 actors × 10,000 ticks, 300,000 cases, 4.81 million History entrie
 What still grows with the run is the journals' position index, eight bytes per entry — about 200 bytes
 per case, so a gigabyte at five million cases — and the dead space an archive accumulates when a case
 is paged out more than once. Both are far off; a sparse index would be the next step if they are
-reached. Set `full_check_every` knowing the audit's cost scales with the whole record, not the tick.
+reached.
+
+**Which check to run when.** The per-tick check *is* the incremental audit: it verifies the chain
+from the last verified head, checks the copies appended since, and runs every predicate over
+everything that could have changed — and `advance` always runs it. The full audit is from genesis
+by definition; that is its only reason to exist (an independent re-derivation from the whole
+record, and the one check that notices an edit to an entry already verified), so its cost is the
+whole record every time, and scheduling it on a cadence makes a run quadratic in its length: with
+`full_check_every=20`, 200 actors × 1,000 ticks took 244 s, of which about 230 s were the fifty
+audits. Strategy runs therefore use the regime the 300,000-case run used — the per-tick check every
+tick and one `check_all` at the end — and `full_check_every` is for conformance runs of the engine
+itself. Every run's manifest records which regime it ran under.
 
 ## The expected failure
 

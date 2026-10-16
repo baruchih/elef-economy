@@ -41,6 +41,9 @@ def main(argv=None):
     ap.add_argument("--log-every", type=int, default=100)
     ap.add_argument("--full-check-every", type=int, default=0)
     ap.add_argument("--name", default=None)
+    ap.add_argument("--expect-head", default=None, metavar="HEX",
+                    help="the History head an earlier run of the same drive ended with; the manifest records "
+                         "whether this run reproduced it, and the exit code fails if not")
     a = ap.parse_args(argv)
 
     actors = [f"a{i:03d}" for i in range(a.actors)]
@@ -82,7 +85,8 @@ def main(argv=None):
             row = {"t": t, "ticks_per_s": round((t - last_t) / max(nowt - last_time, 1e-9), 1),
                    "cases": len(w.cases), "live_cases": len(w._live_cases), "reviews": len(w.reviews),
                    "events": len(w.ledger.events), "entries": len(w.history.entries),
-                   "M": round(w.ledger.M, 3), "Res": round(w.ledger.Res, 3), "maxrss_mb": round(rss_mb(), 1)}
+                   "M": round(w.ledger.M, 3), "Res": round(w.ledger.Res, 3), "maxrss_mb": round(rss_mb(), 1),
+                   "head": w.history.head}
             if a.record_dir:
                 row["resident_cases"] = len(w.cases.resident_items())
                 row["resident_reviews"] = len(w.reviews.resident_items())
@@ -103,11 +107,19 @@ def main(argv=None):
     if a.record_dir:
         w.close()
         on_disk = {f: os.path.getsize(os.path.join(a.record_dir, f)) for f in sorted(os.listdir(a.record_dir))}
-    out = rec.finish(fp=fp, status="completed" if audit["full_audit"] == "passed" else "audit failed",
+    ok = audit["full_audit"] == "passed"
+    determinism = None
+    if a.expect_head:
+        determinism = {"expected_head": a.expect_head,
+                       "reproduced": fp["head"] == a.expect_head}
+        ok = ok and determinism["reproduced"]
+    out = rec.finish(fp=fp, status="completed" if ok else "FAILED",
                      run_s=round(run_s, 1), ticks_per_s=round(a.ticks / run_s, 1), maxrss_mb=round(rss_mb(), 1),
-                     record_bytes=on_disk, **audit)
-    print(f"{audit['full_audit']} in {audit['full_audit_s']}s; results in {os.path.relpath(out)}")
-    return 0 if audit["full_audit"] == "passed" else 1
+                     record_bytes=on_disk, determinism=determinism, **audit)
+    print(f"{audit['full_audit']} in {audit['full_audit_s']}s"
+          + (f"; head {'reproduced' if determinism['reproduced'] else 'DIFFERS from expected'}" if determinism else "")
+          + f"; results in {os.path.relpath(out)}")
+    return 0 if ok else 1
 
 
 if __name__ == "__main__":

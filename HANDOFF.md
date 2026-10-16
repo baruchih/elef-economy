@@ -192,8 +192,10 @@ What this means for sizing runs: the same 200 actors × 10,000 ticks (300,000 ca
 History entries) runs in about 80 MB of RAM at ~80 ticks/s, against 4.3 GB and ~95 ticks/s in memory;
 the record on disk is about 2.8 GB. Memory now grows only with the position indexes of the journals
 (about 200 bytes per case), so a run is bounded by time and disk. The full audit over a record on disk
-costs about 0.3 ms per case — minutes for millions of cases — which is what `full_check_every` should be
-set with in mind. Details and numbers in `agentic_sim/README.md`.
+costs about 0.3 ms per case — minutes for millions of cases — and it is from genesis by definition, so
+scheduling it on a cadence makes a run quadratic. The per-tick check, which always runs, is the
+incremental audit; strategy runs use it plus one `check_all` at the end, and `full_check_every` is for
+conformance runs of the engine itself. Details and numbers in `agentic_sim/README.md`.
 
 ## Where the drivers should go
 

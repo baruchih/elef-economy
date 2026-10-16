@@ -38,12 +38,15 @@ tests/test_v101.py                  withdrawing an unawarded request (§16), the
 tests/test_perf_equivalence.py      the per-tick check equals the full audit; the working-set engine reproduces the
                                     v1.0.1 engine's History head on a seeded random scenario; the working set stays
                                     bounded — 5
+tests/test_record_mode.py           the record on disk (`Params.record_dir`): the same scenario gives the identical
+                                    fingerprint, the chain re-hashes from the file alone, a paged-out case comes back
+                                    when touched, the resident set stays bounded, the Journal reads like a list — 6
 run_tests.py        every suite with plain python; pytest reports the same (conftest marks the XFAIL)
 ```
 
-Run: `python3 run_tests.py` — 161 pass, 0 fail, 24 expected failures, each with a stated reason (one original,
+Run: `python3 run_tests.py` — 167 pass, 0 fail, 24 expected failures, each with a stated reason (one original,
 four superseded by the view contract, nineteen on the withdrawn reopening path). With pytest:
-`python3 -m pytest tests -q` reports 161 passed, 24 xfailed; the runner expands pytest parametrization as pytest
+`python3 -m pytest tests -q` reports 167 passed, 24 xfailed; the runner expands pytest parametrization as pytest
 does, including multi-argument and stacked marks. (Spec Appendix D records the count at the v1.0.1 freeze, 156.)
 
 Expected failures are **strict and parameter-exact** in both entry points: `EXPECTED_FAIL_PARAMS` names the
@@ -83,9 +86,46 @@ tick beside the tick check, reproduces the History head the v1.0.1 engine (commi
 
 Measured after the change: 20 actors × 1,000 ticks in 1 s at a constant ~1,000 ticks/s (was ~25 min);
 200 actors × 10,000 ticks (300,000 cases) in 104 s at a constant ~95 ticks/s, final full audit 35 s.
-The remaining limit is memory, not time: the record is kept whole in memory — 4.85 million History
-entries and 300,000 cases took 4.3 GB — so runs beyond that scale need the record spilled to disk,
-a separate change.
+The remaining limit was memory, not time: the record kept whole in memory — 4.85 million History
+entries and 300,000 cases — took 4.3 GB. Record mode, below, lifts it.
+
+## Record mode: the record on disk (October 16, 2026)
+
+`Params.record_dir = "<directory>"` moves the record out of RAM (`sim/record.py`), with no change to
+what the engine does:
+
+- `history.jsonl` and `events.jsonl` hold the History and the ledger's event copy, one entry per
+  line, written through as they are committed (`Journal`: an append-only sequence that keeps its
+  newest few thousand items decoded in memory and reads older positions from the file). The chain
+  re-hashes from `history.jsonl` alone: `tests/test_record_mode.py` does so without the engine.
+- `cases.pickle` and `reviews.pickle` hold settled cases and their reviews (`Archive`). A case is
+  paged out when it leaves the working set — settled, every review settled, nothing pending — and
+  takes its History positions and its empty pool with it; it comes back resident when the engine
+  touches it (a post-settlement override, a serviced Ω claim) and is paged out again afterwards.
+  `w.cases` and `w.reviews` remain mappings in creation order (`PagedDict`): `w.cases[k]` makes an
+  object resident, for code that may change it; `peek(k)` and iteration return a resident object or
+  a transient copy, for readers that must not pull the archive in. The invariants read through
+  `_peek`; new audit code must too.
+- `check_all` streams the record in both modes: one pass over the events (I3, and the per-event
+  halves of I4 and I10), one over the reviews, the cases in chunks of 2,048, and two passes for I16
+  (ledger entries paired one-to-one with the event copy in order; each committed case entry found in
+  its log at the position the log claims; logs strictly increasing and their total equal to the
+  record's). It establishes the same facts as before; it no longer builds an index of every position.
+- `w.close()` flushes and closes the files; the world is not used after it.
+
+Measured, 200 actors × 10,000 ticks, 300,000 cases, 4.81 million History entries, 3.0 million events:
+
+|                    | in memory                 | record mode                              |
+|--------------------|---------------------------|------------------------------------------|
+| run                | 104 s, ~95 ticks/s        | 126 s, ~80 ticks/s (constant)            |
+| peak RSS           | 4.3 GB, growing           | 81 MB during the run, 141 MB in the audit |
+| final `check_all`  | 35 s                      | 95 s (about 0.3 ms per case)             |
+| on disk            | —                         | 2.8 GB (history 1.47 GB, events 0.91 GB, cases 0.36 GB, reviews 0.11 GB) |
+
+What still grows with the run is the journals' position index, eight bytes per entry — about 200 bytes
+per case, so a gigabyte at five million cases — and the dead space an archive accumulates when a case
+is paged out more than once. Both are far off; a sparse index would be the next step if they are
+reached. Set `full_check_every` knowing the audit's cost scales with the whole record, not the tick.
 
 ## The expected failure
 

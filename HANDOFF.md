@@ -3,7 +3,7 @@
 ## In one paragraph
 
 We have a rulebook and an engine that implements it, and they are consistent with each other as far
-as ten external reviews and 161 tests can show. The rulebook is frozen at v1.0.1. What has **not** been
+as ten external reviews and 167 tests can show. The rulebook is frozen at v1.0.1. What has **not** been
 shown is what the rules do when participants are self-interested — whether careful review beats
 stamping, whether price pressure starves reliable actors, whether the money behaves. That is the next
 layer, and it is a simulator question: the engine is already the simulator of the *rules*; what it lacks
@@ -38,11 +38,12 @@ reevaluation is this document's "Proposed next step"; it is a proposal, not a de
 | v1.0.1 | Errata applied in place. No rule, default, permitted operation or engine change | — | — | **frozen** |
 
 Test suite across versions: v0.7 104 + 1 xfail → v0.8 123 + 1 → v0.9 148 + 1 → v0.10 152 + 24 → v1.0.1
-156 + 24 → October 16 performance pass 161 + 24 (the 24: one original, four superseded by the view
-contract, nineteen on the withdrawn path; the four v1.0.1 tests cover withdrawing an unawarded request,
-the one permitted operation no suite had exercised; the five performance tests prove the per-tick
-check equals the full audit and the History head is unchanged). Expected failures are strict and
-parameter-exact in both entry points.
+156 + 24 → October 16 performance pass 161 + 24 → October 16 record mode 167 + 24 (the 24: one
+original, four superseded by the view contract, nineteen on the withdrawn path; the four v1.0.1 tests
+cover withdrawing an unawarded request, the one permitted operation no suite had exercised; the five
+performance tests prove the per-tick check equals the full audit and the History head is unchanged; the
+six record-mode tests prove the record on disk gives the identical fingerprint and verifies from the
+file alone). Expected failures are strict and parameter-exact in both entry points.
 Every reviewer's test file is in the suite byte-for-byte — a claim this repo cannot itself verify: the
 reviewers' test bundles were received as separate archives and are not included here, only their reports
 in `reviews/`. The reports name the tests they shipped; a verifier can compare names and counts.
@@ -170,11 +171,29 @@ hundred ticks and the fixed tolerance raised a false failure. Nothing a particip
 `agentic_sim/tests/test_perf_equivalence.py` reproduces the v1.0.1 engine's History head on a seeded
 random scenario through every major path. Details and numbers in `agentic_sim/README.md`.
 
-What this means for sizing runs: 20 actors × 1,000 ticks takes a second; 200 actors × 10,000 ticks
-takes under two minutes and 4.3 GB, because the whole record stays in memory. That is the next
-engineering limit if runs need to go larger: spill the record to disk. Scientifically, more ticks past
-a few thousand add little — ρ and κ use trailing windows of 100 and emission halves every 1,000 ticks —
-so the real run is many seeds of a few thousand ticks, not one run of a million.
+What this meant for sizing runs: 20 actors × 1,000 ticks takes a second; 200 actors × 10,000 ticks
+took under two minutes and 4.3 GB, because the whole record stayed in memory. Scientifically, more
+ticks past a few thousand add little — ρ and κ use trailing windows of 100 and emission halves every
+1,000 ticks — so the real run is many seeds of a few thousand ticks, not one run of a million.
+
+## Record mode (October 16, 2026) — the record on disk, same engine
+
+The memory limit above is lifted. With `Params.record_dir` set to a directory, the History and the
+ledger's event copy are written through to files there (one entry per line; the chain re-hashes from
+the file alone), and settled cases and reviews are paged out to archives and come back when the engine
+touches them (`agentic_sim/sim/record.py`). RAM holds the working set. The engine's behaviour is
+identical: `agentic_sim/tests/test_record_mode.py` runs the same seeded scenario in both modes with
+the full audit after every tick and gets the identical fingerprint, which is also the v1.0.1 engine's.
+The full audit (`check_all`) now streams the record in chunks instead of indexing it, in both modes,
+so it never pulls the archive into memory; the per-tick check is unchanged. Without `record_dir`
+nothing changes: the tests run in memory as before.
+
+What this means for sizing runs: the same 200 actors × 10,000 ticks (300,000 cases, 4.85 million
+History entries) runs in about 80 MB of RAM at ~80 ticks/s, against 4.3 GB and ~95 ticks/s in memory;
+the record on disk is about 2.8 GB. Memory now grows only with the position indexes of the journals
+(about 200 bytes per case), so a run is bounded by time and disk. The full audit over a record on disk
+costs about 0.3 ms per case — minutes for millions of cases — which is what `full_check_every` should be
+set with in mind. Details and numbers in `agentic_sim/README.md`.
 
 ## Where the drivers should go
 

@@ -40,10 +40,10 @@ def _try(fn, *a, **k):
         return None          # a refused action changes nothing; both engines must refuse alike
 
 
-def scenario(seed: int, ticks: int, audit_every: int = 0) -> World:
+def scenario(seed: int, ticks: int, audit_every: int = 0, record_dir=None) -> World:
     """A seeded random drive of the engine through most of its paths."""
     rng = random.Random(seed)
-    w = World(Params(Res0=2e5, omega_rate=0.05), ACTORS,
+    w = World(Params(Res0=2e5, omega_rate=0.05, record_dir=record_dir), ACTORS,
               humans={"H1": 60000.0, "H2": 30000.0, "D1": 30000.0}, delegates=["D1"], on_duty=ACTORS[:4])
 
     def free_actors():

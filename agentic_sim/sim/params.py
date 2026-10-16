@@ -1,6 +1,7 @@
 """Provisional defaults (spec §18.1) and initialization values (§19)."""
 from __future__ import annotations
 from dataclasses import dataclass
+from typing import Optional
 
 
 @dataclass
@@ -59,6 +60,11 @@ class Params:
     # touched (`check_tick`). Every `full_check_every` ticks it also re-audits the whole record
     # from genesis (`check_all`); 0 means only when the caller asks. Not a rule: a check cadence.
     full_check_every: int = 0
+    # Where the record lives. None: in memory, as the tests run it. A directory: the History and
+    # the event copy are written through to files there and settled cases and reviews are paged
+    # out, so RAM holds the working set and a run is bounded by time, not memory (sim/record.py).
+    # Not a rule: the engine behaves identically either way.
+    record_dir: Optional[str] = None
 
     # Initialization (§19)
     Res0: float = 10000.0

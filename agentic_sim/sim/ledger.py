@@ -16,10 +16,13 @@ All amounts crossing the ledger boundary are validated: finite and non-negative.
 """
 from __future__ import annotations
 from dataclasses import dataclass, field
+from itertools import islice
 from typing import Optional
 import hashlib
 import json
 import math
+
+from .record import Journal
 
 
 class LedgerError(Exception):
@@ -79,8 +82,14 @@ class History:
     detects any edit to a past entry, and `verify()` recomputes it. It is not a trust
     anchor — there is no external commitment of the head (§14)."""
 
-    def __init__(self):
-        self.entries: list[dict] = []
+    def __init__(self, path: Optional[str] = None, tail: int = 4096):
+        # the entries: a list in memory, or — given a path — a Journal written through to that
+        # file, one entry per line, with the newest `tail` entries kept decoded in memory
+        if path is None:
+            self.entries: list[dict] = []
+        else:
+            self.entries = Journal(path, encode=lambda e: json.dumps(e, sort_keys=True, default=str),
+                                   decode=json.loads, tail=tail)
         self.head: str = hashlib.sha256(b"genesis").hexdigest()
         # incremental verification state: entries[:_verified_upto] have been re-hashed and
         # found consistent, and _verified_prev is the hash of the last of them
@@ -92,9 +101,18 @@ class History:
         body = json.dumps({"seq": seq, "kind": kind, "payload": payload, "prev": self.head},
                           sort_keys=True, default=str)
         h = hashlib.sha256(body.encode()).hexdigest()
-        self.entries.append({"seq": seq, "kind": kind, "payload": payload, "prev": self.head, "hash": h})
+        entry = {"seq": seq, "kind": kind, "payload": payload, "prev": self.head, "hash": h}
+        if isinstance(self.entries, Journal):
+            # the line on disk is the hashed body with the hash added: it decodes to `entry`
+            self.entries.append(entry, line=body[:-1] + ', "hash": "' + h + '"}')
+        else:
+            self.entries.append(entry)
         self.head = h
         return h
+
+    def _iter_from(self, start: int):
+        it = getattr(self.entries, "iter_from", None)
+        return it(start) if it is not None else islice(self.entries, start, None)
 
     def verify(self) -> bool:
         prev = hashlib.sha256(b"genesis").hexdigest()
@@ -113,8 +131,7 @@ class History:
         not re-examine already-verified entries; `verify()` does, and is what detects an edit
         to one of them after the fact."""
         prev = self._verified_prev
-        for i in range(self._verified_upto, len(self.entries)):
-            e = self.entries[i]
+        for i, e in enumerate(self._iter_from(self._verified_upto), self._verified_upto):
             body = json.dumps({"seq": e["seq"], "kind": e["kind"], "payload": e["payload"], "prev": prev},
                               sort_keys=True, default=str)
             if e["seq"] != i or e["prev"] != prev or hashlib.sha256(body.encode()).hexdigest() != e["hash"]:
@@ -140,14 +157,20 @@ class Ledger:
     MINTS = {"mint_backed", "mint_emission"}
     BURNS = {"burn_bond", "purchase"}
 
-    def __init__(self, Res0: float, v0: float, history: Optional[History] = None):
+    def __init__(self, Res0: float, v0: float, history: Optional[History] = None,
+                 events_path: Optional[str] = None, tail: int = 4096):
         self.Res: float = 0.0
         self.M: float = 0.0
         self.halted: bool = False
         self.wallets: dict[str, Wallet] = {}
         self.locks: dict[str, dict[str, float]] = {}
         self.pools: dict[str, CasePool] = {}
-        self.events: list[Event] = []
+        # the event copy: a list in memory, or — given a path — a Journal written through to it
+        if events_path is None:
+            self.events: list[Event] = []
+        else:
+            self.events = Journal(events_path, encode=lambda e: json.dumps(e.__dict__),
+                                  decode=lambda s: Event(**json.loads(s)), tail=tail)
         # per-case index of the same events (same objects; `events` stays the ordered copy I16
         # checks), a running mints-minus-burns, a running sum of every pool, and a hook the
         # engine sets to learn which case an event touched — so a tick's checks cost what the
@@ -188,9 +211,9 @@ class Ledger:
 
     def _log(self, kind, amt, src=None, dst=None, case=None, note=""):
         e = Event(self.t, kind, amt, src, dst, case, note, seq=len(self.events))
+        e.prev = self.history.head                      # the head this event's entry chains to
         e.hash = self.history.append("ledger", e.payload())
         e.hseq = len(self.history.entries) - 1
-        e.prev = self.history.entries[-1]["prev"]
         self.events.append(e)
         if case is not None:
             self.events_by_case.setdefault(case, []).append(e)

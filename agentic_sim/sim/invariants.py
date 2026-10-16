@@ -16,6 +16,7 @@ Two entry points, one set of predicates:
                  tick did, not what the run did.
 """
 from __future__ import annotations
+from itertools import islice
 import math
 from .ledger import Ledger
 
@@ -56,6 +57,22 @@ def _reviews(w, reviews):
     return w.reviews.values() if reviews is None else reviews
 
 
+def _peek(store, key):
+    """Read a case or review without claiming it: in record mode a paged-out object comes back
+    as a copy and the archive is not pulled into memory; in memory it is the object itself."""
+    pk = getattr(store, "peek", None)
+    return store[key] if pk is None else pk(key)
+
+
+def _chunks(it, n):
+    it = iter(it)
+    while True:
+        chunk = list(islice(it, n))
+        if not chunk:
+            return
+        yield chunk
+
+
 def I1_conservation(w, running: bool = False):
     """Every credit is in a wallet, a case pool, or Ω; their sum is M; and M equals the
     money minted minus the money burned according to the event log."""
@@ -88,13 +105,19 @@ def I3_mints_and_burns(w, events=None):
     """Only known event kinds, with finite non-negative amounts; the only unbacked mint is
     emission; the only burns are bond forfeiture and resource purchase."""
     for e in (w.ledger.events if events is None else events):
-        if e.kind not in ALLOWED_EVENT_KINDS:
-            _fail(f"I3 unknown ledger event kind {e.kind}")
-        if not _fin(e.amount) or e.amount < -EPS:
-            _fail(f"I3 bad amount in {e.kind}: {e.amount}")
+        _I3_one(e)
 
 
-def I4_court_fee_once_and_within_bond(w, cases=None):
+def _I3_one(e):
+    if e.kind not in ALLOWED_EVENT_KINDS:
+        _fail(f"I3 unknown ledger event kind {e.kind}")
+    if not _fin(e.amount) or e.amount < -EPS:
+        _fail(f"I3 bad amount in {e.kind}: {e.amount}")
+
+
+def I4_court_fee_once_and_within_bond(w, cases=None, reimb=None):
+    """`reimb`, when given, is the court-fee reimbursement count per case from one pass over
+    every event (`_audit_events`); otherwise the count is taken from the per-case event index."""
     by_case = w.ledger.events_by_case
     for c in _cases(w, cases):
         if c.court_fee_reimbursed > c.D + EPS:
@@ -103,7 +126,10 @@ def I4_court_fee_once_and_within_bond(w, cases=None):
             _fail(f"I4 {c.id}: reimbursement without a paid fee")
         if c.nominals is not None and c.G_V + EPS < c.D:
             _fail(f"I4 {c.id}: bond {c.G_V} < court fee {c.D} (§7.2)")
-        n_reimb = sum(1 for e in by_case.get(c.id, ()) if e.kind == "forfeit_to" and "court fee" in e.note)
+        if reimb is not None:
+            n_reimb = reimb.get(c.id, 0)
+        else:
+            n_reimb = sum(1 for e in by_case.get(c.id, ()) if e.kind == "forfeit_to" and "court fee" in e.note)
         if n_reimb > 1:
             _fail(f"I4 {c.id}: court fee reimbursed {n_reimb} times")
 
@@ -117,14 +143,14 @@ def I5_no_vest_with_open_items(w, cases=None):
                 _fail(f"I5 {c.id} vested with an unresolved challenge")
             if c.t_vest is not None and c.window_end is not None and c.t_vest < c.window_end:
                 _fail(f"I5 {c.id} vested before its window closed")
-            if any(w.reviews[r].status == "open" for r in c.reviews):
+            if any(_peek(w.reviews, r).status == "open" for r in c.reviews):
                 _fail(f"I5 {c.id} vested with an open review")
 
 
 def I6_commit_before_audit(w, cases=None):
     for c in _cases(w, cases):
         for rid in c.reviews:
-            r = w.reviews[rid]
+            r = _peek(w.reviews, rid)
             if r.role == "audit" and (c.t_verdict is None or r.t_assign < c.t_verdict):
                 _fail(f"I6 {c.id}: audit assigned at {r.t_assign} before the verdict at {c.t_verdict}")
 
@@ -136,7 +162,7 @@ def I7_child_milestone_before_parent_submit(w, cases=None):
         if c.t_submit is None:
             continue
         for ch in c.children:
-            child = w.cases[ch]
+            child = _peek(w.cases, ch)
             if child.t_post > c.t_submit:
                 continue                              # posted after this submission (a resubmission)
             if child.t_verdict is not None and child.t_verdict <= c.t_submit:
@@ -148,8 +174,10 @@ def I7_child_milestone_before_parent_submit(w, cases=None):
 
 def I8_positions_bound(w, cases=None):
     for c in _cases(w, cases):
-        if w.positions(c.id) > w.p.V_max:
-            _fail(f"I8 {c.id} holds {w.positions(c.id)} review positions > V_max")
+        # the engine's `_positions`, read without claiming the case or its reviews
+        n = sum(1 for rid in c.reviews if _peek(w.reviews, rid).status != "withdrawn")
+        if n > w.p.V_max:
+            _fail(f"I8 {c.id} holds {n} review positions > V_max")
 
 
 def I9_reserve(w):
@@ -160,16 +188,23 @@ def I9_reserve(w):
         _fail(f"I9 reserve {n} < X={w.p.X}")
 
 
-def I10_no_post_vesting_adjudication_moves_money(w, cases=None):
+def _I10_event(e, c):
+    if c.t_vest is not None and e.t > c.t_vest and "deferred" not in e.note and "Ω claim" not in e.note:
+        _fail(f"I10 {c.id}: {e.kind} {e.amount} at t={e.t} after vesting at {c.t_vest}")
+
+
+def I10_no_post_vesting_adjudication_moves_money(w, cases=None, events=True):
     """After vesting, no adjudication moves money on account of the case (§6). Obligations
-    established before vesting — deferred reimbursements, Ω claims — may still be paid."""
+    established before vesting — deferred reimbursements, Ω claims — may still be paid.
+    With `events` false the per-event half has been done by one pass over every event
+    (`_audit_events`); otherwise it is taken from the per-case event index."""
     by_case = w.ledger.events_by_case
     for c in _cases(w, cases):
         if c.t_vest is None:
             continue
-        for e in by_case.get(c.id, ()):
-            if e.t > c.t_vest and "deferred" not in e.note and "Ω claim" not in e.note:
-                _fail(f"I10 {c.id}: {e.kind} {e.amount} at t={e.t} after vesting at {c.t_vest}")
+        if events:
+            for e in by_case.get(c.id, ()):
+                _I10_event(e, c)
         if c.post_vesting_funds_moved > EPS:
             _fail(f"I10 {c.id}: override moved funds after vesting")
 
@@ -210,7 +245,8 @@ def I13_grade_provenance(w, cases=None):
             continue
         matching = [a for a in c.assessments if a[2] == c.outcome and a[3] in ("accept", "dispute", "override")]
         explicit = bool(matching)
-        audited = any(w.reviews[r].role == "audit" and w.reviews[r].status != "withdrawn" for r in c.reviews)
+        audited = any(_peek(w.reviews, r).role == "audit" and _peek(w.reviews, r).status != "withdrawn"
+                      for r in c.reviews)
         if c.grade in ("human-explicit", "delegate-explicit"):
             if not explicit:
                 _fail(f"I13 {c.id} graded {c.grade} without a matching explicit root judgment")
@@ -232,48 +268,73 @@ def I14_one_active_assignment(w, reviews=None):
     """One active assignment per actor: at most one ordinary commitment, at most one open
     review, and never both (§2.2)."""
     open_by = {}
-    for r in _reviews(w, reviews):
+    _I14_reviews(_reviews(w, reviews), open_by)
+    _I14_actors(w, open_by)
+
+
+def _I14_reviews(reviews, open_by):
+    for r in reviews:
         if r.status == "open":
             if r.reviewer in open_by:
                 _fail(f"I14 {r.reviewer} holds two open reviews")
             open_by[r.reviewer] = r.id
+
+
+def _I14_actors(w, open_by):
     seen = {}
     for a in w.actors.values():
         if a.committed:
             if a.committed in seen:
                 _fail(f"I14 case {a.committed} committed to two actors")
             seen[a.committed] = a.id
-            st = w.cases[a.committed].state
+            st = _peek(w.cases, a.committed).state
             if st not in ("COMMITTED", "SUBMITTED", "AWAITING_RESPONSE", "RESUBMITTING"):
                 _fail(f"I14 {a.id} committed to {a.committed} in state {st}")
             if a.id in open_by:
                 _fail(f"I14 {a.id} is committed and holds an open review")
         if a.open_review and a.open_review not in w.reviews:
             _fail(f"I14 {a.id} open_review points nowhere")
-        if a.open_review and w.reviews[a.open_review].status not in ("open", "done"):
-            _fail(f"I14 {a.id} attached to a review that is {w.reviews[a.open_review].status}")
+        if a.open_review and _peek(w.reviews, a.open_review).status not in ("open", "done"):
+            _fail(f"I14 {a.id} attached to a review that is {_peek(w.reviews, a.open_review).status}")
 
 
 def I15_locks_reconcile(w, cases=None, reviews=None):
     """Every wallet's L equals the sum of its lock records, and every live obligation in the
     engine has a lock record of exactly its size: guarantees, bonds, nested ceilings,
     rejection bonds. No record exists for an obligation that has ended."""
+    _I15_wallets(w)
+    expected = {}
+    _I15_expected_cases(_cases(w, cases), expected)
+    _I15_expected_reviews(_reviews(w, reviews), expected)
+    _I15_compare(w, expected)
+
+
+def _I15_wallets(w):
     L = w.ledger
     for wid, wl in L.wallets.items():
         recs = sum(L.locks.get(wid, {}).values())
         if abs(recs - wl.L) > EPS:
             _fail(f"I15 {wid}: L={wl.L} but lock records sum to {recs}")
-    expected = {}
-    for c in _cases(w, cases):
+
+
+def _I15_expected_cases(cases, expected):
+    for c in cases:
         if c.actor and c.state in ("COMMITTED", "SUBMITTED", "AWAITING_RESPONSE", "RESUBMITTING", "PENDING"):
             expected[(c.actor, f"G:{c.id}")] = c.G
         if c.is_nested() and c.state == "AVAILABLE":
             expected[(c.requester, f"beta:{c.id}")] = c.beta
         if c.is_nested() and c.rejection_bond > EPS:
             expected[(c.requester, f"rej:{c.id}")] = c.rejection_bond
-    for r in _reviews(w, reviews):
+
+
+def _I15_expected_reviews(reviews, expected):
+    for r in reviews:
         if r.status in ("open", "done"):
             expected[(r.reviewer, f"bond:{r.id}")] = r.bond
+
+
+def _I15_compare(w, expected):
+    L = w.ledger
     actual = {(wid, key): amt for wid, d in L.locks.items() for key, amt in d.items() if amt > EPS}
     for k, amt in expected.items():
         if abs(actual.get(k, 0.0) - amt) > EPS:
@@ -281,6 +342,14 @@ def I15_locks_reconcile(w, cases=None, reviews=None):
     for k in actual:
         if k not in expected:
             _fail(f"I15 lock record {k} has no live obligation")
+
+
+def _log_pos(c, entry) -> int:
+    """A case log entry is (t, msg, committed position); anything else is a tampered copy."""
+    if not isinstance(entry, (tuple, list)) or len(entry) != 3 or isinstance(entry[2], bool) \
+            or not isinstance(entry[2], int):
+        _fail(f"I16 case log of {c.id} holds a malformed entry: {entry!r}")
+    return entry[2]
 
 
 def _check_case_log(w, c, want):
@@ -296,21 +365,57 @@ def I16_history_is_authoritative(w):
     """The History chain verifies, and every working copy is a complete, ordered, faithful
     projection of it: the ledger's event list holds exactly the committed ledger entries in
     order, and each case log holds exactly that case's committed entries in order. The
-    History is the record; the copies are checked against it, never the other way round."""
+    History is the record; the copies are checked against it, never the other way round.
+
+    Established in two passes that stream the record rather than index it. Over the record:
+    the ledger entries are paired one-to-one, in order, with the event copy, and each case
+    entry is found in its case's log at the position the log claims. Over the cases: each log
+    is strictly increasing in committed position, and the logs together hold exactly as many
+    entries as the record holds case entries. A log entry names one position and one case, so
+    the entries matched are distinct; equal counts make the match a bijection, and the
+    increasing positions make it order-preserving — the same fact the v1.0.1 engine
+    established by listing every case's positions."""
     if not w.history.verify():
         _fail("I16 history chain does not verify")
-    committed_ledger = [i for i, e in enumerate(w.history.entries) if e["kind"] == "ledger"]
-    if len(w.ledger.events) != len(committed_ledger):
-        _fail(f"I16 ledger copy holds {len(w.ledger.events)} events; the record holds {len(committed_ledger)}")
-    for e, hseq in zip(w.ledger.events, committed_ledger):
-        if e.hseq != hseq or not w.history.matches(hseq, "ledger", e.payload()):
-            _fail(f"I16 ledger event #{e.seq} ({e.kind}) differs from its committed entry")
-    committed_case: dict[str, list[int]] = {}
+    events = iter(w.ledger.events)
+    n_ledger = n_case = matched = 0
     for i, e in enumerate(w.history.entries):
-        if e["kind"] == "case":
-            committed_case.setdefault(e["payload"]["case"], []).append(i)
+        if e["kind"] == "ledger":
+            n_ledger += 1
+            ev = next(events, None)
+            if ev is None:
+                _fail(f"I16 ledger copy holds {n_ledger - 1} events; the record holds more")
+            if ev.hseq != i or not w.history.matches(i, "ledger", ev.payload()):
+                _fail(f"I16 ledger event #{ev.seq} ({ev.kind}) differs from its committed entry")
+        elif e["kind"] == "case":
+            n_case += 1
+            cid = e["payload"]["case"]
+            c = _peek(w.cases, cid) if cid in w.cases else None
+            log = c.log if c is not None else []
+            lo, hi = 0, len(log)                 # first log entry at a committed position >= i
+            while lo < hi:
+                mid = (lo + hi) // 2
+                if _log_pos(c, log[mid]) < i:
+                    lo = mid + 1
+                else:
+                    hi = mid
+            k = lo
+            if k >= len(log) or _log_pos(c, log[k]) != i or \
+                    (log[k][0], cid, log[k][1]) != (e["payload"]["t"], e["payload"]["case"], e["payload"]["msg"]):
+                _fail(f"I16 committed case entry #{i} for {cid} is not in its case log")
+            matched += 1
+    if next(events, None) is not None:
+        _fail(f"I16 ledger copy holds {len(w.ledger.events)} events; the record holds {n_ledger}")
+    total = 0
     for c in w.cases.values():
-        _check_case_log(w, c, committed_case.get(c.id, []))
+        last = -1
+        for entry in c.log:
+            if _log_pos(c, entry) <= last:
+                _fail(f"I16 case log of {c.id} is not in committed order: {entry!r}")
+            last = entry[2]
+        total += len(c.log)
+    if total != matched or total != n_case:
+        _fail(f"I16 case logs hold {total} entries; the record holds {n_case}")
 
 
 def I16_tick(w, cases, new_events, hist_from: int):
@@ -320,8 +425,8 @@ def I16_tick(w, cases, new_events, hist_from: int):
     against the positions the engine committed them at."""
     if not w.history.verify_new():
         _fail("I16 history chain does not verify")
-    committed_ledger = [i for i in range(hist_from, len(w.history.entries))
-                        if w.history.entries[i]["kind"] == "ledger"]
+    committed_ledger = [i for i, e in enumerate(w.history._iter_from(hist_from), hist_from)
+                        if e["kind"] == "ledger"]
     if len(new_events) != len(committed_ledger):
         _fail(f"I16 ledger copy gained {len(new_events)} events; the record gained {len(committed_ledger)}")
     for e, hseq in zip(new_events, committed_ledger):
@@ -336,24 +441,36 @@ def I17_debts_and_claims_reconcile(w, cases=None, reviews=None):
     pending field covers it; the pending fields sum to the claims; no ended nested obligation
     still carries a rejection bond."""
     pending = {}
-    for r in _reviews(w, reviews):
+    _I17_reviews(w, _reviews(w, reviews), pending)
+    _I17_claims(w, pending)
+    _I17_cases(_cases(w, cases))
+
+
+def _I17_reviews(w, reviews, pending):
+    for r in reviews:
         if r.deferred < -EPS or r.reimbursed_pending < -EPS or r.reimbursed < -EPS:
             _fail(f"I17 review {r.id} has a negative reimbursement field")
-        if r.reimbursed + r.reimbursed_pending + r.deferred > min(r.cost, w.cases[r.case].K) + EPS:
+        if r.reimbursed + r.reimbursed_pending + r.deferred > min(r.cost, _peek(w.cases, r.case).K) + EPS:
             _fail(f"I17 review {r.id} reimbursed beyond its capped cost")
         if r.reimbursed_pending > EPS:
             pending[r.id] = r.reimbursed_pending
+
+
+def _I17_claims(w, pending):
     claimed = {}
     for cl in w.omega_claims:
         if cl.amount <= EPS or cl.review not in w.reviews:
             _fail(f"I17 malformed Ω claim {cl!r}")
-        if w.reviews[cl.review].reviewer != cl.reviewer:
+        if _peek(w.reviews, cl.review).reviewer != cl.reviewer:
             _fail(f"I17 Ω claim {cl!r} names the wrong reviewer")
         claimed[cl.review] = claimed.get(cl.review, 0.0) + cl.amount
     for rid in set(pending) | set(claimed):
         if abs(pending.get(rid, 0.0) - claimed.get(rid, 0.0)) > EPS:
             _fail(f"I17 review {rid}: pending {pending.get(rid, 0.0)} != claims {claimed.get(rid, 0.0)}")
-    for c in _cases(w, cases):
+
+
+def _I17_cases(cases):
+    for c in cases:
         if c.is_nested() and c.state in ("VESTED", "FINAL_N", "CANCELLED", "WITHDRAWN") and c.rejection_bond > EPS:
             _fail(f"I17 nested {c.id} is {c.state} but still carries a rejection bond")
 
@@ -367,7 +484,7 @@ def I18_no_audit_outlives_a_ruling(w, cases=None):
             continue
         t_rule = min(a[0] for a in ruled)
         for rid in c.reviews:
-            r = w.reviews[rid]
+            r = _peek(w.reviews, rid)
             if r.role != "audit":
                 continue
             if r.t_assign > t_rule:
@@ -385,10 +502,59 @@ CHECKS = [I1_conservation, I2_no_negative_or_nonfinite_balances, I3_mints_and_bu
           I18_no_audit_outlives_a_ruling]
 
 
-def check_all(world):
-    """The full audit: every predicate over everything, the record re-hashed from genesis."""
-    for chk in CHECKS:
-        chk(world)
+CHUNK = 2048
+
+
+def _audit_events(w) -> dict:
+    """One pass over every ledger event, for the full audit: I3 on each; the court-fee
+    reimbursement count per case (I4); and no movement on account of a vested case after its
+    vesting (I10). Returns the counts."""
+    reimb: dict[str, int] = {}
+    for e in w.ledger.events:
+        _I3_one(e)
+        cid = e.case
+        if cid is None:
+            continue
+        if e.kind == "forfeit_to" and "court fee" in e.note:
+            reimb[cid] = reimb.get(cid, 0) + 1
+        if cid in w.cases:
+            _I10_event(e, _peek(w.cases, cid))
+    return reimb
+
+
+def check_all(w):
+    """The full audit: every predicate over everything, the record re-hashed from genesis.
+    The record is streamed — one pass over the events, one over the reviews, one over the
+    cases in chunks, two for I16 — so that in record mode nothing paged out is pulled back
+    into memory whole. The facts established are those of the predicates above, which is
+    what `check_tick` runs over the working set."""
+    I1_conservation(w)
+    reimb = _audit_events(w)                                 # I3; the per-event halves of I4 and I10
+    I9_reserve(w)
+    open_by, expected, pending = {}, {}, {}
+    _I14_reviews(w.reviews.values(), open_by)
+    _I15_expected_reviews(w.reviews.values(), expected)
+    _I17_reviews(w, w.reviews.values(), pending)
+    _I14_actors(w, open_by)
+    _I17_claims(w, pending)
+    I2_no_negative_or_nonfinite_balances(w, [])              # the wallets and the reserve
+    for chunk in _chunks(w.cases.values(), CHUNK):
+        I2_no_negative_or_nonfinite_balances(w, chunk)       # the chunk's pools
+        I4_court_fee_once_and_within_bond(w, chunk, reimb=reimb)
+        I5_no_vest_with_open_items(w, chunk)
+        I6_commit_before_audit(w, chunk)
+        I7_child_milestone_before_parent_submit(w, chunk)
+        I8_positions_bound(w, chunk)
+        I10_no_post_vesting_adjudication_moves_money(w, chunk, events=False)
+        I11_exclusive_failure_indicators(w, chunk)
+        I12_frozen_nominals(w, chunk)
+        I13_grade_provenance(w, chunk)
+        _I15_expected_cases(chunk, expected)
+        _I17_cases(chunk)
+        I18_no_audit_outlives_a_ruling(w, chunk)
+    _I15_wallets(w)
+    _I15_compare(w, expected)
+    I16_history_is_authoritative(w)
 
 
 def check_tick(w):

@@ -20,9 +20,11 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Optional
 import math
+import os
 
 from .params import Params
 from .ledger import Ledger, LedgerError, History, amount
+from .record import Archive, PagedDict
 
 
 class RuleError(Exception):
@@ -223,8 +225,19 @@ class World:
         need = n * params.float_per_actor + params.Omega0
         if need > params.M0:
             raise RuleError(f"initialization invalid: {n} actors need {need} > M0={params.M0} (§19)")
-        self.history = History()
-        self.ledger = Ledger(params.Res0, params.v0, history=self.history)
+        # The record. In memory by default. With `record_dir` set, the History and the event
+        # copy are written through to files there, and settled cases and reviews are paged out
+        # to archives; RAM then holds the working set (sim/record.py). Same behaviour either way.
+        self._paged = bool(params.record_dir)
+        if self._paged:
+            rd = params.record_dir
+            os.makedirs(rd, exist_ok=True)
+            self.history = History(path=os.path.join(rd, "history.jsonl"))
+            self.ledger = Ledger(params.Res0, params.v0, history=self.history,
+                                 events_path=os.path.join(rd, "events.jsonl"))
+        else:
+            self.history = History()
+            self.ledger = Ledger(params.Res0, params.v0, history=self.history)
         self.actors: dict[str, Actor] = {}
         for a in actors:
             self.actors[a] = Actor(a, p_audit=params.p_start, _world=self)
@@ -247,8 +260,23 @@ class World:
             self.actors[a].on_duty = True
             self.actors[a].duty_since = 0
         self.enforce_reserve = enforce_reserve
-        self.cases: dict[str, Case] = {}
-        self.reviews: dict[str, Review] = {}
+        self._case_entries: dict[str, list[int]] = {}   # case id -> positions of its History entries
+        if self._paged:
+            # a paged-out case takes its History positions with it and brings them back when it
+            # becomes resident again; a transient copy for an audit leaves them alone
+            def pack_case(c):
+                return c, self._case_entries.pop(c.id, [])
+
+            def unpack_case(blob, resident):
+                c, entries = blob
+                if resident:
+                    self._case_entries[c.id] = entries
+                return c
+            self.cases = PagedDict(Archive(os.path.join(rd, "cases.pickle")), "q", pack_case, unpack_case)
+            self.reviews = PagedDict(Archive(os.path.join(rd, "reviews.pickle")), "r")
+        else:
+            self.cases: dict[str, Case] = {}
+            self.reviews: dict[str, Review] = {}
         self.omega_claims: list[Claim] = []    # (reviewer, amount) FIFO, each carrying its review
         self._n_case = 0
         self._n_review = 0
@@ -261,7 +289,6 @@ class World:
         self._live_cases: dict[str, Case] = {}
         self._live_reviews: dict[str, Review] = {}
         self._dirty_cases: set[str] = set()
-        self._case_entries: dict[str, list[int]] = {}   # case id -> positions of its History entries
         self._court_fee_reimb: dict[str, int] = {}      # case id -> court-fee reimbursements recorded
         self._violations: list[str] = []                # I4/I10 facts established as events were recorded
         self._events_checked = 0                        # ledger events already checked by the tick check
@@ -1361,7 +1388,41 @@ class World:
             del self._live_cases[cid]
         for rid in [rid for rid, r in self._live_reviews.items() if self._review_quiescent(r)]:
             del self._live_reviews[rid]
+        # the v1.0.1 engine scanned every case each tick; a settled case touched again that can
+        # still change therefore belongs in the working set, in creation order like the rest
+        back = [cid for cid in self._dirty_cases
+                if cid not in self._live_cases and cid in self.cases and not self._case_quiescent(self.cases[cid])]
+        if back:
+            for cid in back:
+                self._live_cases[cid] = self.cases[cid]
+            self._live_cases = dict(sorted(self._live_cases.items(), key=lambda kv: int(kv[0][1:])))
+        if self._paged:
+            self._page_out()
         self._dirty_cases.clear()
+
+    def _page_out(self):
+        """Record mode: a resident case outside the working set, with nothing left to change,
+        goes to the archive with its reviews; its per-case indexes and its empty pool go too."""
+        for cid, c in self.cases.resident_items():
+            if cid in self._live_cases or not self._case_quiescent(c):
+                continue
+            self.ledger.events_by_case.pop(cid, None)
+            pl = self.ledger.pools.get(cid)
+            if pl is not None and abs(pl.escrow) + abs(pl.deposit) + abs(pl.minted) <= 1e-12:
+                del self.ledger.pools[cid]            # an empty pool is recreated empty on demand
+            self.cases.evict(cid)
+        for rid, r in self.reviews.resident_items():
+            if not self.cases.is_resident(r.case):
+                self.reviews.evict(rid)
+
+    def close(self):
+        """Record mode: flush and close the files. The record on disk is then complete; the
+        world is not to be read or advanced afterwards."""
+        if self._paged:
+            self.history.entries.close()
+            self.ledger.events.close()
+            self.cases.close()
+            self.reviews.close()
 
     # ---------------------------------------------------------------- views
     def distinct_reviewers(self, cid: str) -> int:

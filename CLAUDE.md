@@ -20,9 +20,9 @@ HANDOFF.md                                   status, history table, open questio
 
 ```
 cd agentic_sim
-python3 run_tests.py        # expected: 161 passed, 0 failed, 24 expected failures
+python3 run_tests.py        # expected: 167 passed, 0 failed, 24 expected failures
 python3 -S run_tests.py     # same, with no site-packages
-python3 -m pytest tests -q  # expected: 161 passed, 24 xfailed, 0 xpassed (conftest mirrors the runner)
+python3 -m pytest tests -q  # expected: 167 passed, 24 xfailed, 0 xpassed (conftest mirrors the runner)
 ```
 
 Any other result is a regression — including an XPASS. The 24 expected failures each have a stated
@@ -67,6 +67,13 @@ While building strategy runs, the baseline stays frozen. Drivers live in their o
   the working set and comes back through `_dirty_cases` when touched again. New engine code that
   mutates a case must do so through an operation that logs to the case or moves money on its
   account; that is what marks it dirty.
+- With `Params.record_dir` set, the record lives on disk (`sim/record.py`): the History and the
+  event copy are journals written through to files, and settled cases and reviews are paged out
+  to archives, so RAM holds the working set. `w.cases[k]` makes an object resident (for code that
+  may change it); `peek` and iteration give a read-only copy without pulling the archive in — the
+  invariants use `_peek`, and new audit code must too. `check_all` streams the record in chunks.
+  `tests/test_record_mode.py` proves the fingerprint is identical to the in-memory run and that
+  the chain re-hashes from the file alone. Without `record_dir` nothing in `record.py` is used.
 - Reviewer test files (`tests/test_review*.py`) are kept **verbatim**. Never edit one to make it
   pass; if a reviewer test must fail, add it to `EXPECTED_FAIL` with the reason, and mirror it in
   `tests/conftest.py`.

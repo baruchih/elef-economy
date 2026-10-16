@@ -211,7 +211,25 @@ operations only"); and `drivers/stamping.py`, the first scoped economics run —
 careful versus careless review — with its permitted and excluded operations, populations, orchestrator
 policy and measures declared in its docstring and written into every run's manifest. A run's results
 are its evidence; the record on disk from record mode is not kept, the History head in the manifest
-commits to it. The engine
+commits to it.
+
+## First scoped result — stamping at the defaults (October 16, 2026) — an evaluation under §19
+
+`drivers/stamping.py`, 20 actors, 1,000 ticks, 3 tasks per tick at β = 20, b = 0.2, careful accuracy
+0.95 and cost 2–3, stamper F at cost 0, p_start 0.5, G^V 5, five seeds per split; every run passed its
+final audit and a rerun under a different hash seed reproduced the head. Results in
+`agentic_sim/results/runs/*stamping*`. At a 50/50 split the **stampers end richer in four of five
+seeds** (per actor, mean over seeds: 4,185 against 3,936). The channel is the one §7.3 predicts: a
+careful reviewer's care cost is reimbursed from the case's verification deposit, which is the same pool
+its fee comes from, so care is paid for out of the reviewer's own fee — stampers earned 1.6 more per
+review. Deterrence ran the other way but smaller: careful actors won more awards (153.5 against 146.5
+per actor, +130 in delivery income) and stampers forfeited three times the bonds (29 against 9.5) — but
+only a quarter of the rolled audits found an eligible auditor, and a stamper lost 3% of its reviews to
+overturn, so ρ separated by only 0.02. At 10/90 the two careful actors broke even with the stampers and
+the economy recorded 531 false approvals out of 3,000 tasks, with label accuracy 0.82 under both grades.
+Under §19 this is an evaluation, not a rule finding: the sweep over (p_start, G^V, b) says where the
+sign flips, and the reviewer-capacity ceiling (a submitted case waited for an eligible reviewer in about
+950 of 1,000 ticks) is a confound to be sized before the result is read as being about the rules. The engine
 and its tests stay as they are; a driver that needs an engine change has found either a conformance bug
 (fix + regression) or a design question (write it up, do not patch around it).
 

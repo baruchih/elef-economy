@@ -11,7 +11,8 @@ Task world. Each task has a hidden truth: it fails at base rate b, independent o
 (actor competence is question 2's subject and is kept out). Actors are the same population as
 reviewers — the reserve rotates through them — and each has a fixed reviewing disposition:
 
-  careful   verdict equals the truth with probability a; costs 2–3 credits per review (within K)
+  careful   verdict equals the truth with probability a; costs 2–3 credits per review (within K),
+            or what its unlocked credit can buy when earlier bonds have left it short (counted)
   stamper   always F, cost 0
 
 Orchestrator. Every free actor offers the ceiling (B = β) with the same τ, so S_θ = ρ − λB/β
@@ -32,6 +33,7 @@ defaults) and the question is whether lost awards and forfeited bonds outweigh i
 """
 from __future__ import annotations
 import argparse
+import math
 import os
 import random
 import sys
@@ -98,7 +100,7 @@ class Stamping:
         self.w = Public(world)
         self._world = world            # for the final check_all and the fingerprint only
         self.tasks: dict[str, Task] = {}
-        self.active: set[str] = set()
+        self.active: dict[str, bool] = {}        # ordered: creation order, never a set (determinism)
         self.tally = {aid: Tally() for aid in self.actors}
         self.review_owner: dict[str, str] = {}          # rid -> reviewer, for overturn counting
         self.n_events = 0
@@ -107,17 +109,27 @@ class Stamping:
         self.c = {"posted": 0, "awarded": 0, "vested": 0, "final_n": 0, "false_approvals": 0, "false_rejections": 0,
                   "audits_rolled": 0, "audits_assigned": 0, "audit_unassignable_ticks": 0, "audits_lapsed": 0,
                   "challenges": 0, "rulings": 0, "rulings_wrong": 0, "reviews_unassignable_ticks": 0,
-                  "awards_unfilled_ticks": 0, "appeals_unassignable_ticks": 0}
+                  "awards_unfilled_ticks": 0, "appeals_unassignable_ticks": 0, "underfunded_careful_reviews": 0}
         self.by_grade = {g: [0, 0] for g in GRADES}       # grade -> [cases, correct]
         self.title_n = 0
 
     # -- populations -------------------------------------------------------------
     def verdict(self, reviewer: str, truth: bool) -> tuple[str, float]:
+        """A stamper answers F at no cost. A careful reviewer answers the truth with probability a
+        and pays its care cost, 2 or 3 credits of real resources — or as much of it as its unlocked
+        credit can buy, when bonds locked in earlier reviews have left it short (the engine refuses
+        an unaffordable purchase whole). Accuracy is a parameter of the disposition, not of the
+        money spent; the shortfall is counted as `underfunded_careful_reviews`."""
         if self.kind[reviewer] == STAMPER:
             return F, 0.0
         right = self.rng.random() < self.a.accuracy
         v = F if (truth == right) else N
-        return v, float(self.rng.randint(2, 3))
+        want = float(self.rng.randint(2, 3))
+        affordable = self.w.unlocked(reviewer) * self.w.money()["v"] - 1e-6     # real units purchasable
+        if affordable >= want:
+            return v, want
+        self.c["underfunded_careful_reviews"] += 1
+        return v, max(0.0, math.floor(affordable * 100) / 100)
 
     def free_workers(self) -> list[str]:
         out = []
@@ -156,7 +168,7 @@ class Stamping:
             cid = w.post_root("H", a.beta)
             self.title_n += 1
             self.tasks[cid] = Task(cid, f"task #{self.title_n}", fulfilled=self.rng.random() >= a.fail_rate)
-            self.active.add(cid)
+            self.active[cid] = True
             self.c["posted"] += 1
         # orchestrator awards
         for cid in sorted(self.active, key=lambda s: int(s[1:])):
@@ -286,7 +298,7 @@ class Stamping:
                 for rid in c.reviews:
                     if w.review(rid).status == "overturned":
                         self.tally[w.review(rid).reviewer].overturned += 1
-                self.active.discard(cid)
+                self.active.pop(cid, None)
 
     # -- metrics row ---------------------------------------------------------------
     def row(self, t: int) -> dict:
@@ -354,7 +366,8 @@ def main(argv=None):
                                 "beta": a.beta, "work_ticks": a.work_ticks, "seed": a.seed,
                                 "dispositions": {"stamper_fraction": a.stampers,
                                                  "assignment": dict(sorted(run.kind.items())),
-                                                 "careful": {"accuracy": a.accuracy, "cost": "uniform {2, 3} credits"},
+                                                 "careful": {"accuracy": a.accuracy, "cost": "uniform {2, 3} credits, or what unlocked "
+                                                                                           "credit can buy (counted as underfunded)"},
                                                  "stamper": {"verdict": "F", "cost": 0}},
                                 "task_world": {"fail_rate_b": a.fail_rate, "truth": "hidden, independent of actor"},
                                 "orchestrator": {"selection": "argmax ρ − λB/β at B = β; κ tie band; lowest id",
@@ -403,7 +416,8 @@ def main(argv=None):
     print(f"  posted={final['posted']} vested={final['vested']} final_N={final['final_n']} false_approvals={final['false_approvals']} "
           f"false_rejections={final['false_rejections']} audits rolled/assigned/lapsed={final['audits_rolled']}/{final['audits_assigned']}/"
           f"{final['audits_lapsed']} challenges={final['challenges']} rulings={final['rulings']} "
-          f"reviews_unassignable_ticks={final['reviews_unassignable_ticks']} awards_unfilled_ticks={final['awards_unfilled_ticks']}")
+          f"reviews_unassignable_ticks={final['reviews_unassignable_ticks']} awards_unfilled_ticks={final['awards_unfilled_ticks']} "
+          f"underfunded_careful_reviews={final['underfunded_careful_reviews']}")
     return 0 if ok else 1
 
 

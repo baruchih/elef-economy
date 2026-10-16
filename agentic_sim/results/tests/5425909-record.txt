@@ -1,0 +1,212 @@
+# run_tests.py — 2026-10-16T16:58:46Z — engine 5425909 — Python 3.13.11 — _mini_pytest — record mode (--record)
+== test_spec
+PASS  test_main_path_nets_and_escrow
+PASS  test_main_path_with_service_fee
+PASS  test_silence_without_audit_is_protocol_default_and_explicit_accept_is_human
+PASS  test_delegate_root_requester_grade
+PASS  test_appeal_variant
+PASS  test_pool_exhaustion_withdrawal_before_deadline
+PASS  test_pool_exhaustion_unreachable_when_deadline_comes_first
+PASS  test_cancellation_before_submission_pays_kill_fee
+PASS  test_cancellation_unavailable_after_submission
+PASS  test_kill_fee_exceeding_escrow_comes_from_unlocked_and_must_be_fundable
+PASS  test_nested_rejection_is_bonded_and_reimburses_the_appellant
+PASS  test_shortfall_haircut_single_payout_rule
+PASS  test_nominals_frozen_at_award_under_dilution
+PASS  test_timeout_replacement_positions_vs_distinct_reviewers
+PASS  test_dispute_at_window_end_suspends_vesting_and_override_after_vesting_moves_no_money
+PASS  test_override_before_vesting_is_the_ruling
+PASS  test_late_challenge_is_not_admitted
+PASS  test_resource_purchase_is_value_neutral_and_emission_dilutes
+PASS  test_reserve_exhaustion_is_a_halt_state_not_a_price
+PASS  test_initialization_validity
+PASS  test_reserve_invariant_enforced_when_enabled
+PASS  test_guards
+PASS  test_bot_is_a_claim_evidence_resumes_same_reviewer
+== test_review_regressions
+PASS  test_review_01_busy_reviewer_cannot_accept_another_review
+PASS  test_review_02_timed_out_appeal_position_can_be_reassigned
+PASS  test_review_03_timed_out_audit_position_can_be_reassigned
+PASS  test_review_04_reimbursement_uses_spent_credits_not_real_cost
+PASS  test_review_05_unawarded_nested_bond_is_reconciled_at_award
+PASS  test_review_06_future_service_fee_pays_fifo_reimbursement_claim
+PASS  test_review_07_overturned_review_keeps_eligible_reimbursement_claim
+PASS  test_review_08_prevesting_override_reconciles_original_review
+PASS  test_review_09_postvesting_override_updates_affected_reviewer
+PASS  test_review_10_nested_override_keeps_nested_grade_procedural
+PASS  test_review_11_only_one_partial_revision_is_permitted
+XFAIL test_review_12_appeal_can_uphold_a_cannot_assess_claim — appeals of ⊥ must state the objection disposition explicitly…
+PASS  test_review_13_pool_exhaustion_withdraws_all_unawarded_children
+PASS  test_review_14_failed_award_has_no_partial_financial_effects
+PASS  test_review_15_failed_appeal_does_not_consume_challenge_round
+PASS  test_review_16_invalid_resource_cost_is_rejected[-10.0]
+PASS  test_review_16_invalid_resource_cost_is_rejected[nan]
+PASS  test_review_17_kill_fee_includes_completed_subcontract_costs
+PASS  test_review_18_unused_deposit_returned_when_no_review_entitled
+PASS  test_review_19_duty_credit_uses_trailing_100_ticks
+== test_v05
+PASS  test_bot_appeal_upheld_original_stands_actor_bears_fee
+PASS  test_bot_appeal_rejected_original_overturned_and_fulfillment_decides
+PASS  test_bot_appeal_objection_must_be_stated_and_consistent
+PASS  test_nested_case_is_denominated_at_posting
+PASS  test_kill_fee_counts_completed_subcontract_payments_and_resource_spend
+PASS  test_unfundable_award_and_unpaid_filing_change_nothing
+PASS  test_one_active_assignment_including_attached_reviewer_after_bot
+PASS  test_prevesting_override_overturns_contradicting_reviews_and_voids_open_ones
+PASS  test_omega_claims_are_serviced_fifo_from_any_inflow
+PASS  test_rotation_swaps_replacement_before_release_with_lowest_kappa_incoming
+PASS  test_volunteer_is_not_rotated_out
+PASS  test_observe_hides_verdicts_identities_and_role
+PASS  test_history_chain_detects_tampering
+PASS  test_revision_window_and_binary_re_review
+PASS  test_overturned_reviewer_keeps_cost_claim_but_not_fee_or_bond
+== test_review2_interactions
+PASS  test_r4_01_unknown_case_spend_is_atomic
+PASS  test_r4_02_unfundable_fee_pool_payment_is_atomic
+PASS  test_r4_03_refused_override_cannot_supply_later_human_provenance
+PASS  test_r4_04_override_during_open_appeal_voids_unfinished_reviewers
+PASS  test_r4_05_bot_override_cannot_uphold_missing_evidence_and_fulfill
+PASS  test_r4_06_audit_timeout_after_window_does_not_skip_replacement
+PASS  test_r4_07_all_overturned_reviews_still_have_their_cost_claims
+PASS  test_r4_08_fifo_repayment_updates_the_correct_review
+PASS  test_r4_09_partial_fulfillment_cannot_open_an_appeal
+PASS  test_r4_10_explicit_acceptance_is_in_the_committed_history
+PASS  test_r4_11_tampering_with_a_record_copy_is_detected['ledger_event']
+PASS  test_r4_11_tampering_with_a_record_copy_is_detected['case_log']
+PASS  test_r4_12_appeal_view_exposes_the_required_objection_task
+PASS  test_r4_13_nested_override_resolves_rejection_collateral
+== test_v06
+PASS  test_refused_actions_leave_no_trace
+PASS  test_vacated_audit_holds_the_case_until_refilled_or_waived
+PASS  test_dispute_folds_in_a_vacated_audit
+PASS  test_override_with_open_challenge_voids_open_reviews_and_rules_once
+PASS  test_override_contradicting_a_nested_rejection_forfeits_the_rejection_bond
+PASS  test_override_confirming_a_nested_rejection_releases_the_bond
+PASS  test_cost_debts_are_paid_from_the_deposit_before_it_is_returned
+PASS  test_claims_carry_their_review_and_print_as_pairs
+PASS  test_appeal_and_dispute_views_state_their_question
+PASS  test_every_participant_action_is_committed_and_copies_are_checked
+== test_review3_boundaries
+PASS  test_r5_a_unfunded_dispute_keeps_vacated_audit_obligation
+PASS  test_r5_b_direct_nested_acceptance_override_releases_rejection_bond
+PASS  test_r5_c_follow_on_audit_uses_live_ruling_or_is_refused['N']
+PASS  test_r5_c_follow_on_audit_uses_live_ruling_or_is_refused['F']
+PASS  test_r5_d_replacement_retains_resubmitted_result_constraints[('P', 'revise')]
+PASS  test_r5_d_replacement_retains_resubmitted_result_constraints[('⊥', 'supply_evidence')]
+PASS  test_r5_e_parent_submission_after_child_timeout_is_consistent_or_refused
+PASS  test_r5_f_challenger_explanation_is_bound_to_history
+PASS  test_r5_g_working_copy_omissions_are_detected['case_log']
+PASS  test_r5_g_working_copy_omissions_are_detected['ledger_transfers']
+PASS  test_r5_control_funded_dispute_replaces_a_vacated_audit
+PASS  test_r5_control_judged_nested_rejection_override_releases_bond
+PASS  test_r5_control_new_review_on_original_submission_can_report_partial
+PASS  test_r5_control_editing_existing_committed_copy_is_detected
+== test_v07
+PASS  test_audit_after_override_is_refused_and_vesting_proceeds
+PASS  test_audit_agreement_is_judged_against_the_live_assessment
+PASS  test_child_that_missed_delivery_does_not_block_the_parent
+PASS  test_unjudged_submitted_child_still_blocks_the_parent
+PASS  test_replacement_reviewer_inherits_the_resubmitted_stage
+PASS  test_unfunded_dispute_is_refused_whole_under_full_defaults
+PASS  test_human_accepts_submitted_child_before_parent_judges
+PASS  test_appeal_grounds_change_the_history_head
+PASS  test_omitted_or_reordered_copy_entries_are_detected
+== test_review4_followthrough
+PASS  test_requester_dispute_after_ruling_is_refused_whole_or_settles
+PASS  test_actual_human_override_of_delegate_request_is_consistent['before_F']
+PASS  test_actual_human_override_of_delegate_request_is_consistent['before_N']
+PASS  test_actual_human_override_of_delegate_request_is_consistent['after_N']
+PASS  test_other_actor_cost_cannot_become_contractor_kill_fee
+PASS  test_spend_on_vested_case_is_rejected_whole_or_invariant_consistent
+PASS  test_non_text_grounds_cannot_partially_admit_an_appeal
+PASS  test_post_settlement_bot_correction_reaches_the_original_reviewer
+PASS  test_control_fulfilled_root_under_full_defaults
+PASS  test_control_requester_dispute_without_prior_ruling
+PASS  test_control_delegate_acceptance_keeps_delegate_grade
+PASS  test_control_contractor_own_cost_enters_kill_fee
+PASS  test_control_post_vesting_F_correction_reaches_reviewers_without_clawback
+== test_v08
+PASS  test_dispute_after_ruling_is_refused_without_trace
+PASS  test_human_ruling_on_delegate_request_is_human_explicit_on_every_route
+PASS  test_only_the_committed_actor_incurs_a_case_cost_and_only_while_executing
+PASS  test_non_text_grounds_refused_before_fee_for_appeal_and_dispute
+PASS  test_post_settlement_bot_correction_uses_the_two_question_rule
+PASS  test_released_duty_actor_is_not_reconscripted_in_the_same_tick
+== test_review5_contracts
+PASS  test_post_settlement_correction_uses_both_appeal_answers[('upheld', 'rejected', 'N')]
+PASS  test_post_settlement_correction_uses_both_appeal_answers[('rejected', 'upheld', 'N')]
+PASS  test_post_settlement_correction_uses_both_appeal_answers[('upheld', 'rejected', 'F')]
+PASS  test_post_settlement_correction_uses_both_appeal_answers[('upheld', 'upheld', 'N')]
+PASS  test_correction_reaches_completed_review_on_both_sides_of_batch[False-'ordinary_N']
+PASS  test_correction_reaches_completed_review_on_both_sides_of_batch[False-'bot_upheld']
+PASS  test_correction_reaches_completed_review_on_both_sides_of_batch[True-'ordinary_N']
+PASS  test_correction_reaches_completed_review_on_both_sides_of_batch[True-'bot_upheld']
+XFAIL test_identical_fulfillment_views_have_same_response_admissibility['F'] — superseded in v0.10: an initial review's view and an audit's…
+XFAIL test_identical_fulfillment_views_have_same_response_admissibility['N'] — superseded in v0.10: an initial review's view and an audit's…
+XFAIL test_identical_fulfillment_views_have_same_response_admissibility['P'] — superseded in v0.10: an initial review's view and an audit's…
+XFAIL test_identical_fulfillment_views_have_same_response_admissibility['⊥'] — superseded in v0.10: an initial review's view and an audit's…
+PASS  test_delegate_budget_does_not_itself_grant_human_override_power
+PASS  test_control_actual_human_can_override_delegate_request
+PASS  test_control_v08_ruling_blocks_dispute_atomically
+PASS  test_control_v08_rotation_releases_entire_original_roster
+PASS  test_control_fulfilled_task_cost_and_delivery_payment
+== test_v09
+PASS  test_delegate_may_request_accept_and_dispute_but_not_rule
+PASS  test_correction_of_the_objection_alone_contradicts_appeal_reviewers
+PASS  test_ruling_between_finality_and_payout_overturns_the_review
+PASS  test_identical_views_identical_admissibility_for_all_four_verdicts
+PASS  test_a_resumed_initial_review_states_that_responses_are_closed
+== test_review6_reopening
+PASS  test_later_audit_answer_preserves_its_prior_authorization['F']
+PASS  test_later_audit_answer_preserves_its_prior_authorization['N']
+XFAIL test_later_audit_answer_preserves_its_prior_authorization['P'] — exercises the v0.9 audit-reopening rule, withdrawn in v0.10 …
+XFAIL test_later_audit_answer_preserves_its_prior_authorization['⊥'] — exercises the v0.9 audit-reopening rule, withdrawn in v0.10 …
+XFAIL test_later_resumed_audit_preserves_its_prior_authorization['F'] — exercises the v0.9 audit-reopening rule, withdrawn in v0.10 …
+XFAIL test_later_resumed_audit_preserves_its_prior_authorization['N'] — exercises the v0.9 audit-reopening rule, withdrawn in v0.10 …
+XFAIL test_later_child_audit_does_not_erase_the_parents_valid_milestone — exercises the v0.9 audit-reopening rule, withdrawn in v0.10 …
+XFAIL test_reopened_audit_timeout_has_a_replacement_path[('P', 'revise')] — exercises the v0.9 audit-reopening rule, withdrawn in v0.10 …
+XFAIL test_reopened_audit_timeout_has_a_replacement_path[('⊥', 'supply_evidence')] — exercises the v0.9 audit-reopening rule, withdrawn in v0.10 …
+XFAIL test_waiver_after_reopened_audit_timeout_cannot_make_obligation_count_negative — exercises the v0.9 audit-reopening rule, withdrawn in v0.10 …
+PASS  test_control_unreopened_audit_timeout_can_be_replaced
+XFAIL test_upheld_reopening_audit_appeal_stays_within_the_path_bound — exercises the v0.9 audit-reopening rule, withdrawn in v0.10 …
+XFAIL test_nested_audit_appeal_charges_the_auditor_not_the_requester['F'] — exercises the v0.9 audit-reopening rule, withdrawn in v0.10 …
+XFAIL test_nested_audit_appeal_charges_the_auditor_not_the_requester['N'] — exercises the v0.9 audit-reopening rule, withdrawn in v0.10 …
+XFAIL test_nested_abandoned_audit_records_the_premature_requester_approval — exercises the v0.9 audit-reopening rule, withdrawn in v0.10 …
+XFAIL test_control_root_reopening_audit_rejected_appeal_settles['F'] — exercises the v0.9 audit-reopening rule, withdrawn in v0.10 …
+XFAIL test_control_root_reopening_audit_rejected_appeal_settles['N'] — exercises the v0.9 audit-reopening rule, withdrawn in v0.10 …
+PASS  test_control_original_nested_rejection_appeal_uses_requester_bond
+XFAIL test_reopening_cannot_create_a_second_untracked_execution — exercises the v0.9 audit-reopening rule, withdrawn in v0.10 …
+XFAIL test_reopening_while_actor_reviews_preserves_one_active_assignment — exercises the v0.9 audit-reopening rule, withdrawn in v0.10 …
+XFAIL test_control_idle_actor_can_resume_a_reopened_audit — exercises the v0.9 audit-reopening rule, withdrawn in v0.10 …
+XFAIL test_merged_audit_reopening_keeps_the_dispute_answerable['P'] — exercises the v0.9 audit-reopening rule, withdrawn in v0.10 …
+XFAIL test_merged_audit_reopening_keeps_the_dispute_answerable['⊥'] — exercises the v0.9 audit-reopening rule, withdrawn in v0.10 …
+PASS  test_control_merged_audit_definitive_answer_settles['F']
+PASS  test_control_merged_audit_definitive_answer_settles['N']
+== test_v10
+PASS  test_an_audit_is_answered_F_or_N_and_the_view_says_so
+PASS  test_the_first_review_of_a_submission_may_answer_all_four_and_the_view_says_so
+PASS  test_no_review_may_answer_P_or_bot_after_a_resubmission_whoever_holds_it
+PASS  test_appeals_and_disputes_are_answered_F_or_N
+PASS  test_the_paths_the_eighth_review_found_are_closed_not_repaired
+== test_v101
+PASS  test_root_request_withdrawn_before_award_moves_no_money_and_is_terminal
+PASS  test_nested_request_withdrawn_before_award_releases_ceiling_and_rejection_bond
+PASS  test_withdrawal_after_award_is_refused_whole
+PASS  test_withdrawal_of_an_unknown_case_is_refused_whole
+== test_perf_equivalence
+PASS  test_full_audit_agrees_with_tick_check_and_behaviour_is_unchanged[1]
+PASS  test_full_audit_agrees_with_tick_check_and_behaviour_is_unchanged[2]
+PASS  test_scheduled_full_audit_runs_inside_advance
+PASS  test_tick_check_catches_an_engine_caused_violation_where_the_audit_does
+PASS  test_working_set_stays_bounded_while_the_record_grows
+== test_record_mode
+PASS  test_record_mode_reproduces_the_in_memory_run_and_the_golden[1]
+PASS  test_record_mode_reproduces_the_in_memory_run_and_the_golden[2]
+PASS  test_paged_out_case_comes_back_when_touched
+PASS  test_violation_on_a_paged_out_case_is_caught_by_both_checks
+PASS  test_resident_set_stays_bounded_while_the_record_grows
+PASS  test_journal_reads_like_the_list_it_replaces
+PASS  test_a_reference_held_across_paging_stays_the_same_object
+PASS  test_a_pickled_world_is_the_in_memory_world
+
+169 passed, 0 failed, 24 expected failures

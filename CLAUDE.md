@@ -20,9 +20,9 @@ HANDOFF.md                                   status, history table, open questio
 
 ```
 cd agentic_sim
-python3 run_tests.py        # expected: 167 passed, 0 failed, 24 expected failures
+python3 run_tests.py        # expected: 169 passed, 0 failed, 24 expected failures
 python3 -S run_tests.py     # same, with no site-packages
-python3 -m pytest tests -q  # expected: 167 passed, 24 xfailed, 0 xpassed (conftest mirrors the runner)
+python3 -m pytest tests -q  # expected: 169 passed, 24 xfailed, 0 xpassed (conftest mirrors the runner)
 python3 -m drivers.load_run --actors 200 --ticks 10000 --on-duty 40 --tasks 30 --record-dir /path  # throughput run
 ```
 
@@ -69,6 +69,10 @@ While building strategy runs, the baseline stays frozen. Drivers live in their o
   working set — cases and reviews that can still change, plus anything touched since the last tick.
   `tests/test_perf_equivalence.py` holds the proof that they agree and that the engine's History head
   is unchanged from v1.0.1. Keep new invariants in that shape: a predicate over an explicit scope.
+  The per-tick check is not configurable: `advance` always runs it. `full_check_every` only adds
+  the full audit on a cadence (0 = not scheduled; runs call `check_all` at the end), and
+  `record_dir` only moves where the record is stored. `python3 run_tests.py --record` runs the
+  whole suite in record mode as the storage layer's conformance check.
 - The engine keeps every case and review ever created in `cases` and `reviews`, and a working set
   (`_live_cases`, `_live_reviews`) that the tick loop and `check_tick` read. A settled case leaves
   the working set and comes back through `_dirty_cases` when touched again. New engine code that

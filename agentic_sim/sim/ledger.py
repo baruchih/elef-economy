@@ -224,6 +224,18 @@ class Ledger:
         if self.on_event is not None:
             self.on_event(e)
 
+    def __getstate__(self):
+        """A pickled ledger is an in-memory ledger: the journal pickles as a list, and the
+        per-case index — dropped for paged-out cases — is rebuilt for every case."""
+        state = self.__dict__.copy()
+        if isinstance(self.events, Journal):
+            by_case: dict = {}
+            for e in self.events:
+                if e.case is not None:
+                    by_case.setdefault(e.case, []).append(e)
+            state["events_by_case"] = by_case
+        return state
+
     def reconstruct_M(self) -> float:
         """Mints minus burns, recomputed from the whole event copy (the full audit)."""
         return (sum(e.amount for e in self.events if e.kind in self.MINTS)

@@ -17,6 +17,9 @@ record lives, never what the engine does. This file is that claim in test form:
      both checks, as in memory.
   4. The working set and the resident set stay bounded while the record grows.
   5. The Journal behaves as the list it replaces across its in-memory tail boundary.
+  6. An object held across paging keeps its identity, and a pickled world is the in-memory
+     world — the two properties the whole-suite run in record mode (`run_tests.py --record`)
+     found missing; that run now passes identically.
 """
 import hashlib
 import json
@@ -32,7 +35,7 @@ except ImportError:
     sys.path.insert(0, os.path.dirname(__file__))
     from _mini_pytest import pytest
 
-from sim import Params, World, InvariantError, check_all, check_tick
+from sim import Params, World, InvariantError, RuleError, check_all, check_tick
 from sim.engine import F, N
 from sim.record import Journal
 from test_perf_equivalence import ACTORS, GOLDEN, scenario, fingerprint, _states
@@ -184,5 +187,51 @@ def test_journal_reads_like_the_list_it_replaces():
         j.append(10)                                                 # across a tail trim
         assert j[-1] == 10 and j[3] == 3 and len(j) == 11
         j.close()
+    finally:
+        shutil.rmtree(rd, ignore_errors=True)
+
+
+def test_a_reference_held_across_paging_stays_the_same_object():
+    """What the whole-suite run in record mode (`run_tests.py --record`) first caught: a test
+    held `c = w.cases[q]` across the ticks in which q was paged out, then read `c` after an
+    override had brought q back — and saw the old object. In memory the object is stable
+    forever; record mode must give the same identity, not a copy."""
+    rd = _tmp()
+    try:
+        w = World(Params(record_dir=rd), ACTORS, humans={"H": 1000.0}, on_duty=ACTORS[:4])
+        q, _ = _vest_one(w)
+        c = w.cases[q]                                   # resident again by this read…
+        w.advance(w.t + 1)                               # …and paged out again, while `c` is held
+        assert not w.cases.is_resident(q)
+        assert w.cases.peek(q) is c                      # a read gives the held object, not a copy
+        w.override(q, "H", N)
+        assert w.cases[q] is c and c.outcome == N and c.grade == "human-explicit"
+        w.advance(w.t + 1)
+        check_all(w)
+        w.close()
+    finally:
+        shutil.rmtree(rd, ignore_errors=True)
+
+
+def test_a_pickled_world_is_the_in_memory_world():
+    """The reviewer suites snapshot a world as sha256(pickle.dumps(w)) before and after a refused
+    action. In record mode the journals pickle as lists and the paged mappings as dicts, and
+    paging bookkeeping (what is resident, which positions index is loaded) must not show."""
+    import pickle
+    rd = _tmp()
+    try:
+        w = World(Params(record_dir=rd), ACTORS, humans={"H": 1000.0}, on_duty=ACTORS[:4])
+        q, _ = _vest_one(w)
+        assert not w.cases.is_resident(q)
+        before = pickle.dumps(w, protocol=4)
+        with pytest.raises(RuleError):
+            w.spend("a05", 1.0, q)                       # refused: the case is vested; but q was loaded to say so
+        assert w.cases.is_resident(q)
+        assert pickle.dumps(w, protocol=4) == before     # the refusal changed nothing visible
+        m = pickle.loads(before)
+        assert isinstance(m.history.entries, list) and isinstance(m.cases, dict) and not m._paged
+        assert m.history.head == w.history.head and set(m.cases) == set(w.cases)
+        check_all(m)                                     # and it is a whole, auditable in-memory world
+        w.close()
     finally:
         shutil.rmtree(rd, ignore_errors=True)

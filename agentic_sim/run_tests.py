@@ -22,7 +22,8 @@ Suites:
   tests/test_perf_equivalence.py      the per-tick check equals the full audit, and the working-set engine reproduces
                                       the v1.0.1 engine's History head on a seeded random scenario
   tests/test_record_mode.py           the record on disk (Params.record_dir): same fingerprint as in memory, the
-                                      chain verifiable from the file alone, paged-out cases return when touched
+                                      chain verifiable from the file alone, paged-out cases return when touched;
+                                      `--record` runs every suite in record mode
 
 Expected failure, by design: the third review's case 12 appeals a ⊥ without stating whether
 the objection stood; §8.1 requires that disposition explicitly and refuses to infer it from
@@ -36,6 +37,40 @@ import traceback
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 sys.path.insert(0, os.path.join(HERE, "tests"))
+
+# `--record`: run the whole suite in record mode (Params.record_dir set on every World the tests
+# build), as a conformance check of the storage layer. Reviewer tests that edit the in-memory
+# event list by list surgery (slice assignment, swapping) cannot be expressed on a journal and are
+# reported as what they are; everything else must pass identically. Results go to
+# results/tests/<commit>-record.txt.
+RECORD = "--record" in sys.argv
+if RECORD:
+    import shutil
+    import tempfile
+    from sim.engine import World
+    _orig_world_init = World.__init__
+    _record_root = tempfile.mkdtemp(prefix="agentic_record_suite_")
+    _worlds: list = []
+
+    def _record_init(self, params, *a, **k):
+        if params.record_dir is None:
+            params.record_dir = os.path.join(_record_root, f"w{len(_worlds) + 1}")
+        _worlds.append(self)
+        _orig_world_init(self, params, *a, **k)
+    World.__init__ = _record_init
+
+    def _close_worlds():
+        for w in _worlds:
+            try:
+                w.close()
+            except Exception:  # noqa: BLE001
+                pass
+        _worlds.clear()
+        shutil.rmtree(_record_root, ignore_errors=True)
+        os.makedirs(_record_root, exist_ok=True)
+else:
+    def _close_worlds():
+        pass
 
 try:
     import pytest  # noqa: F401
@@ -142,6 +177,7 @@ for suite in SUITES:
             try:
                 fn(**kwargs)
             except Exception:  # noqa: BLE001
+                _close_worlds()
                 if xf:
                     xfailed += 1
                     say(f"XFAIL {name}{label} — {EXPECTED_FAIL[name][:60]}…")
@@ -150,6 +186,7 @@ for suite in SUITES:
                     say(f"FAIL  {name}{label}")
                     traceback.print_exc()
             else:
+                _close_worlds()
                 if xf:
                     # strict: an expected failure that passes means a withdrawn or superseded path
                     # is admitted again, and that is a regression, not a bonus
@@ -166,10 +203,11 @@ try:
     import platform
     commit = git_commit()
     os.makedirs(os.path.join(RESULTS, "tests"), exist_ok=True)
-    path = os.path.join(RESULTS, "tests", f"{commit}.txt")
+    path = os.path.join(RESULTS, "tests", f"{commit}{'-record' if RECORD else ''}.txt")
     with open(path, "w") as f:
         f.write(f"# run_tests.py — {now()} — engine {commit} — Python {platform.python_version()}"
-                f" — {'pytest' if HAVE_PYTEST else '_mini_pytest'}{' -S' if sys.flags.no_site else ''}\n")
+                f" — {'pytest' if HAVE_PYTEST else '_mini_pytest'}{' -S' if sys.flags.no_site else ''}"
+                f"{' — record mode (--record)' if RECORD else ''}\n")
         f.write("\n".join(lines) + "\n")
     print(f"written to {os.path.relpath(path)}")
 except Exception as e:  # noqa: BLE001  — keeping the result never changes it

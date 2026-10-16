@@ -1415,6 +1415,16 @@ class World:
             if not self.cases.is_resident(r.case):
                 self.reviews.evict(rid)
 
+    def __getstate__(self):
+        """A pickled world is an in-memory world: its journals pickle as lists and its paged
+        mappings as dicts (sim/record.py), so a snapshot is the same object graph in both modes."""
+        state = self.__dict__.copy()
+        if self._paged:
+            state["_paged"] = False
+            # the positions index travels with a paged-out case; the in-memory world has it for every case
+            state["_case_entries"] = {cid: [entry[2] for entry in c.log] for cid, c in self.cases.items()}
+        return state
+
     def close(self):
         """Record mode: flush and close the files. The record on disk is then complete; the
         world is not to be read or advanced afterwards."""

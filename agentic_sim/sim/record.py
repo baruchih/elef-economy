@@ -18,6 +18,15 @@ reads `cases` and `reviews` through: an object is resident while it can still ch
 paged out to the archive when the working set lets it go, and comes back resident when the
 engine touches it again. Nothing here decides anything; with `record_dir` unset the engine
 uses plain lists and dicts and these classes are not instantiated.
+
+Two properties keep record mode indistinguishable from memory mode to a caller:
+
+  identity   an object handed out before it was paged out is the object handed back after —
+             `PagedDict` remembers paged-out objects weakly and returns the same one while
+             anything still holds it, so a reference kept across ticks does not go stale;
+  pickling   a `Journal` pickles as the list it replaces and a `PagedDict` as the dict, so a
+             snapshot of the world (the reviewer tests hash `pickle.dumps(w)`) is the same
+             object graph in both modes.
 """
 from __future__ import annotations
 from array import array
@@ -25,14 +34,17 @@ from collections import OrderedDict
 from itertools import islice
 from typing import Callable, Iterator, Optional
 import pickle
+import weakref
 
 
 class Journal:
     """An append-only sequence of records, one line each in a file. The last `tail` records
     stay decoded in memory, so the engine's own reads (the newest entry, the events of the
     tick just checked) cost nothing; older positions are read back from the file. Supports
-    `len`, indexing, slicing and iteration like the list it replaces. Not for appending
-    while an iteration is in progress."""
+    `len`, indexing, slicing and iteration like the list it replaces. Item and slice
+    assignment rewrite the file from the first changed position — they exist so that a test
+    can tamper with a copy as it would with the list; the engine never assigns. Not for
+    appending while an iteration is in progress."""
 
     def __init__(self, path: str, encode: Callable, decode: Callable, tail: int = 4096):
         self.path = path
@@ -102,6 +114,38 @@ class Journal:
         self._r.seek(self._offsets[i])
         return self._decode(self._r.readline().decode("utf-8"))
 
+    def _rewrite(self, start: int, items: list):
+        """Replace everything from `start` on with `items`: truncate the file there and append."""
+        self._flush()
+        self._size = self._offsets[start] if start < len(self._offsets) else self._size
+        self._w.seek(self._size)
+        self._w.truncate(self._size)
+        self._r.close()                           # its buffer may hold the bytes just truncated
+        self._r = open(self.path, "rb")
+        del self._offsets[start:]
+        self._tail, self._tail_start = [], start
+        for obj in items:
+            self.append(obj)
+
+    def __setitem__(self, i, value):
+        n = len(self._offsets)
+        if isinstance(i, slice):
+            start, stop, step = i.indices(n)
+            if step != 1:
+                raise TypeError("journal slice assignment needs a step of 1")
+            rest = self[stop:]
+            self._rewrite(start, list(value) + rest)
+            return
+        if i < 0:
+            i += n
+        if not 0 <= i < n:
+            raise IndexError(i)
+        rest = self[i + 1:]
+        self._rewrite(i, [value] + rest)
+
+    def __reduce__(self):
+        return list, (list(self),)              # a snapshot of a journal is the list it replaces
+
     def close(self):
         self._flush()
         self._w.close()
@@ -163,9 +207,11 @@ class PagedDict:
     paged out — for callers that may change it (the engine). `d.peek(k)` and iteration
     return a resident object when there is one and otherwise a transient copy — for readers
     that must not change anything and must not pull the archive into memory (the audit).
-    `evict(k)` writes a resident object to the archive and drops it. `pack`/`unpack` let the
-    owner bundle side state with the snapshot: `pack(obj)` returns what is pickled;
-    `unpack(blob, resident)` returns the object and, when `resident`, restores the side state."""
+    `evict(k)` writes a resident object to the archive and drops it, keeping a weak reference:
+    while anyone still holds the object, every later read returns that same object, so
+    identity is what it is in memory. `pack`/`unpack` let the owner bundle side state with the
+    snapshot: `pack(obj)` returns what is pickled; `unpack(blob, resident)` returns the object
+    and, when `resident`, restores the side state."""
 
     def __init__(self, archive: Archive, prefix: str, pack: Optional[Callable] = None,
                  unpack: Optional[Callable] = None, peek_cache: int = 4096):
@@ -178,6 +224,7 @@ class PagedDict:
         self._max = 0
         self._peek: OrderedDict = OrderedDict()
         self._peek_max = peek_cache
+        self._ghosts: weakref.WeakValueDictionary = weakref.WeakValueDictionary()
 
     # -- mapping protocol ------------------------------------------------
     def __setitem__(self, key: str, obj):
@@ -200,6 +247,9 @@ class PagedDict:
             if key not in self:
                 raise KeyError(key)
             o = self._unpack(self._arch.get(key), True)
+            ghost = self._ghosts.pop(key, None)
+            if ghost is not None:
+                o = ghost                        # the object someone still holds, unchanged since
             self._res[key] = o
             self._peek.pop(key, None)
         return o
@@ -224,12 +274,18 @@ class PagedDict:
         for k in self.keys():
             yield k, self.peek(k, cache=False)
 
+    def __reduce__(self):
+        return dict, (dict(self.items()),)      # a snapshot of a paged mapping is the dict it replaces
+
     # -- paging ------------------------------------------------------------
     def peek(self, key: str, cache: bool = True):
-        """Read without taking responsibility for the object: the resident one if any, else a
-        copy. Recently peeked copies are kept in a small cache; a residentized or evicted key
-        leaves it, so a stale copy is never returned."""
+        """Read without taking responsibility for the object: the resident one if any, the one
+        still held somewhere if any, else a copy. Recently peeked copies are kept in a small
+        cache; a residentized or evicted key leaves it, so a stale copy is never returned."""
         o = self._res.get(key)
+        if o is not None:
+            return o
+        o = self._ghosts.get(key)
         if o is not None:
             return o
         o = self._peek.get(key)
@@ -252,6 +308,7 @@ class PagedDict:
     def evict(self, key: str):
         o = self._res.pop(key)
         self._arch.put(key, self._pack(o))
+        self._ghosts[key] = o
         self._peek.pop(key, None)
 
     def close(self):

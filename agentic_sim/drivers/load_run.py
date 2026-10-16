@@ -52,7 +52,10 @@ def main(argv=None):
                       declared={"actors": a.actors, "on_duty": a.on_duty, "tasks_per_tick": a.tasks, "ticks": a.ticks,
                                 "humans": {"H": 5e8}, "seed": None, "randomness": "none: deterministic drive",
                                 "permitted_operations": PERMITTED, "not_in_run": NOT_IN_RUN,
-                                "record_dir": a.record_dir})
+                                "record_dir": a.record_dir,
+                                "checks": {"per_tick": "check_tick after every tick — always; not configurable",
+                                           "full_audit_every_n_ticks": a.full_check_every or "not scheduled",
+                                           "final_full_audit": "check_all after the last tick; outcome in full_audit"}})
     w = World(p, actors, humans={"H": 5e8}, on_duty=actors[:a.on_duty])
     t0 = time.time()
     last_t, last_time = 0, t0

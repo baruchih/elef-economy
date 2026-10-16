@@ -45,13 +45,14 @@ tests/test_perf_equivalence.py      the per-tick check equals the full audit; th
                                     bounded — 5
 tests/test_record_mode.py           the record on disk (`Params.record_dir`): the same scenario gives the identical
                                     fingerprint, the chain re-hashes from the file alone, a paged-out case comes back
-                                    when touched, the resident set stays bounded, the Journal reads like a list — 6
+                                    when touched, the resident set stays bounded, the Journal reads like a list, identity and
+                                    pickling match memory mode — 8
 run_tests.py        every suite with plain python; pytest reports the same (conftest marks the XFAIL)
 ```
 
-Run: `python3 run_tests.py` — 167 pass, 0 fail, 24 expected failures, each with a stated reason (one original,
+Run: `python3 run_tests.py` — 169 pass, 0 fail, 24 expected failures, each with a stated reason (one original,
 four superseded by the view contract, nineteen on the withdrawn reopening path). With pytest:
-`python3 -m pytest tests -q` reports 167 passed, 24 xfailed; the runner expands pytest parametrization as pytest
+`python3 -m pytest tests -q` reports 169 passed, 24 xfailed; the runner expands pytest parametrization as pytest
 does, including multi-argument and stacked marks. (Spec Appendix D records the count at the v1.0.1 freeze, 156.)
 
 Expected failures are **strict and parameter-exact** in both entry points: `EXPECTED_FAIL_PARAMS` names the
@@ -116,6 +117,13 @@ what the engine does:
   (ledger entries paired one-to-one with the event copy in order; each committed case entry found in
   its log at the position the log claims; logs strictly increasing and their total equal to the
   record's). It establishes the same facts as before; it no longer builds an index of every position.
+- Two properties make record mode indistinguishable to a caller. Identity: an object handed out
+  before it was paged out is the object handed back after (the mapping remembers paged-out
+  objects weakly while anything holds them). Pickling: a `Journal` pickles as the list it
+  replaces and a `PagedDict` as the dict, so `pickle.dumps(w)` — how the reviewer suites snapshot
+  a world — is the same object graph in both modes. Both were found missing by running the whole
+  suite in record mode (`python3 run_tests.py --record`), which now passes identically; that run
+  is the storage layer's conformance check and its log goes to `results/tests/<commit>-record.txt`.
 - `w.close()` flushes and closes the files; the world is not used after it.
 
 Measured, 200 actors × 10,000 ticks, 300,000 cases, 4.81 million History entries, 3.0 million events:

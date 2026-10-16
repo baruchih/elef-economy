@@ -19,6 +19,11 @@ sim/engine.py       cases, reviews, challenges (incl. the two-question ⊥ appea
                     settlement, Ω claim servicing, rotation, the reviewer view, the tick order
 sim/invariants.py   I1–I18, run after every tick; each says what it establishes
 sim/strategies.py   the decision seams a driver would fill (Protocols only)
+sim/record.py       record mode: journals for the History and the event copy, archives for settled
+                    cases and reviews, the paged mapping the engine reads them through
+drivers/results.py  keeping results: results/tests/<commit>.txt from the runner; results/runs/<run-id>/
+                    (manifest, metrics.csv, fingerprint.json) from every run
+drivers/load_run.py a throughput run with no economics in it, to size the engine
 tests/test_spec.py                  §16 worked example and variants; R1/R2 exceptional paths — 23
 tests/test_review_regressions.py    the third review's 20 regressions, verbatim — 19 + 1 expected failure
 tests/test_v05.py                   the v0.5 rules in explicit form — 15

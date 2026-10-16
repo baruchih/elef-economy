@@ -122,9 +122,18 @@ def expected_to_fail(name: str, label: str) -> bool:
 
 
 passed = failed = xfailed = 0
+lines: list[str] = []
+
+
+def say(msg: str):
+    """Print, and keep for results/tests/<commit>.txt."""
+    print(msg)
+    lines.append(msg)
+
+
 for suite in SUITES:
     mod = importlib.import_module(suite)
-    print(f"== {suite}")
+    say(f"== {suite}")
     for name, fn in list(vars(mod).items()):
         if not (name.startswith("test_") and callable(fn)):
             continue
@@ -135,19 +144,34 @@ for suite in SUITES:
             except Exception:  # noqa: BLE001
                 if xf:
                     xfailed += 1
-                    print(f"XFAIL {name}{label} — {EXPECTED_FAIL[name][:60]}…")
+                    say(f"XFAIL {name}{label} — {EXPECTED_FAIL[name][:60]}…")
                 else:
                     failed += 1
-                    print(f"FAIL  {name}{label}")
+                    say(f"FAIL  {name}{label}")
                     traceback.print_exc()
             else:
                 if xf:
                     # strict: an expected failure that passes means a withdrawn or superseded path
                     # is admitted again, and that is a regression, not a bonus
                     failed += 1
-                    print(f"XPASS {name}{label} — expected to fail ({EXPECTED_FAIL[name][:60]}…) but passed")
+                    say(f"XPASS {name}{label} — expected to fail ({EXPECTED_FAIL[name][:60]}…) but passed")
                 else:
                     passed += 1
-                    print(f"PASS  {name}{label}")
-print(f"\n{passed} passed, {failed} failed, {xfailed} expected failures")
+                    say(f"PASS  {name}{label}")
+say(f"\n{passed} passed, {failed} failed, {xfailed} expected failures")
+
+# keep the result: one file per commit under results/tests/, overwritten by a rerun on the same commit
+try:
+    from drivers.results import git_commit, now, RESULTS
+    import platform
+    commit = git_commit()
+    os.makedirs(os.path.join(RESULTS, "tests"), exist_ok=True)
+    path = os.path.join(RESULTS, "tests", f"{commit}.txt")
+    with open(path, "w") as f:
+        f.write(f"# run_tests.py — {now()} — engine {commit} — Python {platform.python_version()}"
+                f" — {'pytest' if HAVE_PYTEST else '_mini_pytest'}{' -S' if sys.flags.no_site else ''}\n")
+        f.write("\n".join(lines) + "\n")
+    print(f"written to {os.path.relpath(path)}")
+except Exception as e:  # noqa: BLE001  — keeping the result never changes it
+    print(f"(result not written: {e})")
 sys.exit(1 if failed else 0)

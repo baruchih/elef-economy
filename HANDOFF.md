@@ -197,9 +197,15 @@ set with in mind. Details and numbers in `agentic_sim/README.md`.
 
 ## Where the drivers should go
 
-`agentic_sim/drivers/` (new package): task world, policy populations (actor, reviewer, orchestrator,
-human), a run harness that declares its permitted operations and logs the metrics above, and the
-control. Drivers use only `World`'s public operations and never reach into engine internals. The engine
+`agentic_sim/drivers/` (started October 16, 2026): task world, policy populations (actor, reviewer,
+orchestrator, human), a run harness that declares its permitted operations and logs the metrics above,
+and the control. Drivers use only `World`'s public operations and never reach into engine internals.
+What exists so far is the keeping of results — `drivers/results.py`: every run writes
+`results/runs/<run-id>/` with a manifest (engine commit, parameters, declared and excluded operations,
+outcome), per-tick metrics and the final fingerprint; `run_tests.py` writes `results/tests/<commit>.txt`
+— and `drivers/load_run.py`, a throughput run with no economics in it, used to size the engine. A run's
+results are its evidence; the record on disk from record mode is not kept, the History head in the
+manifest commits to it. The engine
 and its tests stay as they are; a driver that needs an engine change has found either a conformance bug
 (fix + regression) or a design question (write it up, do not patch around it).
 

@@ -23,7 +23,14 @@ cd agentic_sim
 python3 run_tests.py        # expected: 167 passed, 0 failed, 24 expected failures
 python3 -S run_tests.py     # same, with no site-packages
 python3 -m pytest tests -q  # expected: 167 passed, 24 xfailed, 0 xpassed (conftest mirrors the runner)
+python3 -m drivers.load_run --actors 200 --ticks 10000 --on-duty 40 --tasks 30 --record-dir /path  # throughput run
 ```
+
+Results are kept (`drivers/results.py`): the runner writes what it printed to `results/tests/<commit>.txt`
+(one file per commit, `-dirty` when the tree differs from it); every run writes
+`results/runs/<run-id>/` with `manifest.json` (engine commit, params, declared operations, outcome),
+`metrics.csv` and `fingerprint.json`. Commit the ones that matter. Results are written by the code and
+read by people; the suite and the engine stay the authority — never edit a result to match.
 
 Any other result is a regression — including an XPASS. The 24 expected failures each have a stated
 reason in `run_tests.py` (`EXPECTED_FAIL`, with `EXPECTED_FAIL_PARAMS` naming the parameter runs inside a

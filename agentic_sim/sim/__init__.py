@@ -7,7 +7,7 @@ the caller (a test, or later a policy). After every tick the §17 invariants are
 from .params import Params
 from .ledger import Ledger, LedgerError, History
 from .engine import World, RuleError, ReviewView
-from .invariants import InvariantError, check_all
+from .invariants import InvariantError, check_all, check_tick
 
 __all__ = ["Params", "Ledger", "LedgerError", "History", "World", "RuleError", "ReviewView",
-           "InvariantError", "check_all"]
+           "InvariantError", "check_all", "check_tick"]

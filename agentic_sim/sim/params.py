@@ -55,6 +55,11 @@ class Params:
     rho_pool: float = 0.25
     thin: int = 2
 
+    # Checking (§17). After every tick the engine checks the invariants over what the tick
+    # touched (`check_tick`). Every `full_check_every` ticks it also re-audits the whole record
+    # from genesis (`check_all`); 0 means only when the caller asks. Not a rule: a check cadence.
+    full_check_every: int = 0
+
     # Initialization (§19)
     Res0: float = 10000.0
     v0: float = 1.0

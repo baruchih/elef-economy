@@ -252,6 +252,22 @@ class World:
         self.omega_claims: list[Claim] = []    # (reviewer, amount) FIFO, each carrying its review
         self._n_case = 0
         self._n_review = 0
+        # The working set. `cases` and `reviews` hold everything ever created; these hold what
+        # can still change: a case until it is settled with every review of it settled and no
+        # claim outstanding, a review until it is withdrawn, overturned or vested with nothing
+        # pending. The tick loop and the per-tick invariant check read these; a settled case
+        # that is touched again (a post-settlement correction, a serviced Ω claim) is marked
+        # dirty and re-checked once. Insertion order is creation order, as in `cases`.
+        self._live_cases: dict[str, Case] = {}
+        self._live_reviews: dict[str, Review] = {}
+        self._dirty_cases: set[str] = set()
+        self._case_entries: dict[str, list[int]] = {}   # case id -> positions of its History entries
+        self._court_fee_reimb: dict[str, int] = {}      # case id -> court-fee reimbursements recorded
+        self._violations: list[str] = []                # I4/I10 facts established as events were recorded
+        self._events_checked = 0                        # ledger events already checked by the tick check
+        self.ledger.on_event = self._on_ledger_event
+        for e in self.ledger.events:                    # the floats and budgets paid in above
+            self._on_ledger_event(e)
 
     # ------------------------------------------------------------------ util
     def _case(self, cid) -> Case:
@@ -273,7 +289,32 @@ class World:
         """Commit a case event to the authoritative History; the case log keeps a copy with
         its commitment position, which I16 checks against the chain."""
         self.history.append("case", {"t": self.t, "case": case.id, "msg": msg})
-        case.log.append((self.t, msg, len(self.history.entries) - 1))
+        hseq = len(self.history.entries) - 1
+        case.log.append((self.t, msg, hseq))
+        self._case_entries.setdefault(case.id, []).append(hseq)
+        self._dirty_cases.add(case.id)
+
+    def _on_ledger_event(self, e):
+        """Every ledger movement attributed to a case marks that case for the tick's check, and
+        establishes the two facts I4 and I10 would otherwise have to rescan the record for: how
+        many times a case's court fee was reimbursed, and whether money moved on account of a
+        vested case after its vesting (deferred reimbursements and Ω claims excepted, §6)."""
+        cid = e.case
+        if cid is None:
+            return
+        self._dirty_cases.add(cid)
+        if e.kind == "forfeit_to" and "court fee" in e.note:
+            n = self._court_fee_reimb.get(cid, 0) + 1
+            self._court_fee_reimb[cid] = n
+            if n > 1:
+                self._violations.append(f"I4 {cid}: court fee reimbursed {n} times")
+        c = self.cases.get(cid)
+        if c is not None and c.t_vest is not None and e.t > c.t_vest \
+                and "deferred" not in e.note and "Ω claim" not in e.note:
+            self._violations.append(f"I10 {cid}: {e.kind} {e.amount} at t={e.t} after vesting at {c.t_vest}")
+
+    def _touch(self, case: Case):
+        self._dirty_cases.add(case.id)
 
     def _w(self, role: str) -> float:
         return getattr(self.p, ROLE_W[role])
@@ -302,6 +343,7 @@ class World:
         cid = f"q{self._n_case}"
         c = Case(cid, root=cid, requester=requester, is_root=True, beta=beta, t_post=self.t)
         self.cases[cid] = c
+        self._live_cases[cid] = c
         self._log(c, f"posted root beta={beta}")
         return cid
 
@@ -321,6 +363,7 @@ class World:
         c.D, c.K, c.G_V, c.phi = D, K, GV, 0.0
         c.rejection_bond = GV
         self.cases[cid] = c
+        self._live_cases[cid] = c
         self.ledger.lock(A, beta, key=f"beta:{cid}", case=cid, note="nested price ceiling")
         self.ledger.lock(A, GV, key=f"rej:{cid}", case=cid, note="rejection bond")
         self._freeze(c)
@@ -478,6 +521,7 @@ class World:
         r = Review(rid, c.id, reviewer, role, self.t, self.t + self.p.T_review, bond=c.G_V)
         self.ledger.lock(reviewer, c.G_V, key=f"bond:{rid}", case=c.id, note=f"bond ({role})")
         self.reviews[rid] = r
+        self._live_reviews[rid] = r
         c.reviews.append(rid)
         c.excluded.add(reviewer)
         self.actors[reviewer].open_review = rid
@@ -909,6 +953,7 @@ class World:
         c.rejection_bond = 0.0
         self.actors[B_].committed = None
         self.cases[c.parent].actor_cost += fee
+        self._touch(self.cases[c.parent])
         self._terminal_cleanup(c)
         c.state, c.final = "CANCELLED", True
         self._log(c, f"cancelled by {A}; kill fee {fee} to {B_}")
@@ -1149,6 +1194,9 @@ class World:
                 a = self.actors[r.reviewer]
                 self._record_outcome(r.reviewer, True)
                 a.vests.append(self.t)
+                horizon = self.t - self.p.kappa_window     # a vest this old can never count again
+                while a.vests and a.vests[0] <= horizon:
+                    a.vests.pop(0)
                 a.streak += 1
                 if a.on_duty:
                     a.duty_reviews += 1
@@ -1169,6 +1217,7 @@ class World:
         self.ledger.release(c.actor, c.G, key=f"G:{c.id}", case=c.id, note="guarantee released")
         if c.is_nested():
             self.cases[c.parent].actor_cost += c.B          # §4.6: nested payments are execution cost
+            self._touch(self.cases[c.parent])
         self._settle_reviews(c, epw)
         c.outcome = c.outcome or F
         c.t_vest, c.final, c.state = self.t, True, "VESTED"
@@ -1194,32 +1243,36 @@ class World:
 
     # ---------------------------------------------------------------- ticks
     def advance(self, to_t: int):
-        from .invariants import check_all
+        from .invariants import check_all, check_tick
         if to_t < self.t:
             raise RuleError("time does not run backwards")
         while self.t < to_t:
             self._process_tick(self.t)
             self.t += 1
             self.ledger.t = self.t
-            check_all(self)
+            check_tick(self)
+            every = self.p.full_check_every
+            if every and self.t % every == 0:
+                check_all(self)
 
     def _process_tick(self, tick: int):
         # step 2: deadlines (inclusive)
-        for c in list(self.cases.values()):
+        for c in list(self._live_cases.values()):
             if c.state == "COMMITTED" and tick >= c.deadline:
                 self._finalize_N(c, reason="delivery deadline missed")
             elif c.state == "AWAITING_RESPONSE" and tick >= c.response_deadline:
                 self._finalize_N(c, reason="no response: rejection accepted by default")
             elif c.state == "RESUBMITTING" and tick >= c.resubmit_deadline:
                 self._finalize_N(c, reason="resubmission window missed")
-        for r in list(self.reviews.values()):
+        for r in list(self._live_reviews.values()):
             if r.status == "open" and tick >= r.deadline:
                 self._withdraw_review(r)
         # step 3: vesting and settlement, one emission batch
-        vesting = [c for c in self.cases.values()
+        vesting = [c for c in self._live_cases.values()
                    if c.state == "PENDING" and c.open_items == 0 and c.window_end is not None
                    and tick >= c.window_end and (c.challenge is None or c.challenge["resolved"])]
-        settling = [c for c in self.cases.values() if c.needs_review_settlement and c not in vesting]
+        vesting_ids = {c.id for c in vesting}
+        settling = [c for c in self._live_cases.values() if c.needs_review_settlement and c.id not in vesting_ids]
         batch = vesting + settling
         if batch:
             total_w = sum(self._w(self.reviews[rid].role)
@@ -1290,6 +1343,25 @@ class World:
     def volunteer(self, aid: str, flag: bool = True):
         self._actor(aid).volunteer = flag
         self.history.append("actor", {"t": self.t, "actor": aid, "msg": f"volunteer={flag}"})
+
+    # ------------------------------------------------------------ working set
+    @staticmethod
+    def _review_quiescent(r: Review) -> bool:
+        return r.status in ("withdrawn", "overturned", "vested") and r.reimbursed_pending <= 1e-12 \
+            and r.deferred <= 1e-12
+
+    def _case_quiescent(self, c: Case) -> bool:
+        return c.final and not c.needs_review_settlement \
+            and all(self._review_quiescent(self.reviews[rid]) for rid in c.reviews)
+
+    def _prune_working_set(self):
+        """Called by the tick check after it has examined the working set: what can no longer
+        change leaves it. Anything that is touched again comes back through the dirty set."""
+        for cid in [cid for cid, c in self._live_cases.items() if self._case_quiescent(c)]:
+            del self._live_cases[cid]
+        for rid in [rid for rid, r in self._live_reviews.items() if self._review_quiescent(r)]:
+            del self._live_reviews[rid]
+        self._dirty_cases.clear()
 
     # ---------------------------------------------------------------- views
     def distinct_reviewers(self, cid: str) -> int:

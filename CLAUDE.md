@@ -20,9 +20,9 @@ HANDOFF.md                                   status, history table, open questio
 
 ```
 cd agentic_sim
-python3 run_tests.py        # expected: 156 passed, 0 failed, 24 expected failures
+python3 run_tests.py        # expected: 161 passed, 0 failed, 24 expected failures
 python3 -S run_tests.py     # same, with no site-packages
-python3 -m pytest tests -q  # expected: 156 passed, 24 xfailed, 0 xpassed (conftest mirrors the runner)
+python3 -m pytest tests -q  # expected: 161 passed, 24 xfailed, 0 xpassed (conftest mirrors the runner)
 ```
 
 Any other result is a regression — including an XPASS. The 24 expected failures each have a stated
@@ -56,7 +56,17 @@ While building strategy runs, the baseline stays frozen. Drivers live in their o
 - Every action is validated whole before anything is recorded or moved. A refused action changes
   nothing — tests assert this against full world snapshots. Keep it that way for any new operation.
 - Eighteen invariants run after every tick (`sim/invariants.py`). A failing invariant is an engine
-  bug or a spec contradiction, never a property of a strategy.
+  bug or a spec contradiction, never a property of a strategy. Two entry points, one set of
+  predicates: `check_all` is the full audit from genesis (what tests call; scheduled in a run by
+  `Params.full_check_every`); `check_tick` is what `advance` runs, the same predicates over the
+  working set — cases and reviews that can still change, plus anything touched since the last tick.
+  `tests/test_perf_equivalence.py` holds the proof that they agree and that the engine's History head
+  is unchanged from v1.0.1. Keep new invariants in that shape: a predicate over an explicit scope.
+- The engine keeps every case and review ever created in `cases` and `reviews`, and a working set
+  (`_live_cases`, `_live_reviews`) that the tick loop and `check_tick` read. A settled case leaves
+  the working set and comes back through `_dirty_cases` when touched again. New engine code that
+  mutates a case must do so through an operation that logs to the case or moves money on its
+  account; that is what marks it dirty.
 - Reviewer test files (`tests/test_review*.py`) are kept **verbatim**. Never edit one to make it
   pass; if a reviewer test must fail, add it to `EXPECTED_FAIL` with the reason, and mirror it in
   `tests/conftest.py`.

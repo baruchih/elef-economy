@@ -18,6 +18,9 @@ Suites:
   tests/test_review6_reopening.py     the eighth review's 25 checks, verbatim; the reopening-dependent ones are
                                       expected failures (the rule was withdrawn), its controls pass
   tests/test_v10.py                   the withdrawal of reopening, asserted directly
+  tests/test_v101.py                  withdrawing an unawarded request, the one permitted operation no suite had exercised
+  tests/test_perf_equivalence.py      the per-tick check equals the full audit, and the working-set engine reproduces
+                                      the v1.0.1 engine's History head on a seeded random scenario
 
 Expected failure, by design: the third review's case 12 appeals a ⊥ without stating whether
 the objection stood; §8.1 requires that disposition explicitly and refuses to infer it from
@@ -100,7 +103,8 @@ def param_runs(fn):
 
 SUITES = ["test_spec", "test_review_regressions", "test_v05", "test_review2_interactions", "test_v06",
           "test_review3_boundaries", "test_v07", "test_review4_followthrough", "test_v08",
-          "test_review5_contracts", "test_v09", "test_review6_reopening", "test_v10", "test_v101"]
+          "test_review5_contracts", "test_v09", "test_review6_reopening", "test_v10", "test_v101",
+          "test_perf_equivalence"]
 # For a parametrized test with both withdrawn-path runs and controls, only the named parameter
 # labels are expected to fail; every other run of it must pass.
 EXPECTED_FAIL_PARAMS = {

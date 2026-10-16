@@ -82,6 +82,10 @@ class History:
     def __init__(self):
         self.entries: list[dict] = []
         self.head: str = hashlib.sha256(b"genesis").hexdigest()
+        # incremental verification state: entries[:_verified_upto] have been re-hashed and
+        # found consistent, and _verified_prev is the hash of the last of them
+        self._verified_upto: int = 0
+        self._verified_prev: str = self.head
 
     def append(self, kind: str, payload: dict) -> str:
         seq = len(self.entries)
@@ -101,6 +105,25 @@ class History:
                 return False
             prev = e["hash"]
         return prev == self.head
+
+    def verify_new(self) -> bool:
+        """Verify the entries appended since the last call (or since genesis), continuing the
+        chain from the last verified hash. Equivalent to `verify()` for a record that is only
+        ever appended to — the engine's case — at a cost proportional to what is new. It does
+        not re-examine already-verified entries; `verify()` does, and is what detects an edit
+        to one of them after the fact."""
+        prev = self._verified_prev
+        for i in range(self._verified_upto, len(self.entries)):
+            e = self.entries[i]
+            body = json.dumps({"seq": e["seq"], "kind": e["kind"], "payload": e["payload"], "prev": prev},
+                              sort_keys=True, default=str)
+            if e["seq"] != i or e["prev"] != prev or hashlib.sha256(body.encode()).hexdigest() != e["hash"]:
+                return False
+            prev = e["hash"]
+        if prev != self.head:
+            return False
+        self._verified_upto, self._verified_prev = len(self.entries), prev
+        return True
 
     def matches(self, seq: int, kind: str, payload: dict) -> bool:
         """Does a working copy agree with the committed entry at `seq`? The History is the
@@ -125,6 +148,14 @@ class Ledger:
         self.locks: dict[str, dict[str, float]] = {}
         self.pools: dict[str, CasePool] = {}
         self.events: list[Event] = []
+        # per-case index of the same events (same objects; `events` stays the ordered copy I16
+        # checks), a running mints-minus-burns, a running sum of every pool, and a hook the
+        # engine sets to learn which case an event touched — so a tick's checks cost what the
+        # tick did, not what the whole run did
+        self.events_by_case: dict[str, list[Event]] = {}
+        self._recon_M: float = 0.0
+        self._pool_sum: float = 0.0
+        self.on_event = None
         self.history = history or History()
         self.t = 0
         self._v0 = amount(v0, "v0")
@@ -161,10 +192,23 @@ class Ledger:
         e.hseq = len(self.history.entries) - 1
         e.prev = self.history.entries[-1]["prev"]
         self.events.append(e)
+        if case is not None:
+            self.events_by_case.setdefault(case, []).append(e)
+        if kind in self.MINTS:
+            self._recon_M += amt
+        elif kind in self.BURNS:
+            self._recon_M -= amt
+        if self.on_event is not None:
+            self.on_event(e)
 
     def reconstruct_M(self) -> float:
+        """Mints minus burns, recomputed from the whole event copy (the full audit)."""
         return (sum(e.amount for e in self.events if e.kind in self.MINTS)
                 - sum(e.amount for e in self.events if e.kind in self.BURNS))
+
+    def reconstruct_M_running(self) -> float:
+        """Mints minus burns as accumulated event by event (the per-tick check)."""
+        return self._recon_M
 
     # ---- wallets and lock records ----------------------------------------
     def wallet(self, wid: str) -> Wallet:
@@ -285,6 +329,7 @@ class Ledger:
             return
         self.M += credits
         self.pool(case_id).minted += credits
+        self._pool_sum += credits
         self._log("mint_emission", credits, None, f"pool:{case_id}", case_id)
 
     # ---- case pools -------------------------------------------------------
@@ -304,6 +349,7 @@ class Ledger:
                 raise LedgerError(f"{src} unlocked {s.U} < {amt}")
             s.U -= amt
         self.pool(case_id).escrow += amt
+        self._pool_sum += amt
         self._log("escrow_in", amt, src, f"pool:{case_id}", case_id, note)
 
     def fund_deposit(self, src: str, case_id: str, amt: float, note=""):
@@ -313,6 +359,7 @@ class Ledger:
             raise LedgerError(f"{src} unlocked {s.U} < {amt}")
         s.U -= amt
         self.pool(case_id).deposit += amt
+        self._pool_sum += amt
         self._log("deposit_in", amt, src, f"pool:{case_id}", case_id, note)
 
     def pay_from_escrow(self, case_id: str, dst: str, amt: float, note=""):
@@ -321,6 +368,7 @@ class Ledger:
         if p.escrow + 1e-9 < amt:
             raise LedgerError(f"escrow {p.escrow} < {amt}")
         p.escrow -= amt
+        self._pool_sum -= amt
         self.wallet(dst).U += amt
         self._log("escrow_out", amt, f"pool:{case_id}", dst, case_id, note)
 
@@ -330,6 +378,7 @@ class Ledger:
         if p.deposit + 1e-9 < amt:
             raise LedgerError(f"deposit {p.deposit} < {amt}")
         p.deposit -= amt
+        self._pool_sum -= amt
         self.wallet(dst).U += amt
         self._log("deposit_out", amt, f"pool:{case_id}", dst, case_id, note)
 
@@ -346,11 +395,19 @@ class Ledger:
         take_dep = min(amt, p.deposit)
         p.deposit -= take_dep
         p.minted -= (amt - take_dep)
+        self._pool_sum -= amt
         self.wallet(dst).U += amt
         self._log("fee_out", amt, f"pool:{case_id}", dst, case_id, note)
 
     # ---- totals -----------------------------------------------------------
     def total_credits(self) -> float:
+        """Every credit in a wallet or a pool, recomputed from the balances (the full audit)."""
         tot = sum(w.W for w in self.wallets.values())
         tot += sum(p.escrow + p.deposit + p.minted for p in self.pools.values())
         return tot
+
+    def total_credits_running(self) -> float:
+        """Wallet balances summed now, plus the pool total as accumulated movement by movement
+        (the per-tick check): the number of pools grows with the run, the number of wallets
+        does not."""
+        return sum(w.W for w in self.wallets.values()) + self._pool_sum

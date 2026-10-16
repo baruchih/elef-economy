@@ -3,7 +3,7 @@
 ## In one paragraph
 
 We have a rulebook and an engine that implements it, and they are consistent with each other as far
-as ten external reviews and 156 tests can show. The rulebook is frozen at v1.0.1. What has **not** been
+as ten external reviews and 161 tests can show. The rulebook is frozen at v1.0.1. What has **not** been
 shown is what the rules do when participants are self-interested — whether careful review beats
 stamping, whether price pressure starves reliable actors, whether the money behaves. That is the next
 layer, and it is a simulator question: the engine is already the simulator of the *rules*; what it lacks
@@ -38,9 +38,11 @@ reevaluation is this document's "Proposed next step"; it is a proposal, not a de
 | v1.0.1 | Errata applied in place. No rule, default, permitted operation or engine change | — | — | **frozen** |
 
 Test suite across versions: v0.7 104 + 1 xfail → v0.8 123 + 1 → v0.9 148 + 1 → v0.10 152 + 24 → v1.0.1
-156 + 24 (the 24: one original, four superseded by the view contract, nineteen on the withdrawn path;
-the four new tests cover withdrawing an unawarded request, the one permitted operation no suite had
-exercised). Expected failures are strict and parameter-exact in both entry points.
+156 + 24 → October 16 performance pass 161 + 24 (the 24: one original, four superseded by the view
+contract, nineteen on the withdrawn path; the four v1.0.1 tests cover withdrawing an unawarded request,
+the one permitted operation no suite had exercised; the five performance tests prove the per-tick
+check equals the full audit and the History head is unchanged). Expected failures are strict and
+parameter-exact in both entry points.
 Every reviewer's test file is in the suite byte-for-byte — a claim this repo cannot itself verify: the
 reviewers' test bundles were received as separate archives and are not included here, only their reports
 in `reviews/`. The reports name the tests they shipped; a verifier can compare names and counts.
@@ -153,6 +155,26 @@ vector, or none at all), and whether the red team is in from the start or a seco
   their role is entitled to (a reviewer policy sees its view, not the world).
 - **The engine is deterministic** — no randomness, clock or environment; the History head is identical
   across runs. All randomness lives in the driver, seeded, so runs are reproducible from a seed.
+
+## Engine performance pass (October 16, 2026) — conformance-neutral under §19
+
+Before any run could be sized, the engine's cost per tick was measured: it grew as the square of the
+run's length, because three invariants (I4, I10, I16) rescanned the whole record every tick and every
+settled case stayed in the tick loop forever. Twenty actors ran at 4 ticks/s by tick 300; a thousand
+ticks would have taken about 25 minutes; a thousand actors over a million ticks was not a slow run but
+an impossible one. The engine now keeps a working set and checks per tick what the tick touched
+(`check_tick`); the full audit (`check_all`) is unchanged and can be scheduled with
+`Params.full_check_every`. I1's conservation tolerance now scales with the money supply, because at a
+ten-million-credit supply the running M and the recomputed balances drift apart by rounding after a few
+hundred ticks and the fixed tolerance raised a false failure. Nothing a participant may do changed;
+`agentic_sim/tests/test_perf_equivalence.py` reproduces the v1.0.1 engine's History head on a seeded
+random scenario through every major path. Details and numbers in `agentic_sim/README.md`.
+
+What this means for sizing runs: 20 actors × 1,000 ticks takes a second; 200 actors × 10,000 ticks
+takes under two minutes and 4.3 GB, because the whole record stays in memory. That is the next
+engineering limit if runs need to go larger: spill the record to disk. Scientifically, more ticks past
+a few thousand add little — ρ and κ use trailing windows of 100 and emission halves every 1,000 ticks —
+so the real run is many seeds of a few thousand ticks, not one run of a million.
 
 ## Where the drivers should go
 

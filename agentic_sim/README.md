@@ -35,18 +35,57 @@ tests/test_review6_reopening.py     the eighth review's 25 checks, verbatim — 
 tests/test_v10.py                   the withdrawal of reopening, asserted directly — 5
 tests/test_v101.py                  withdrawing an unawarded request (§16), the one permitted operation no suite had
                                     exercised; root and nested, atomic refusal after award — 4
+tests/test_perf_equivalence.py      the per-tick check equals the full audit; the working-set engine reproduces the
+                                    v1.0.1 engine's History head on a seeded random scenario; the working set stays
+                                    bounded — 5
 run_tests.py        every suite with plain python; pytest reports the same (conftest marks the XFAIL)
 ```
 
-Run: `python3 run_tests.py` — 156 pass, 0 fail, 24 expected failures, each with a stated reason (one original,
+Run: `python3 run_tests.py` — 161 pass, 0 fail, 24 expected failures, each with a stated reason (one original,
 four superseded by the view contract, nineteen on the withdrawn reopening path). With pytest:
-`python3 -m pytest tests -q` reports 156 passed, 24 xfailed; the runner expands pytest parametrization as pytest
-does, including multi-argument and stacked marks.
+`python3 -m pytest tests -q` reports 161 passed, 24 xfailed; the runner expands pytest parametrization as pytest
+does, including multi-argument and stacked marks. (Spec Appendix D records the count at the v1.0.1 freeze, 156.)
 
 Expected failures are **strict and parameter-exact** in both entry points: `EXPECTED_FAIL_PARAMS` names the
 parameter runs that are expected to fail inside a mixed test (the P/⊥ runs of the eighth review's first case;
 its F/N controls must pass), and an expected failure that passes is reported as XPASS and fails the run — a
 withdrawn or superseded path admitted again is a regression, not a bonus.
+
+## Running long: the working set and the two checks (October 16, 2026)
+
+Through v1.0.1 `advance` ran the full §17 audit after every tick, and three checks (I4, I10, I16)
+rescanned the whole record each time, so a run slowed as the square of its length: twenty actors
+reached 4 ticks/s by tick 300 and would have needed about 25 minutes for 1,000 ticks. The engine
+now keeps a **working set** — cases and reviews that can still change — and checks per tick what
+the tick touched:
+
+- `check_all(w)` is unchanged in meaning: every predicate over everything, the chain re-hashed
+  from genesis. Tests call it; `Params.full_check_every = n` schedules it every n ticks inside
+  `advance` (default 0: only when asked). It is the only check that notices an edit to an entry
+  it has already verified.
+- `check_tick(w)` is what `advance` runs: the same predicates over the working set, the cases
+  touched since the last tick, and the events and record entries added since then. I4 and I10 are
+  established as events are recorded; I16 verifies the chain from where it left off and the new
+  copies against their committed entries. For a world changed only through the engine's own
+  operations it establishes every fact the full audit would.
+- The ledger keeps a per-case index of its events, a running mints-minus-burns and a running pool
+  total beside the full recomputations; `kappa`'s vest list is pruned at the window it can no
+  longer count in.
+- I1's tolerance scales with the money supply (one millionth of a credit per ten thousand in
+  circulation): M is a running sum while the balances are recomputed, and at a ten-million-credit
+  supply the two drift apart by rounding after a few hundred ticks. The fixed tolerance tripped a
+  false conservation failure there; a leak of economic size is still caught.
+
+The claim that none of this changes behaviour is `tests/test_perf_equivalence.py`: a seeded random
+scenario through appeals, disputes, audits, rulings, overrides before and after settlement,
+delegation, cancellation, pool exhaustion, timeouts and rotation, with the full audit after every
+tick beside the tick check, reproduces the History head the v1.0.1 engine (commit 6a746a1) produced.
+
+Measured after the change: 20 actors × 1,000 ticks in 1 s at a constant ~1,000 ticks/s (was ~25 min);
+200 actors × 10,000 ticks (300,000 cases) in 104 s at a constant ~95 ticks/s, final full audit 35 s.
+The remaining limit is memory, not time: the record is kept whole in memory — 4.85 million History
+entries and 300,000 cases took 4.3 GB — so runs beyond that scale need the record spilled to disk,
+a separate change.
 
 ## The expected failure
 

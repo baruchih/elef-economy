@@ -24,7 +24,11 @@ python3 run_tests.py        # expected: 169 passed, 0 failed, 24 expected failur
 python3 -S run_tests.py     # same, with no site-packages
 python3 -m pytest tests -q  # expected: 169 passed, 24 xfailed, 0 xpassed (conftest mirrors the runner)
 python3 -m drivers.load_run --actors 200 --ticks 10000 --on-duty 40 --tasks 30 --record-dir /path  # throughput run
+python3 -m drivers.stamping --actors 20 --ticks 1000 --stampers 0.5 --seed 1   # §18.1 q1, careful vs stamping
 ```
+
+Drivers hold a `drivers.view.Public`, not the `World`: that class lists the operations a driver may
+call. A driver that needs something not on it has found a conformance bug or a design question.
 
 Results are kept (`drivers/results.py`): the runner writes what it printed to `results/tests/<commit>.txt`
 (one file per commit, `-dirty` when the tree differs from it); every run writes

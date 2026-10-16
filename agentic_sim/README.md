@@ -24,6 +24,10 @@ sim/record.py       record mode: journals for the History and the event copy, ar
 drivers/results.py  keeping results: results/tests/<commit>.txt from the runner; results/runs/<run-id>/
                     (manifest, metrics.csv, fingerprint.json) from every run
 drivers/load_run.py a throughput run with no economics in it, to size the engine
+drivers/view.py     the public surface of World as a driver sees it — the operations a participant or
+                    the orchestrator may take, and the reads the rules allow
+drivers/stamping.py scoped run, §18.1 q1: careful vs stamping reviewers, declared populations and
+                    orchestrator policy; every run writes its manifest, metrics and fingerprint
 tests/test_spec.py                  §16 worked example and variants; R1/R2 exceptional paths — 23
 tests/test_review_regressions.py    the third review's 20 regressions, verbatim — 19 + 1 expected failure
 tests/test_v05.py                   the v0.5 rules in explicit form — 15

@@ -205,9 +205,13 @@ and the control. Drivers use only `World`'s public operations and never reach in
 What exists so far is the keeping of results — `drivers/results.py`: every run writes
 `results/runs/<run-id>/` with a manifest (engine commit, parameters, declared and excluded operations,
 outcome), per-tick metrics and the final fingerprint; `run_tests.py` writes `results/tests/<commit>.txt`
-— and `drivers/load_run.py`, a throughput run with no economics in it, used to size the engine. A run's
-results are its evidence; the record on disk from record mode is not kept, the History head in the
-manifest commits to it. The engine
+— `drivers/load_run.py`, a throughput run with no economics in it, used to size the engine;
+`drivers/view.py`, the public surface of `World` as a driver sees it (the checkable form of "public
+operations only"); and `drivers/stamping.py`, the first scoped economics run — §18.1 question 1,
+careful versus careless review — with its permitted and excluded operations, populations, orchestrator
+policy and measures declared in its docstring and written into every run's manifest. A run's results
+are its evidence; the record on disk from record mode is not kept, the History head in the manifest
+commits to it. The engine
 and its tests stay as they are; a driver that needs an engine change has found either a conformance bug
 (fix + regression) or a design question (write it up, do not patch around it).
 

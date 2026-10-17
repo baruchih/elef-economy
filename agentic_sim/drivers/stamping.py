@@ -139,13 +139,15 @@ class Stamping:
         self.kind = {aid: (STAMPER if i < n_st else CAREFUL) for i, aid in enumerate(ids)}
         if a.rules == "1.1.0":                   # the control: the 1.1.0 engine's behaviour, declared
             a.pi0, a.dial, a.p_start, a.p_cap, a.omega0 = 0.0, "off", 0.5, 0.5, 20.0
-        rev3 = a.rules in ("1.3.0", "1.4.0")     # 1.2.0 and 1.1.0: membership, the fund and netted capital off
-        rev4 = a.rules == "1.4.0" and a.troops == "on"
+        rev3 = a.rules in ("1.3.0", "1.4.0", "1.5.0")     # 1.2.0 and 1.1.0: membership, the fund and netted capital off
+        rev4 = a.rules in ("1.4.0", "1.5.0") and a.troops == "on"
+        rev5 = a.rules == "1.5.0"                # 1.4.0: the reserve is the peak capital carried, over two periods
         p = Params(Res0=a.res0, X=a.on_duty, G_V=a.gv, p_start=a.p_start, p_cap=a.p_cap, p_floor=a.p_floor, band=a.band,
                    record_dir=a.record_dir, f_fee=a.fee, phi_E_root=a.phi_e, phi_F_root=a.phi_f,
                    pi0=a.pi0, dial=(a.dial == "on"), beta_P=a.beta_p, Omega0=a.omega0,
                    membership=rev3, duty_fund=(rev3 and a.fund == "on"), net_plant_capital=rev3, m_max=a.m_max,
-                   troops=rev4, eps_T=a.eps_t, w_R=a.w_r, w_A=a.w_a, c_T=a.c_t, c_D_T=a.c_d_t, A_T=a.a_t, tau_T=a.work_ticks)
+                   troops=rev4, eps_T=a.eps_t, w_R=a.w_r, w_A=a.w_a, c_T=a.c_t, c_D_T=a.c_d_t, A_T=a.a_t, tau_T=a.work_ticks,
+                   reserve_demand=rev5)
         self.p = p
         world = World(p, self.actors, humans={"H": a.human_budget}, on_duty=sorted(self.actors)[: a.on_duty])
         self.w = Public(world)
@@ -181,6 +183,16 @@ class Stamping:
                   "troop_delivered_vested": 0, "troop_delivered_final_n": 0, "troop_false_approvals": 0}
         self.omega0_total = self.w.money()["omega_total"]
         self.by_grade = {g: [0, 0] for g in GRADES}       # grade -> [cases, correct]
+        # 1.5.0 §2.3: the route-and-kind reading
+        self.pfa_upheld_by: list[tuple[str, int]] = []   # (auditor, tick assigned) of each upheld probation false approval
+        self.pfa_overturned = 0
+        self.pfa_other = 0
+        self.susp_log: dict[str, list[int]] = {}         # actor -> ticks at which a suspension began
+        self._susp_seen: dict[str, int | None] = {}
+        # 1.5.0 §8.6 red team: careful members that offer for nothing and live on fees and uplift
+        careful_ids = [aid for aid in ids if self.kind[aid] == CAREFUL]
+        n_dec = round(len(careful_ids) * a.decline_awards)
+        self.decliners = set(careful_ids[:n_dec])
         self.title_n = 0
 
     # -- populations -------------------------------------------------------------
@@ -207,9 +219,12 @@ class Stamping:
         return v, max(0.0, math.floor(affordable * 100) / 100)
 
     def free_workers(self) -> list[str]:
-        """Free, fundable, and — since 1.3.0 §2.1 — a member of the market; the engine refuses the rest."""
+        """Free, fundable, and — since 1.3.0 §2.1 — a member of the market; the engine refuses the rest. A decliner
+        (1.5.0 §8.6) never offers."""
         out = []
         for aid in self.actors:
+            if aid in self.decliners:
+                continue
             ac = self.w.actor(aid)
             if not ac.on_duty and ac.committed is None and ac.open_review is None \
                     and (not self.p.membership or ac.is_member) \
@@ -463,6 +478,11 @@ class Stamping:
         self.c["duty_short_of_bond_ticks"] += self.duty_funding()
         w.advance(t)
         self.harvest()
+        for aid in self.actors:                           # 1.5.0 §2.3: when each suspension began
+            s0 = w.actor(aid).susp_started
+            if s0 is not None and s0 != self._susp_seen.get(aid):
+                self._susp_seen[aid] = s0
+                self.susp_log.setdefault(aid, []).append(s0)
 
     # -- bookkeeping from the public record ---------------------------------------
     def harvest(self):
@@ -530,6 +550,17 @@ class Stamping:
                         self.c["false_approvals"] += 1
                         if task.probation_false_approval:
                             self.c["probation_false_approvals"] += 1
+                            # 1.5.0 §2.3: the route — the pinned audit upheld it, or rejected it and the ruling overturned
+                            audits = [w.review(x) for x in c.reviews if w.review(x).role == "audit"]
+                            if any(r.status == "overturned" for r in audits):
+                                self.pfa_overturned += 1
+                            else:
+                                upheld = [r for r in audits if r.verdict == F and r.status in ("done", "vested")]
+                                if upheld:
+                                    r = upheld[-1]
+                                    self.pfa_upheld_by.append((r.reviewer, r.t_assign))
+                                else:
+                                    self.pfa_other += 1
                         if any(w.is_troop(w.review(x).reviewer) and w.review(x).role == "initial" for x in c.reviews):
                             self.c["troop_false_approvals"] += 1
                     if task.appealed:
@@ -606,6 +637,14 @@ class Stamping:
                 f"{kind}_duty_eligible": sum(1 for aid in ids if w.actor(aid).duty_eligible),
                 f"{kind}_panel_eligible": sum(1 for aid in ids if w.actor(aid).panel_eligible),
             })
+        # 1.5.0 §8.6 red team: the decliners against the careful actors that offer
+        dec = [aid for aid in self.actors if aid in self.decliners]
+        off = [aid for aid in self.actors if self.kind[aid] == CAREFUL and aid not in self.decliners]
+        row.update({"decliner_n": len(dec),
+                    "decliner_wealth": round(sum(w.wealth(aid) for aid in dec) / max(1, len(dec)), 3),
+                    "careful_offering_wealth": round(sum(w.wealth(aid) for aid in off) / max(1, len(off)), 3),
+                    "decliner_awards": round(sum(self.tally[aid].awards for aid in dec) / max(1, len(dec)), 3),
+                    "careful_offering_awards": round(sum(self.tally[aid].awards for aid in off) / max(1, len(off)), 3)})
         row.update(self.c)
         row["stamper_share"] = round(self.stamper_share(), 4)
         for g, (nn, ok) in self.by_grade.items():
@@ -635,7 +674,28 @@ class Stamping:
                     "troop_held_ticks": tr["held_ticks"], "troop_ticks_reviews": tr["troop_ticks_reviews"],
                     "troop_ticks_deliveries": tr["troop_ticks_deliveries"], "held_market_audit_now": tr["held_market_audit_now"],
                     "held_market_audit_max_age": tr["held_market_audit_max_age"], "fund_reserve": round(tr["fund_reserve"], 3),
-                    "advance_outstanding": round(tr["advance_outstanding"], 3), "B_bar": round(tr["B_bar"], 3)})
+                    "advance_outstanding": round(tr["advance_outstanding"], 3), "B_bar": round(tr["B_bar"], 3),
+                    # 1.5.0 §2.1: the troop demand at the last seating, its refused component, and the peak's refused part
+                    "troop_demand": round(tr["demand"], 3), "troop_demand_refused": round(tr["demand_refused"], 3),
+                    "demand_peak_refused": round(tr["demand_peak_refused"], 3)})
+        # 1.5.0 §2.3: how each probationer's false approval reached the customer — the route, then the auditor's kind
+        # (classified now from what is known so far; the final row is the reading, since a record that later fails is
+        # known only at the end)
+        kinds = {"troop": 0, "standing": 0, "lag": 0, "readmitted": 0}
+        for aid, t_audit in self.pfa_upheld_by:
+            if w.is_troop(aid):
+                kinds["troop"] += 1
+            else:
+                susp = self.susp_log.get(aid, [])
+                if any(ts > t_audit for ts in susp):
+                    kinds["lag"] += 1
+                elif any(ts < t_audit for ts in susp):
+                    kinds["readmitted"] += 1
+                else:
+                    kinds["standing"] += 1
+        row.update({"pfa_route_upheld": len(self.pfa_upheld_by), "pfa_route_overturned": self.pfa_overturned,
+                    "pfa_route_other": self.pfa_other, "pfa_kind_troop": kinds["troop"], "pfa_kind_standing": kinds["standing"],
+                    "pfa_kind_lag": kinds["lag"], "pfa_kind_readmitted": kinds["readmitted"]})
         return row
 
 
@@ -654,10 +714,12 @@ def main(argv=None):
     ap.add_argument("--p-start", type=float, default=1.0, help="a newcomer's audit odds (1.2.0 §2.4: 1.0; 1.1.0: 0.5)")
     ap.add_argument("--p-cap", type=float, default=1.0, help="the audit odds' cap on doubling (1.2.0 §2.4: 1.0; 1.1.0: 0.5)")
     ap.add_argument("--p-floor", type=float, default=0.2, help="the audit rate's floor (§8.3)")
-    ap.add_argument("--rules", choices=["1.4.0", "1.3.0", "1.2.0", "1.1.0"], default="1.4.0",
+    ap.add_argument("--rules", choices=["1.5.0", "1.4.0", "1.3.0", "1.2.0", "1.1.0"], default="1.5.0",
                     help="1.3.0: troops off; 1.2.0: also membership, the duty fund and netted plant capital off; 1.1.0: also no "
                          "plants, dial off, p_start = p_cap = 0.5, Ω float 20 — declared controls. The audit obligation holds in all")
     ap.add_argument("--troops", choices=["on", "off"], default="on", help="the orchestrator's troops (1.4.0)")
+    ap.add_argument("--decline-awards", type=float, default=0.0,
+                    help="1.5.0 §8.6 red team: the share of careful actors that offer for nothing and live on fees and uplift")
     ap.add_argument("--eps-t", type=float, default=0.05, help="ε_T, a troop reviewer's error rate (declared)")
     ap.add_argument("--w-r", type=int, default=2, help="w_R, ticks a review seat waits before a troop takes it")
     ap.add_argument("--w-a", type=int, default=2, help="w_A, ticks a request waits unawarded before a troop delivers it")
@@ -712,13 +774,17 @@ def main(argv=None):
                       params=run.p, **({"root": a.results_root} if a.results_root else {}),
                       declared={"actors": a.actors, "on_duty": a.on_duty, "ticks": a.ticks, "tasks_per_tick": a.tasks,
                                 "beta": a.beta, "work_ticks": a.work_ticks, "seed": a.seed,
-                                "rules": a.rules, "fund": a.fund if a.rules in ("1.3.0", "1.4.0") else "n/a", "m_max": a.m_max,
-                                "troops": {"spec": "1.4.0 design revision 4 — the orchestrator's troops" if a.rules == "1.4.0" and a.troops == "on" else "off",
+                                "rules": a.rules, "fund": a.fund if a.rules in ("1.3.0", "1.4.0", "1.5.0") else "n/a", "m_max": a.m_max,
+                                "troops": {"spec": "1.4.0 design revision 4 — the orchestrator's troops" if a.rules in ("1.4.0", "1.5.0") and a.troops == "on" else "off",
+                                           "reserve": ("1.5.0 design revision 5 — the reserve is sized to the need: R_T is the current period's peak "
+                                                       "troop demand, held plus refused for funds" if a.rules == "1.5.0" else
+                                                       "1.4.0: the peak capital carried over this period and the previous one"),
                                            "eps_T": a.eps_t, "w_R": a.w_r, "w_A": a.w_a, "c_T": a.c_t, "c_D_T": a.c_d_t, "A_T": a.a_t,
                                            "disposition": "the truth with probability 1 − ε_T; delivery fails at b as any; no cost at completion",
                                            "summons": "the engine's, at the seating step; the driver supplies the verdict and the submission"},
                                 "audit_roll": "on the engine's applied odds (audit_odds); a yes is recorded as an obligation (roll_audit) and never dropped",
                                 "stamper_mode": a.stamper_mode,
+                                "decline_awards": {"share_of_careful": a.decline_awards, "decliners": sorted(run.decliners)},
                                 "dispositions": {"stamper_fraction": a.stampers,
                                                  "assignment": dict(sorted(run.kind.items())),
                                                  "careful": {"accuracy": a.accuracy, "cost": "uniform {2, 3} credits, or what unlocked "
@@ -726,7 +792,7 @@ def main(argv=None):
                                                  "stamper": {"verdict": "F" if a.camouflage == 0 else f"F, N w.p. {a.camouflage} (camouflage)",
                                                              "cost": 0,
                                                              "on_probation": "careful" if a.stamper_mode == "reformer" else "as above"}},
-                                "membership": {"spec": "1.3.0 design revision 3 — inspection is membership" if a.rules == "1.3.0" else "none (control)",
+                                "membership": {"spec": "1.3.0 design revision 3 — inspection is membership" if a.rules in ("1.3.0", "1.4.0", "1.5.0") else "none (control)",
                                                "offers": "members only; a suspended actor or probationer is not offered work",
                                                "panel": "the engine's two tiers; probationers are offered initial reviews only"},
                                 "task_world": {"fail_rate_b": a.fail_rate, "truth": "hidden, independent of actor"},
@@ -738,7 +804,7 @@ def main(argv=None):
                                                       "adaptive": None if a.adapt_rate == 0 else
                                                       {"rate": a.adapt_rate, "every": a.adapt_every,
                                                        "how": "each actor takes the richer disposition by mean public wealth, w.p. rate"}},
-                                "clock": {"spec": "1.2.0 design revision 2 — the loop's own clock" if a.rules == "1.2.0" else "none (1.1.0 control)",
+                                "clock": {"spec": "1.2.0 design revision 2 — the loop's own clock" if a.rules != "1.1.0" else "none (1.1.0 control)",
                                           "pi0": a.pi0, "beta_P": a.beta_p, "dial": a.dial, "p_start": a.p_start, "p_cap": a.p_cap,
                                           "Omega0": a.omega0,
                                           "plant_supplier": "the orchestrator creates plants_due() plants each tick before assigning "

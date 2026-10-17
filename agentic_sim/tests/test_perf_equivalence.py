@@ -158,18 +158,21 @@ def fingerprint(w: World) -> dict:
     }
 
 
-# Recorded from the 1.3.0 engine (design revision 3: inspection is membership) running `scenario(seed, 200)`
+# Recorded from the 1.5.0 engine (design revision 5: the reserve is sized to the need) running `scenario(seed, 200)`
 # with the full audit after every tick. The head commits every event in order; the rest are the readable
 # consequences. The scenario plants work, moves the dial to m_max, suspends actors from the market, puts them
 # on probation, pays the dial's raised tax out of the duty fund and (seed 2) fires the alarm. Earlier goldens:
 # v1.0.1 (6a746a1) 586af764… / 5686 and ab79fe65… / 4849 entries; 1.1.0 (a1e726a) bb0aa856… / 7489 and
-# eb337b97… / 5324; 1.2.0 (d40cde2) b9c5d1a1… / 7613 and 40a459d8… / 7078. Each changed with the rule, as a
-# change to settlement, the reserve or membership must, and was re-pinned once, at the implementing commit.
+# eb337b97… / 5324; 1.2.0 (d40cde2) b9c5d1a1… / 7613 and 40a459d8… / 7078; 1.4.0 (f0779ac) 2b23701b… / 8220 and
+# 1f5bf324… / 7876 (the 1.3.0 figures were re-pinned at 1.4.0 since the roll became an obligation and troops are
+# summoned; at 1.5.0 the reserve counts refused demand, so the uplift paid — and the period record — change). Each
+# changed with the rule, as a change to settlement, the reserve or membership must, and was re-pinned once, at the
+# implementing commit.
 GOLDEN = {
-    1: {"head": "2b23701b993cbf07c5d27395a889c68679df3a2b0b4cb331dd317f2fb9ecf18e", "entries": 8220,
-        "M": 199185.167324, "Res": 198573.564871,
-        "states": {"FINAL_N": 177, "VESTED": 69, "WITHDRAWN": 21, "PENDING": 3, "AVAILABLE": 16, "COMMITTED": 1}},
-    2: {"head": "1f5bf32417583c2252c6934febbb2bb3df8e882f4dd039eac8c8fcef56ab69dd", "entries": 7876,
+    1: {"head": "89a9b62dec8d324c2eb4ba37eb9dd4fa02a79a94cbb703ffd8b032fd4b9e0b82", "entries": 8172,
+        "M": 199061.049523, "Res": 198493.868107,
+        "states": {"FINAL_N": 172, "VESTED": 79, "WITHDRAWN": 20, "CANCELLED": 1, "PENDING": 7, "COMMITTED": 3, "AVAILABLE": 8}},
+    2: {"head": "9462aea860b4bd1ee4de4f3a673ae3b9449ff47b8610cea7bd39579645ee6af7", "entries": 7876,
         "M": 199100.635282, "Res": 198694.721702,
         "states": {"FINAL_N": 164, "VESTED": 66, "WITHDRAWN": 13, "PENDING": 1, "COMMITTED": 1, "AVAILABLE": 31}},
 }

@@ -701,6 +701,12 @@ def I23_load_and_fund(w):
             _fail(f"I23 duty fund {f.W} ≠ its recorded flows {w.fund_flow}")
         if w.advance_outstanding > p.A_T + EPS or w.advance_outstanding < -EPS:
             _fail(f"I23 Ω's advance outstanding {w.advance_outstanding} outside [0, A_T={p.A_T}]")
+        if p.reserve_demand:                    # 1.5.0 §2.1: the reserve is at least the capital held and the last demand
+            held = sum(t["cost"] + t["lock"] for t in w.troops.values() if t["t_release"] is None)
+            if w.R_T + EPS < held:
+                _fail(f"I23 reserve {w.R_T} below the capital troops hold {held}")
+            if w.R_T + EPS < w.troop_demand_now:
+                _fail(f"I23 reserve {w.R_T} below the demand at the last seating {w.troop_demand_now}")
         if w._uplift_violation:
             _fail(f"I23 {w._uplift_violation}")
 

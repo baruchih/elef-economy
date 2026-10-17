@@ -82,7 +82,10 @@ class Public:
                 "held_ticks": w.troop_held_ticks, "troop_ticks_reviews": w.troop_ticks_reviews,
                 "troop_ticks_deliveries": w.troop_ticks_deliveries,
                 "held_market_audit_now": w.held_market_audit_now, "held_market_audit_max_age": w.held_market_audit_max_age,
-                "fund_reserve": w.R_T, "advance_outstanding": w.advance_outstanding, "B_bar": w.mean_awarded_price()}
+                "fund_reserve": w.R_T, "advance_outstanding": w.advance_outstanding, "B_bar": w.mean_awarded_price(),
+                # 1.5.0 §2.1: the troop demand at the last seating and its components
+                "demand": w.troop_demand_now, "demand_held": w.troop_demand_held, "demand_refused": w.troop_demand_refused,
+                "demand_peak_refused": w.troop_demand_peak_refused}
 
     # -- the orchestrator's planted work and its clock (1.2.0 §2.1–§2.3) -----------
     def create_plant(self, truth: bool, B: float) -> str:

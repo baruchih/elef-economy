@@ -426,7 +426,14 @@ class World:
         self._n_troop = 0
         self.advance_outstanding = 0.0                  # Ω's advance to the fund, repaid before uplift (≤ A_T)
         self.troop_capital_peak = 0.0                   # peak troop capital this period
-        self.troop_capital_peak_prev = 0.0              # and the previous one; R_T is the larger
+        self.troop_capital_peak_prev = 0.0              # and the previous one; R_T is the larger (1.4.0 reading)
+        # 1.5.0 §2.1: the troop demand D_s at each seating and its peak over the current period
+        self.troop_demand_peak = 0.0                    # peak D_s this period — R_T under reserve_demand
+        self.troop_demand_peak_refused = 0.0            # the refused component of D_s at the seating that set the peak
+        self.troop_demand_held = 0.0                    # D_s at the last seating: capital held by live troops ...
+        self.troop_demand_refused = 0.0                 # ... plus the cost of the summonses refused for funds
+        self._pass_refused = 0.0                        # the refused demand of the summons pass in progress
+        self._last_refusal_funds = False                # the last summons returned None because the fund could not carry it
         self.fund_flow = 0.0                            # Σ of every event into/out of the fund's wallet (I23)
         self._uplift_violation = None
         self.troop_summons_reviews = 0
@@ -2120,10 +2127,16 @@ class World:
                "troop_shortfall": [per["troop_shortfall_seats"], per["troop_shortfall_awards"], per["troop_held_ticks"]],
                "held_market_audit_max": per["held_market_audit_max"],
                "fund": round(self.ledger.wallet(DUTY_FUND).U, 6), "fund_reserve": round(self.R_T, 6),
-               "advance": round(self.advance_outstanding, 6), "B_bar": round(self.mean_awarded_price(), 6)}
+               "advance": round(self.advance_outstanding, 6), "B_bar": round(self.mean_awarded_price(), 6),
+               # 1.5.0 §2.1: the period's peak demand, how much of it was refused, and the demand at its last seating
+               "demand_peak": round(self.troop_demand_peak, 6), "demand_peak_refused": round(self.troop_demand_peak_refused, 6),
+               "demand_last": round(self.troop_demand_now, 6)}
         self.periods.append(rec)
         self.history.append("period", rec)
         self.troop_capital_peak_prev, self.troop_capital_peak = self.troop_capital_peak, self._troop_capital_now()
+        # 1.5.0 §2.1: the new period's peak starts at the standing demand — every troop still in the field; the same
+        # tick's summons pass adds whatever that seating refuses
+        self.troop_demand_peak, self.troop_demand_peak_refused = self._troop_capital_now(), 0.0
         if alarm:
             self.alarms += 1
             self._reseat_reserve(tick)
@@ -2207,7 +2220,16 @@ class World:
 
     @property
     def R_T(self) -> float:
+        """The fund's troop reserve. 1.5.0 §2.1: the peak troop demand of the current period; 1.4.0: the peak capital
+        carried over this period and the previous one (`reserve_demand=False`)."""
+        if self.p.reserve_demand:
+            return self.troop_demand_peak
         return max(self.troop_capital_peak, self.troop_capital_peak_prev)
+
+    @property
+    def troop_demand_now(self) -> float:
+        """D_s at the last seating: capital held plus the cost of summonses refused for funds (1.5.0 §2.1)."""
+        return self.troop_demand_held + self.troop_demand_refused
 
     def _troop_capital_now(self) -> float:
         return sum(t["cost"] + t["lock"] for t in self.troops.values() if t["t_release"] is None)
@@ -2280,9 +2302,12 @@ class World:
             return None                                 # no seat to take: the path is full (I8)
         cost_credits = self.p.c_T                      # declared in credits at v ≈ 1; purchased as real cost c_T · v
         need = cost_credits + c.G_V
+        self._last_refusal_funds = False
         if not self._fund_can_carry(need, c.id):
             self.troop_shortfall_seats += 1
             self.period["troop_shortfall_seats"] += 1
+            self._pass_refused += need                  # 1.5.0 §2.1: the amount the carry check refused is demand
+            self._last_refusal_funds = True
             return None
         tid = self._new_troop("review", c.id, cost_credits, c.G_V)
         credits = self.ledger.purchase(tid, cost_credits * self.ledger.v, case=c.id, note="troop cost (review)")
@@ -2332,6 +2357,7 @@ class World:
         if not self._fund_can_carry(cost_credits + G, c.id):
             self.troop_shortfall_awards += 1
             self.period["troop_shortfall_awards"] += 1
+            self._pass_refused += cost_credits + G       # 1.5.0 §2.1: the amount the carry check refused is demand
             return None
         tid = self._new_troop("delivery", c.id, cost_credits, G)
         c.D, c.K, c.G_V, c.phi_E, c.phi_F, c.omega, c.G = D, K, GV, phi_E, phi_F, omega, G
@@ -2368,6 +2394,7 @@ class World:
         steps since it was required — required at t, it has waited 1 at t's seating and w_R at the seating
         of t + w_R − 1. Also the tick's readings."""
         held_now, held_max_age = 0, 0
+        self._pass_refused = 0.0
         for c in list(self._live_cases.values()):
             if c.plant is not None or any(a[3] == "override" for a in c.assessments):
                 continue                                # never a plant; never a case a human has ruled on (I18)
@@ -2395,10 +2422,13 @@ class World:
             ch = c.challenge
             if self.p.troops and ch and not ch["resolved"] and len(ch["reviews"]) < 2 \
                     and tick - ch.get("seat_since", tick) + 1 >= self.p.w_R and not self._free_eligible_reviewer(c, "appeal"):
-                for _ in range(2 - len(ch["reviews"])):
+                remaining = 2 - len(ch["reviews"])
+                for i in range(remaining):
                     if self._summon_review(c, "appeal", tick) is None:
                         self.troop_held_ticks += 1
                         self.period["troop_held_ticks"] += 1
+                        if self._last_refusal_funds:    # 1.5.0 §2.1: a case's demand is its unfilled seats — both
+                            self._pass_refused += (remaining - i - 1) * (self.p.c_T + c.G_V)
                         break
             # the award
             if c.state == "AVAILABLE" and c.is_root and self.p.troops and c.requester in self.requesters \
@@ -2410,6 +2440,13 @@ class World:
         self.held_market_audit_now = held_now
         self.held_market_audit_max_age = max(self.held_market_audit_max_age, held_max_age)
         self.period["held_market_audit_max"] = max(self.period["held_market_audit_max"], held_now)
+        # 1.5.0 §2.1: the troop demand at this seating — capital held plus what was refused for funds — and the
+        # period's peak; each refused case counted once per seating, at the amount the carry check refused
+        held = self._troop_capital_now()
+        self.troop_demand_held, self.troop_demand_refused = held, self._pass_refused
+        d_s = held + self._pass_refused
+        if d_s > self.troop_demand_peak + 1e-12:
+            self.troop_demand_peak, self.troop_demand_peak_refused = d_s, self._pass_refused
         active_r = sum(1 for t in self.troops.values() if t["kind"] == "review" and t["t_release"] is None)
         active_d = sum(1 for t in self.troops.values() if t["kind"] == "delivery" and t["t_release"] is None)
         self.troop_ticks_reviews += active_r

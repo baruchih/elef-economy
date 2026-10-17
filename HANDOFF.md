@@ -1050,6 +1050,54 @@ the runs do not yet carry.
 The reviewer notes are `agentic_sim/results/studies/1.4.0-troops-notes-for-reviewer.md`. Untouched: §18.1
 questions 2, 4, 5, 7, 10.
 
+## Design revision 5 — the reserve is sized to the need (1.5.0, October 17, 2026)
+
+The fifth use of §19's path and the smallest: one rule. Run 6 showed the troops doing what revision 4 said and
+the fund starving them by its own rule — R_T, the peak capital troops *had* carried, was what every batch drained
+the fund to, so the peak could never rise, and the fund refused 4,800–8,800 award summonses a run while paying
+6,400–12,700 in uplift; A_T was not the constraint. The design reviewer proposed the reserve sized to the
+*attempted* demand; rc.1 (`uploads/`, headed "Proposed") was reviewed (`spec/design_revisions/dr5_1.5.0-rc.1-review.md`,
+six points: a peak does not fall mid-period though the text said it did, and the trailing-period reading had to
+be settled; "refused" means refused for funds; a case's demand is its unfilled seats; the refused cost is the
+carry check's own need; §6 understated how long a delivery's capital is held; the leak reading should attribute
+by gate before auditor kind); rc.2 adopted all six (`dr5_1.5.0-rc.2-review.md`: implementable as it stands) and
+Baruchi relayed acceptance: "accept rc.2, implement".
+
+**The rule (§12.3, I23).** At each seating the troop demand D_s is the capital live troops hold plus the cost of
+the summonses the fund could not carry at that seating — refused *for funds*, each case once per seating at the
+amount the carry check refused, a case's demand its unfilled seats (a panel short of both, two). R_T is the peak
+of D_s over the *current* period, starting at the period's first seating from the standing demand (every troop
+still in the field), the previous period dropped. The uplift is paid, as before, only from the unlocked balance
+above R_T. A peak holds: the stock falls as the backlog is served, the reserve does not until the period ends — one
+period's retention, the dial's own lag, as a feature. Also: Hypothesis 4 of revision 4 restated (the honest keep
+their income; its composition shifts from awards to fees, bounded by the duty cap), and a reading — how a
+probationer's false approval reached the customer: the pinned audit upheld it, or rejected it and the ruling
+overturned; on the upheld route the auditor's kind (troop; member never suspended; member suspended later than the
+audit, inside its lag; member readmitted before it). Rejected and recorded: uplift only when the period's
+shortfall was zero (sawtooths); a fixed reserve/uplift split (blind to need); a stock-tracking reserve (kept for
+Q13); the ruling's default to 1 − ε_T (the sweep did not earn it).
+
+**Implemented** (`spec/agentic_economics_loop_spec_v1_5_0.md`; 1.4.0 to history; rc.2 verbatim as
+`spec/design_revisions/dr5_the_reserve_is_sized_to_the_need_1.5.0.md`; Appendix J; §18.1 Q13 continued, Q14 new).
+Engine: `_summon_troops` accumulates the refused `need` inside its pass and reads it with the capital held at the
+end — `troop_demand_held`, `troop_demand_refused`, `troop_demand_now`; `R_T` is `troop_demand_peak`, reset at the
+period's end to the capital still held before the same tick's seating; the period record carries `demand_peak`,
+`demand_peak_refused`, `demand_last`; I23 checks R_T ≥ capital held and ≥ D_s. `Params.reserve_demand=False` is the
+1.4.0 reading (the larger of this and the previous period's peak capital carried — the engine's 1.4.0 reading, now
+recorded in Appendix I as superseded), the declared control `--rules 1.4.0`. `test_v15` (7). Suite 225 + 26.
+Goldens re-pinned once (the uplift paid changes where a refusal occurred; the period record carries new readings).
+Driver: the demand per tick; the route-and-kind attribution after the run; `--decline-awards <share>` (careful actors
+that offer for nothing — the 1.5.0 red team); `--rules 1.5.0|1.4.0|1.3.0|1.2.0|1.1.0`. For the record: the uplift check
+compares the fund's *unlocked* balance against a reserve that counts capital held (costs purchased plus locks), so
+the fund's total when uplift resumes is about R_T plus the locks then held — as under 1.4.0.
+
+**Run 7 — the revision's §8 (next).** Reproduce §6 (the 60/40 ramp: refusals to zero, R_T climbing toward ~270,
+uplift resuming inside the period); the tipping point under 1.5.0 against the 1.4.0 control re-run on this engine
+(refused summonses, the state's share, vesting, members' awards, uplift paid and when, R_T and D_s); the windows
+w_A ∈ {1, 2, 5} at 60/40; adaptive 1.5.0 against 1.4.0 at 3,000 ticks (convergence, troop-ticks and R_T to zero);
+drift at m_max ∈ {2, 4} with the route-and-kind reading; the red team — decliners, a requester flood, the reformer
+and camouflage once more. Results to `agentic_sim/results/studies/1.5.0-reserve/`.
+
 ## Maps
 
 Two `_line` artifacts in project Agentic-OS (`c54120a6-aaff-40f7-8a9f-3667da542879`):

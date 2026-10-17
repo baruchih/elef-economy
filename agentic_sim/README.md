@@ -1,9 +1,9 @@
-# agentic_sim — reference implementation of the 1.4.0 baseline
+# agentic_sim — reference implementation of the 1.5.0 baseline
 
 Built up through v0.4–v0.10, unchanged by the v1.0 consolidation and the v1.0.1 errata, and changed four times
 since, all on October 17, 2026: for design revision 1 (1.1.0: the verification deposit is two pots), design revision 2
 (1.2.0: the loop's own clock — planted work, the plant record, the effort dial), design revision 3 (1.3.0: inspection
-is membership) and design revision 4 (1.4.0: the orchestrator's troops — see the four sections below). Section numbers in code comments refer to the
+is membership), design revision 4 (1.4.0: the orchestrator's troops) and design revision 5 (1.5.0: the reserve is sized to the need — see the five sections below). Section numbers in code comments refer to the
 working-spec versions they were written against; `spec/agentic_economics_loop_spec_v1_4_0.md` is the text in force,
 and its Appendix A holds the defaults that `sim/params.py` encodes.
 
@@ -72,6 +72,11 @@ tests/test_v14.py                   design revision 4 (1.4.0): a rolled audit ho
                                     troop at the market price (+10); the troop accepting every verdict at the verdict; the
                                     state's own work audited by a member only and the held case counted; uplift only above the
                                     reserve; I24/I25 catching — 10
+tests/test_v15.py                   design revision 5 (1.5.0): a refusal for funds raises the reserve by the refused cost once per
+                                    seating (and the 1.4.0 reading does not move); a request below the market or unfundable by its
+                                    requester adds nothing; a panel short of both seats adds two; refused-then-carried raises the
+                                    peak once; no uplift at or below the reserve and the balance above it paid; the peak holds
+                                    within the period and restarts at the standing demand at the boundary; I23 catching — 7
 tests/test_perf_equivalence.py      the per-tick check equals the full audit; the working-set engine reproduces the
                                     pinned History head on a seeded random scenario that now plants work (re-pinned once for
                                     1.1.0 and once for 1.2.0); the working set stays bounded — 5
@@ -82,11 +87,11 @@ tests/test_record_mode.py           the record on disk (`Params.record_dir`): th
 run_tests.py        every suite with plain python; pytest reports the same (conftest marks the XFAIL)
 ```
 
-Run: `python3 run_tests.py` — 218 pass, 0 fail, 26 expected failures, each with a stated reason (one original,
+Run: `python3 run_tests.py` — 225 pass, 0 fail, 26 expected failures, each with a stated reason (one original,
 four superseded by the view contract, nineteen on the withdrawn reopening path, one superseded by design
-revision 1, one by design revision 2). With pytest: `python3 -m pytest tests -q` reports 218 passed, 26 xfailed; the
+revision 1, one by design revision 2). With pytest: `python3 -m pytest tests -q` reports 225 passed, 26 xfailed; the
 runner expands pytest parametrization as pytest does, including multi-argument and stacked marks. (Spec Appendix D
-records the count at the v1.0.1 freeze, 156; at 1.1.0, 181; at 1.2.0, 197; at 1.3.0, 208; at 1.4.0, 218.)
+records the count at the v1.0.1 freeze, 156; at 1.1.0, 181; at 1.2.0, 197; at 1.3.0, 208; at 1.4.0, 218; at 1.5.0, 225.)
 
 Expected failures are **strict and parameter-exact** in both entry points: `EXPECTED_FAIL_PARAMS` names the
 parameter runs that are expected to fail inside a mixed test (the P/⊥ runs of the eighth review's first case;
@@ -364,6 +369,39 @@ dr4_the_orchestrators_troops_1.4.0.md`, consolidated into `spec/agentic_economic
   deliveries by outcome, troop false approvals, obligations). `drivers/sweep.py` carries them.
 - **Tests.** `test_v14.py` (10); the equivalence scenario rolls audits as obligations and pays troops nothing
   at completion, and its goldens were re-pinned once. Reviewer tests untouched and passing.
+
+## Design revision 5 — the reserve is sized to the need (1.5.0, October 17, 2026)
+
+Run 6 under 1.4.0 (`results/studies/1.4.0-troops/`) showed the troops doing what revision 4 said — vesting back at
+the 1.2.0 control, the state's share reading the capture, troops to zero as a population turned honest — and the
+fund refusing 4,800–8,800 award summonses a run while paying 6,400–12,700 in uplift: R_T, the peak capital troops
+*had* carried, was what every batch drained the fund to, so the peak could never rise. Design revision 5 (accepted as
+rc.2; `spec/design_revisions/dr5_the_reserve_is_sized_to_the_need_1.5.0.md`, consolidated into
+`spec/agentic_economics_loop_spec_v1_5_0.md` §12.3, I23 and Appendix J) changes one rule — what the reserve
+measures. In the engine:
+
+- **Demand.** `_summon_troops` zeroes `_pass_refused` at the start of its pass; `_summon_review` and
+  `_summon_delivery` add the `need` the carry check refused (`_last_refusal_funds` tells the panel loop, which stops
+  at the first refusal, to add the seats it did not attempt — only when the refusal was for funds); a request priced
+  below B̄, a requester that cannot pay in, or a path at V_max returns before the carry check and adds nothing. At the
+  pass's end `troop_demand_held` (capital of live troops, as `_troop_capital_now`) and `troop_demand_refused` are set;
+  `troop_demand_now` is D_s.
+- **Reserve.** `R_T` is `troop_demand_peak`, the running maximum of D_s over the current period, with
+  `troop_demand_peak_refused` the refused part of the seating that set it. `_maybe_end_period` records `demand_peak`,
+  `demand_peak_refused` and `demand_last` in the period record, then resets the peak to the capital still held — the
+  standing demand — before the same tick's seating adds whatever it refuses. The uplift check (`max(0, fund.U − R_T)`)
+  is unchanged. `Params.reserve_demand=False` keeps the 1.4.0 reading (the larger of this and the previous period's
+  peak capital carried) as the declared control.
+- **I23** gains two inequalities: R_T ≥ the capital live troops hold, and R_T ≥ D_s at the last seating.
+- **Drivers.** `view.troops()` adds `demand`, `demand_held`, `demand_refused`, `demand_peak_refused`;
+  `drivers/stamping.py` writes `troop_demand`, `troop_demand_refused`, `demand_peak_refused` per tick, attributes each
+  probationer's false approval by route (`pfa_route_upheld` / `pfa_route_overturned` / `pfa_route_other`) and, on the
+  upheld route, by the auditor's kind at the time (`pfa_kind_troop` / `_standing` / `_lag` / `_readmitted`, from its own
+  suspension log, final in the last row), offers `--decline-awards <share>` (careful actors that offer for nothing;
+  `decliner_wealth`, `careful_offering_wealth` and their award counts) and `--rules 1.5.0|1.4.0|1.3.0|1.2.0|1.1.0`.
+  `drivers/sweep.py` carries the new columns and `dec`, `k` for `decline-awards`, `tasks`.
+- **Tests.** `test_v15.py` (7); the equivalence scenario's goldens were re-pinned once (the uplift paid changes where
+  a refusal occurred, and the period record carries the new readings). Reviewer tests untouched and passing.
 
 ## The expected failure
 

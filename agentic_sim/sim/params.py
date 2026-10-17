@@ -88,6 +88,11 @@ class Params:
     c_D_T: float = 10.0        # a troop delivery's cost, likewise
     A_T: float = 100.0         # Ω's advance to the fund, outstanding at most
     tau_T: int = 2             # a troop's delivery time
+    # Design revision 5 (1.5.0): the reserve is sized to the need. True: R_T is the peak over the current period of the
+    # troop demand D_s — capital held by live troops plus the cost of the summonses the fund refused at that seating —
+    # starting at the standing demand at the period's first seating (§2.1). False: 1.4.0's reading, the peak capital
+    # carried over this period and the previous one.
+    reserve_demand: bool = True
 
     # Reliability and duty credit windows (§11)
     rho_window: int = 100      # settled outcomes

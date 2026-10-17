@@ -49,6 +49,9 @@ def main(argv=None):
     ap.add_argument("--actors", type=int, default=20)
     ap.add_argument("--log-every", type=int, default=100)
     ap.add_argument("--name", default="stamping-rerun-1.1.0")
+    ap.add_argument("--phi-f-per-fee", type=float, default=2.5,
+                    help="φ^F = this × f for each fee level (§4.3 default: f·(w_ordinary + w_audit) = 2.5 f); "
+                         "0 keeps the stamping driver's own default (5) at every fee level")
     ap.add_argument("--extra", nargs=argparse.REMAINDER, default=[], help="passed through to drivers.stamping")
     a = ap.parse_args(argv)
 
@@ -57,7 +60,9 @@ def main(argv=None):
     rec = RunRecorder(a.name, kind="sweep summary — strategy run 1 rerun under 1.1.0 with only the fee rule changed (§8 step 2)",
                       params=Params(),
                       declared={"cells": [cell_name(*c) for c in cells], "seeds": seeds, "ticks": a.ticks, "actors": a.actors,
-                                "per_run": "drivers.stamping at its defaults except --stampers, --fee, --on-duty, --seed",
+                                "per_run": "drivers.stamping at its defaults except --stampers, --fee, --on-duty, --seed, "
+                                           "and --phi-f = phi_f_per_fee × fee",
+                                "phi_f_per_fee": a.phi_f_per_fee,
                                 "extra_args": a.extra, "comparison": "the s0.5/s0.9, f2, X4 cells against run 1 (v1.0.1, 5 seeds)"})
     runs, finals = [], {}
     t0 = time.time()
@@ -66,6 +71,8 @@ def main(argv=None):
             name = f"rerun110-{cell_name(split, fee, X)}-seed{seed}"
             argv_run = ["--actors", str(a.actors), "--ticks", str(a.ticks), "--stampers", str(split), "--fee", str(fee),
                         "--on-duty", str(X), "--seed", str(seed), "--log-every", str(a.log_every), "--name", name] + a.extra
+            if a.phi_f_per_fee > 0:
+                argv_run += ["--phi-f", str(a.phi_f_per_fee * fee)]       # the pot sized for one review and one audit
             before = set(os.listdir(os.path.join(RESULTS, "runs")))
             rc = stamping.main(argv_run)
             new = [d for d in os.listdir(os.path.join(RESULTS, "runs")) if d not in before and d.endswith(name)]

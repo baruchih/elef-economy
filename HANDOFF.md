@@ -238,14 +238,71 @@ careful reviewer's care cost is reimbursed from the case's verification deposit,
 its fee comes from, so care is paid for out of the reviewer's own fee — stampers earned 1.6 more per
 review. Deterrence ran the other way but smaller: careful actors won more awards (153.5 against 146.5
 per actor, +130 in delivery income) and stampers forfeited three times the bonds (29 against 9.5) — but
-only a quarter of the rolled audits found an eligible auditor, and a stamper lost 3% of its reviews to
-overturn, so ρ separated by only 0.02. At 10/90 the two careful actors broke even with the stampers and
+a stamper lost only 3% of its reviews to overturn, so ρ separated by only 0.02. (An earlier reading of
+this result said "only a quarter of the rolled audits found an eligible auditor"; that was wrong — the
+quarter is p_audit at its floor of 0.2, and `audit_unassignable_ticks` was 0.2 per run. The capacity
+ceiling was real for *initial* reviews, below, not for audits.) At 10/90 the two careful actors broke even with the stampers and
 the economy recorded 531 false approvals out of 3,000 tasks, with label accuracy 0.82 under both grades.
-Under §19 this is an evaluation, not a rule finding: the sweep over (p_start, G^V, b) says where the
-sign flips, and the reviewer-capacity ceiling (a submitted case waited for an eligible reviewer in about
-950 of 1,000 ticks) is a confound to be sized before the result is read as being about the rules. The engine
-and its tests stay as they are; a driver that needs an engine change has found either a conformance bug
-(fix + regression) or a design question (write it up, do not patch around it).
+Under §19 this was an evaluation, not a rule finding — and then, read against the text and the
+history, it became the ground of design revision 1 (below): the fee rule the run exposed contradicted
+the spec's own §7.3 arithmetic and an agreed v0.1 decision. The reviewer-capacity ceiling (a submitted
+case waited for an eligible reviewer in about 950 of 1,000 ticks at X = 4) is sized in the rerun by the
+X = 8 cells.
+
+## Rerun under 1.1.0 — strategy run 1 with only the fee rule changed (October 17, 2026)
+
+`drivers/sweep.py`: 8 cells × 20 seeds = 160 runs of `drivers.stamping`, 20 actors × 1,000 ticks, 3 tasks
+per tick at β = 20, b = 0.2, careful accuracy 0.95 and cost 2–3, p_start 0.5, G^V 5, ruling accuracy 0.8
+— run 1's declaration unchanged — at X ∈ {4, 8} on duty, f ∈ {2, 4} with φ^F = 2.5 f, splits 50/50 and
+10/90. Every run passed its final audit; Ω advanced nothing it did not recover, no claim was left
+outstanding, and one careful review in five runs was underfunded. Results: the 160 run directories
+`results/runs/*rerun110-*` and the summary `results/runs/20261017-095929-stamping-rerun-1.1.0/`
+(`summary.md`, `metrics.csv` with every run's final row, per-cell means and spreads in the manifest).
+Per actor, means ± sd over 20 seeds; "richer" counts seeds:
+
+| cell | careful wealth | stamper wealth | stamper − careful (se) | stampers richer | false approvals / 3,000 | reviews unassignable ticks |
+|---|---|---|---|---|---|---|
+| **50/50, f 2, X 4 — run 1's cell** | 3,275 ± 156 | 3,102 ± 180 | **−173 (73)** | **6 of 20** | 284 | 1,046 |
+| 50/50, f 2, X 8 | 3,320 ± 87 | 3,031 ± 94 | **−290 (39)** | 1 of 20 | 284 | 0 |
+| 50/50, f 4, X 4 | 3,670 ± 176 | 3,491 ± 205 | −179 (83) | 9 of 20 | 284 | 1,057 |
+| 50/50, f 4, X 8 | 3,700 ± 87 | 3,427 ± 94 | −273 (39) | 1 of 20 | 283 | 0 |
+| 10/90, f 2, X 4 | 3,687 ± 339 | 3,626 ± 62 | −61 (89) | 8 of 20 | 522 | 946 |
+| 10/90, f 2, X 8 | 3,578 ± 254 | 3,644 ± 30 | +66 (62) | 11 of 20 | 533 | 0 |
+| 10/90, f 4, X 4 | 4,112 ± 396 | 4,020 ± 68 | −92 (103) | 9 of 20 | 522 | 946 |
+| 10/90, f 4, X 8 | 3,952 ± 263 | 4,038 ± 31 | +85 (65) | 11 of 20 | 534 | 0 |
+
+**The sign flipped in run 1's cell.** Under v1.0.1 stampers ended richer by 249 per actor (4 of 5
+seeds); under 1.1.0, same declaration, same seeds among the twenty, careful reviewers end richer by 173
+(se 73), stampers richer in 6 of 20. With the capacity ceiling removed (X = 8: no tick in which a
+submitted case waited for a reviewer) the gap is 290 (se 39), stampers richer in 1 of 20. The fee level
+does not change the gap (f = 4 moves both populations up by about 400 and leaves the difference where it
+was), which is what a fee that is fixed by role should do.
+
+**The channel moved as the revision said it would.** Fees per review are now equal: 4.04 careful against
+4.02 stamper at f = 2 (run 1: 7.9 against 9.5). The whole gap is delivery income and bonds — careful
+actors win more awards (154.7 against 145.3 per actor; +193 in delivery) and stampers forfeit three times
+the bonds (28.2 against 9.9) with 3.0% of their reviews overturned against 1.1%. That is the reliability
+channel plus bond forfeiture, standing alone now that the fee no longer runs against them.
+
+**At 10/90 nothing separates the two.** With eighteen stampers the reserve is stamper-on-stamper, audits
+agree, 522–534 of about 600 truly failed tasks are paid in full, and label accuracy is 0.82–0.83 under
+both grades; the two careful actors' wealth varies by ±340 across seeds and the difference is within one
+standard error of zero in every 10/90 cell. The rule change does not rescue an economy whose reviewers
+are almost all careless; it stops charging the ones who are not.
+
+**Money.** Reviewer income from deposits fell as §4.3 says: fees per actor 725–770 at f = 2 against
+1,418–1,813 under v1.0.1, of which 385–400 are fixed fees and the rest emission. The requester got back
+25,200 of the 30,000 paid into allowances (reimbursements 4,800) and 6,980 of the 15,000 paid into fee
+pots at f = 2; at f = 4 (pots of 10) 13,970 of 30,000. Haircuts were small (2–4 per careful actor over
+a run); Ω's unrecovered advances were 0 in every run.
+
+Under §19 this is an evaluation of 1.1.0's rule, not a further rule finding. What it leaves open is the
+revision's own list: the default sweep (tie band, audit floor, bond), the appeals run — which measures
+the a of §7.3, the term stampers never pay — and the requester-dispute run, in that order; and the
+10/90 result says the audit floor and the reserve's composition are the next knobs that matter.
+
+The engine and its tests stay as they are; a driver that needs an engine change has found either a
+conformance bug (fix + regression) or a design question (write it up, do not patch around it).
 
 ## Design revision 1 — the verification deposit is two pots (1.1.0, October 17, 2026)
 

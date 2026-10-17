@@ -454,6 +454,50 @@ panel chosen by ρ rather than by duty, and what a requester-dispute should cost
 are for a written proposal, not a patch. Spec §18.1 questions 1 and (in part) 6 are answered for this
 declaration; 2, 3, 4, 5, 7, 8 are untouched.
 
+## Two controls before review (October 17, 2026)
+
+Both in `agentic_sim/results/studies/1.1.0-stamping/controls/`: `X8/` (appeals and disputes with eight on
+duty, 20 seeds, 20 actors) and `scale200/` (200 actors, 40 on duty, 30 tasks per tick, 5 seeds). Same
+declaration otherwise; truthful policies only.
+
+| cell | careful | stamper | stamper − careful (se) | richer | stamper overturned % | false approvals | reviews unassignable ticks |
+|---|---|---|---|---|---|---|---|
+| 50/50, appeals, X 4 (above) | 3,269 | 3,129 | −140 (120) | 8 of 20 | 3.4 | 248 | 2,981 |
+| **50/50, appeals, X 8** | 3,194 | 3,330 | **+136 (39)** | 15 of 20 | 2.7 | 276 | 0 |
+| 10/90, appeals, X 8 | 3,291 | 3,693 | +403 (85) | 16 of 20 | 0.6 | 529 | 0 |
+| 50/50, disputes, X 4 (above) | 2,748 | 2,444 | −304 (50) | 2 of 20 | 16.9 | 83 | 7,794 |
+| **50/50, disputes, X 8** | 3,595 | 2,264 | **−1,331 (35)** | 0 of 20 | 14.2 | 131 | 0 |
+| 10/90, disputes, X 8 | 3,661 | 3,545 | −116 (80) | 9 of 20 | 3.8 | 455 | 1 |
+| 200 actors, 50/50, none | 2,942 | 2,793 | −149 (59) | 0 of 5 | 2.6 | 2,874 / 30,000 | 2,965 |
+| 200 actors, 50/50, appeals | 2,868 | 3,012 | +144 (68) | 4 of 5 | 2.6 | 2,790 / 30,000 | 5,415 |
+| 200 actors, 50/50, disputes | 2,451 | 2,275 | −176 (15) | 0 of 5 | 16.2 | 630 / 30,000 | 73,841 |
+
+**Capacity was hiding the size of both challenge effects, not their direction — and in the appeals
+case it was hiding a reversal.** With eight on duty no case waits for a reviewer, and the appeals cell
+that read as "indistinguishable from zero" at X = 4 reads **+136 (se 39), stampers richer in 15 of 20**:
+truthful appeals alone, with the fee penalty gone and the reserve unconstrained, hand the contest to the
+stampers at 50/50. The mechanism is the one §7.3's appeals term names: 98% of the careful reviewers' false
+rejections are adjudicated and lost, 3% of the stampers' false approvals are, so careful ρ ends below
+stamper ρ (0.92 against 0.93) and selection follows. At 10/90 it is +403. The dispute cell moves the other
+way by the same release: −1,331 (se 35), none of twenty seeds the other way — a requester who disputes
+every false approval, with a reserve that can hear the disputes, takes 17% of the stampers' reviews and
+most of their awards (112 against 188). At 10/90 the stamper panel still defeats the disputes (82 of 543
+won) and the gap is −116.
+
+**The 20-actor results scale.** At 200 actors with the same on-duty share the no-challenge cell gives
+−149 (−173 at 20), the appeals cell +144 (+136 at X = 8), and the disputes cell −176 with the reserve
+again saturated — 2,400 disputes are 4,800 reviews, cases waited 74,000 review-ticks, awards went
+unfilled in 987 of 1,000 ticks. The reserve-share of 20% binds at 200 as it did at 20.
+
+**What changes in the reading.** The appeals finding is stronger than the X = 4 run showed: under 1.1.0
+at the defaults, when actors appeal truthfully and the reserve is not the bottleneck, stamping wins.
+The two challenge paths pull in opposite directions with the same machinery — the appeal exposes the
+careful reviewer, the dispute exposes the stamper — and which one is open in a given economy decides the
+outcome. That sharpens the design questions for the review: the panel's composition (a panel chosen by ρ
+would change both), the reserve's size against the challenge load, and the cost of a dispute against an
+audit; and it adds one — whether a reviewer's appealable error and an auditable error should carry the
+same bond when their rates of exposure differ by a factor of thirty.
+
 The engine and its tests stay as they are; a driver that needs an engine change has found either a
 conformance bug (fix + regression) or a design question (write it up, do not patch around it).
 

@@ -11,6 +11,7 @@ EXPECTED_FAIL = {
     "test_review_12_appeal_can_uphold_a_cannot_assess_claim":
         "appeals of ⊥ must state the objection disposition explicitly (§8.1); see test_v05 for the explicit form",
 }
+EXPECTED_FAIL["test_r5_a_unfunded_dispute_keeps_vacated_audit_obligation"] = 'superseded by design revision 1 (1.1.0, §4.3): the root pay-in is B + φ^E + φ^F + ω, so a human budget of exactly B + 10 no longer funds the award; the principle — a refused filing waives nothing — is re-asserted in test_v11 at the 1.1.0 pay-in'
 EXPECTED_FAIL["test_identical_fulfillment_views_have_same_response_admissibility"] = "superseded in v0.10: an initial review's view and an audit's view are no longer identical — the view states `responses_available`, so the admissibility it complained of is now visible; see test_v09/test_v10 for the contract as it stands"
 WITHDRAWN = ("exercises the v0.9 audit-reopening rule, withdrawn in v0.10 (§8.3); see test_v10")
 for _n in ("test_later_audit_answer_preserves_its_prior_authorization",

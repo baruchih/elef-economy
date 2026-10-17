@@ -19,7 +19,11 @@ class Params:
     G_V: float = 5.0       # reviewer bond = total liability
     D: float = 2.0         # court fee (<= G_V by construction)
     K: float = 5.0         # reimbursement cap, all roles
-    phi_root: float = 10.0 # verification deposit, root requests (= 2K)
+    # The verification deposit is two pots (spec 1.1.0 §4.3): the expense allowance φ^E and the
+    # fee pot φ^F, both paid in by the root requester at award; nested requests carry 0 / 0.
+    phi_E_root: float = 10.0   # = 2K
+    phi_F_root: float = 5.0    # = f (w_ordinary + w_audit): one review and one audit
+    f_fee: float = 2.0         # the ordinary-review fee; a role's fee is w_role * f_fee
     omega_rate: float = 0.05
 
     # Verification structure
@@ -71,6 +75,11 @@ class Params:
     v0: float = 1.0
     float_per_actor: float = 50.0
     Omega0: float = 20.0
+
+    @property
+    def phi_root(self) -> float:
+        """The whole verification deposit of a root request, φ^E + φ^F."""
+        return self.phi_E_root + self.phi_F_root
 
     def emission(self, t: int) -> float:
         return self.E0 * 2.0 ** (-t / self.H)

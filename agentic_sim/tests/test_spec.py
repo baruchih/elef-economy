@@ -74,15 +74,17 @@ def test_main_path_nets_and_escrow():
     n = nets(w)
     assert n["A"] == pytest.approx(23)     # 40 - (12 + 5)
     assert n["B"] == pytest.approx(2)      # 5 - 3
-    assert n["C"] == pytest.approx(4)      # deposit share 2 + emission 2x1.0
-    assert n["D"] == pytest.approx(5)      # deposit share 2 + emission 2x1.5
-    assert w.W("H") - 100 == pytest.approx(-50)
+    assert n["C"] == pytest.approx(4)      # -3 cost +3 reimbursed + fixed fee 2 + emission 2x1.0
+    assert n["D"] == pytest.approx(6)      # -3 +3 + fixed fee 3 (audit weight 1.5) + emission 2x1.5
+    assert w.W("H") - 100 == pytest.approx(-51)         # paid 40 + 10 + 5; the unused allowance 4 came back
     assert w.W(Ledger.OMEGA) == pytest.approx(20)       # Ω untouched
     pool = w.ledger.pool(q)
-    assert pool.escrow == pytest.approx(0) and pool.deposit == pytest.approx(0)
-    # escrow in 50 = 40 (A) + 6 (reimbursements) + 4 (deposit remainder as fees)
+    assert pool.escrow == pytest.approx(0) and pool.deposit == pytest.approx(0) and pool.fee_pot == pytest.approx(0)
+    # escrow in 55 = 40 (A) + 6 (reimbursements) + 5 (fixed fees: Owed = 2 + 3 = φ^F) + 4 (allowance returned)
     assert c.reimb_total == pytest.approx(6)
-    assert w.reviews[r1].fee + w.reviews[r2].fee == pytest.approx(4 + 5)   # 4 deposit + 5 emission
+    assert c.tree_closed and c.allowance_refunded == pytest.approx(4) and c.pot_refunded == pytest.approx(0)
+    assert w.reviews[r1].fee + w.reviews[r2].fee == pytest.approx(5 + 5)   # 5 fixed + 5 emission
+    assert (w.reviews[r1].fee_fixed, w.reviews[r2].fee_fixed) == (pytest.approx(2), pytest.approx(3))
     assert c.grade == PROCEDURAL            # an audit occurred: the outcome was established by procedure
     assert w.cases[qn].grade == PROCEDURAL
     assert w.actors["C"].kappa == 1 and w.actors["D"].kappa == 1
@@ -93,7 +95,7 @@ def test_main_path_with_service_fee():
     q, qn, r1, r2 = run_main_path(w)
     w.advance(17)
     assert w.W(Ledger.OMEGA) == pytest.approx(20 + 2 + 0.25)   # ω on root (5% of 40) and nested (5% of 5)
-    assert w.W("H") - 100 == pytest.approx(-52)
+    assert w.W("H") - 100 == pytest.approx(-53)         # -51 and the service fee 2
     assert nets(w)["A"] == pytest.approx(23 - 0.25)
 
 
@@ -153,8 +155,11 @@ def test_appeal_variant():
     assert n["C"] == pytest.approx(-5)      # bond: 2 to A, 3 burned; costs reimbursed; no fee
     assert w.W(Ledger.OMEGA) == pytest.approx(22)        # the court fee is Ω's income; the loser bore it
     assert c.court_fee_reimbursed == pytest.approx(2)
-    # E and F: emission 5 over weights 3 -> 2.5 each; deposit remainder 10-9=1 -> 0.5 each
-    assert w.reviews[rE].fee == pytest.approx(3.0) and w.reviews[rF].fee == pytest.approx(3.0)
+    # E and F: emission 5 over weights 3 -> 2.5 each; fixed fees 3 each, Owed 6 > φ^F 5 -> scaled to 2.5 each
+    assert w.reviews[rE].fee == pytest.approx(5.0) and w.reviews[rF].fee == pytest.approx(5.0)
+    assert w.reviews[rE].fee_fixed == pytest.approx(2.5) and w.reviews[rE].fee_owed == pytest.approx(3)
+    assert c.tree_closed and c.allowance_refunded == pytest.approx(1)   # 10 - 3 - 3 - 3
+    assert w.W("H") - 100 == pytest.approx(-54)
     assert c.grade == PROCEDURAL
     assert w.actors["C"].p_audit == pytest.approx(0.5)   # doubled from 0.5, capped at 0.5
 
@@ -307,16 +312,19 @@ def test_shortfall_haircut_single_payout_rule():
     assert c.challenge["resolved"] and c.outcome == F   # dispute rejected; all three verdicts stand
     w.advance(13)
     assert c.state == "VESTED" and c.t_vest == 12
-    # pool = 0 deposit + 6 emission; repay Ω 5; remaining 1; entitlements scale by 1/6
+    # 1.1.0: the allowance is spent, so Ω's advance cannot be repaid from it; the fee pot (5) pays
+    # the fixed fees Owed = 2 + 3 + 3 = 8 scaled by 5/8 and has nothing left at closure, so the
+    # advance stays unrecovered, borne by Ω; emission 6 over weight 4 is paid in full
     fees = {w.reviews[r].reviewer: w.reviews[r].fee for r in (r1, rE, rF)}
-    assert fees["C"] == pytest.approx(1.5 / 6)
-    assert fees["E"] == pytest.approx(2.25 / 6)
-    assert fees["F"] == pytest.approx(2.25 / 6)
-    assert sum(fees.values()) == pytest.approx(1.0)
-    assert w.W(Ledger.OMEGA) == pytest.approx(22)        # advance repaid; court fee kept
+    assert fees["C"] == pytest.approx(2 * 5 / 8 + 1.5)
+    assert fees["E"] == pytest.approx(3 * 5 / 8 + 2.25)
+    assert fees["F"] == pytest.approx(3 * 5 / 8 + 2.25)
+    assert sum(fees.values()) == pytest.approx(5 + 6)
+    assert c.tree_closed and c.omega_advance == pytest.approx(5) and c.pot_refunded == 0
+    assert w.W(Ledger.OMEGA) == pytest.approx(17)        # advance unrecovered; court fee kept
     assert c.grade == PROCEDURAL                         # the human disputed and lost
     assert any(a[1] == "H" and a[2] == N for a in c.assessments)
-    assert w.W("H") - 100 == pytest.approx(-52)
+    assert w.W("H") - 100 == pytest.approx(-57)          # 40 + 10 + 5 paid in, the court fee 2, nothing came back
 
 
 # ---------------------------------- review 2, §3: nominals frozen at award

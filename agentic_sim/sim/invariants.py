@@ -1,4 +1,4 @@
-"""Spec §17 invariants. Each is a function of the whole world.
+"""Spec §17 invariants (nineteen since 1.1.0). Each is a function of the whole world.
 
 A failing invariant is a bug in the engine or a contradiction in the spec; it is never a
 property of a strategy. Each check states what it actually establishes.
@@ -18,14 +18,14 @@ Two entry points, one set of predicates:
 from __future__ import annotations
 from itertools import islice
 import math
-from .ledger import Ledger
+from .ledger import Ledger, _i10_exempt, _i19_event_ok
 
 EPS = 1e-6
 
 ALLOWED_EVENT_KINDS = {
     "lock", "release", "transfer", "forfeit_to", "burn_bond", "purchase",
-    "mint_backed", "mint_emission", "escrow_in", "deposit_in", "escrow_out",
-    "deposit_out", "fee_out",
+    "mint_backed", "mint_emission", "escrow_in", "deposit_in", "feepot_in", "escrow_out",
+    "deposit_out", "feepot_out", "fee_out",
 }
 GRADES = {"human-explicit", "delegate-explicit", "protocol-default", "procedural"}
 
@@ -94,7 +94,7 @@ def I2_no_negative_or_nonfinite_balances(w, cases=None):
     else:
         pools = [(c.id, w.ledger.pools[c.id]) for c in cases if c.id in w.ledger.pools]
     for cid, p in pools:
-        for name, val in (("escrow", p.escrow), ("deposit", p.deposit), ("minted", p.minted)):
+        for name, val in (("escrow", p.escrow), ("allowance", p.deposit), ("fee pot", p.fee_pot), ("minted", p.minted)):
             if not _fin(val) or val < -EPS:
                 _fail(f"I2 bad {name} pool for {cid}: {val}")
     if not _fin(w.ledger.Res) or w.ledger.Res < -EPS:
@@ -189,13 +189,15 @@ def I9_reserve(w):
 
 
 def _I10_event(e, c):
-    if c.t_vest is not None and e.t > c.t_vest and "deferred" not in e.note and "Ω claim" not in e.note:
+    if c.t_vest is not None and e.t > c.t_vest and not _i10_exempt(e.note):
         _fail(f"I10 {c.id}: {e.kind} {e.amount} at t={e.t} after vesting at {c.t_vest}")
 
 
 def I10_no_post_vesting_adjudication_moves_money(w, cases=None, events=True):
     """After vesting, no adjudication moves money on account of the case (§6). Obligations
-    established before vesting — deferred reimbursements, Ω claims — may still be paid.
+    established before vesting — deferred reimbursements, Ω claims — may still be paid; and, since
+    1.1.0 (§4.3), a nested case may draw on its root's pots and the tree's closure returns the
+    root's unused deposit — exactly those exceptions, recognised by the event's note.
     With `events` false the per-event half has been done by one pass over every event
     (`_audit_events`); otherwise it is taken from the per-case event index."""
     by_case = w.ledger.events_by_case
@@ -216,9 +218,10 @@ def I11_exclusive_failure_indicators(w, cases=None):
 
 
 def I12_frozen_nominals(w, cases=None):
-    """Nominals are fixed at the case's first lock (§4.5) and G at award; neither changes after."""
+    """Nominals are fixed at the case's first lock (§4.5) and G at award; neither changes after.
+    Both pots are nominals: frozen with the case."""
     for c in _cases(w, cases):
-        if c.nominals is not None and (c.D, c.K, c.G_V, c.phi) != c.nominals:
+        if c.nominals is not None and (c.D, c.K, c.G_V, c.phi_E, c.phi_F) != c.nominals:
             _fail(f"I12 {c.id}: nominals changed after they were frozen")
         if c.G_award is not None and c.G != c.G_award:
             _fail(f"I12 {c.id}: G changed after award")
@@ -502,6 +505,38 @@ CHECKS = [I1_conservation, I2_no_negative_or_nonfinite_balances, I3_mints_and_bu
           I18_no_audit_outlives_a_ruling]
 
 
+def I19_the_pots(w, cases=None, events=None):
+    """1.1.0 §4.3: the expense allowance and the fee pot are accounted separately. For every root
+    (the pots are the root's): fees paid from the pot never exceed φ^F; fee money went to expenses
+    only at tree closure and only up to what was left after every fee in the tree; nothing came
+    back to the requester before the tree closed; a closed tree has every case final and both pots
+    empty. The event half: no fee is paid from the allowance; the fee pot pays fixed fees, and at
+    closure the tree's expense debts and the refund, nothing else."""
+    for e in ([] if events is None else events):
+        if not _i19_event_ok(e):
+            _fail(f"I19 {e.case}: {e.kind} {e.amount} '{e.note}' crosses the pots")
+    for c in _cases(w, cases):
+        if not c.is_root or c.nominals is None:
+            continue
+        if c.fees_from_pot > c.phi_F + EPS:
+            _fail(f"I19 {c.id}: fees {c.fees_from_pot} paid from a pot of {c.phi_F}")
+        if c.expenses_from_pot > c.phi_F - c.fees_from_pot + EPS:
+            _fail(f"I19 {c.id}: expenses {c.expenses_from_pot} from the pot exceed what fees left of {c.phi_F}")
+        moved_back = c.expenses_from_pot > EPS or c.pot_refunded > EPS or c.allowance_refunded > EPS
+        if moved_back and not c.tree_closed:
+            _fail(f"I19 {c.id}: fee money reached expenses or the requester before the tree closed")
+        if c.tree_closed:
+            pl = w.ledger.pools.get(c.id)
+            if pl is not None and (pl.deposit > EPS or pl.fee_pot > EPS):
+                _fail(f"I19 {c.id}: tree closed with {pl.deposit} allowance and {pl.fee_pot} fee pot left")
+            stack = list(c.children)
+            while stack:
+                ch = _peek(w.cases, stack.pop())
+                if not ch.final or ch.needs_review_settlement:
+                    _fail(f"I19 {c.id}: tree closed while {ch.id} is {ch.state}")
+                stack.extend(ch.children)
+
+
 CHUNK = 2048
 
 
@@ -512,6 +547,8 @@ def _audit_events(w) -> dict:
     reimb: dict[str, int] = {}
     for e in w.ledger.events:
         _I3_one(e)
+        if not _i19_event_ok(e):
+            _fail(f"I19 {e.case}: {e.kind} {e.amount} '{e.note}' crosses the pots")
         cid = e.case
         if cid is None:
             continue
@@ -552,6 +589,7 @@ def check_all(w):
         _I15_expected_cases(chunk, expected)
         _I17_cases(chunk)
         I18_no_audit_outlives_a_ruling(w, chunk)
+        I19_the_pots(w, chunk)                               # the event half was done in _audit_events
     _I15_wallets(w)
     _I15_compare(w, expected)
     I16_history_is_authoritative(w)
@@ -600,6 +638,7 @@ def check_tick(w):
     I16_tick(w, cases, new_events, hist_from)
     I17_debts_and_claims_reconcile(w, cases, reviews)
     I18_no_audit_outlives_a_ruling(w, cases)
+    I19_the_pots(w, cases, new_events)
 
     w._events_checked = len(w.ledger.events)
     w._prune_working_set()

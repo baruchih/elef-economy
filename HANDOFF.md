@@ -1,13 +1,15 @@
-# Handoff — where the economic loop stands, October 15, 2026
+# Handoff — where the economic loop stands, October 17, 2026
 
 ## In one paragraph
 
 We have a rulebook and an engine that implements it, and they are consistent with each other as far
-as ten external reviews and 169 tests can show. The rulebook is frozen at v1.0.1. What has **not** been
-shown is what the rules do when participants are self-interested — whether careful review beats
-stamping, whether price pressure starves reliable actors, whether the money behaves. That is the next
-layer, and it is a simulator question: the engine is already the simulator of the *rules*; what it lacks
-is *participants*. Nothing else is blocking.
+as ten external reviews and 181 tests can show. The rulebook is at **1.1.0**: the v1.0.1 baseline frozen
+on October 15, plus one design revision made under §19 on October 17 — the verification deposit is two
+pots — after the first scoped run showed that the v1.0.1 fee rule charged a careful reviewer for its own
+care. The strategy layer has started: the stamping run exists, ran under 1.0.1 (ten runs) and is rerun
+under 1.1.0 with only the rule changed (see "Design revision 1" and the rerun section below). What has
+still not been shown is most of §18: price pressure, funding, emission scale, delegation liveness,
+solvency, monetary behaviour, dominant strategies.
 
 ## The three layers, and which one we are on
 
@@ -15,7 +17,7 @@ is *participants*. Nothing else is blocking.
 |---|---|---|
 | Approach | What kind of economy is this? Who pays, who judges, what is final? | Settled by v0.4 |
 | Rulebook consistency | Do the rules contradict each other? Does the engine apply them? | **Done** — v0.5–v1.0.1, nine conformance passes |
-| Strategy research | Given these rules, what do self-interested participants do? | **Not started** — spec §18 |
+| Strategy research | Given these rules, what do self-interested participants do? | **Started** — §18.1 q1 run under 1.0.1 and 1.1.0; the rest of §18 open |
 
 Baruchi's standing direction: pause after the rulebook layer and reevaluate before strategy runs. The
 reevaluation is this document's "Proposed next step"; it is a proposal, not a decision.
@@ -35,25 +37,32 @@ reevaluation is this document's "Proposed next step"; it is a proposal, not a de
 | v0.9 | Delegates hold no ruling authority; corrections use the complete answer; ruling between finality and payout — **and audit reopening (a design change inside a conformance pass)** | R08 | 16 of 25 checks failed, all consequences of reopening | v0.10 withdrew it |
 | v0.10 | Reopening withdrawn; `responses_available` in the reviewer view; §19 change discipline | R09 | No new execution defect; "blindness stands" overclaimed (audit role is inferable); recommended freeze + consolidation | v1.0 |
 | v1.0 | Consolidated standalone baseline; Appendix B superseded ideas; §19 change discipline; §18 hypotheses and scoped runs | R10 | Four wording errata: ruling vs override; when a response releases capacity; what moves credit value and the halt hypothesis; the two kinds of settlement shortfall | v1.0.1 (Appendix E) |
-| v1.0.1 | Errata applied in place. No rule, default, permitted operation or engine change | — | — | **frozen** |
+| v1.0.1 | Errata applied in place. No rule, default, permitted operation or engine change | — | — | frozen; superseded by 1.1.0 |
+| 1.1.0 | **Design revision 1**: the verification deposit is two pots — an expense allowance and a fee pot; fees fixed by role; the cross-pot step and the refund at tree closure (§4.3). Motivated by strategy run 1; proposed as rc.1 on October 16, two implementation reviews (rc.2, rc.3), accepted October 17 | I1, I2 (implementation reviews, in `spec/design_revisions/`) | rc.1's per-case "unowed fee money" was wrong in trees; "nothing else moves" was wrong (reviewer income from deposits falls ~¾); the hypothesis needed the appeals term; I10 and record mode gain the tree consequences; the rerun needs 20+ seeds | rc.3 accepted; consolidated as `spec/agentic_economics_loop_spec_v1_1_0.md`; **in force** |
 
 Test suite across versions: v0.7 104 + 1 xfail → v0.8 123 + 1 → v0.9 148 + 1 → v0.10 152 + 24 → v1.0.1
-156 + 24 → October 16 performance pass 161 + 24 → October 16 record mode 169 + 24 (the 24: one
-original, four superseded by the view contract, nineteen on the withdrawn path; the four v1.0.1 tests
-cover withdrawing an unawarded request, the one permitted operation no suite had exercised; the five
-performance tests prove the per-tick check equals the full audit and the History head is unchanged; the
-eight record-mode tests prove the record on disk gives the identical fingerprint and verifies from the
-file alone). Expected failures are strict and parameter-exact in both entry points.
+156 + 24 → October 16 performance pass 161 + 24 → October 16 record mode 169 + 24 → **1.1.0 181 + 25** (the 25:
+one original, four superseded by the view contract, nineteen on the withdrawn path, one superseded by
+design revision 1 — the fifth review's unfunded-dispute test pinned the v1.0.1 deposit through a human
+budget of exactly B + 10; the four v1.0.1 tests cover withdrawing an unawarded request; the five
+performance tests prove the per-tick check equals the full audit and pin the History head, re-pinned once
+at 1.1.0; the eight record-mode tests prove the record on disk gives the identical fingerprint and
+verifies from the file alone; the thirteen 1.1.0 tests carry the revision's figures and I19). Expected
+failures are strict and parameter-exact in both entry points.
 Every reviewer's test file is in the suite byte-for-byte — a claim this repo cannot itself verify: the
 reviewers' test bundles were received as separate archives and are not included here, only their reports
 in `reviews/`. The reports name the tests they shipped; a verifier can compare names and counts.
 
 ## The baseline in brief (spec is authoritative)
 
-- **Money enters with requests.** Pay-in = award + verification deposit + service fee. Emission
-  E_t = E_0·2^(−t/H) pays reviewers whose verdicts stood, by role weight; nothing carried forward.
-- **One payout rule**: entitlements → cost debts for every review → Ω advances → pro-rata haircut.
-  Ω is a revolving float, repaid FIFO; an unrecovered advance is Ω's loss, not a reviewer claim.
+- **Money enters with requests.** Pay-in = award + expense allowance φ^E + fee pot φ^F + service fee
+  (1.1.0; was one deposit). Emission E_t = E_0·2^(−t/H) pays reviewers whose verdicts stood, by role
+  weight; nothing carried forward.
+- **One payout rule (1.1.0)**: expense debts for every review from the allowance alone → each survivor's
+  fixed fee w_r·f (2 / 3 / 3) from the fee pot, scaled only when the pot is short, plus its emission share
+  in full → at tree closure the pot's remainder pays the tree's Ω claims and advances, then both pots'
+  remainders return to the requester. Care within K costs the reviewer nothing. Ω is a revolving float,
+  repaid as the rule allows; an unrecovered advance is Ω's loss, not a reviewer claim.
 - **The credit is backed**: v_t = Res_t / M_t. Purchases value-neutral; emission dilutes; burned bonds
   concentrate. Res = 0 is the halt state (a definition); that a rootless economy reaches it is a hypothesis.
 - **Selection**: argmax[S_θ − λ·B/β], λ = 0.2, ties by κ. S_θ's implementation is bracketed.
@@ -81,19 +90,24 @@ in `reviews/`. The reports name the tests they shipped; a verifier can compare n
   history head, physical time, the real-value exchange behind Res, insolvency beyond Ω's bounded claim,
   collusion/sybil, rent, insurance, multi-round revision, long-horizon tasks.
 
-## The stamping calculation — the first thing a run must answer
+## The stamping calculation — the first thing a run had to answer
 
-A reviewer that approves everything without reading, audited with probability p on submissions that
-fail at rate b, expects E[ΔW] = (1 − pb)·f̄ − pb·G^V per review. At the defaults (p = 0.5, b = 0.2,
-f̄ ≈ 2, G^V = 5) that is about **+1.3**, and still +0.6 at p = 1. Money alone does not make stamping
-unprofitable. The rules rely on **reliability loss** (ρ feeds selection) as the deterrent. Whether that
-is enough is unknown until it is run. (Spec §7.3.)
+Under v1.0.1 a reviewer that approved everything without reading, audited with probability p on
+submissions that fail at rate b, expected E[ΔW] = (1 − pb)·f̄ − pb·G^V per review: about **+1.3** at the
+defaults, measured **+1.6** in strategy run 1 — and the arithmetic assumed a fixed fee f̄ = 2 that §4.3
+did not pay (the fee was the deposit's remainder after reimbursements, so care was charged against it).
+Under 1.1.0 the fee is fixed and care within K is made whole, so the money term per review is
+−p·b·(1−ε)·(f̄ + G^V): about **−0.3** at run 1's effective catch rate (3%), **−0.7** at the nominal
+p = 0.5, b = 0.2, with an appeals term a·ε·(1−b)·(f̄ + G^V) once actors appeal. Reliability loss (ρ feeds
+selection) now adds to a money term of the same sign instead of having to outweigh one. (Spec §7.3.)
 
 ## What a run must find (spec §18.1)
 
-1. Careful vs careless review once reliability loss is counted; at which (p, G^V, f̄) it stops.
+1. Under 1.1.0, how fast does stamping lose; does the reliability channel add anything at the tie band?
+   (Answered in its 1.0.1 form by run 1: it did not beat stamping; that led to design revision 1.)
 2. Does λ = 0.2 produce competition without starving reliable actors?
-3. Does φ = 2K cover root-plus-nested verification; how often Ω advances; how large its claim gets.
+3. Does φ^E = 2K cover root-plus-nested expenses; how often Ω advances; how much it bears unrecovered;
+   is ω = 5% enough to fund it; should the pots grow with the tree?
 4. Is ≈1443·E_0 against M_0 a subsidy or a flood?
 5. Do delegation trees of 2–4 nodes move under T_wait, the kill fee, nested-first priority, the rejection bond?
 6. Reserve shortfall by occupancy vs by solvency; do fees restore solvency?
@@ -232,6 +246,30 @@ sign flips, and the reviewer-capacity ceiling (a submitted case waited for an el
 950 of 1,000 ticks) is a confound to be sized before the result is read as being about the rules. The engine
 and its tests stay as they are; a driver that needs an engine change has found either a conformance bug
 (fix + regression) or a design question (write it up, do not patch around it).
+
+## Design revision 1 — the verification deposit is two pots (1.1.0, October 17, 2026)
+
+The first change to the rulebook since the freeze, and the first use of §19's design-revision path. The
+stamping result above was read against the text and the history: v0.1 R16–R17 had agreed "capped
+expense reimbursement plus a fixed fee … for review work, not for the answer"; v0.3, repairing the
+second review's shortfall finding, made the fee the deposit's remainder after reimbursements, and from
+then on every credit of care reimbursed was a credit of fee lost — while §7.3 still reasoned with the
+fixed fee. The revision was written as a release candidate (`spec/design_revisions/`), read on its own
+through two implementation reviews — rc.1 computed "unowed fee money" per case, which in a tree would
+have paid a root's expenses with money its nested case's reviewers were still owed (reviewer test
+r4_07 is the shape); rc.1 said "nothing else moves" when reviewer income from deposits falls by about
+three quarters in the common case; the hypothesis needed its appeals term; I10 and record mode gain the
+tree consequences; the rerun needs twenty seeds or more — and accepted as rc.3. The consolidated text is
+`spec/agentic_economics_loop_spec_v1_1_0.md` (§4.3 whole, §7.3, §10, I10/I12/I17/I19, §18.1, §20,
+Appendices A, C, F); v1.0.1 moved to `spec/history/`. Versioning is semver from here: patch = wording,
+minor = design revision, major = change of approach; a proposal is `-rc.N` and not in force.
+
+Engine: the case pool holds the allowance and the fee pot; settlement follows §4.3 in order and reads
+the root's pool for a nested case; the refund waits for tree closure; I19 is new; a root with open pots
+stays resident. The suite's own figures were revised to §20 under 1.1.0 and the golden heads re-pinned
+once; one reviewer test (r5_a, a budget of exactly B + 10) is superseded with the reason stated and its
+principle re-asserted in `test_v11`; every other reviewer test passes unchanged. 181 + 25 in all four
+modes. The rerun of strategy run 1 with only the rule changed is the section after the first result.
 
 ## Maps
 

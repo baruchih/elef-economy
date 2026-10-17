@@ -117,7 +117,8 @@ class Public:
 
     def money(self) -> dict:
         L = self._w.ledger
-        return {"M": L.M, "Res": L.Res, "v": L.v, "omega": L.wallet(L.OMEGA).U}
+        return {"M": L.M, "Res": L.Res, "v": L.v, "omega": L.wallet(L.OMEGA).U,
+                "claims_outstanding": sum(cl.amount for cl in self._w.omega_claims)}
 
     def events_since(self, n: int) -> list:
         """The ledger's event copy from position n on — the public record of money movements."""

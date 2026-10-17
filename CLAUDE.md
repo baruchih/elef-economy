@@ -1,17 +1,19 @@
 # Agentic-OS — the economic loop
 
 A rulebook for a task → verification → dispute → settlement loop among autonomous actors, and a
-reference implementation of it with no strategies. Ten external reviews. The rulebook is **frozen at
-v1.0.1**; what the rules do under self-interested participants has not been tested yet. Read
+reference implementation of it with no strategies. Ten external reviews. The rulebook is at **1.1.0**:
+the frozen 1.0.1 baseline plus one design revision (the verification deposit is two pots, §4.3),
+made under §19 after the first scoped run showed careful review paid for its own care. Read
 `HANDOFF.md` first for where things stand and what is proposed next.
 
 ## Layout
 
 ```
-spec/agentic_economics_loop_spec_v1_0_1.md   the text in force (standalone; Appendix A defaults, E errata)
-spec/history/                                v0.1 … v1.0 — superseded, kept for provenance only
+spec/agentic_economics_loop_spec_v1_1_0.md   the text in force (standalone; Appendix A defaults, E errata, F design revision 1)
+spec/design_revisions/                       accepted design revisions, verbatim (dr1: two pots, 1.1.0-rc.3)
+spec/history/                                v0.1 … v1.0.1 — superseded, kept for provenance only
 reviews/                                     R01–R10, one external review per version, with the reviewer's notes
-agentic_sim/                                 the engine, 18 invariants, 11 test suites, runner
+agentic_sim/                                 the engine, 19 invariants, 18 test files, runner, drivers, results
 docs/line_map_economic_loop_v1_0_1.txt       text export of the _line map of the loop (the live map is the source)
 HANDOFF.md                                   status, history table, open questions, proposed next step
 ```
@@ -20,11 +22,12 @@ HANDOFF.md                                   status, history table, open questio
 
 ```
 cd agentic_sim
-python3 run_tests.py        # expected: 169 passed, 0 failed, 24 expected failures
+python3 run_tests.py        # expected: 181 passed, 0 failed, 25 expected failures
 python3 -S run_tests.py     # same, with no site-packages
-python3 -m pytest tests -q  # expected: 169 passed, 24 xfailed, 0 xpassed (conftest mirrors the runner)
+python3 -m pytest tests -q  # expected: 181 passed, 25 xfailed, 0 xpassed (conftest mirrors the runner)
 python3 -m drivers.load_run --actors 200 --ticks 10000 --on-duty 40 --tasks 30 --record-dir /path  # throughput run
 python3 -m drivers.stamping --actors 20 --ticks 1000 --stampers 0.5 --seed 1   # §18.1 q1, careful vs stamping
+python3 -m drivers.stamping --on-duty 8 --fee 4 --seed 1                       # the 1.1.0 rerun's other cells
 ```
 
 Drivers hold a `drivers.view.Public`, not the `World`: that class lists the operations a driver may
@@ -36,10 +39,11 @@ Results are kept (`drivers/results.py`): the runner writes what it printed to `r
 `metrics.csv` and `fingerprint.json`. Commit the ones that matter. Results are written by the code and
 read by people; the suite and the engine stay the authority — never edit a result to match.
 
-Any other result is a regression — including an XPASS. The 24 expected failures each have a stated
+Any other result is a regression — including an XPASS. The 25 expected failures each have a stated
 reason in `run_tests.py` (`EXPECTED_FAIL`, with `EXPECTED_FAIL_PARAMS` naming the parameter runs inside a
 mixed test): one original (a single-answer ⊥ appeal), four superseded by the reviewer-view contract,
-nineteen on the withdrawn audit-reopening path. They are strict in both entry points: an expected
+nineteen on the withdrawn audit-reopening path, one superseded by design revision 1 (it pinned the
+1.0.1 deposit through the human's budget; its principle is re-asserted in `test_v11`). They are strict in both entry points: an expected
 failure that passes means a withdrawn path is admitted again, and the run fails.
 
 ## Change discipline — spec §19, and the one rule that matters most
@@ -59,20 +63,25 @@ design revision and is read on its own before it is implemented. v0.9 broke this
 finding answered with a state-machine expansion); the next review found sixteen consequences and the
 change was withdrawn, not repaired. Do not repeat it.
 
-While building strategy runs, the baseline stays frozen. Drivers live in their own package (proposed:
-`agentic_sim/drivers/`), use only the public operations of `World`, and never reach into engine internals.
+While building strategy runs, the baseline stays frozen between revisions. Drivers live in
+`agentic_sim/drivers/`, use only the public operations of `World`, and never reach into engine internals.
+A design revision is a release candidate (`-rc.N`, not in force) until accepted; then the engine is
+changed to it, the goldens are re-pinned once at the implementing commit, reviewer tests that pinned the
+old figures become expected failures with that reason and their principle re-asserted, and the text is
+consolidated into one standalone spec with the accepted revision kept verbatim in `spec/design_revisions/`.
 
 ## Conventions in `agentic_sim`
 
 - Every action is validated whole before anything is recorded or moved. A refused action changes
   nothing — tests assert this against full world snapshots. Keep it that way for any new operation.
-- Eighteen invariants run after every tick (`sim/invariants.py`). A failing invariant is an engine
+- Nineteen invariants run after every tick (`sim/invariants.py`). A failing invariant is an engine
   bug or a spec contradiction, never a property of a strategy. Two entry points, one set of
   predicates: `check_all` is the full audit from genesis (what tests call; scheduled in a run by
   `Params.full_check_every`); `check_tick` is what `advance` runs, the same predicates over the
   working set — cases and reviews that can still change, plus anything touched since the last tick.
-  `tests/test_perf_equivalence.py` holds the proof that they agree and that the engine's History head
-  is unchanged from v1.0.1. Keep new invariants in that shape: a predicate over an explicit scope.
+  `tests/test_perf_equivalence.py` holds the proof that they agree and pins the engine's History head
+  (re-pinned once for 1.1.0, since settlement changed). Keep new invariants in that shape: a predicate
+  over an explicit scope.
   The per-tick check is not configurable: `advance` always runs it. `full_check_every` only adds
   the full audit on a cadence (0 = not scheduled; runs call `check_all` at the end), and
   `record_dir` only moves where the record is stored. `python3 run_tests.py --record` runs the
@@ -106,6 +115,12 @@ While building strategy runs, the baseline stays frozen. Drivers live in their o
   thin read-only view in `drivers/` so the rule is checkable.
 - The `History` hash chain in `sim/ledger.py` is the authoritative record; wallet events and case
   logs are copies that invariant I16 checks for membership and order.
+- The deposit is two pots (1.1.0 §4.3): the case pool's `deposit` field is the expense allowance φ^E
+  (the 1.0.1 name is kept, reviewer tests read it) and `fee_pot` is φ^F. Expenses come from the
+  allowance only; fixed fees `w_r · f_fee` from the pot; a nested case's reviews draw on its root's
+  pool; the cross-pot step and the refund happen only at tree closure (`_maybe_close_tree`), and I10
+  admits exactly those post-vesting movements by the event's note (`"nested …"`, `"tree closure…"`).
+  I19 checks the pots per tick. A root with open pots stays in the working set until its tree closes.
 - Money is checked by invariant I1 (conservation) — never silently create or lose credits.
 
 ## Vocabulary (spec Appendix C has the full notation)
@@ -115,6 +130,7 @@ responses to a submission, available only on the first review of an unrevised su
 Pending — approved or appeal admitted, window open, actor's capacity released. Suspended — a challenge
 or audit holds the case. Vested — financial finality. Ω — the orchestrator's operating account, a
 revolving float. ρ reliability, κ duty credit. G guarantee, G^V reviewer bond, D court fee,
-K reasonable-cost cap, φ verification deposit, β price ceiling, v_t credit value = Res_t / M_t.
+K reasonable-cost cap, φ = φ^E + φ^F verification deposit (expense allowance + fee pot), f the ordinary-review
+fee (appeal and audit 1.5 f), β price ceiling, v_t credit value = Res_t / M_t.
 "Ruling" has two senses: the orchestrator rules on splits inside the procedure; only a human
 *overrides* it (spec §15.2).

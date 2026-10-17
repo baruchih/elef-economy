@@ -109,9 +109,9 @@ def test_replacement_reviewer_inherits_the_resubmitted_stage():
 
 # ------------------------------------- refused dispute keeps the obligation
 def test_unfunded_dispute_is_refused_whole_under_full_defaults():
-    w = World(Params(), ACTORS, humans={"H": 20.5}, on_duty=DUTY)
+    w = World(Params(), ACTORS, humans={"H": 25.5}, on_duty=DUTY)
     q = w.post_root("H", 10)
-    w.award(q, "A", 10, 20)                  # 10 + 10 deposit + 0.5 ω: H has 0
+    w.award(q, "A", 10, 20)                  # 10 + 10 allowance + 5 fee pot + 0.5 ω: H has 0
     initial(w, q)
     w.assign_audit(q, "D")
     w.advance(6)

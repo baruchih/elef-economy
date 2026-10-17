@@ -30,10 +30,14 @@ def approx(expected, rel=1e-6, abs=1e-9):
 
 
 @contextmanager
-def raises(exc_type):
+def raises(exc_type, match=None):
+    """`match`, as in pytest: a regular expression searched in str(the exception)."""
+    import re
     try:
         yield
-    except exc_type:
+    except exc_type as e:
+        if match is not None and not re.search(match, str(e)):
+            raise AssertionError(f"expected {exc_type} matching {match!r}, got: {e}") from e
         return
     except Exception as e:  # noqa: BLE001
         raise AssertionError(f"expected {exc_type}, got {type(e).__name__}: {e}") from e

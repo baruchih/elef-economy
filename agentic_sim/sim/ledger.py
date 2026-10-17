@@ -2,8 +2,8 @@
 hash-chained history (spec §4, §10, §14).
 
 Every credit in the system lives in exactly one of: a wallet's unlocked balance U, a
-wallet's locked balance L, a case pool (escrow / deposit / minted fee pool), or the
-operating account Ω. Their sum is the money supply M, and M is also reconstructible
+wallet's locked balance L, a case pool (escrow / expense allowance / fee pot / minted
+emission), or the operating account Ω. Their sum is the money supply M, and M is also reconstructible
 from the mint and burn events alone (invariant I1).
 
 Every locked credit is attributable to a named obligation: a guarantee, a bond, a
@@ -40,6 +40,24 @@ def amount(x, name="amount") -> float:
     return v
 
 
+def _i10_exempt(note: str) -> bool:
+    """§6 / §4.3: after vesting, obligations established before it may still be paid (deferred
+    reimbursements, Ω claims); and, since 1.1.0, a nested case may draw on its root's pots and
+    the tree's closure moves the root's remaining deposit. Nothing else moves money on a vested
+    case."""
+    return "deferred" in note or "Ω claim" in note or note.startswith("nested ") or note.startswith("tree closure")
+
+
+def _i19_event_ok(e) -> bool:
+    """I19, the event half: no fee is paid from the allowance, and the fee pot pays only fixed
+    fees — until tree closure, when it may pay the tree's expense debts and return the rest."""
+    if e.kind == "deposit_out":
+        return "fee" not in e.note
+    if e.kind == "feepot_out":
+        return e.note in ("review fee", "nested review fee") or e.note.startswith("tree closure")
+    return True
+
+
 @dataclass
 class Wallet:
     id: str
@@ -53,9 +71,18 @@ class Wallet:
 
 @dataclass
 class CasePool:
-    escrow: float = 0.0   # delivery price B held for the actor
-    deposit: float = 0.0  # verification deposit φ remaining
-    minted: float = 0.0   # emission minted into this case's fee pool at settlement
+    """A case's money held by the ledger. The verification deposit is two pots (spec 1.1.0 §4.3):
+    `deposit` is the expense allowance φ^E (the name is kept from v1.0.1, where it was the whole
+    deposit), `fee_pot` is φ^F. Both are funded on a root case and drawn on by every review in
+    its tree; nested cases carry 0 / 0."""
+    escrow: float = 0.0    # delivery price B held for the actor
+    deposit: float = 0.0   # expense allowance φ^E remaining
+    fee_pot: float = 0.0   # fee pot φ^F remaining
+    minted: float = 0.0    # emission minted into this case's pool at settlement
+
+    @property
+    def total(self) -> float:
+        return self.escrow + self.deposit + self.fee_pot + self.minted
 
 
 @dataclass
@@ -397,6 +424,16 @@ class Ledger:
         self._pool_sum += amt
         self._log("deposit_in", amt, src, f"pool:{case_id}", case_id, note)
 
+    def fund_fee_pot(self, src: str, case_id: str, amt: float, note=""):
+        amt = amount(amt)
+        s = self.wallet(src)
+        if s.U + 1e-9 < amt:
+            raise LedgerError(f"{src} unlocked {s.U} < {amt}")
+        s.U -= amt
+        self.pool(case_id).fee_pot += amt
+        self._pool_sum += amt
+        self._log("feepot_in", amt, src, f"pool:{case_id}", case_id, note)
+
     def pay_from_escrow(self, case_id: str, dst: str, amt: float, note=""):
         amt = amount(amt)
         p = self.pool(case_id)
@@ -407,29 +444,57 @@ class Ledger:
         self.wallet(dst).U += amt
         self._log("escrow_out", amt, f"pool:{case_id}", dst, case_id, note)
 
-    def pay_from_deposit(self, case_id: str, dst: str, amt: float, note=""):
+    def pay_from_deposit(self, case_id: str, dst: str, amt: float, note="", case: Optional[str] = None):
+        """From the expense allowance φ^E of `case_id`'s pool. `case` attributes the event to
+        another case in the same tree (a nested case drawing on its root's pot)."""
         amt = amount(amt)
         p = self.pool(case_id)
         if p.deposit + 1e-9 < amt:
-            raise LedgerError(f"deposit {p.deposit} < {amt}")
+            raise LedgerError(f"allowance {p.deposit} < {amt}")
         p.deposit -= amt
         self._pool_sum -= amt
         self.wallet(dst).U += amt
-        self._log("deposit_out", amt, f"pool:{case_id}", dst, case_id, note)
+        self._log("deposit_out", amt, f"pool:{case_id}", dst, case or case_id, note)
 
-    def fee_pool_balance(self, case_id: str) -> float:
-        p = self.pool(case_id)
-        return p.deposit + p.minted
-
-    def pay_from_fee_pool(self, case_id: str, dst: str, amt: float, note=""):
-        """Pay from deposit remainder first, then from minted emission. Atomic: refused whole."""
+    def pay_from_fee_pot(self, case_id: str, dst: str, amt: float, note="", case: Optional[str] = None):
+        """From the fee pot φ^F of `case_id`'s pool (fixed fees; at tree closure, the tree's
+        expense debts and the refund). Atomic: refused whole."""
         amt = amount(amt)
         p = self.pool(case_id)
-        if amt > p.deposit + p.minted + 1e-9:
-            raise LedgerError(f"fee pool for {case_id} short by {amt - p.deposit - p.minted}")
-        take_dep = min(amt, p.deposit)
-        p.deposit -= take_dep
-        p.minted -= (amt - take_dep)
+        if p.fee_pot + 1e-9 < amt:
+            raise LedgerError(f"fee pot {p.fee_pot} < {amt}")
+        p.fee_pot -= amt
+        self._pool_sum -= amt
+        self.wallet(dst).U += amt
+        self._log("feepot_out", amt, f"pool:{case_id}", dst, case or case_id, note)
+
+    def fee_pool_balance(self, case_id: str) -> float:
+        """A case's fee money: its fee pot plus the emission minted into it."""
+        p = self.pool(case_id)
+        return p.fee_pot + p.minted
+
+    def pay_from_fee_pool(self, case_id: str, dst: str, amt: float, note=""):
+        """Pay from the fee pot first, then from minted emission. Atomic: refused whole. Not used
+        by the engine's settlement (which pays the two separately, §4.3); kept as the generic
+        fee-money payment, and exercised by the reviewer tests."""
+        amt = amount(amt)
+        p = self.pool(case_id)
+        if amt > p.fee_pot + p.minted + 1e-9:
+            raise LedgerError(f"fee pool for {case_id} short by {amt - p.fee_pot - p.minted}")
+        take = min(amt, p.fee_pot)
+        p.fee_pot -= take
+        p.minted -= (amt - take)
+        self._pool_sum -= amt
+        self.wallet(dst).U += amt
+        self._log("fee_out", amt, f"pool:{case_id}", dst, case_id, note)
+
+    def pay_emission(self, case_id: str, dst: str, amt: float, note=""):
+        """From the emission minted into this case's pool. Atomic: refused whole."""
+        amt = amount(amt)
+        p = self.pool(case_id)
+        if amt > p.minted + 1e-9:
+            raise LedgerError(f"minted emission for {case_id} short by {amt - p.minted}")
+        p.minted -= amt
         self._pool_sum -= amt
         self.wallet(dst).U += amt
         self._log("fee_out", amt, f"pool:{case_id}", dst, case_id, note)
@@ -438,7 +503,7 @@ class Ledger:
     def total_credits(self) -> float:
         """Every credit in a wallet or a pool, recomputed from the balances (the full audit)."""
         tot = sum(w.W for w in self.wallets.values())
-        tot += sum(p.escrow + p.deposit + p.minted for p in self.pools.values())
+        tot += sum(p.total for p in self.pools.values())
         return tot
 
     def total_credits_running(self) -> float:

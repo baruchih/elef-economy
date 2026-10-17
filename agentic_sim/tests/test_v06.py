@@ -152,7 +152,7 @@ def test_cost_debts_are_paid_from_the_deposit_before_it_is_returned():
     assert w.ledger.pool(q).deposit == pytest.approx(5)
     before_H = w.W("H")
     w.override(q, "H", N)                                       # C overturned; no survivor
-    assert w.W("H") - before_H == pytest.approx(40 + 20 + 5)    # escrow, guarantee, unused deposit
+    assert w.W("H") - before_H == pytest.approx(40 + 20 + 5 + 5)    # escrow, guarantee, unused allowance and fee pot
     assert w.reviews[r].reimbursed == pytest.approx(5) and w.omega_claims == []
 
 

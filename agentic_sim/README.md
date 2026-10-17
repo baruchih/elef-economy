@@ -1,23 +1,26 @@
-# agentic_sim — reference implementation of the v1.0.1 baseline
+# agentic_sim — reference implementation of the 1.1.0 baseline
 
-Built up through v0.4–v0.10 and unchanged by the v1.0 consolidation and the v1.0.1 errata (the engine already
-behaved as the corrected wording says; see spec Appendix E). Section numbers in code comments refer to the
-working-spec versions they were written against; `spec/agentic_economics_loop_spec_v1_0_1.md` is the text in force,
-and its Appendix A holds the defaults that `sim/params.py` encodes.
+Built up through v0.4–v0.10, unchanged by the v1.0 consolidation and the v1.0.1 errata, and changed once since,
+for design revision 1 (1.1.0, October 17, 2026: the verification deposit is two pots — see "Design revision 1"
+below). Section numbers in code comments refer to the working-spec versions they were written against;
+`spec/agentic_economics_loop_spec_v1_1_0.md` is the text in force, and its Appendix A holds the defaults that
+`sim/params.py` encodes.
 
 The loop's rules as code, with no strategies. Every bid, verdict, appeal, audit
 assignment, ruling and human action is injected by the caller. Each action is validated in
 full before anything is recorded or moved: it either completes under its rules or changes
-nothing. After every tick eighteen invariants are checked; a failing invariant is a bug in
+nothing. After every tick nineteen invariants are checked; a failing invariant is a bug in
 the engine or a contradiction in the spec, never a property of a strategy.
 
 ```
 sim/params.py       §18.1 provisional defaults, §19 initialization values
-sim/ledger.py       wallets with named lock records, case pools, Ω, the backed credit, amount
-                    validation, and the hash-chained History that is the authoritative record
+sim/ledger.py       wallets with named lock records, case pools (escrow, expense allowance, fee pot, minted
+                    emission), Ω, the backed credit, amount validation, and the hash-chained History that is
+                    the authoritative record
 sim/engine.py       cases, reviews, challenges (incl. the two-question ⊥ appeal), delegation,
-                    settlement, Ω claim servicing, rotation, the reviewer view, the tick order
-sim/invariants.py   I1–I18, run after every tick; each says what it establishes
+                    settlement (the two pots, tree closure), Ω claim servicing, rotation, the reviewer view,
+                    the tick order
+sim/invariants.py   I1–I19, run after every tick; each says what it establishes
 sim/strategies.py   the decision seams a driver would fill (Protocols only)
 sim/record.py       record mode: journals for the History and the event copy, archives for settled
                     cases and reviews, the paged mapping the engine reads them through
@@ -44,9 +47,13 @@ tests/test_review6_reopening.py     the eighth review's 25 checks, verbatim — 
 tests/test_v10.py                   the withdrawal of reopening, asserted directly — 5
 tests/test_v101.py                  withdrawing an unawarded request (§16), the one permitted operation no suite had
                                     exercised; root and nested, atomic refusal after award — 4
+tests/test_v11.py                   design revision 1 (1.1.0): the §20 example re-settled, the K = 3 default under
+                                    consideration, the appeal variant's scaled fees, the refund waiting for tree
+                                    closure, the r4_07 shape, the fee pot's remainder paying a claim and an advance,
+                                    nested-first draws, the pay-in, the superseded r5_a principle, I19, record mode — 13
 tests/test_perf_equivalence.py      the per-tick check equals the full audit; the working-set engine reproduces the
-                                    v1.0.1 engine's History head on a seeded random scenario; the working set stays
-                                    bounded — 5
+                                    pinned History head on a seeded random scenario (re-pinned once for 1.1.0); the
+                                    working set stays bounded — 5
 tests/test_record_mode.py           the record on disk (`Params.record_dir`): the same scenario gives the identical
                                     fingerprint, the chain re-hashes from the file alone, a paged-out case comes back
                                     when touched, the resident set stays bounded, the Journal reads like a list, identity and
@@ -54,10 +61,11 @@ tests/test_record_mode.py           the record on disk (`Params.record_dir`): th
 run_tests.py        every suite with plain python; pytest reports the same (conftest marks the XFAIL)
 ```
 
-Run: `python3 run_tests.py` — 169 pass, 0 fail, 24 expected failures, each with a stated reason (one original,
-four superseded by the view contract, nineteen on the withdrawn reopening path). With pytest:
-`python3 -m pytest tests -q` reports 169 passed, 24 xfailed; the runner expands pytest parametrization as pytest
-does, including multi-argument and stacked marks. (Spec Appendix D records the count at the v1.0.1 freeze, 156.)
+Run: `python3 run_tests.py` — 181 pass, 0 fail, 25 expected failures, each with a stated reason (one original,
+four superseded by the view contract, nineteen on the withdrawn reopening path, one superseded by design
+revision 1). With pytest: `python3 -m pytest tests -q` reports 181 passed, 25 xfailed; the runner expands pytest
+parametrization as pytest does, including multi-argument and stacked marks. (Spec Appendix D records the count at
+the v1.0.1 freeze, 156, and at 1.1.0, 181.)
 
 Expected failures are **strict and parameter-exact** in both entry points: `EXPECTED_FAIL_PARAMS` names the
 parameter runs that are expected to fail inside a mixed test (the P/⊥ runs of the eighth review's first case;
@@ -92,7 +100,8 @@ the tick touched:
 The claim that none of this changes behaviour is `tests/test_perf_equivalence.py`: a seeded random
 scenario through appeals, disputes, audits, rulings, overrides before and after settlement,
 delegation, cancellation, pool exhaustion, timeouts and rotation, with the full audit after every
-tick beside the tick check, reproduces the History head the v1.0.1 engine (commit 6a746a1) produced.
+tick beside the tick check, reproduces the pinned History head (the v1.0.1 engine's, commit 6a746a1, until
+design revision 1 changed settlement; re-pinned once at the 1.1.0 commit).
 
 Measured after the change: 20 actors × 1,000 ticks in 1 s at a constant ~1,000 ticks/s (was ~25 min);
 200 actors × 10,000 ticks (300,000 cases) in 104 s at a constant ~95 ticks/s, final full audit 35 s.
@@ -154,6 +163,45 @@ whole record every time, and scheduling it on a cadence makes a run quadratic in
 audits. Strategy runs therefore use the regime the 300,000-case run used — the per-tick check every
 tick and one `check_all` at the end — and `full_check_every` is for conformance runs of the engine
 itself. Every run's manifest records which regime it ran under.
+
+## Design revision 1 — the verification deposit is two pots (1.1.0, October 17, 2026)
+
+The first scoped run (`drivers/stamping.py`, October 16) showed careful reviewers paying for their own
+care: under v1.0.1 §4.3 the deposit was one pot, reimbursing expenses and paying *what remained* as the
+fee, so every credit of care reimbursed was a credit of fee lost. Design revision 1 (accepted as rc.3;
+`spec/design_revisions/`, consolidated into `spec/agentic_economics_loop_spec_v1_1_0.md` §4.3 and
+Appendix F) makes the deposit two named pots. In the engine:
+
+- `CasePool` holds `escrow`, `deposit` (the expense allowance φ^E — the field keeps its v1.0.1 name;
+  reviewer tests read it), `fee_pot` (φ^F) and `minted`. Two event kinds were added, `feepot_in` and
+  `feepot_out`; `fee_out` now carries emission shares alone. `Params` gains `phi_E_root`, `phi_F_root`
+  and `f_fee` (`phi_root` remains as their sum); a `Case` carries `phi_E`, `phi_F` in its frozen nominals.
+- `_reimburse` is unchanged in order — the root's allowance, then an Ω advance, then deferral.
+- `_settle_reviews` follows §4.3: expense debts from the root's allowance only (a shortfall is a claim
+  on Ω or an unrecovered advance, as before); each survivor's fixed fee `w_r · f` from the root's fee
+  pot, scaled pro rata only when the pot cannot pay this case's fees in full, plus its emission share in
+  full. A nested case's reviews draw on the root's pool at the nested case's own settlement.
+- `_maybe_close_tree` runs after every settlement and every terminal exit in a tree: once the root and
+  every case under it are final and settled, the fee pot's remainder pays the tree's outstanding Ω
+  claims to the claimants (retiring them from Ω's queue), then repays the tree's unrecovered advances
+  to Ω, and only then both pots' remainders return to the root requester. The root logs "tree closed".
+- I10 admits exactly the post-vesting movements the revision names, by the event's note: a nested case's
+  draws on its root's pots (`"nested …"`) and the closure (`"tree closure…"`), beside the deferred
+  reimbursements and Ω claims it already admitted. I12 freezes both pots. **I19** is new: per root, fees
+  from the pot ≤ φ^F, fee money to expenses only at closure and only from what every fee in the tree left,
+  no fee from the allowance (per event), no refund before closure, a closed tree has every case settled
+  and both pots empty. A root with open pots is not quiescent, so it stays in the working set and, in
+  record mode, resident until its tree closes.
+- `drivers/view.py` reports Ω's outstanding claims in `money()`; `drivers/stamping.py` gains `--fee`,
+  `--phi-e`, `--phi-f`, per-disposition fixed-fee and haircut columns, and Ω's unrecovered advances and the
+  pots' refunds in the economy counters; run names carry `f` and `X`.
+- Tests: the suite's own figures were revised to §20 under 1.1.0 (`test_spec`, `test_v06`, `test_v07`),
+  the golden heads in `test_perf_equivalence` (and so `test_record_mode`) were re-pinned once, and
+  `test_v11.py` carries the revision's figures and I19. Reviewer-authored tests are untouched: one,
+  the fifth review's `test_r5_a_unfunded_dispute_keeps_vacated_audit_obligation`, pinned the v1.0.1
+  deposit through a human budget of exactly B + 10 and is an expected failure for that stated reason,
+  with its principle re-asserted in `test_v11`; every other reviewer test passes unchanged, including
+  r4_07, which the revision's tree-closure wording was shaped to keep.
 
 ## The expected failure
 

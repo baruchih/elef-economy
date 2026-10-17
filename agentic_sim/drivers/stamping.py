@@ -6,6 +6,7 @@ no P/⊥, no resource spend by actors; the orchestrator selects, rolls audits an
 rotation is the engine's (§13). Seeded; the engine itself is deterministic.
 
     python3 -m drivers.stamping --actors 20 --ticks 1000 --stampers 0.5 --seed 1
+    python3 -m drivers.stamping --on-duty 8 --fee 4 --seed 1        # the 1.1.0 rerun's other cells
 
 Task world. Each task has a hidden truth: it fails at base rate b, independent of the actor
 (actor competence is question 2's subject and is kept out). Actors are the same population as
@@ -23,13 +24,20 @@ eligible, stampers included — a stamper auditing a stamper agrees, and that se
 part of the dynamic. A split (audit N against a second review's F, or the reverse) is ruled by
 the truth with probability r, otherwise the other way.
 
-What is measured, per disposition over time: wealth, delivery income, review fees, costs,
-bonds and guarantees forfeited, awards won, reviews done and overturned, ρ, κ, p_audit; and for
-the economy: false approvals that vested, false rejections, label accuracy by grade, audits
-rolled/assigned/unassignable, reviews unassignable for lack of an eligible reviewer (the reviewer
-capital ceiling), rulings. Prediction under test: a stamper earns more per review (+1.3 at the
-defaults) and the question is whether lost awards and forfeited bonds outweigh it, and at which
-(p_start, G^V, b) the sign flips. A finding here is an evaluation under the fixed rules (§19).
+What is measured, per disposition over time: wealth, delivery income, review fees (and of them
+the fixed fee, and the haircut when the fee pot was short), costs, bonds and guarantees forfeited,
+awards won, reviews done and overturned, ρ, κ, p_audit; and for the economy: false approvals that
+vested, false rejections, label accuracy by grade, audits rolled/assigned/unassignable, reviews
+unassignable for lack of an eligible reviewer (the reviewer capital ceiling), rulings, Ω's
+unrecovered advances and outstanding claims, and what came back to the requester from the two pots.
+
+Prediction under test. Under v1.0.1 (run 1, October 16, 2026) a stamper earned more per review:
+care was reimbursed from the same pot the fee came from, +1.3 predicted, +1.6 measured. Under
+1.1.0 (design revision 1) the fee is fixed by role and expenses are made whole from the
+allowance, so the money term is −p·b·(1−ε)·(f̄ + G^V) per review, about −0.3 at run 1's
+effective catch rate and −0.7 at the nominal p = 0.5, b = 0.2. The rerun of §8 of the revision
+is this driver with only the rule changed, at X ∈ {4, 8} and f ∈ {2, 4}, 20 seeds or more.
+A finding here is an evaluation under the fixed rules (§19).
 """
 from __future__ import annotations
 import argparse
@@ -74,7 +82,9 @@ class Task:
 class Tally:
     """Per-actor money and outcome counters, accumulated from the public event record."""
     delivery: float = 0.0
-    fees: float = 0.0
+    fees: float = 0.0            # fixed fees + emission shares received
+    fee_fixed: float = 0.0       # the fixed fees alone (from the fee pot)
+    fee_haircut: float = 0.0     # Σ (fee owed − fee paid) over the reviews that vested
     reimbursed: float = 0.0
     costs: float = 0.0
     bonds_forfeited: float = 0.0
@@ -94,7 +104,8 @@ class Stamping:
         ids = list(self.actors)
         self.rng.shuffle(ids)
         self.kind = {aid: (STAMPER if i < n_st else CAREFUL) for i, aid in enumerate(ids)}
-        p = Params(Res0=a.res0, X=a.on_duty, G_V=a.gv, p_start=a.p_start, record_dir=a.record_dir)
+        p = Params(Res0=a.res0, X=a.on_duty, G_V=a.gv, p_start=a.p_start, record_dir=a.record_dir,
+                   f_fee=a.fee, phi_E_root=a.phi_e, phi_F_root=a.phi_f)
         self.p = p
         world = World(p, self.actors, humans={"H": a.human_budget}, on_duty=sorted(self.actors)[: a.on_duty])
         self.w = Public(world)
@@ -109,7 +120,9 @@ class Stamping:
         self.c = {"posted": 0, "awarded": 0, "vested": 0, "final_n": 0, "false_approvals": 0, "false_rejections": 0,
                   "audits_rolled": 0, "audits_assigned": 0, "audit_unassignable_ticks": 0, "audits_lapsed": 0,
                   "challenges": 0, "rulings": 0, "rulings_wrong": 0, "reviews_unassignable_ticks": 0,
-                  "awards_unfilled_ticks": 0, "appeals_unassignable_ticks": 0, "underfunded_careful_reviews": 0}
+                  "awards_unfilled_ticks": 0, "appeals_unassignable_ticks": 0, "underfunded_careful_reviews": 0,
+                  "omega_unrecovered_advances": 0.0, "allowance_refunded": 0.0, "pot_refunded": 0.0,
+                  "trees_closed": 0}
         self.by_grade = {g: [0, 0] for g in GRADES}       # grade -> [cases, correct]
         self.title_n = 0
 
@@ -265,10 +278,13 @@ class Stamping:
                 ty = self.tally[e.dst]
                 if e.kind == "escrow_out":
                     ty.delivery += e.amount
-                elif e.kind == "fee_out" and e.note == "review fee":
+                elif e.kind == "feepot_out" and e.note.endswith("review fee"):
                     ty.fees += e.amount
-                elif e.kind in ("fee_out", "deposit_out") or (e.kind == "transfer" and e.src == "OMEGA"):
-                    ty.reimbursed += e.amount
+                    ty.fee_fixed += e.amount
+                elif e.kind == "fee_out" and e.note == "emission share":
+                    ty.fees += e.amount
+                elif e.kind in ("fee_out", "deposit_out", "feepot_out") or (e.kind == "transfer" and e.src == "OMEGA"):
+                    ty.reimbursed += e.amount          # reimbursements, deferred ones, Ω advances and claims
             if e.src in self.tally:
                 ty = self.tally[e.src]
                 if e.kind == "purchase":
@@ -296,8 +312,17 @@ class Stamping:
                     self.by_grade[c.grade][0] += 1
                     self.by_grade[c.grade][1] += int(correct)
                 for rid in c.reviews:
-                    if w.review(rid).status == "overturned":
-                        self.tally[w.review(rid).reviewer].overturned += 1
+                    r = w.review(rid)
+                    if r.status == "overturned":
+                        self.tally[r.reviewer].overturned += 1
+                    elif r.status == "vested":
+                        self.tally[r.reviewer].fee_haircut += max(0.0, r.fee_owed - r.fee_fixed)
+                # root cases only in this run: the tree is the case, and it closes with it
+                if c.tree_closed:
+                    self.c["trees_closed"] += 1
+                    self.c["omega_unrecovered_advances"] = round(self.c["omega_unrecovered_advances"] + c.omega_advance, 6)
+                    self.c["allowance_refunded"] = round(self.c["allowance_refunded"] + c.allowance_refunded, 6)
+                    self.c["pot_refunded"] = round(self.c["pot_refunded"] + c.pot_refunded, 6)
                 self.active.pop(cid, None)
 
     # -- metrics row ---------------------------------------------------------------
@@ -313,6 +338,8 @@ class Stamping:
                 f"{kind}_wealth": round(sum(w.wealth(aid) for aid in ids) / n, 3),
                 f"{kind}_delivery": round(sum(x.delivery for x in T) / n, 3),
                 f"{kind}_fees": round(sum(x.fees for x in T) / n, 3),
+                f"{kind}_fee_fixed": round(sum(x.fee_fixed for x in T) / n, 3),
+                f"{kind}_fee_haircut": round(sum(x.fee_haircut for x in T) / n, 3),
                 f"{kind}_reimbursed": round(sum(x.reimbursed for x in T) / n, 3),
                 f"{kind}_costs": round(sum(x.costs for x in T) / n, 3),
                 f"{kind}_bonds_forfeited": round(sum(x.bonds_forfeited for x in T) / n, 3),
@@ -331,6 +358,7 @@ class Stamping:
             row[f"grade_{g}_acc"] = round(ok / nn, 4) if nn else ""
         m = w.money()
         row.update({"M": round(m["M"], 3), "Res": round(m["Res"], 3), "v": round(m["v"], 6), "omega": round(m["omega"], 3),
+                    "claims_outstanding": round(m["claims_outstanding"], 3),
                     "H_unlocked": round(w.unlocked("H"), 3), "active_cases": len(self.active)})
         return row
 
@@ -349,6 +377,9 @@ def main(argv=None):
     ap.add_argument("--ruling-accuracy", type=float, default=0.8, help="r: P(orchestrator rules by the truth)")
     ap.add_argument("--p-start", type=float, default=0.5)
     ap.add_argument("--gv", type=float, default=5.0, help="G^V, the reviewer bond")
+    ap.add_argument("--fee", type=float, default=2.0, help="f, the ordinary-review fee (1.1.0 §4.3); appeal/audit pay 1.5 f")
+    ap.add_argument("--phi-e", type=float, default=10.0, help="φ^E, the expense allowance of a root request")
+    ap.add_argument("--phi-f", type=float, default=5.0, help="φ^F, the fee pot of a root request")
     ap.add_argument("--seed", type=int, default=1)
     ap.add_argument("--res0", type=float, default=1e7)
     ap.add_argument("--human-budget", type=float, default=1e6)
@@ -358,7 +389,7 @@ def main(argv=None):
     ap.add_argument("--expect-head", default=None)
     a = ap.parse_args(argv)
 
-    name = a.name or f"stamping-s{a.stampers:g}-p{a.p_start:g}-gv{a.gv:g}-b{a.fail_rate:g}-seed{a.seed}"
+    name = a.name or f"stamping-s{a.stampers:g}-p{a.p_start:g}-gv{a.gv:g}-b{a.fail_rate:g}-f{a.fee:g}-X{a.on_duty}-seed{a.seed}"
     run = Stamping(a)
     rec = RunRecorder(name, kind="scoped run — §18.1 q1 careful vs careless review; policies fixed by disposition",
                       params=run.p,
@@ -370,6 +401,8 @@ def main(argv=None):
                                                                                            "credit can buy (counted as underfunded)"},
                                                  "stamper": {"verdict": "F", "cost": 0}},
                                 "task_world": {"fail_rate_b": a.fail_rate, "truth": "hidden, independent of actor"},
+                                "fee_rule": {"spec": "1.1.0 design revision 1 — the verification deposit is two pots",
+                                             "f": a.fee, "phi_E": a.phi_e, "phi_F": a.phi_f, "K": run.p.K, "G_V": a.gv},
                                 "orchestrator": {"selection": "argmax ρ − λB/β at B = β; κ tie band; lowest id",
                                                  "audit": "p_audit of the initial reviewer rolled once per F verdict; "
                                                           "auditor: seeded choice among eligible on-duty actors",
@@ -409,7 +442,8 @@ def main(argv=None):
           f"results in {os.path.relpath(out)}")
     for kind in (CAREFUL, STAMPER):
         print(f"  {kind:8s} n={final[kind + '_n']:2d} wealth={final[kind + '_wealth']:8.2f} delivery={final[kind + '_delivery']:8.2f} "
-              f"fees={final[kind + '_fees']:7.2f} costs={final[kind + '_costs']:6.2f} bonds_lost={final[kind + '_bonds_forfeited']:6.2f} "
+              f"fees={final[kind + '_fees']:7.2f} (fixed {final[kind + '_fee_fixed']:6.2f}, haircut {final[kind + '_fee_haircut']:5.2f}) "
+              f"costs={final[kind + '_costs']:6.2f} bonds_lost={final[kind + '_bonds_forfeited']:6.2f} "
               f"G_lost={final[kind + '_guarantees_forfeited']:6.2f} awards={final[kind + '_awards']:6.1f} "
               f"reviews={final[kind + '_reviews']:6.1f} overturned={final[kind + '_overturned']:5.2f} rho={final[kind + '_rho']:.3f} "
               f"p_audit={final[kind + '_p_audit']:.3f}")
@@ -418,6 +452,8 @@ def main(argv=None):
           f"{final['audits_lapsed']} challenges={final['challenges']} rulings={final['rulings']} "
           f"reviews_unassignable_ticks={final['reviews_unassignable_ticks']} awards_unfilled_ticks={final['awards_unfilled_ticks']} "
           f"underfunded_careful_reviews={final['underfunded_careful_reviews']}")
+    print(f"  Ω unrecovered advances={final['omega_unrecovered_advances']} claims outstanding={final['claims_outstanding']} "
+          f"returned to H: allowance={final['allowance_refunded']} fee pot={final['pot_refunded']} trees closed={final['trees_closed']}")
     return 0 if ok else 1
 
 

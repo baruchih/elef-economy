@@ -150,17 +150,20 @@ def fingerprint(w: World) -> dict:
     }
 
 
-# Recorded from the v1.0.1 engine (commit 6a746a1) running `scenario(seed, 200)` with the full
-# audit after every tick. The head commits every event in order; the rest are the readable
-# consequences.
+# Recorded from the 1.1.0 engine (design revision 1: the verification deposit is two pots) running
+# `scenario(seed, 200)` with the full audit after every tick. The head commits every event in order;
+# the rest are the readable consequences. The v1.0.1 goldens (commit 6a746a1) were
+# 586af764… / 5686 entries and ab79fe65… / 4849 entries; they changed with the rule, as a change
+# to settlement must, and were re-pinned once, at the commit that implemented the revision.
 GOLDEN = {
-    1: {"head": "586af76427e53ffccc9f4d1021180e4d0ee9deb47abcc8a3e87793a5e142bb55", "entries": 5686,
-        "M": 199523.548771, "Res": 198974.0,
-        "states": {"FINAL_N": 134, "VESTED": 67, "WITHDRAWN": 22, "PENDING": 5, "AVAILABLE": 12, "SUBMITTED": 2}},
-    2: {"head": "ab79fe65c52831e46f899ff428df02ff6cacdb684cce043ad87fd2a60aaf3c1a", "entries": 4849,
-        "M": 199690.927633, "Res": 199170.0,
-        "states": {"FINAL_N": 122, "VESTED": 49, "WITHDRAWN": 12, "CANCELLED": 2, "COMMITTED": 2, "AVAILABLE": 32,
-                   "PENDING": 2, "AWAITING_RESPONSE": 1}},
+    1: {"head": "bb0aa8565d6625570fb46af0068f258e03dca0ecb6b859b52ed394260aac56a4", "entries": 7489,
+        "M": 199301.96958, "Res": 198735.0,
+        "states": {"FINAL_N": 137, "VESTED": 84, "WITHDRAWN": 16, "CANCELLED": 1, "PENDING": 5, "SUBMITTED": 6,
+                   "AVAILABLE": 3}},
+    2: {"head": "eb337b976974edfe763395a21216d4346a6ea96c9572ef61a66f3f0ddacc5346", "entries": 5324,
+        "M": 199757.652068, "Res": 199183.0,
+        "states": {"FINAL_N": 115, "VESTED": 48, "WITHDRAWN": 13, "CANCELLED": 1, "AVAILABLE": 42,
+                   "AWAITING_RESPONSE": 1, "PENDING": 1}},
 }
 
 

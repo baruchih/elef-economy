@@ -659,14 +659,99 @@ careful still richer, by 293 against 407 in the control; m pinned at 4, X_t 8, 9
 plant spend of 3,656. One seed, no conclusion — but the dynamic to watch in run 4 is already visible: suspension
 frees the stampers for paid work, and the money contest then runs through delivery, not fees.
 
-**Run 4 — the revision's §8, in order (next).** The §6 reproduction is `test_v12`. Then: controller on against
-off under a drifting stamper share (dispositions re-drawn each 100 ticks toward stampers until 90%, appeals
-truthful, no disputes, X free to track) — does the honest regime hold, does the alarm fire, how large and how
-long is the eligibility shortfall, the three channels measured separately; adaptive dispositions (actors switch
-on observed wealth) under 1.2.0 and, as control, 1.1.0; the tipping point at 40/60, 30/70, 20/80 under both;
-the red team (camouflaged stampers; a plant-detecting reviewer has nothing to detect, which the view test
-asserts); Ω's plant spend and ω_t across m, and the reserve's size trajectory. Results go to
-`agentic_sim/results/studies/1.2.0-clock/`.
+## Run 4 — the revision's §8 under 1.2.0 (October 17, 2026)
+
+`agentic_sim/results/studies/1.2.0-clock/` (and `1.2.0-clock.zip` beside it): `drift/` (60 runs), `adaptive/`
+(40), `tipping/` (120), `redteam/` (80) — 300 runs, 20 seeds per cell, 20 actors, every final audit passed;
+engine 544ff19 (2708f64 adds only test records). Appeals truthful and no disputes throughout — the design
+assumption's regime: the actor polices rejections, nobody polices approvals but the loop itself. The §6
+reproduction is `test_v12`. "FA" is false approvals that vested; 1.1.0 cells are the control (`--rules 1.1.0`).
+
+**Drift (run 2 of the revision's §8): the honest regime holds, at a capacity price.** Stampers rise from 50% to
+90% in steps of 5% every 100 ticks over 1,500 ticks, 4,500 tasks posted.
+
+| cell | FA | vested | stamper − careful (se) | stampers richer | m at end | alarms | eligibility shortfall (actor-ticks) | reviews waiting (review-ticks) | plants unfunded |
+|---|---|---|---|---|---|---|---|---|---|
+| 1.2.0, dial on | 83 | 2,518 | −2,213 (49) | 0 of 20 | 4.0 | 10.6 | 2,515 | 119,620 | 351 of 918 |
+| 1.2.0, dial off (plants at π₀, m = 1) | 257 | 3,213 | −827 (69) | 0 of 20 | 1.0 | 0 | 33 | 52,528 | 0 |
+| 1.1.0 control | 650 | 4,209 | +233 (186) | 12 of 20 | — | — | — | 2,283 | — |
+
+Under 1.1.0 false approvals grow with the stamper share (80 at tick 300, 650 at 1,500) and the stampers end
+richer in 12 of 20. With plants alone (dial off) they fall to 257; with the dial they fall to 83, and they stop
+growing once the dial saturates: 66 at tick 600, 83 at 1,500. The dial reaches m = 2 at about tick 330 and m_max
+at 395; the first alarm fires at about tick 450 (every run), and then roughly every period, because the only
+actors judging plants are the two careful survivors and stampers returning on probation, so F̂ stays far above
+F* (0.46–0.78 in the last periods). The price is capacity: on duty falls from 6 at tick 300 to about 3 from tick
+900, against an X_t of 5–8; the eligibility shortfall accumulates 2,515 actor-ticks; a submitted case waits
+for a reviewer 119,620 review-ticks in all (47× the control); vesting ends at 2,518 cases against 4,209; Ω
+cannot fund 351 of the 918 plants the rate called for at m = 4 (Ω net still +1,603, the raised ω). Hypothesis 2
+holds as stated — "honest and slow rather than captured and fast" — and the slow is measured.
+
+**Adaptive dispositions (run 3).** Actors start 50/50; every 100 ticks each actor takes the richer disposition
+by mean public wealth with probability 0.2.
+
+| cell | stamper share at end | stampers richer | FA | m | alarms |
+|---|---|---|---|---|---|
+| 1.2.0 | 0.29 | 6 of 20 | 59 | 3.2 | 4.2 |
+| 1.1.0 | 0.43 | 9 of 20 | 249 | — | — |
+
+Both populations move toward careful under truthful appeals; 1.2.0 moves them further and faster. One
+adaptation rule, one seed of starting shares: a direction, not an equilibrium.
+
+**The tipping point (run 4) — and the finding of this run.** Fixed splits, truthful appeals, 1,000 ticks.
+
+| split (stampers) | 1.2.0: stamper − careful (se), richer | 1.2.0 FA | 1.1.0: stamper − careful (se), richer | 1.1.0 FA | 1.2.0 reviews careful / stamper | 1.2.0 awards careful / stamper | 1.2.0 delivery income careful / stamper | 1.2.0 fees careful / stamper |
+|---|---|---|---|---|---|---|---|---|
+| 50% (red team, no camouflage) | −2 (51), 11 of 20 | 53 | — | — | 502 / 78 | 99 / 200 | — | — |
+| 60% | **+215 (34), 19 of 20** | 67 | +22 (108), 9 of 20 | 306 | 636 / 82 | 64 / 207 | 1,063 / 3,311 | 2,106 / 277 |
+| 70% | −10 (25), 8 of 20 | 89 | +43 (77), 9 of 20 | 379 | 787 / 91 | 37 / 195 | 654 / 3,142 | 2,612 / 309 |
+| 80% | −902 (25), 0 of 20 | 121 | +223 (138), 13 of 20 | 442 | 799 / 100 | 33 / 143 | 626 / 2,373 | 2,915 / 354 |
+
+Honesty holds at every split: false approvals fall four- to five-fold against 1.1.0, the stampers' â is
+0.76–0.90 and they are suspended within their first handful of plants (run 1's "seat" channel works). But
+the money contest at 50–70% is **not** what Hypothesis 1 predicted. The careful actors are the only eligible
+reviewers, the dial sizes the reserve up (X_t 7–8), and they are therefore on duty almost all the time — 500 to
+800 reviews each against 80–100 for a stamper — while the suspended stampers, free of duty, take the awards
+(200 to 64 at 60/40) and the delivery income (3,311 to 1,063). The fee f = 2 per review does not replace the
+award B = 20 per delivery: at 60/40 the stampers end richer in 19 of 20 seeds by 215 per actor, under the rule
+whose purpose was to make stamping unprofitable. The ρ channel does not help, because selection is argmax ρ
+among the *free* actors, and the careful are not free. What decides the contest under 1.2.0 is therefore not
+the plant penalty (about 0.6 per review, as computed) but **who carries the reviewing load**, and the revision
+loads it onto the honest minority and pays them the ordinary fee while Ω collects the raised security tax (Ω
+net +5,898 at 60/40 against +3,106 under 1.1.0). Only at 80/20, where the stampers are too many for the market
+to absorb and the reserve is short most of the time, do they lose again (−902).
+
+**Red team (run 5).** A stamper that rejects 10% of its reviews at random: at 50/50 it buys time — plant
+failures per stamper 5.9 against 7.2, suspensions 45 against 54, alarms 2.1 against 4.3 — and turns the wash
+(−2) into +112 (se 74, 13 of 20), with false approvals still low (42) and false rejections up (26 against 18;
+its random rejections are appealed and 133 of 138 appeals won). At 90/10 it changes nothing that matters
+(−1,733 against −1,961; FA 154 against 165). Camouflage is a small edge, not a safety; the detection half of
+the red team has nothing to detect by construction (the view test).
+
+**Cost (run 6).** Ω's plant spend is 2,000–3,500 per 1,000 ticks at m ≈ 4 (the careful inspections' fees and
+expenses; a stamper's failed plant costs Ω nothing), against ω income that rises with m to about four times
+1.1.0's; Ω net is positive in every cell (+900 to +5,900 per run) and lowest where the reserve is shortest
+(80/20, drift), because fewer awards mean less ω. The working capital binds before the income does: at m = 4
+and π = 0.4 the rate calls for more plants than Ω's unlocked balance can carry at once — 17 to 663 unfunded per
+run, worst where vesting is slow and plant pools stay open longest. X_t tracks demand (4.8 to 8.3) and is
+undershot by the eligible pool wherever stampers exceed 60%.
+
+**What this says for the next design decision.** Three things, in the order I would put them to the reviewer:
+
+1. **The probation reading (above) needs a decision.** It is what makes F̂ stay high and the alarm fire every
+   period in a captured market, and what gives the returning stamper its one plant before it is out again.
+   The literal reading (permanent suspension) would make the clock quieter and the shortage larger. Neither
+   is obviously right; the engine holds the first, and the alternative is one branch.
+2. **The reviewing load is the contest.** Under 1.2.0 the honest minority is conscripted into the sized-up
+   reserve and paid f = 2 a review while the stampers deliver at B = 20. Candidates, all design questions:
+   the fee scaled with the dial as the tax is (f_t = f·m_t, funded from ω_t, which Ω now keeps); a reserve
+   sized to the *eligible* pool rather than to demand; or the stampers' exclusion from duty extended to
+   awards (a ρ or â floor for selection — which run 3 warned against for ρ, but â cannot be captured).
+3. **Ω's working capital, not its income, caps the clock** at m_max; the float (300) carries one period at
+   m = 1, and the rate at m = 4 is four times that with slower closures.
+
+Untouched: §18.1 questions 2, 4, 5, 7, 10. The reviewer notes are
+`agentic_sim/results/studies/1.2.0-clock-notes-for-reviewer.md`.
 
 ## Maps
 

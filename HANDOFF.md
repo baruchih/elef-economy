@@ -525,6 +525,79 @@ once; one reviewer test (r5_a, a budget of exactly B + 10) is superseded with th
 principle re-asserted in `test_v11`; every other reviewer test passes unchanged. 181 + 25 in all four
 modes. The rerun of strategy run 1 with only the rule changed is the section after the first result.
 
+## Run 3 — the reviewer's list before a revision 2 (October 17, 2026)
+
+The reviewer's reading of the 1.1.0 study (`uploads/run-02-1.1.0-study-and-review.md`, external) confirmed
+the §4.3 implementation and asked for five things before a design revision 2 is proposed. Four are runs,
+in `agentic_sim/results/studies/1.1.0-combined/` (560 runs, 20 seeds per cell, all audits passed); the
+fifth is a test. One of the reviewer's classifications does not hold against the text and is answered
+below. Everything here is under 1.1.0 as it stands.
+
+**Conformance first: assignment is round-robin (§7.5), and the earlier sweeps used a seeded choice.**
+§7.5 reads "Volunteers first; otherwise round-robin among eligible duty actors; otherwise wait." The
+October 16–17 sweeps assigned initial, audit and appeal reviewers by a seeded random choice among the
+eligible duty actors and declared that policy in every manifest (§18.2) — honest, but not the rule's. The
+driver now defaults to round-robin and keeps `--assignment seeded` for reproducibility (the old heads
+reproduce). The four headline cells re-run under round-robin (`rr-check/`):
+
+| cell (50/50) | seeded (earlier) | round-robin | 
+|---|---|---|
+| none, X 4 | −173 (73) | −113 (66) |
+| none, X 8 | −290 (39) | −265 (36) |
+| truthful appeals, X 8 | +136 (39) | +90 (39) |
+| truthful disputes, X 8 | −1,331 (35) | −1,370 (44) |
+
+Every cell moved by less than its standard error and no direction changed, so the five earlier sweeps
+stand as declared, with this note. The same §7.5 sentence settles the reviewer's first classification:
+"a challenge panel chosen by ρ" is not an orchestrator policy runnable now — round-robin is a Rule — so it
+is a design question for a revision 2 proposal and was not run.
+
+**The combined regime (`combined/`): truthful appeals and truthful disputes at rate ∈ {0, 0.25, 0.5}, band 0,
+X ∈ {4, 8}, both splits.** Stamper − careful wealth per actor (se), stampers richer of 20:
+
+| dispute rate | 50/50, X 4 | 50/50, X 8 | 10/90, X 4 | 10/90, X 8 |
+|---|---|---|---|---|
+| 0 (appeals only) | +2 (87), 10 | **+200 (52), 16** | +1,336 (176), 19 | +1,794 (155), 20 |
+| 0.25 | −77 (56), 8 | **−489 (70), 1** | +145 (168), 7 | +1,274 (171), 19 |
+| 0.5 | −144 (36), 3 | **−919 (77), 0** | −141 (61), 7 | +1,270 (201), 18 |
+
+The requester's attention is the swing variable. With the reserve unconstrained and selection pure argmax
+ρ, appeals alone give the stampers +200; a requester who disputes one false approval in four turns it to
+−489 and one in two to −919 — the break-even dispute rate at 50/50 is about 0.07. Band 0 amplifies
+whatever ρ says, in both directions: at 10/90 the two careful actors' ρ ends below the stampers' (their
+errors are the adjudicated ones), argmax then gives them 66 awards to the stampers' 159, and no dispute
+rate in the sweep recovers it — disputes at 10/90 are heard by a stamper panel (23 of 135 won at X = 8)
+and false approvals fall only from 521 to 487. At X = 4 every cell is capacity-damped (6,400–7,400
+review-ticks waiting at the higher rates).
+
+**The ε sweep (`epsilon/`): the careful reviewer's error rate at dispute rate 0.25, band 0.** 50/50, X 8:
+ε 0.02 → −930 (58); 0.05 → −489 (70); 0.10 → +312 (63), stampers richer in 18 of 20. The reversal is
+linear in ε as the reviewer predicted — about +155 per actor per point of ε — with break-even near ε ≈
+0.08 at this dispute rate. At 10/90, X 8: +378, +1,274, +2,470; a careful reviewer with ε = 0.10 in a
+stamper-majority reserve ends with 34 awards to the stampers' 163.
+
+**Solvency (`solvency/`): G^V 20 confirmed as a q6 shortfall.** With the new counter — on-duty actors that
+cannot fund the bond, summed over ticks — G^V 5 shows 9–12 such actor-ticks in 1,000; G^V 20 shows 291 at
+both splits: on average 0.29 of the four duty slots is held by an actor who cannot be assigned, a case
+waits for a reviewer in 4,500–4,700 review-ticks, awards go unfilled in 590–640 ticks, and vesting falls
+4%. Stampers are the ones short — they review 136 times to the careful actors' 230 at 50/50, having lost
+more bonds. The gap widens to −367 (70) at 50/50, but by starving the reserve, not by deterrence alone.
+
+**The test (item 5).** The random scenario of `test_perf_equivalence` already repays Ω's advances from the
+fee pot at closure (5 and 3 times in the two seeds, with 22 and 17 nested draws) under the per-tick audit;
+`test_v11` gains a tree whose expenses exceed φ^E with Ω unable to advance, so claims arise in both the
+nested case and the root and the pot's remainder settles them in queue order at closure. Suite 182 + 25.
+
+**What this leaves for the revision 2 proposal.** With the fee penalty gone (1.1.0), the contest between
+careful and careless review is decided by three things the runs have now measured: whether the party who
+knows the truth challenges (break-even dispute rate ≈ 0.07 at 50/50), how often the careful reviewer errs
+(break-even ε ≈ 0.08 at dispute rate 0.25), and who sits on the panel (a stamper-majority reserve is not
+recovered by any dispute rate). The first two are the product's inputs; the third is the rule. Under §19
+the questions for the proposal are: the panel's composition (§7.5's round-robin against a panel chosen by
+ρ, or by a reliability floor); whether an appealable and an auditable error should carry the same bond;
+the reserve's size against the challenge load (a default, X, with the measured capacity cost); and the
+cost of a dispute against an audit (defaults D and X first).
+
 ## Maps
 
 Two `_line` artifacts in project Agentic-OS (`c54120a6-aaff-40f7-8a9f-3667da542879`):

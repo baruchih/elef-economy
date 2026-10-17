@@ -4,7 +4,7 @@ Built up through v0.4–v0.10, unchanged by the v1.0 consolidation and the v1.0.
 since, all on October 17, 2026: for design revision 1 (1.1.0: the verification deposit is two pots), design revision 2
 (1.2.0: the loop's own clock — planted work, the plant record, the effort dial) and design revision 3 (1.3.0:
 inspection is membership — see the three sections below). Section numbers in code comments refer to the
-working-spec versions they were written against; `spec/agentic_economics_loop_spec_v1_3_0.md` is the text in force,
+working-spec versions they were written against; `spec/agentic_economics_loop_spec_v1_3_1.md` is the text in force,
 and its Appendix A holds the defaults that `sim/params.py` encodes.
 
 The loop's rules as code, with no strategies. Every bid, verdict, appeal, audit
@@ -272,7 +272,7 @@ Run 4 under 1.2.0 (`results/studies/1.2.0-clock/`) showed the clock keeping the 
 and suspension from duty being a reward: the honest minority carried 500–800 reviews each at a fee of 2 while the
 suspended stampers, freed from duty, took the awards at 20 and ended richer at 60/40. Design revision 3 (accepted
 as rc.2 with the panel floor's availability clause; `spec/design_revisions/dr3_inspection_is_membership_1.3.0.md`,
-consolidated into `spec/agentic_economics_loop_spec_v1_3_0.md` §5.2, §8.3, §11.2, §12.1–12.2 and Appendix H) makes
+consolidated into `spec/agentic_economics_loop_spec_v1_3_1.md` §5.2, §8.3, §11.2, §12.1–12.2 and Appendix H) makes
 inspection the price of membership. In the engine:
 
 - **Membership.** `Actor.is_member` (neither suspended nor on probation). `award` refuses a non-member before any

@@ -13,10 +13,10 @@ duty was a reward). Read `HANDOFF.md` first for where things stand and what is p
 ## Layout
 
 ```
-spec/agentic_economics_loop_spec_v1_3_0.md   the text in force (standalone; Appendix A defaults, E errata, F/G/H design revisions 1/2/3)
+spec/agentic_economics_loop_spec_v1_3_1.md   the text in force (1.3.0 + patch 1.3.1; standalone; Appendix A defaults, E errata, F/G/H design revisions 1/2/3)
 spec/design_revisions/                       accepted design revisions, verbatim (dr1: two pots; dr2: the loop's own clock; dr3:
                                              inspection is membership), and the implementer's reviews of dr2's and dr3's candidates
-spec/history/                                v0.1 … v1.2.1 — superseded, kept for provenance only
+spec/history/                                v0.1 … v1.3.0 — superseded, kept for provenance only
 reviews/                                     R01–R10, one external review per version, with the reviewer's notes
 agentic_sim/                                 the engine, 23 invariants, 20 test files, runner, drivers, results
 docs/line_map_economic_loop_v1_0_1.txt       text export of the _line map of the loop (the live map is the source)
@@ -157,8 +157,8 @@ consolidated into one standalone spec with the accepted revision kept verbatim i
   (m − 1) ω₀ B there, the settlement batch pays it out by role weight as `Review.uplift`. A plant funds its
   pots only (`net_plant_capital`): no escrow, no guarantee lock; I15 exempts it. I22, I23 per tick.
   `Params(membership=False, duty_fund=False, net_plant_capital=False)` is the 1.2.1 engine
-  (`drivers.stamping --rules 1.2.0`); `test_v12` asserts it. **Two implementer's readings**, flagged in the
-  text (§12.1, Appendix H): the members' cap never falls below the reserve floor V_max + 1 (`_member_cap`;
+  (`drivers.stamping --rules 1.2.0`); `test_v12` asserts it. Two implementer's readings, confirmed as rules
+  by patch 1.3.1 (§12.1): the members' cap never falls below the reserve floor V_max + 1 (`_member_cap`;
   the literal ⌈E_t/2⌉ breaks every six-actor world at tick 0), and an outgoing probationer with no free
   probationer stays rather than hand its seat to a member who would yield it back. `Params.dial=False, pi0=0, p_start=p_cap=0.5, Omega0=20` is the 1.1.0 engine's behaviour
   (`drivers.stamping --rules 1.1.0`).

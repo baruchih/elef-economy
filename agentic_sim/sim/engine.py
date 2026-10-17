@@ -1694,7 +1694,7 @@ class World:
         X₀ = 4 of Appendix A's initialization and §20's worked example (C, D, E, F on duty), which would
         make the baseline's own worlds — and every reviewer test built on them — violate the revision at
         tick 0. The cap yields to the reserve floor as the panel floor yields to the cap. Flagged in the
-        consolidated text and HANDOFF for confirmation; the alternative is this one line.]"""
+        consolidated text and HANDOFF; confirmed as the rule by patch 1.3.1.]"""
         return max((E_t + 1) // 2, self.p.V_max + 1)
 
     def _turn_done(self, a: Actor, tick: int) -> bool:

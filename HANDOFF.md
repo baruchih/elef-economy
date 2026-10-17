@@ -788,7 +788,7 @@ the reserve's floor V_max + 1, as the panel floor yields to the cap; the differe
 confined to memberships of four to seven, where the literal cap would leave two or three members free. One line
 (`World._member_cap`). (2) An outgoing probationer whose turn ends with no free probationer stays, rather than
 hand its seat to a member whom the next tick's "probationers first" would displace back. One branch of the
-rotation. Both are the implementer's; the alternative to each is one edit.
+rotation. Both are the implementer's; the alternative to each is one edit. **Confirmed** as patch 1.3.1 (October 17, 2026; the sentences of design revision 4 rc.1's Appendix A), applied to `spec/agentic_economics_loop_spec_v1_3_1.md`; 1.3.0 to history.
 
 **Engine (commit after `d8d3834`).** Membership on award with `member_at_award`; probation with the pin, the
 re-check on any failure, readmission on the trailing record with the since-suspension counter; two kinds of
@@ -798,7 +798,7 @@ settlement batch; plant capital on the pots alone with no escrow and no guarante
 I15 exempting a plant's guarantee. `test_v13` (11); `test_v12` pinned to the 1.2.1 engine mode
 (`Params(membership=False, duty_fund=False, net_plant_capital=False)`, the stamping driver's `--rules 1.2.0`);
 goldens re-pinned once. 208 passed, 26 expected failures in all three modes. Consolidated text
-`spec/agentic_economics_loop_spec_v1_3_0.md` (§2.1, §4.1, §5.2, §7.1, §7.6, §8.3, §10.4, §11.2, §12, §16, §17,
+`spec/agentic_economics_loop_spec_v1_3_1.md` (§2.1, §4.1, §5.2, §7.1, §7.6, §8.3, §10.4, §11.2, §12, §16, §17,
 §18.1, §20, Appendices A–D, H); 1.2.1 to history.
 
 **Driver.** Offers to members only; `--rules 1.3.0|1.2.0|1.1.0`, `--fund on|off`, `--m-max`, `--stamper-mode

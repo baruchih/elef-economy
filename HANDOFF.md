@@ -394,7 +394,65 @@ stamper's error is found only by an audit at the floor rate, and the appeal pane
 reserve. The run measured a ≈ 1, so the appeals term is the full ε(1−b)(f̄ + G^V) and the question moves
 to the catch rate: the audit floor at X = 4 cannot be raised without starving the reserve (default sweep),
 so either the reserve must be larger or the panel must be chosen by ρ. Under §19 these are evaluations and
-design questions to write up, not patches. Next: the requester-dispute run.
+design questions to write up, not patches.
+
+## Requester-dispute run — truth enters with requesters (October 17, 2026)
+
+`drivers/sweep.py`, 6 cells × 20 seeds = 120 runs, same declaration and defaults (X = 4, f = 2, no
+appeals), with the human's response to a pending F declared by `--dispute-policy`: **truthful** — H
+disputes every pending F on work that truly failed; **half** — the same with probability 0.5; **always** —
+H disputes every pending F. H pays the court fee D = 2 each time and never ran short. The requester acts
+once, before the audit roll; a dispute pre-empts the audit. Dispute reviews go to whoever the reserve
+makes eligible and answer by disposition; splits are ruled by the truth with probability 0.8. Results in
+`agentic_sim/results/studies/1.1.0-stamping/disputes/` (summary `runs/20261017-112415-disputes/`).
+Per actor, means over 20 seeds; "none" rows are the rerun's default cells:
+
+| cell | careful | stamper | stamper − careful (se) | richer | disputes filed / won | stamper overturned % | false approvals | vested | reviews unassignable ticks |
+|---|---|---|---|---|---|---|---|---|---|
+| 50/50, none | 3,275 | 3,102 | −173 (73) | 6 of 20 | — | 3.0 | 284 | 2,596 | 1,046 |
+| **50/50, truthful** | 2,748 | 2,444 | **−304 (50)** | 2 of 20 | 299 / 215 | 16.9 | **83** | 2,155 | 7,794 |
+| 50/50, half | 3,089 | 2,904 | −185 (46) | 3 of 20 | 184 / 109 | 9.4 | 229 | 2,450 | 7,098 |
+| 50/50, always | 1,716 | 1,553 | −163 (79) | 5 of 20 | 1,274 / 110 | 8.6 | 47 | 1,153 | 11,567 |
+| 10/90, none | 3,687 | 3,626 | −61 (89) | 8 of 20 | — | 0.8 | 522 | 2,881 | 946 |
+| 10/90, truthful | 3,252 | 3,031 | −221 (108) | 11 of 20 | 458 / 78 | 4.3 | 376 | 2,377 | 8,296 |
+| 10/90, half | 3,577 | 3,447 | −130 (73) | 8 of 20 | 258 / 38 | 2.4 | 468 | 2,729 | 7,318 |
+| 10/90, always | 1,965 | 1,912 | −53 (149) | 13 of 20 | 1,319 / 42 | 2.3 | 206 | 1,265 | 11,891 |
+
+**The dispute does to stampers what the appeal did to careful reviewers.** A requester who knows the
+truth and disputes every false approval at 50/50 wins 72% of them, overturns 17% of the stampers'
+reviews (33 per actor, bonds forfeited 167 against 33), cuts false approvals from 284 to 83, and widens
+the careful lead to 304 per actor (2 of 20 seeds the other way). The human-explicit grade is correct in
+every case it labels, by construction. This is the mirror image of the appeals run: there the party who
+knew the truth was the actor and the exposed error was the careful reviewer's; here it is the requester
+and the stampers'. Together the two runs say the rulebook's adjudication finds the error of whoever the
+truth-holder chooses to challenge, at the rate the truth-holder chooses to challenge.
+
+**At 10/90 the dispute panel is the stampers, and the requester loses.** H files 458 disputes and wins
+78: the two dispute reviewers are drawn from a reserve that is nine-tenths stampers and say F, so 82% of
+true disputes fail, false approvals stay at 376, and the procedural grade's accuracy falls to 0.59 — the
+challenge path is now the least reliable label in the economy. The careful lead holds on the mean (−221)
+but splits the seeds (11 of 20 the other way).
+
+**Every dispute costs the reserve more than the audit it replaces.** A dispute is two reviews where an
+audit was one, and with four on duty the economy pays for it in capacity: a submitted case waits for a
+reviewer in 7,100–8,300 review-ticks under truthful or half disputes, awards go unfilled in about 970
+ticks, vesting falls 6–17%, and both populations end poorer than with no disputes at all — the careful
+reviewers by 500 per actor at 50/50. A requester who disputes everything (the "always" cells) files
+1,300 disputes, loses 92% of them, pre-empts every audit, halves the economy's throughput and everyone's
+wealth, and still ends with the fewest false approvals (47 at 50/50): correctness bought at the price of
+the economy.
+
+**What the four runs say together.** Under 1.1.0 the fee no longer penalises care; what decides the
+careful–careless contest is who challenges whom and whether the reserve can carry the challenges. The
+reliability channel works exactly as far as selection is allowed to see ρ (the tie band). Every path
+that exposes an error — audits above the floor, appeals, disputes — draws two reviews from the same
+small reserve, and at X = 4 that reserve is the binding constraint in every cell that uses them; the
+X = 8 cells of the rerun are the only ones in which no case waited. The panel's composition is the
+reserve's composition, so in a stamper-majority reserve appeals favour stampers and disputes fail. Under
+§19 these are evaluations; the design questions they raise — reserve size against challenge load, a
+panel chosen by ρ rather than by duty, and what a requester-dispute should cost relative to an audit —
+are for a written proposal, not a patch. Spec §18.1 questions 1 and (in part) 6 are answered for this
+declaration; 2, 3, 4, 5, 7, 8 are untouched.
 
 The engine and its tests stay as they are; a driver that needs an engine change has found either a
 conformance bug (fix + regression) or a design question (write it up, do not patch around it).

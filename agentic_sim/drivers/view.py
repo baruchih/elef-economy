@@ -80,7 +80,14 @@ class Public:
                 "plants_created": w.plants_created, "plant_shortfall": w.plant_shortfall,
                 "eligibility_shortfall": w.eligibility_shortfall, "reserve_shortfall_now": w.reserve_shortfall_now,
                 "suspensions": w.suspensions, "alarms": w.alarms, "alarm_streak": w.alarm_streak,
+                "member_seats": w.member_seats, "readmissions": w.readmissions,
+                "readmission_ticks_mean": (w.readmission_ticks_sum / w.readmissions) if w.readmissions else None,
                 "periods": list(w.periods), "period": dict(w.period)}
+
+    def membership(self, aid: str) -> str:
+        """1.3.0: member | suspended | probationer."""
+        a = self._w.actors[aid]
+        return "suspended" if a.suspended_until is not None else ("probationer" if a.probation else "member")
 
     # -- actor operations (§5, §6, §9) -------------------------------------------
     def submit(self, cid: str):
@@ -139,11 +146,12 @@ class Public:
 
     def money(self) -> dict:
         L = self._w.ledger
-        from sim.engine import PLANT_REQ, PLANT_ACT
+        from sim.engine import PLANT_REQ, PLANT_ACT, DUTY_FUND
         plant_wallets = L.wallet(PLANT_REQ).W + L.wallet(PLANT_ACT).W
         return {"M": L.M, "Res": L.Res, "v": L.v, "omega": L.wallet(L.OMEGA).U,
                 "omega_total": L.wallet(L.OMEGA).W + plant_wallets,      # Ω's money, plants' working capital included
                 "omega_in_plants": plant_wallets,
+                "duty_fund": L.wallet(DUTY_FUND).U, "fund_in": self._w.fund_in, "fund_out": self._w.fund_out,
                 "claims_outstanding": sum(cl.amount for cl in self._w.omega_claims)}
 
     def events_since(self, n: int) -> list:

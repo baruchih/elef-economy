@@ -52,11 +52,18 @@ KEYS = ["careful_wealth", "stamper_wealth", "careful_fees", "stamper_fees", "car
         "careful_plant_reviews", "stamper_plant_reviews", "careful_plant_failures", "stamper_plant_failures",
         "careful_a_hat", "stamper_a_hat", "careful_suspended", "stamper_suspended",
         "careful_duty_eligible", "stamper_duty_eligible", "careful_panel_eligible", "stamper_panel_eligible",
-        "stamper_share", "disposition_switches", "careful_n", "stamper_n"]
+        "stamper_share", "disposition_switches", "careful_n", "stamper_n",
+        # 1.3.0: membership and the fund
+        "members_on_duty", "probationers_on_duty", "member_seats", "readmissions", "readmission_ticks_mean",
+        "duty_fund", "fund_in", "fund_out", "awards_refused_members_only_ticks", "probation_false_approvals",
+        "careful_members", "stamper_members", "careful_probationers", "stamper_probationers",
+        "careful_fee_uplift", "stamper_fee_uplift", "careful_probation_reviews", "stamper_probation_reviews",
+        "careful_probation_approvals", "stamper_probation_approvals"]
 SHORT = {"stampers": "s", "fee": "f", "on-duty": "X", "gv": "gv", "p-floor": "pf", "p-start": "p", "p-cap": "pc", "band": "band",
          "fail-rate": "b", "accuracy": "a", "ruling-accuracy": "r", "appeal-policy": "appeal", "dispute-policy": "dispute",
          "dispute-rate": "dr", "assignment": "assign", "rules": "rules", "pi0": "pi", "dial": "dial", "beta-p": "bp",
-         "camouflage": "cam", "omega0": "om", "drift-to": "drift", "adapt-rate": "adapt"}
+         "camouflage": "cam", "omega0": "om", "drift-to": "drift", "adapt-rate": "adapt", "fund": "fund", "m-max": "mmax",
+         "stamper-mode": "mode"}
 
 
 def _num(x: str):

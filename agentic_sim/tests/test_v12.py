@@ -1,4 +1,5 @@
-"""Design revision 2 — specification 1.2.0: the loop's own clock.
+"""Design revision 2 — specification 1.2.0: the loop's own clock (asserted on the 1.2.1 engine: `Params`
+with membership, the duty fund and netted plant capital off — design revision 3's additions are `test_v13`).
 
 The worked example of §6 of the revision and the properties it introduces: planted work
 adjudicated by its known truth (§2.1), the plant record with its two eligibility tiers and the
@@ -32,7 +33,10 @@ DUTY = ["C", "D", "E", "F"]
 def make_world(budget=1000.0, **over):
     # no emission, no service fee, Ω holds 100 as §6 has it; duty turns long enough that only the
     # revision's own rules move actors on and off duty
-    kw = dict(E0=0.0, H=1e9, omega_rate=0.0, Omega0=100.0, duty_turn_reviews=10_000, duty_turn_ticks=100_000)
+    # The 1.2.1 engine: membership, the duty fund and netted plant capital are design revision 3 (1.3.0,
+    # `test_v13`); here they are off, as `drivers.stamping --rules 1.2.0` runs them for a control.
+    kw = dict(E0=0.0, H=1e9, omega_rate=0.0, Omega0=100.0, duty_turn_reviews=10_000, duty_turn_ticks=100_000,
+              membership=False, duty_fund=False, net_plant_capital=False)
     kw.update(over)
     return World(Params(**kw), ACTORS, humans={"H": budget}, on_duty=DUTY)
 

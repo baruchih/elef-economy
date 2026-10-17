@@ -45,6 +45,9 @@ PANEL_ROLES = ("appeal", "audit")              # the challenge-panel seats (1.2.
 # The orchestrator's two system wallets (1.2.0 §2.1, Appendix A): a plant's requester and its actor.
 # Funded by transfer from Ω when a plant is created and swept back to Ω when its tree closes.
 PLANT_REQ, PLANT_ACT = "OMEGA-REQ", "OMEGA-ACT"
+# The duty fund (1.3.0 §2.4): the dial's raised tax, (m_t − 1) ω_0 B of each award, paid out to the reviews
+# settling in each batch by role weight as an uplift on the fixed fee.
+DUTY_FUND = "DUTY-FUND"
 
 
 class Claim(tuple):
@@ -89,7 +92,10 @@ class Actor:
     plant_bad: list = field(default_factory=list)    # (t, approved)
     plant_good: list = field(default_factory=list)   # (t, rejected)
     suspended_until: Optional[int] = None
-    probation: bool = False     # readmitted with a record that still fails: re-checked at its next plant
+    probation: bool = False     # 1.3.0: a probationer — initial reviews only, odds pinned, no awards, earning its way back
+    since_susp: int = 0         # plant outcomes adjudicated since the suspension began (1.3.0 §2.2: ≥ n_min to be readmitted)
+    susp_started: Optional[int] = None
+    readmitted_at: Optional[int] = None
     _world: object = None
 
     @property
@@ -143,9 +149,24 @@ class Actor:
         probation, and the record within θ_panel."""
         return self.duty_eligible and not self.probation and self.record_passes(self._world.p.theta_panel)
 
+    # -- membership (1.3.0 §2.1–2.2) ---------------------------------------------------------
+    @property
+    def is_member(self) -> bool:
+        """A member of the market: neither suspended nor on probation. Only members win awards."""
+        return self.suspended_until is None and not self.probation
+
+    @property
+    def pinned(self) -> bool:
+        """1.3.0 §2.2: a probationer's audit odds, and an undetermined newcomer's (fewer than n_min bad
+        plants judged), are pinned at 1; the §8.3 update does not run for them."""
+        p = self._world.p
+        return p.membership and (self.probation or len(self.plant_bad) < p.n_min)
+
     @property
     def p_eff(self) -> float:
-        """The audit odds a driver rolls: the adaptive p_j scaled by the dial, min(1, m_t · p_j)."""
+        """The audit odds a driver rolls: 1 while pinned, else the adaptive p_j scaled by the dial, min(1, m_t · p_j)."""
+        if self.pinned:
+            return 1.0
         return min(1.0, self._world.m_t * self.p_audit)
 
 
@@ -198,6 +219,7 @@ class Review:
     contradicted_by_override: bool = False
     reimbursed_pending: float = 0.0   # an Ω claim outstanding for this review's costs
     panel_ok: bool = True             # the reviewer was eligible for this tier when assigned (1.2.0 §2.2, I21)
+    uplift: float = 0.0               # the duty-fund uplift paid at settlement (1.3.0 §2.4), included in `fee`
 
 
 @dataclass
@@ -265,6 +287,7 @@ class Case:
     plant_hseq: Optional[int] = None
     plant_outcome: Optional[str] = None    # stood | failure | spent
     plant_reveal_hseq: Optional[int] = None
+    member_at_award: bool = True           # 1.3.0 §2.1 / I22: the actor was a member when awarded
     # outcome record
     grade: Optional[str] = None
     assessments: list = field(default_factory=list)
@@ -381,6 +404,14 @@ class World:
         self.alarms = 0
         self.periods: list[dict] = []
         self.period = self._new_period(0)
+        # 1.3.0: the reserve's member seats (sized each period on applied audit odds and the challenge
+        # rate), the duty fund's flows, and readmissions
+        self.member_seats: int = max(0, params.V_max - 1)
+        self.fund_in = 0.0
+        self.fund_out = 0.0
+        self.readmissions = 0
+        self.readmission_ticks_sum = 0
+        self._member_pool_exhausted = True              # at the last rotation, no free fundable member was left to seat
         self._pool_exhausted = False                    # at the last rotation, no eligible free actor was left
         self._reserve_dirty = False                     # an actor left duty since the last rotation (mid-tick)
         self.ledger.on_event = self._on_ledger_event
@@ -517,12 +548,17 @@ class World:
             raise RuleError(f"award: bid {B} exceeds beta {c.beta} (§5.1)")
         if a.committed is not None or a.open_review is not None:
             raise RuleError(f"award: {actor_id} already holds an assignment")
+        if self.p.membership and not a.is_member:
+            raise RuleError(f"award: {actor_id} is not a member of the market — suspended or on probation (1.3.0 §2.1)")
         if a.on_duty:
             raise RuleError(f"award: {actor_id} is on verification duty")
         if actor_id == c.requester:
             raise RuleError("an actor cannot be awarded its own request")
         G = max(1.0, math.ceil(self.p.G_frac * B))
-        omega = self.p.omega_rate * self.m_t * B          # ω_t = ω_0 · m_t (1.2.0 §2.3)
+        omega_base = self.p.omega_rate * B
+        omega = omega_base * self.m_t                      # ω_t = ω_0 · m_t (1.2.0 §2.3)
+        # 1.3.0 §2.4: Ω keeps the base; the raised part goes to the duty fund
+        omega_fund = (omega - omega_base) if self.p.duty_fund else 0.0
         # --- pre-checks: no mutation until every leg is known to be fundable (atomicity)
         if self.ledger.wallet(actor_id).U + 1e-9 < G:
             raise LedgerError(f"award: {actor_id} cannot fund the guarantee {G}")
@@ -548,8 +584,12 @@ class World:
             self.ledger.fund_deposit(c.requester, cid, phi_E, note="expense allowance")
             if phi_F > 0:
                 self.ledger.fund_fee_pot(c.requester, cid, phi_F, note="fee pot")
+            if omega - omega_fund > 1e-12:
+                self.ledger.transfer(c.requester, Ledger.OMEGA, omega - omega_fund, case=cid, note="service fee")
+            if omega_fund > 1e-12:
+                self.ledger.transfer(c.requester, DUTY_FUND, omega_fund, case=cid, note="duty fund")
+                self.fund_in += omega_fund
             if omega > 0:
-                self.ledger.transfer(c.requester, Ledger.OMEGA, omega, case=cid, note="service fee")
                 self._service_omega_claims()
             self._freeze(c)
         else:
@@ -558,10 +598,15 @@ class World:
             unspent = self.ledger.lock_record(A, f"beta:{cid}")
             if unspent > 1e-12:
                 self.ledger.release(A, unspent, key=f"beta:{cid}", case=cid, note="unspent beta'")
+            if omega - omega_fund > 1e-12:
+                self.ledger.transfer(A, Ledger.OMEGA, omega - omega_fund, case=cid, note="service fee (nested)")
+            if omega_fund > 1e-12:
+                self.ledger.transfer(A, DUTY_FUND, omega_fund, case=cid, note="duty fund (nested)")
+                self.fund_in += omega_fund
             if omega > 0:
-                self.ledger.transfer(A, Ledger.OMEGA, omega, case=cid, note="service fee (nested)")
                 self._service_omega_claims()
         c.state = "COMMITTED"
+        c.member_at_award = a.is_member
         a.committed = cid
         self._log(c, f"awarded to {actor_id} B={B} tau={tau} G={G}; deadline {c.deadline}")
 
@@ -807,7 +852,7 @@ class World:
             if c.plant is not None:
                 self._adjudicate_plant(c, r, verdict)   # 1.2.0 §2.1: by the known truth, at once
             else:
-                self._initial_verdict(c, verdict)
+                self._initial_verdict(c, verdict, a)
         elif r.role == "audit":
             a.open_review = None
             self._audit_result(c, r)
@@ -816,13 +861,15 @@ class World:
             self._maybe_settle_challenge(c)
 
     # ------------------------------------------------------- initial verdict
-    def _initial_verdict(self, c: Case, verdict: str):
+    def _initial_verdict(self, c: Case, verdict: str, reviewer: Optional[Actor] = None):
         c.verdict, c.t_verdict = verdict, self.t
         c.window_end = self.t + self.p.W
         if verdict == F:
             c.state = "PENDING"
             if c.is_root:
-                self.period["approvals"] += 1           # audit demand, for the reserve's sizing
+                self.period["approvals"] += 1           # audit demand, for the reserve's sizing ...
+                # ... on the approving reviewer's applied odds (1.3.0 §2.3): 1 while pinned, m_t p_j otherwise
+                self.period["audit_demand"] += reviewer.p_eff if reviewer is not None else self.p.p_start
             self._release_capacity(c)
         else:
             c.state = "AWAITING_RESPONSE"
@@ -1053,7 +1100,8 @@ class World:
         r.status = "overturned"
         a = self.actors[r.reviewer]
         self._record_outcome(r.reviewer, False)
-        a.p_audit = min(self.p.p_cap, a.p_audit * 2)
+        if not a.pinned:                               # 1.3.0 §2.2: the §8.3 update does not run while pinned
+            a.p_audit = min(self.p.p_cap, a.p_audit * 2)
         a.streak = 0
         if a.open_review == r.id:
             a.open_review = None
@@ -1136,9 +1184,10 @@ class World:
         if forfeit_fraction >= 1.0:
             c.I_N = True
         forfeit = forfeit_fraction * c.G
-        self.ledger.transfer_locked(c.actor, c.requester, forfeit, key=f"G:{c.id}", case=c.id, note=f"forfeit: {reason}")
-        if c.G - forfeit > 1e-12:
-            self.ledger.release(c.actor, c.G - forfeit, key=f"G:{c.id}", case=c.id, note="guarantee remainder")
+        if not self._plant_notional(c):                 # 1.3.0 §2.5: a plant's guarantee binds nothing
+            self.ledger.transfer_locked(c.actor, c.requester, forfeit, key=f"G:{c.id}", case=c.id, note=f"forfeit: {reason}")
+            if c.G - forfeit > 1e-12:
+                self.ledger.release(c.actor, c.G - forfeit, key=f"G:{c.id}", case=c.id, note="guarantee remainder")
         if actor_fault and c.actor in self.actors:          # the plant actor is Ω's and keeps no record
             self._record_outcome(c.actor, False)
         self._return_escrow(c)
@@ -1304,7 +1353,7 @@ class World:
         return DEFAULT
 
     # ------------------------------------------------------------ settlement
-    def _settle_reviews(self, c: Case, emission_per_weight: float):
+    def _settle_reviews(self, c: Case, emission_per_weight: float, uplift_per_weight: float = 0.0):
         """§4.3 (1.1.0) settlement, one rule. The root's two pots serve every case in its tree.
         1. Expense debts, for every review of the case, from what remains of the root's expense
            allowance only: deferred reimbursements, then Ω's advances. What it cannot cover becomes
@@ -1353,6 +1402,13 @@ class World:
                 if r.fee > 1e-12:
                     self.ledger.pay_emission(c.id, r.reviewer, r.fee, note="emission share")
                 r.fee += fixed
+                # 1.3.0 §2.4: the duty fund's uplift, by role weight, like emission — real money, so it carries
+                uplift = min(self._w(r.role) * uplift_per_weight, self.ledger.wallet(DUTY_FUND).U)
+                if uplift > 1e-12:
+                    self.ledger.transfer(DUTY_FUND, r.reviewer, uplift, case=c.id, note="duty uplift")
+                    r.uplift = uplift
+                    r.fee += uplift
+                    self.fund_out += uplift
                 self.ledger.release(r.reviewer, r.bond, key=f"bond:{r.id}", case=c.id, note="bond released")
                 r.status = "vested"
                 a = self.actors[r.reviewer]
@@ -1364,7 +1420,7 @@ class World:
                 a.streak += 1
                 if a.on_duty:
                     a.duty_reviews += 1
-                if a.streak % self.p.p_halve_every == 0:
+                if a.streak % self.p.p_halve_every == 0 and not a.pinned:   # pinned odds do not taper (1.3.0 §2.2)
                     a.p_audit = max(self.p.p_floor, a.p_audit / 2)
             left = self.ledger.pool(c.id).minted
             if left > 1e-9:                            # rounding residue of minted emission only
@@ -1437,13 +1493,18 @@ class World:
                     self.ledger.transfer(wid, Ledger.OMEGA, u, case=root.id, note="tree closure: plant funds swept to Ω")
         self._service_omega_claims()
 
-    def _vest(self, c: Case, epw: float):
-        self.ledger.pay_from_escrow(c.id, c.actor, c.B, note="delivery price")
-        self.ledger.release(c.actor, c.G, key=f"G:{c.id}", case=c.id, note="guarantee released")
+    def _plant_notional(self, c: Case) -> bool:
+        """1.3.0 §2.5: a plant's award and guarantee are Ω paying itself and tie up no balance."""
+        return c.plant is not None and self.p.net_plant_capital
+
+    def _vest(self, c: Case, epw: float, upw: float = 0.0):
+        if not self._plant_notional(c):                 # a plant's price and guarantee are notional (1.3.0 §2.5)
+            self.ledger.pay_from_escrow(c.id, c.actor, c.B, note="delivery price")
+            self.ledger.release(c.actor, c.G, key=f"G:{c.id}", case=c.id, note="guarantee released")
         if c.is_nested():
             self.cases[c.parent].actor_cost += c.B          # §4.6: nested payments are execution cost
             self._touch(self.cases[c.parent])
-        self._settle_reviews(c, epw)
+        self._settle_reviews(c, epw, upw)
         c.outcome = c.outcome or F
         c.t_vest, c.final, c.state = self.t, True, "VESTED"
         c.grade = self._grade(c)
@@ -1506,11 +1567,13 @@ class World:
                           for c in batch for rid in c.reviews if self.reviews[rid].status == "done")
             E = self.p.emission(tick)
             epw = (E / total_w) if total_w > 0 else 0.0
+            fund = self.ledger.wallet(DUTY_FUND).U if self.p.duty_fund else 0.0
+            upw = (fund / total_w) if total_w > 0 else 0.0     # 1.3.0 §2.4: the fund's balance, by weight, this batch
             for c in vesting:
-                self._vest(c, epw)
+                self._vest(c, epw, upw)
             for c in settling:
                 if c.needs_review_settlement:
-                    self._settle_reviews(c, epw)
+                    self._settle_reviews(c, epw, upw)
         # step 4: Ω services claims
         self._service_omega_claims()
         # step 5: the dial, once per period (1.2.0 §2.3), then rotation under the reserve it sized
@@ -1561,7 +1624,12 @@ class World:
             if a.suspended_until is not None and tick >= a.suspended_until:
                 a.suspended_until = None
                 a.p_audit, a.streak = self.p.p_start, 0              # a newcomer for the audit odds (§2.4)
-                if a.record_passes(self.p.theta_duty):
+                if self.p.membership:
+                    # 1.3.0 §2.2: the way back is probation — initial reviews only, odds pinned, no awards —
+                    # until the trailing record passes with n_min new outcomes judged
+                    a.probation, a.since_susp = True, 0
+                    self.history.append("suspension", {"t": tick, "actor": a.id, "msg": "probation begins"})
+                elif a.record_passes(self.p.theta_duty):
                     self.history.append("suspension", {"t": tick, "actor": a.id, "msg": "readmitted: record passes"})
                 else:
                     a.probation = True
@@ -1577,6 +1645,9 @@ class World:
         pool = {a.id for a in self.actors.values()
                 if not a.on_duty and a.committed is None and a.open_review is None and a.duty_eligible
                 and self.ledger.wallet(a.id).U + 1e-9 >= GV}
+        if self.p.membership:
+            self._rotate_membership(tick, pool)
+            return
         # 2. turns: replacement before release
         for out in sorted((a for a in self.actors.values() if a.on_duty), key=lambda a: a.id):
             if out.volunteer or out.open_review is not None or out.duty_since is None:
@@ -1616,6 +1687,113 @@ class World:
             self.eligibility_shortfall += self.reserve_shortfall_now
             self.period["eligibility_shortfall"] += self.reserve_shortfall_now
 
+    def _member_cap(self, E_t: int) -> int:
+        """1.3.0 §2.3: at most ⌈E_t/2⌉ members on duty — and never a cap below the reserve's own floor
+        V_max + 1, so that a small membership can still seat the reserve the baseline requires.
+        [Implementer's reading, October 17, 2026: read literally, ⌈E_t/2⌉ at six actors is 3, below the
+        X₀ = 4 of Appendix A's initialization and §20's worked example (C, D, E, F on duty), which would
+        make the baseline's own worlds — and every reviewer test built on them — violate the revision at
+        tick 0. The cap yields to the reserve floor as the panel floor yields to the cap. Flagged in the
+        consolidated text and HANDOFF for confirmation; the alternative is this one line.]"""
+        return max((E_t + 1) // 2, self.p.V_max + 1)
+
+    def _turn_done(self, a: Actor, tick: int) -> bool:
+        return a.duty_since is not None and (a.duty_reviews >= self.p.duty_turn_reviews
+                                             or tick - a.duty_since >= self.p.duty_turn_ticks)
+
+    def _seat(self, a: Actor, tick: int, why: str, out: Optional[Actor] = None):
+        a.on_duty, a.duty_since, a.duty_reviews = True, tick, 0
+        if out is not None:
+            out.on_duty, out.duty_since, out.duty_reviews = False, None, 0
+        self.history.append("rotation", {"t": tick, "in": a.id, "out": out.id if out else None, "why": why})
+
+    def _rotate_membership(self, tick: int, pool: set):
+        """1.3.0 §2.3: two kinds of seat. Members hold the seats only members may hold — the period's
+        audit and challenge demand, never fewer than min(V_max − 1, E_t) when that many free, fundable
+        members exist — and no member is seated while on-duty members number ⌈E_t/2⌉ or more; a member
+        above the cap leaves at the completion of its active review. Probationers fill the initial-review
+        seats, lowest duty credit first; members take what initial demand is left while below the cap.
+        Turns are refilled by the kind of seat vacated. The remaining gap is the eligibility shortfall."""
+        members_pool = {i for i in pool if self.actors[i].is_member}
+        probs_pool = {i for i in pool if self.actors[i].probation}
+        E_t = sum(1 for a in self.actors.values() if a.is_member and a.record_passes(self.p.theta_duty))
+        cap = self._member_cap(E_t)
+        floor = min(self.p.V_max - 1, E_t)
+        on_m = lambda: [a for a in self.actors.values() if a.on_duty and a.is_member]
+        on_p = lambda: [a for a in self.actors.values() if a.on_duty and a.probation]
+        lowest = lambda ids: min((self.actors[i] for i in ids), key=lambda a: (a.kappa, a.id))
+        # the seats only members may hold: the sized demand within the cap, never below the floor
+        target_m = max(min(self.member_seats, cap), floor)
+        # members above the cap leave as their reviews complete (idle ones now), down to max(cap, floor)
+        idle_m = sorted((a for a in on_m() if a.open_review is None and not a.volunteer),
+                        key=lambda a: (0 if self._turn_done(a, tick) else 1, a.id))
+        while len(on_m()) > max(cap, floor) and idle_m:
+            self._leave_duty(idle_m.pop(0), tick, "above the members' duty cap")
+        # probationers first for the initial seats: an idle member holding one makes room (1.3.0 §2.3)
+        idle_m = sorted((a for a in on_m() if a.open_review is None and not a.volunteer),
+                        key=lambda a: (0 if self._turn_done(a, tick) else 1, a.id))   # recomputed: turns moved people
+        while probs_pool and len(on_m()) > target_m and idle_m:
+            out = idle_m.pop(0)
+            inc = lowest(probs_pool)
+            probs_pool.discard(inc.id)
+            self._seat(inc, tick, "initial seat to a probationer", out)
+        # turns: replacement before release, by the kind of seat vacated — a member holding an
+        # initial seat (beyond the member seats) is replaced by a probationer first
+        for out in sorted((a for a in self.actors.values() if a.on_duty), key=lambda a: a.id):
+            if out.volunteer or out.open_review is not None or not self._turn_done(out, tick):
+                continue
+            if out.is_member:
+                if len(on_m()) > target_m and probs_pool:
+                    inc = lowest(probs_pool)
+                    probs_pool.discard(inc.id)
+                    self._seat(inc, tick, "turn: initial seat to a probationer", out)
+                elif members_pool:
+                    inc = lowest(members_pool)
+                    members_pool.discard(inc.id)
+                    self._seat(inc, tick, "turn: member seat", out)
+            else:
+                # a probationer's seat goes to a free probationer; with none free the outgoing one stays —
+                # "probationers first" would otherwise seat a member and displace it back next tick
+                if probs_pool:
+                    inc = lowest(probs_pool)
+                    probs_pool.discard(inc.id)
+                    self._seat(inc, tick, "turn: initial seat", out)
+        # member seats
+        while len(on_m()) < target_m and members_pool:
+            inc = lowest(members_pool)
+            members_pool.discard(inc.id)
+            self._seat(inc, tick, "member seat")
+        # initial seats: probationers first, lowest duty credit
+        while len(on_m()) + len(on_p()) < self.X_t and probs_pool:
+            inc = lowest(probs_pool)
+            probs_pool.discard(inc.id)
+            self._seat(inc, tick, "initial seat: probationer")
+        # then members for what initial demand is left, while below the cap
+        while len(on_m()) + len(on_p()) < self.X_t and len(on_m()) < cap and members_pool:
+            inc = lowest(members_pool)
+            members_pool.discard(inc.id)
+            self._seat(inc, tick, "initial seat: member")
+        # shrink to X_t: idle probationers first, then idle members above the member seats and the floor
+        n = len(on_m()) + len(on_p())
+        if n > self.X_t:
+            idle_p = sorted((a for a in on_p() if a.open_review is None), key=lambda a: (0 if self._turn_done(a, tick) else 1, a.id))
+            while n > self.X_t and idle_p:
+                self._leave_duty(idle_p.pop(0), tick, "reserve sized down")
+                n -= 1
+            idle_m = sorted((a for a in on_m() if a.open_review is None and not a.volunteer),
+                            key=lambda a: (0 if self._turn_done(a, tick) else 1, a.id))
+            while n > self.X_t and len(on_m()) > max(target_m, floor) and idle_m:
+                self._leave_duty(idle_m.pop(0), tick, "reserve sized down")
+                n -= 1
+        n = len(on_m()) + len(on_p())
+        self.reserve_shortfall_now = max(0, self.X_t - n)
+        self._member_pool_exhausted = not members_pool
+        self._pool_exhausted = (not probs_pool) and (not members_pool or len(on_m()) >= cap)
+        self._reserve_dirty = False
+        if self.reserve_shortfall_now:
+            self.eligibility_shortfall += self.reserve_shortfall_now
+            self.period["eligibility_shortfall"] += self.reserve_shortfall_now
+
     def _leave_duty(self, a: Actor, tick: int, why: str):
         a.on_duty, a.duty_since, a.duty_reviews = False, None, 0
         self._reserve_dirty = True                      # the tick's rotation refills or counts the gap
@@ -1641,9 +1819,11 @@ class World:
         D, K, GV = self.p.D * idx, self.p.K * idx, self.p.G_V * idx
         phi_E, phi_F = self.p.phi_E_root * idx, self.p.phi_F_root * idx
         G = max(1.0, math.ceil(self.p.G_frac * B))
-        need = B + phi_E + phi_F + G
+        netted = self.p.net_plant_capital                   # 1.3.0 §2.5: award and guarantee are Ω paying itself
+        need = (phi_E + phi_F) if netted else (B + phi_E + phi_F + G)
         if self.ledger.wallet(Ledger.OMEGA).U + 1e-9 < need:
-            raise LedgerError(f"create_plant: Ω cannot fund {need} (B + φ^E + φ^F + G) from its unlocked balance")
+            what = "φ^E + φ^F" if netted else "B + φ^E + φ^F + G"
+            raise LedgerError(f"create_plant: Ω cannot fund {need} ({what}) from its unlocked balance")
         self._n_case += 1
         cid = f"q{self._n_case}"
         c = Case(cid, root=cid, requester=PLANT_REQ, is_root=True, beta=B, t_post=self.t)
@@ -1653,14 +1833,17 @@ class World:
         self.cases[cid] = c
         self._live_cases[cid] = c
         # Ω funds its two system wallets; the plant is then awarded and submitted at once
-        self.ledger.transfer(Ledger.OMEGA, PLANT_REQ, B + phi_E + phi_F, case=cid, note="plant: requester funded by Ω")
-        self.ledger.transfer(Ledger.OMEGA, PLANT_ACT, G, case=cid, note="plant: actor funded by Ω")
+        self.ledger.transfer(Ledger.OMEGA, PLANT_REQ, need if netted else B + phi_E + phi_F, case=cid,
+                             note="plant: requester funded by Ω")
+        if not netted:
+            self.ledger.transfer(Ledger.OMEGA, PLANT_ACT, G, case=cid, note="plant: actor funded by Ω")
         c.D, c.K, c.G_V, c.phi_E, c.phi_F, c.omega, c.G = D, K, GV, phi_E, phi_F, 0.0, G
         c.G_award = G
         c.B, c.tau, c.actor = B, 1, PLANT_ACT
         c.t_award, c.deadline = self.t, self.t + 1
-        self.ledger.lock(PLANT_ACT, G, key=f"G:{cid}", case=cid, note="guarantee")
-        self.ledger.fund_escrow(PLANT_REQ, cid, B, note="delivery price")
+        if not netted:                                      # netted: the price and guarantee are notional terms
+            self.ledger.lock(PLANT_ACT, G, key=f"G:{cid}", case=cid, note="guarantee")
+            self.ledger.fund_escrow(PLANT_REQ, cid, B, note="delivery price")
         self.ledger.fund_deposit(PLANT_REQ, cid, phi_E, note="expense allowance")
         if phi_F > 0:
             self.ledger.fund_fee_pot(PLANT_REQ, cid, phi_F, note="fee pot")
@@ -1713,7 +1896,7 @@ class World:
             c.outcome, c.state = F, "PENDING"
         else:
             self._finalize_N(c, reason="plant: not fulfilled by construction", actor_fault=False)
-        self._check_record(a)
+        self._check_record(a, failed=not right)
 
     def _reveal_plant(self, c: Case, r: Review, outcome: str):
         self.history.append("plant_revealed", {"t": self.t, "case": c.id, "truth": "good" if c.plant else "bad",
@@ -1723,24 +1906,50 @@ class World:
         c.plant_reveal_hseq = len(self.history.entries) - 1
         self._log(c, f"plant revealed: {'good' if c.plant else 'bad'}; review {r.id} {r.verdict} → {outcome}")
 
-    def _check_record(self, a: Actor):
-        """1.2.0 §2.2: a record that has just crossed θ_duty suspends the actor for T_susp ticks;
-        on duty with no active review, it leaves now (its review has just completed)."""
+    def _check_record(self, a: Actor, failed: bool = False):
+        """After a plant adjudication. 1.3.0 §2.2 (membership): a member whose record has crossed
+        θ_duty is suspended from the market for T_susp ticks; a probationer is re-suspended by any
+        plant failure, the clock restarting, and readmitted to membership when its trailing record
+        passes θ_duty with at least n_min outcomes judged since the suspension began. 1.2.1 (membership
+        off): a crossing suspends from duty; a probationer's record speaks again at its next plant.
+        An actor suspended while on duty with no active review leaves now (its review has just completed)."""
+        if self.p.membership:
+            if a.probation:
+                a.since_susp += 1
+                if failed:
+                    self._suspend(a, "probation failed: plant failure")
+                elif a.since_susp >= self.p.n_min and a.record_passes(self.p.theta_duty):
+                    a.probation = False
+                    a.readmitted_at = self.t
+                    self.readmissions += 1
+                    self.readmission_ticks_sum += self.t - (a.susp_started if a.susp_started is not None else self.t)
+                    self.history.append("suspension", {"t": self.t, "actor": a.id, "msg": "readmitted to membership",
+                                                       "a_hat": round(a.a_hat, 4), "r_hat": round(a.r_hat, 4),
+                                                       "since_suspension": a.since_susp})
+            elif a.suspended_until is None and not a.record_passes(self.p.theta_duty):
+                self._suspend(a, "record crossed θ_duty")
+            return
         a.probation = False                               # a plant has been judged: the record speaks again
         if a.suspended_until is None and not a.record_passes(self.p.theta_duty):
-            a.suspended_until = self.t + self.p.T_susp
-            self.suspensions += 1
-            self.period["suspensions"] += 1
-            self.history.append("suspension", {"t": self.t, "actor": a.id, "until": a.suspended_until,
-                                               "a_hat": round(a.a_hat, 4), "r_hat": round(a.r_hat, 4)})
-            if a.on_duty and a.open_review is None:
-                self._leave_duty(a, self.t, "suspended")
+            self._suspend(a, "record crossed θ_duty")
+
+    def _suspend(self, a: Actor, why: str):
+        a.probation = False
+        a.suspended_until = self.t + self.p.T_susp
+        a.susp_started = self.t
+        a.since_susp = 0
+        self.suspensions += 1
+        self.period["suspensions"] += 1
+        self.history.append("suspension", {"t": self.t, "actor": a.id, "until": a.suspended_until, "why": why,
+                                           "a_hat": round(a.a_hat, 4), "r_hat": round(a.r_hat, 4)})
+        if a.on_duty and a.open_review is None:
+            self._leave_duty(a, self.t, "suspended")
 
     # ------------------------------------------------ the effort dial (1.2.0 §2.3)
     @staticmethod
     def _new_period(start: int) -> dict:
         return {"start": start, "plants": 0, "bad": 0, "bad_approved": 0, "plants_created": 0, "initial": 0,
-                "approvals": 0, "audits": 0, "challenge_reviews": 0, "dur_sum": 0, "dur_n": 0,
+                "approvals": 0, "audit_demand": 0.0, "audits": 0, "challenge_reviews": 0, "dur_sum": 0, "dur_n": 0,
                 "suspensions": 0, "eligibility_shortfall": 0}
 
     def _maybe_end_period(self, tick: int):
@@ -1763,12 +1972,19 @@ class World:
         alarm = False
         if self.p.dial:
             self.pi_t = min(self.p.pi_max, self.p.pi0 * self.m_t)
-            duty = [a for a in self.actors.values() if a.on_duty]
-            p_bar = (sum(a.p_audit for a in duty) / len(duty)) if duty else self.p.p_start
-            r_t = (per["initial"] / ticks) * (1.0 + self.pi_t) + self.m_t * p_bar * (per["approvals"] / ticks) \
-                + per["challenge_reviews"] / ticks
             d_bar = max(1.0, per["dur_sum"] / per["dur_n"]) if per["dur_n"] else 1.0
+            if self.p.membership:
+                # 1.3.0 §2.3: audit demand on the approving reviewers' applied odds, not a population mean
+                audit_rate = per["audit_demand"] / ticks
+            else:
+                duty = [a for a in self.actors.values() if a.on_duty]
+                p_bar = (sum(a.p_audit for a in duty) / len(duty)) if duty else self.p.p_start
+                audit_rate = self.m_t * p_bar * (per["approvals"] / ticks)
+            challenge_rate = per["challenge_reviews"] / ticks
+            r_t = (per["initial"] / ticks) * (1.0 + self.pi_t) + audit_rate + challenge_rate
             self.X_t = max(self.p.V_max + 1, int(math.ceil(r_t * d_bar - 1e-9)))
+            # the seats only members may hold: the period's audit and challenge demand (1.3.0 §2.3)
+            self.member_seats = int(math.ceil((audit_rate + challenge_rate) * d_bar - 1e-9))
             if F_hat is not None and m_old >= self.p.m_max - 1e-12 and F_hat > self.p.F_star:
                 self.alarm_streak += 1
                 alarm = self.alarm_streak >= 2
@@ -1780,6 +1996,7 @@ class World:
         rec = {"t": tick, "start": per["start"], "plants": per["plants"], "bad": per["bad"],
                "bad_approved": per["bad_approved"], "F_hat": None if F_hat is None else round(F_hat, 6),
                "m_before": round(m_old, 6), "m": round(self.m_t, 6), "pi": round(self.pi_t, 6), "X": self.X_t,
+               "member_seats": self.member_seats,
                "plants_created": per["plants_created"], "plant_shortfall": shortfall,
                "suspensions": per["suspensions"], "eligibility_shortfall": per["eligibility_shortfall"],
                "alarm": alarm}
@@ -1805,9 +2022,15 @@ class World:
         pool.sort(key=lambda a: (round(a.a_hat, 9), round(a.r_hat, 9), -a.kappa, a.id))
         n = sum(1 for a in self.actors.values() if a.on_duty)
         seated = []
+        if self.p.membership:
+            E_t = sum(1 for a in self.actors.values() if a.is_member and a.record_passes(self.p.theta_duty))
+            cap = self._member_cap(E_t)
         for a in pool:
             if n >= self.X_t:
                 break
+            if self.p.membership and a.is_member and \
+                    sum(1 for b in self.actors.values() if b.on_duty and b.is_member) >= cap:
+                continue                                   # no member is seated at or above the cap (1.3.0 §2.3)
             a.on_duty, a.duty_since, a.duty_reviews = True, tick, 0
             seated.append(a.id)
             n += 1

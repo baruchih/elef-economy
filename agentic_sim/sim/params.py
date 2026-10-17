@@ -66,7 +66,16 @@ class Params:
     n_P: int = 20              # trailing window per kind
     theta_panel: float = 0.20  # above it, no seat on appeal, dispute or audit panels (= 2 F*)
     theta_duty: float = 0.50   # above it, suspended from duty
-    T_susp: int = 100          # suspension length; also the re-check interval while the record still fails
+    T_susp: int = 100          # suspension length: the wait before probation begins (1.3.0 §2.2)
+
+    # Design revision 3 (1.3.0): inspection is membership. With `membership` off the engine holds the 1.2.1
+    # rules (suspension from duty only; probation re-checked at the next plant; the §8.3 taper for
+    # newcomers; one kind of reserve seat); with `duty_fund` off the raised tax stays with Ω; with
+    # `net_plant_capital` off a plant ties up its award and guarantee too. All three off, with pi0 = 0
+    # and p_start = p_cap = 0.5, Omega0 = 20, is the 1.1.0 engine.
+    membership: bool = True    # suspension suspends market membership; probation is the way back (§2.1–2.3)
+    duty_fund: bool = True     # (m_t − 1) ω_0 B of each award goes to the duty fund, paid out as a fee uplift (§2.4)
+    net_plant_capital: bool = True   # a plant ties up φ^E + φ^F only; award and guarantee are notional (§2.5)
 
     # Reliability and duty credit windows (§11)
     rho_window: int = 100      # settled outcomes

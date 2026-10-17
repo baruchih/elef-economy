@@ -754,6 +754,67 @@ undershot by the eligible pool wherever stampers exceed 60%.
 Untouched: §18.1 questions 2, 4, 5, 7, 10. The reviewer notes are
 `agentic_sim/results/studies/1.2.0-clock-notes-for-reviewer.md`.
 
+## Design revision 3 — inspection is membership (1.3.0, October 17, 2026)
+
+The third use of §19's path, written the same day from run 4's finding and Baruchi's answer to it: "if you get
+thrown out of inspection you are banned from receiving a new task; to get tasks back you have to prove you are
+doing good inspection for a while." Suspension now suspends **market membership**: no new award while suspended
+or on probation; the held commitment is finished by the ordinary rules. After T_susp the actor is a
+**probationer** — initial reviews only, audit odds pinned at 1, re-suspended by any plant failure, readmitted
+when its one trailing record passes θ_duty with n_min new plant outcomes judged (a full stamper: four rejected
+bad plants, about fifty honest reviews; its panel seats return only once its approvals roll out of the window).
+**At most half the eligible members are on duty**; probationers fill the initial seats first, members hold the
+audit and challenge seats. The dial's **raised tax goes to a duty fund** paid to the settling reviews by role
+weight as an uplift, instead of to Ω. **Plant capital counts the pots only** (15, not 45). Newcomers' odds are
+pinned at 1 until their bad-plant record is determined (the 1.2.0 taper was passed by a third of stampers at
+once). A duty levy — keep winning awards against a cash levy — was considered and rejected (Appendix B).
+The slowness run 4 measured is deliberately **not** treated here; Baruchi has a direction for it, reserved.
+
+**Reviews.** rc.1 (`spec/design_revisions/dr3_1.3.0-rc.1-review.md`): readmission stated two ways with the
+worked example following the wrong one (0.17 against the persisting record's 0.5, and "panel-eligible at
+once"); the cap as a standing per-tick predicate against mid-review completion, and its panel floor of two
+against a cap of one at E_t = 2; reserve sizing on a population mean while probationers and newcomers are
+audited at 1; no refill order for turns; the invariant and settlement consequences of netted plant capital
+unstated; probation pays a stamper +1.2 a review (the award deters, not probation); the newcomer pin's
+fresh-population worst case. rc.2 adopted all of it; one qualifier remained — the panel floor bounded by
+availability, not membership — and the accepted text carries it in the reviewer's wording. Patch **1.2.1**
+(the probation reading confirmed) was applied to the text in force the same day, before 1.3.0.
+
+**Found at implementation — two readings, flagged for confirmation (§12.1, Appendix H).** (1) The members' cap
+⌈E_t/2⌉ is 3 at six actors — below the X₀ = 4 of Appendix A's initialization and §20's worked example, so the
+baseline's own worlds, and every reviewer test built on them, would violate the revision at tick 0 (the first
+suite run failed on "C is not on verification duty" across the board). The engine lets the cap never fall below
+the reserve's floor V_max + 1, as the panel floor yields to the cap; the difference from the literal text is
+confined to memberships of four to seven, where the literal cap would leave two or three members free. One line
+(`World._member_cap`). (2) An outgoing probationer whose turn ends with no free probationer stays, rather than
+hand its seat to a member whom the next tick's "probationers first" would displace back. One branch of the
+rotation. Both are the implementer's; the alternative to each is one edit.
+
+**Engine (commit after `d8d3834`).** Membership on award with `member_at_award`; probation with the pin, the
+re-check on any failure, readmission on the trailing record with the since-suspension counter; two kinds of
+reserve seat with the cap at seating, the floor by availability, probationers displacing idle members from
+initial seats, turns refilled by kind; the duty fund wallet credited at award and paid by role weight in each
+settlement batch; plant capital on the pots alone with no escrow and no guarantee lock; I22, I23; I21 amended;
+I15 exempting a plant's guarantee. `test_v13` (11); `test_v12` pinned to the 1.2.1 engine mode
+(`Params(membership=False, duty_fund=False, net_plant_capital=False)`, the stamping driver's `--rules 1.2.0`);
+goldens re-pinned once. 208 passed, 26 expected failures in all three modes. Consolidated text
+`spec/agentic_economics_loop_spec_v1_3_0.md` (§2.1, §4.1, §5.2, §7.1, §7.6, §8.3, §10.4, §11.2, §12, §16, §17,
+§18.1, §20, Appendices A–D, H); 1.2.1 to history.
+
+**Driver.** Offers to members only; `--rules 1.3.0|1.2.0|1.1.0`, `--fund on|off`, `--m-max`, `--stamper-mode
+reformer`; membership, probation, fund and readmission columns. One smoke run at 60/40, seed 1, truthful appeals:
+careful 3,884 against stampers 1,966 (the 1.2.0 control: 3,095 against 3,096, a wash); false approvals 34 against
+65; vested 1,887 against 2,410 — the gate flips the contest and costs the throughput Hypothesis 3 predicted;
+the fund paid 4,542 to reviewers; awards went unfilled for want of members in 850 ticks; plain stampers were
+never readmitted (they do not reform); reformers were readmitted 17 times (mean 162 ticks) and still ended at
+2,214 against 4,009.
+
+**Run 5 — the revision's §8 (next).** Tipping point 50/60/70/80 under 1.3.0 against run 4's table (the sign and
+the channel; vesting against the control; probation safety — probationers' false approvals and the audit load);
+adaptive dispositions, 1.3.0 against 1.2.0, fund on and off, 3,000 ticks; drift under 1.3.0 with m_max ∈ {2, 4}
+and Ω₀ ∈ {100, 300}; the red team — camouflage under the gate, and the reformer. Results to
+`agentic_sim/results/studies/1.3.0-membership/`.
+
 ## Maps
 
 Two `_line` artifacts in project Agentic-OS (`c54120a6-aaff-40f7-8a9f-3667da542879`):

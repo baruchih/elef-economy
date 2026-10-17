@@ -1,16 +1,16 @@
-# agentic_sim — reference implementation of the 1.2.0 baseline
+# agentic_sim — reference implementation of the 1.3.0 baseline
 
-Built up through v0.4–v0.10, unchanged by the v1.0 consolidation and the v1.0.1 errata, and changed twice since:
-for design revision 1 (1.1.0, October 17, 2026: the verification deposit is two pots) and design revision 2 (1.2.0,
-the same day: the loop's own clock — planted work, the plant record, the effort dial; see the two sections below).
-Section numbers in code comments refer to the working-spec versions they were written against;
-`spec/agentic_economics_loop_spec_v1_2_1.md` is the text in force, and its Appendix A holds the defaults that
-`sim/params.py` encodes.
+Built up through v0.4–v0.10, unchanged by the v1.0 consolidation and the v1.0.1 errata, and changed three times
+since, all on October 17, 2026: for design revision 1 (1.1.0: the verification deposit is two pots), design revision 2
+(1.2.0: the loop's own clock — planted work, the plant record, the effort dial) and design revision 3 (1.3.0:
+inspection is membership — see the three sections below). Section numbers in code comments refer to the
+working-spec versions they were written against; `spec/agentic_economics_loop_spec_v1_3_0.md` is the text in force,
+and its Appendix A holds the defaults that `sim/params.py` encodes.
 
 The loop's rules as code, with no strategies. Every bid, verdict, appeal, audit
 assignment, ruling and human action is injected by the caller. Each action is validated in
 full before anything is recorded or moved: it either completes under its rules or changes
-nothing. After every tick twenty-one invariants are checked; a failing invariant is a bug in
+nothing. After every tick twenty-three invariants are checked; a failing invariant is a bug in
 the engine or a contradiction in the spec, never a property of a strategy.
 
 ```
@@ -21,7 +21,7 @@ sim/ledger.py       wallets with named lock records, case pools (escrow, expense
 sim/engine.py       cases, reviews, challenges (incl. the two-question ⊥ appeal), delegation,
                     settlement (the two pots, tree closure), Ω claim servicing, rotation, the reviewer view,
                     the tick order
-sim/invariants.py   I1–I21, run after every tick; each says what it establishes
+sim/invariants.py   I1–I23, run after every tick; each says what it establishes
 sim/strategies.py   the decision seams a driver would fill (Protocols only)
 sim/record.py       record mode: journals for the History and the event copy, archives for settled
                     cases and reviews, the paged mapping the engine reads them through
@@ -58,7 +58,13 @@ tests/test_v12.py                   design revision 2 (1.2.0): the §20 planted-
                                     moves, the record persisting through suspension and probation, the two tiers, the reserve
                                     running short with its shortfall counted, the capital cap, plants due and the plant
                                     shortfall, the alarm and re-seating, the view without the actor, no challenge on a plant,
-                                    I20/I21 catching, newcomer odds — 15
+                                    I20/I21 catching, newcomer odds — 15 (asserted on the 1.2.1 engine mode, the 1.2.0 control)
+tests/test_v13.py                   design revision 3 (1.3.0): the award refused to a non-member, atomically; a pending actor
+                                    suspended while its case settles; the 1.2.1 mode; probation's pin, initial-only seats and
+                                    re-suspension on any failure; readmission on the trailing record with n_min new outcomes and
+                                    panel seats later; the newcomer pin; the members' cap with probationers taking the initial
+                                    seats; the cap's floor and the panel floor by availability; the duty fund's split and payout
+                                    by role weight, and the fund off; plant capital on the pots alone; I22/I23 catching — 11
 tests/test_perf_equivalence.py      the per-tick check equals the full audit; the working-set engine reproduces the
                                     pinned History head on a seeded random scenario that now plants work (re-pinned once for
                                     1.1.0 and once for 1.2.0); the working set stays bounded — 5
@@ -69,11 +75,11 @@ tests/test_record_mode.py           the record on disk (`Params.record_dir`): th
 run_tests.py        every suite with plain python; pytest reports the same (conftest marks the XFAIL)
 ```
 
-Run: `python3 run_tests.py` — 197 pass, 0 fail, 26 expected failures, each with a stated reason (one original,
+Run: `python3 run_tests.py` — 208 pass, 0 fail, 26 expected failures, each with a stated reason (one original,
 four superseded by the view contract, nineteen on the withdrawn reopening path, one superseded by design
-revision 1, one by design revision 2). With pytest: `python3 -m pytest tests -q` reports 197 passed, 26 xfailed; the
+revision 1, one by design revision 2). With pytest: `python3 -m pytest tests -q` reports 208 passed, 26 xfailed; the
 runner expands pytest parametrization as pytest does, including multi-argument and stacked marks. (Spec Appendix D
-records the count at the v1.0.1 freeze, 156; at 1.1.0, 181; at 1.2.0, 197.)
+records the count at the v1.0.1 freeze, 156; at 1.1.0, 181; at 1.2.0, 197; at 1.3.0, 208.)
 
 Expected failures are **strict and parameter-exact** in both entry points: `EXPECTED_FAIL_PARAMS` names the
 parameter runs that are expected to fail inside a mixed test (the P/⊥ runs of the eighth review's first case;
@@ -259,6 +265,50 @@ its own. In the engine:
   initialization bound revised; `test_v11`'s advance test pins Ω's float at 20 explicitly; the equivalence scenario
   plants work with short periods and its goldens were re-pinned once. Reviewer tests untouched: the third review's
   test 18 pinned Ω's float at 20 and is an expected failure with that reason.
+
+## Design revision 3 — inspection is membership (1.3.0, October 17, 2026)
+
+Run 4 under 1.2.0 (`results/studies/1.2.0-clock/`) showed the clock keeping the loop honest with nobody watching,
+and suspension from duty being a reward: the honest minority carried 500–800 reviews each at a fee of 2 while the
+suspended stampers, freed from duty, took the awards at 20 and ended richer at 60/40. Design revision 3 (accepted
+as rc.2 with the panel floor's availability clause; `spec/design_revisions/dr3_inspection_is_membership_1.3.0.md`,
+consolidated into `spec/agentic_economics_loop_spec_v1_3_0.md` §5.2, §8.3, §11.2, §12.1–12.2 and Appendix H) makes
+inspection the price of membership. In the engine:
+
+- **Membership.** `Actor.is_member` (neither suspended nor on probation). `award` refuses a non-member before any
+  effect and records `Case.member_at_award`. A suspended actor finishes what it holds by the ordinary rules.
+- **Probation.** At `T_susp` a suspended actor becomes a probationer (`probation=True`, `since_susp=0`): initial
+  reviews only (`panel_eligible` false), `p_eff` pinned at 1 (`Actor.pinned`, also for a newcomer with fewer than
+  `n_min` bad plants judged; the §8.3 halving and doubling do not run while pinned). `_check_record(a, failed)`:
+  any plant failure re-suspends (`_suspend`, clock restarted); readmission when the one trailing record passes
+  `theta_duty` and `since_susp ≥ n_min` (`readmitted_at`, `readmissions`, `readmission_ticks_sum`). `Params.membership
+  = False` is the 1.2.1 behaviour (suspension from duty only; probation re-checked at the next plant).
+- **The reserve.** `_rotate_membership`: `E_t` eligible members, cap `_member_cap(E_t) = max(⌈E_t/2⌉, V_max + 1)`
+  (the implementer's reading, flagged), floor `min(V_max − 1, E_t)`, `member_seats` sized each period on applied
+  audit odds (`period["audit_demand"]`, the approving reviewer's `p_eff` per approval) plus the challenge rate.
+  Order: idle members above the cap leave; probationers displace idle members from initial seats (`target_m`
+  kept); turns refilled by kind (a member's initial seat to a probationer first; an outgoing probationer with no
+  free probationer stays); member seats filled; probationers for initial seats; members for the rest below the cap;
+  shrink (probationers first); `_member_pool_exhausted` for the floor, `_pool_exhausted` for I9. The alarm's
+  re-seat respects the cap.
+- **The duty fund.** `DUTY_FUND` wallet; `award` splits ω_t into ω₀B to Ω and (m − 1)ω₀B to the fund (`fund_in`);
+  each settlement batch computes `upw = fund.U / total_w` and `_settle_reviews` pays `w_r · upw` to every surviving
+  review (`Review.uplift`, in `fee`; `fund_out`); the residue carries. `Params.duty_fund=False` keeps ω with Ω.
+- **Plant capital.** `create_plant` funds φ^E + φ^F only (`net_plant_capital`); no escrow, no guarantee lock;
+  `_vest` pays no price and `_finalize_N` forfeits nothing for a plant (`_plant_notional`); I15 exempts a plant's
+  guarantee; `I21_plant_capital` checks it.
+- **I22** (membership: no award to a non-member, no probationer on a panel, probationers pinned, readmission only
+  with the counter and a passing record) and **I23** (the cap at seating with mid-review tolerance, the floor by
+  availability, the fund reconciling and lock-free) per tick and in the full audit.
+- **Drivers.** `drivers/view.py`: `membership(aid)`, the fund and readmissions in `money()` / `dial()`.
+  `drivers/stamping.py`: offers to members only; `--rules 1.3.0|1.2.0|1.1.0`, `--fund on|off`, `--m-max`,
+  `--stamper-mode plain|reformer` (a stamper that reviews carefully on probation and stamps once readmitted);
+  columns for members/probationers on duty, member seats, readmissions and their mean time, the fund's flows,
+  per-population uplift, probation reviews and approvals, ticks with awards refused for want of members,
+  probationers' false approvals that vested. `drivers/sweep.py` carries them.
+- **Tests.** `test_v13.py` (11); `test_v12.py` now asserts the 1.2.1 engine mode explicitly; the equivalence
+  scenario's goldens were re-pinned once (it now suspends actors from the market, puts them on probation and pays
+  the fund). Reviewer tests untouched and passing.
 
 ## The expected failure
 

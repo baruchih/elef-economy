@@ -1,4 +1,4 @@
-"""Spec §17 invariants (twenty-one since 1.2.0). Each is a function of the whole world.
+"""Spec §17 invariants (twenty-three since 1.3.0). Each is a function of the whole world.
 
 A failing invariant is a bug in the engine or a contradiction in the spec; it is never a
 property of a strategy. Each check states what it actually establishes.
@@ -20,6 +20,7 @@ from itertools import islice
 import hashlib
 import math
 from .ledger import Ledger, _i10_exempt, _i19_event_ok
+DUTY_FUND = "DUTY-FUND"
 
 EPS = 1e-6
 
@@ -317,7 +318,7 @@ def I15_locks_reconcile(w, cases=None, reviews=None):
     rejection bonds. No record exists for an obligation that has ended."""
     _I15_wallets(w)
     expected = {}
-    _I15_expected_cases(_cases(w, cases), expected)
+    _I15_expected_cases(_cases(w, cases), expected, w.p.net_plant_capital)
     _I15_expected_reviews(_reviews(w, reviews), expected)
     _I15_compare(w, expected)
 
@@ -330,9 +331,10 @@ def _I15_wallets(w):
             _fail(f"I15 {wid}: L={wl.L} but lock records sum to {recs}")
 
 
-def _I15_expected_cases(cases, expected):
+def _I15_expected_cases(cases, expected, netted_plants: bool = True):
     for c in cases:
-        if c.actor and c.state in ("COMMITTED", "SUBMITTED", "AWAITING_RESPONSE", "RESUBMITTING", "PENDING"):
+        if c.actor and c.state in ("COMMITTED", "SUBMITTED", "AWAITING_RESPONSE", "RESUBMITTING", "PENDING") \
+                and not (netted_plants and c.plant is not None):      # 1.3.0 §2.5: a plant's guarantee binds nothing
             expected[(c.actor, f"G:{c.id}")] = c.G
         if c.is_nested() and c.state == "AVAILABLE":
             expected[(c.requester, f"beta:{c.id}")] = c.beta
@@ -619,6 +621,71 @@ def I21_dial_and_reserve(w, reviews=None):
         _fail("I21 a shortfall count is negative")
 
 
+def I21_plant_capital(w, cases=None):
+    """I21 amended (1.3.0 §2.5): a plant's award and guarantee tie up no balance — no escrow in its pool,
+    no guarantee lock on the plant actor; B and G stay frozen nominals that bind nothing."""
+    if not w.p.net_plant_capital:
+        return
+    L = w.ledger
+    for c in _cases(w, cases):
+        if c.plant is None:
+            continue
+        pl = L.pools.get(c.id)
+        if pl is not None and pl.escrow > EPS:
+            _fail(f"I21 plant {c.id} holds {pl.escrow} in escrow; its award is notional")
+        if L.lock_record(c.actor, f"G:{c.id}") > EPS:
+            _fail(f"I21 plant {c.id} has a guarantee lock; its guarantee is notional")
+
+
+def I22_membership(w, reviews=None):
+    """1.3.0 §2.1–2.2: no award is made to an actor that is suspended or on probation; no probationer
+    holds an audit, appeal or dispute seat; every probationer's applied audit odds are 1; a readmission
+    happens only with a passing trailing record and at least n_min outcomes since the suspension began."""
+    if not w.p.membership:
+        return
+    for a in w.actors.values():
+        if a.probation and a.p_eff != 1.0:
+            _fail(f"I22 probationer {a.id} has applied audit odds {a.p_eff} ≠ 1")
+        if a.probation and a.suspended_until is not None:
+            _fail(f"I22 {a.id} is both suspended and on probation")
+        if a.readmitted_at == w.t and (a.since_susp < w.p.n_min or not a.record_passes(w.p.theta_duty)):
+            _fail(f"I22 {a.id} readmitted with {a.since_susp} outcomes since suspension / record failing")
+    for r in _reviews(w, reviews):
+        if r.status == "open" and r.role in ("appeal", "audit") and w.actors[r.reviewer].probation:
+            _fail(f"I22 probationer {r.reviewer} holds a panel seat ({r.role} {r.id})")
+
+
+def _I22_cases(w, cases):
+    for c in cases:
+        if not c.member_at_award:
+            _fail(f"I22 {c.id} was awarded to a non-member")
+
+
+def I23_load_and_fund(w):
+    """1.3.0 §2.3–2.4: no member is seated while on-duty members ≥ ⌈E_t/2⌉ — a member above the cap holds
+    no assignment past the completion of its active review; on-duty members ≥ min(V_max − 1, E_t)
+    whenever that many free, fundable members exist to seat; the duty fund equals the raised tax collected
+    less the uplifts paid, and holds no lock."""
+    p = w.p
+    if p.membership:
+        E_t = sum(1 for a in w.actors.values() if a.is_member and a.record_passes(p.theta_duty))
+        cap = w._member_cap(E_t)
+        floor = min(p.V_max - 1, E_t)
+        on_m = [a for a in w.actors.values() if a.on_duty and a.is_member]
+        idle_above = [a for a in on_m if a.open_review is None and not a.volunteer]
+        if len(on_m) > max(cap, floor) and idle_above and not w._reserve_dirty:
+            # above the cap only members mid-review (or volunteers) may remain; the idle ones must have left
+            _fail(f"I23 {len(on_m)} members on duty above the cap {cap} with {len(idle_above)} idle")
+        if len(on_m) < floor and not w._member_pool_exhausted and not w._reserve_dirty:
+            _fail(f"I23 {len(on_m)} members on duty below the panel floor {floor} while members were free to seat")
+    if p.duty_fund:
+        f = w.ledger.wallet(DUTY_FUND)
+        if f.L > EPS:
+            _fail("I23 the duty fund holds a lock")
+        if abs(f.U - (w.fund_in - w.fund_out)) > _tol(w.ledger.M):
+            _fail(f"I23 duty fund {f.U} ≠ collected {w.fund_in} − paid {w.fund_out}")
+
+
 CHUNK = 2048
 
 
@@ -668,14 +735,19 @@ def check_all(w):
         I11_exclusive_failure_indicators(w, chunk)
         I12_frozen_nominals(w, chunk)
         I13_grade_provenance(w, chunk)
-        _I15_expected_cases(chunk, expected)
+        _I15_expected_cases(chunk, expected, w.p.net_plant_capital)
         _I17_cases(chunk)
         I18_no_audit_outlives_a_ruling(w, chunk)
         I19_the_pots(w, chunk)                               # the event half was done in _audit_events
         I20_plants_self_adjudicated(w, chunk)
+        I21_plant_capital(w, chunk)
+        if w.p.membership:
+            _I22_cases(w, chunk)
     _I15_wallets(w)
     _I15_compare(w, expected)
     I21_dial_and_reserve(w)
+    I22_membership(w)
+    I23_load_and_fund(w)
     I16_history_is_authoritative(w)
 
 
@@ -725,6 +797,11 @@ def check_tick(w):
     I19_the_pots(w, cases, new_events)
     I20_plants_self_adjudicated(w, cases)
     I21_dial_and_reserve(w, reviews)
+    I21_plant_capital(w, cases)
+    I22_membership(w, reviews)
+    if w.p.membership:
+        _I22_cases(w, cases)
+    I23_load_and_fund(w)
 
     w._events_checked = len(w.ledger.events)
     w._prune_working_set()

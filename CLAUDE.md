@@ -1,22 +1,24 @@
 # Agentic-OS — the economic loop
 
 A rulebook for a task → verification → dispute → settlement loop among autonomous actors, and a
-reference implementation of it with no strategies. Ten external reviews. The rulebook is at **1.2.0**:
-the frozen 1.0.1 baseline plus two design revisions made under §19 — the verification deposit is two
-pots (1.1.0, §4.3; after the first scoped run showed careful review paid for its own care) and the
-loop's own clock (1.2.0, §7.6, §11.2, §12.2: planted work, the plant record, the effort dial; after runs
-2–3 showed the loop fair only with both challengers present and blind under capture). Read
-`HANDOFF.md` first for where things stand and what is proposed next.
+reference implementation of it with no strategies. Ten external reviews. The rulebook is at **1.3.0**:
+the frozen 1.0.1 baseline plus three design revisions made under §19 — the verification deposit is two
+pots (1.1.0, §4.3; after the first scoped run showed careful review paid for its own care), the loop's
+own clock (1.2.0, §7.6, §11.2, §12.2: planted work, the plant record, the effort dial; after runs 2–3
+showed the loop fair only with both challengers present and blind under capture), and inspection is
+membership (1.3.0, §5.2, §11.2, §12.1: a suspended actor wins no award, probation is the way back, a
+cap on members' duty, the dial's raised tax paid to the reviewers; after run 4 showed suspension from
+duty was a reward). Read `HANDOFF.md` first for where things stand and what is proposed next.
 
 ## Layout
 
 ```
-spec/agentic_economics_loop_spec_v1_2_1.md   the text in force (1.2.0 + patch 1.2.1; standalone; Appendix A defaults, E errata, F/G design revisions 1/2)
-spec/design_revisions/                       accepted design revisions, verbatim (dr1: two pots; dr2: the loop's own clock), and
-                                             the implementer's reviews of dr2's release candidates
-spec/history/                                v0.1 … v1.2.0 — superseded, kept for provenance only
+spec/agentic_economics_loop_spec_v1_3_0.md   the text in force (standalone; Appendix A defaults, E errata, F/G/H design revisions 1/2/3)
+spec/design_revisions/                       accepted design revisions, verbatim (dr1: two pots; dr2: the loop's own clock; dr3:
+                                             inspection is membership), and the implementer's reviews of dr2's and dr3's candidates
+spec/history/                                v0.1 … v1.2.1 — superseded, kept for provenance only
 reviews/                                     R01–R10, one external review per version, with the reviewer's notes
-agentic_sim/                                 the engine, 21 invariants, 19 test files, runner, drivers, results
+agentic_sim/                                 the engine, 23 invariants, 20 test files, runner, drivers, results
 docs/line_map_economic_loop_v1_0_1.txt       text export of the _line map of the loop (the live map is the source)
 HANDOFF.md                                   status, history table, open questions, proposed next step
 ```
@@ -25,14 +27,15 @@ HANDOFF.md                                   status, history table, open questio
 
 ```
 cd agentic_sim
-python3 run_tests.py        # expected: 197 passed, 0 failed, 26 expected failures
+python3 run_tests.py        # expected: 208 passed, 0 failed, 26 expected failures
 python3 -S run_tests.py     # same, with no site-packages
 python3 run_tests.py --record   # same, every World in record mode
-python3 -m pytest tests -q  # expected: 197 passed, 26 xfailed, 0 xpassed (conftest mirrors the runner; pytest is not installed here)
+python3 -m pytest tests -q  # expected: 208 passed, 26 xfailed, 0 xpassed (conftest mirrors the runner; pytest is not installed here)
 python3 -m drivers.load_run --actors 200 --ticks 10000 --on-duty 40 --tasks 30 --record-dir /path  # throughput run
-python3 -m drivers.stamping --actors 20 --ticks 1000 --stampers 0.5 --seed 1   # §18.1 q1 under 1.2.0: plants, record, dial
-python3 -m drivers.stamping --rules 1.1.0 --seed 1                             # the 1.1.0 control: no plants, dial off
-python3 -m drivers.stamping --camouflage 0.1 --stampers 0.9 --seed 1           # the red team of the revision's §8
+python3 -m drivers.stamping --actors 20 --ticks 1000 --stampers 0.6 --seed 1 --appeal-policy truthful   # §18.1 q1 under 1.3.0
+python3 -m drivers.stamping --rules 1.2.0 --seed 1   # the 1.2.0 control: membership, the fund and netted plant capital off
+python3 -m drivers.stamping --rules 1.1.0 --seed 1   # the 1.1.0 control: also no plants, dial off, p 0.5/0.5, Ω float 20
+python3 -m drivers.stamping --stamper-mode reformer --stampers 0.6 --seed 1   # the red team of 1.3.0 §8
 ```
 
 Drivers hold a `drivers.view.Public`, not the `World`: that class lists the operations a driver may
@@ -81,14 +84,14 @@ consolidated into one standalone spec with the accepted revision kept verbatim i
 
 - Every action is validated whole before anything is recorded or moved. A refused action changes
   nothing — tests assert this against full world snapshots. Keep it that way for any new operation.
-- Twenty-one invariants run after every tick (`sim/invariants.py`). A failing invariant is an engine
+- Twenty-three invariants run after every tick (`sim/invariants.py`). A failing invariant is an engine
   bug or a spec contradiction, never a property of a strategy. Two entry points, one set of
   predicates: `check_all` is the full audit from genesis (what tests call; scheduled in a run by
   `Params.full_check_every`); `check_tick` is what `advance` runs, the same predicates over the
   working set — cases and reviews that can still change, plus anything touched since the last tick.
   `tests/test_perf_equivalence.py` holds the proof that they agree and pins the engine's History head
-  (re-pinned once for 1.1.0, since settlement changed, and once for 1.2.0, since the reserve and the
-  scenario — which now plants work — changed). Keep new invariants in that shape: a predicate
+  (re-pinned once for 1.1.0, since settlement changed; once for 1.2.0, since the reserve and the
+  scenario — which now plants work — changed; once for 1.3.0, since membership and the fund changed). Keep new invariants in that shape: a predicate
   over an explicit scope.
   The per-tick check is not configurable: `advance` always runs it. `full_check_every` only adds
   the full audit on a cadence (0 = not scheduled; runs call `check_all` at the end), and
@@ -141,7 +144,23 @@ consolidated into one standalone spec with the accepted revision kept verbatim i
   rate calls for and the driver supplies. I20 and I21 are per tick; I9 is `min(X_t, eligible)`. The
   reviewer's view carries no actor. A still-failing record at the end of a suspension readmits on
   probation until the next plant (`_rotate`, §11.2) — the implementer's reading, confirmed as the rule by
-  patch 1.2.1. `Params.dial=False, pi0=0, p_start=p_cap=0.5, Omega0=20` is the 1.1.0 engine's behaviour
+  patch 1.2.1 and restated by 1.3.0.
+- Inspection is membership (1.3.0 §5.2, §11.2, §12.1, §12.2): `award` refuses an actor that is suspended
+  or on probation (`Actor.is_member`) and records `Case.member_at_award`; after `T_susp` a suspended actor
+  is a probationer (`probation`) — initial reviews only, `p_eff` pinned at 1 (`Actor.pinned`, also for an
+  undetermined newcomer; the §8.3 update does not run while pinned), re-checked at every plant
+  (`_check_record`: any failure re-suspends; readmission on the trailing record with `since_susp ≥ n_min`).
+  `_rotate_membership` holds two kinds of seat: member seats (`World.member_seats`, sized each period on
+  applied audit odds plus the challenge rate) and initial seats, probationers first (an idle member in an
+  initial seat makes room), members up to the cap `_member_cap(E_t)`, the panel floor min(V_max − 1, E_t)
+  bounded by availability, turns refilled by kind. The duty fund is the wallet `DUTY_FUND`: `award` sends
+  (m − 1) ω₀ B there, the settlement batch pays it out by role weight as `Review.uplift`. A plant funds its
+  pots only (`net_plant_capital`): no escrow, no guarantee lock; I15 exempts it. I22, I23 per tick.
+  `Params(membership=False, duty_fund=False, net_plant_capital=False)` is the 1.2.1 engine
+  (`drivers.stamping --rules 1.2.0`); `test_v12` asserts it. **Two implementer's readings**, flagged in the
+  text (§12.1, Appendix H): the members' cap never falls below the reserve floor V_max + 1 (`_member_cap`;
+  the literal ⌈E_t/2⌉ breaks every six-actor world at tick 0), and an outgoing probationer with no free
+  probationer stays rather than hand its seat to a member who would yield it back. `Params.dial=False, pi0=0, p_start=p_cap=0.5, Omega0=20` is the 1.1.0 engine's behaviour
   (`drivers.stamping --rules 1.1.0`).
 - Money is checked by invariant I1 (conservation) — never silently create or lose credits.
 
@@ -156,6 +175,7 @@ K reasonable-cost cap, φ = φ^E + φ^F verification deposit (expense allowance 
 fee (appeal and audit 1.5 f), β price ceiling, v_t credit value = Res_t / M_t. Plant — a case whose
 fulfillment the orchestrator knows by construction (bad / good); π_t plant rate, β_P bad share, F̂_t the
 reserve's bad-plant approval rate against F*, m_t the effort multiplier, X_t the sized reserve, â / r̂ an
-actor's bad-plant approval and good-plant rejection rates against θ_panel / θ_duty, T_susp the suspension.
+actor's bad-plant approval and good-plant rejection rates against θ_panel / θ_duty, T_susp the suspension. Member / suspended / probationer — an actor's standing in the market (1.3.0); E_t the
+members eligible for duty; duty fund and uplift — the dial's raised tax and its payout to settling reviews.
 "Ruling" has two senses: the orchestrator rules on splits inside the procedure; only a human
 *overrides* it (spec §15.2).

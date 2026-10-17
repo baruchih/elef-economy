@@ -155,22 +155,20 @@ def fingerprint(w: World) -> dict:
     }
 
 
-# Recorded from the 1.2.0 engine (design revision 2: the loop's own clock) running `scenario(seed, 200)`
-# with the full audit after every tick. The head commits every event in order; the rest are the
-# readable consequences. The scenario now plants work, and its short periods move the dial to m_max,
-# suspend and readmit actors, size the reserve and (seed 2) fire the alarm. The v1.0.1 goldens
-# (commit 6a746a1) were 586af764… / 5686 and ab79fe65… / 4849 entries; the 1.1.0 goldens (a1e726a)
-# bb0aa856… / 7489 and eb337b97… / 5324; each changed with the rule, as a change to settlement or to
-# the reserve must, and was re-pinned once, at the commit that implemented the revision.
+# Recorded from the 1.3.0 engine (design revision 3: inspection is membership) running `scenario(seed, 200)`
+# with the full audit after every tick. The head commits every event in order; the rest are the readable
+# consequences. The scenario plants work, moves the dial to m_max, suspends actors from the market, puts them
+# on probation, pays the dial's raised tax out of the duty fund and (seed 2) fires the alarm. Earlier goldens:
+# v1.0.1 (6a746a1) 586af764… / 5686 and ab79fe65… / 4849 entries; 1.1.0 (a1e726a) bb0aa856… / 7489 and
+# eb337b97… / 5324; 1.2.0 (d40cde2) b9c5d1a1… / 7613 and 40a459d8… / 7078. Each changed with the rule, as a
+# change to settlement, the reserve or membership must, and was re-pinned once, at the implementing commit.
 GOLDEN = {
-    1: {"head": "b9c5d1a1d0eb8ec9b0f91c4fa00766692b1f90a5f1d67064e51d758fe8d508f7", "entries": 7613,
-        "M": 199593.398135, "Res": 198843.0,
-        "states": {"FINAL_N": 170, "VESTED": 74, "WITHDRAWN": 24, "CANCELLED": 4, "PENDING": 10, "SUBMITTED": 5,
-                   "COMMITTED": 1, "AWAITING_RESPONSE": 1, "AVAILABLE": 9}},
-    2: {"head": "40a459d830c3e8c5bb10c2e0f669c67ea8bc27ed286a0a42552ea8eef274a1f9", "entries": 7078,
-        "M": 199556.601906, "Res": 199036.0,
-        "states": {"FINAL_N": 174, "VESTED": 57, "WITHDRAWN": 21, "PENDING": 4, "AVAILABLE": 15,
-                   "AWAITING_RESPONSE": 2, "SUBMITTED": 6}},
+    1: {"head": "289dcfc855c19fd17b7236aa2b42cf60a9d7551439646f10e566b25aaa31329d", "entries": 7359,
+        "M": 199499.512852, "Res": 198799.0,
+        "states": {"FINAL_N": 163, "VESTED": 73, "WITHDRAWN": 19, "CANCELLED": 3, "PENDING": 5, "AVAILABLE": 25}},
+    2: {"head": "8b6a2a1ef788ca3c3492b17723b7bae2aa1df9f8ea8062fad37f66ad04856234", "entries": 6175,
+        "M": 199776.577279, "Res": 199198.0,
+        "states": {"FINAL_N": 157, "VESTED": 52, "WITHDRAWN": 19, "AVAILABLE": 30, "PENDING": 3}},
 }
 
 
@@ -199,7 +197,7 @@ def test_full_audit_agrees_with_tick_check_and_behaviour_is_unchanged(seed):
     outcomes = {c.plant_outcome for c in w.cases.values() if c.plant is not None}
     assert outcomes >= {"stood", "failure", "spent"}
     assert w.suspensions > 0 and len(w.periods) == 4 and w.m_t == w.p.m_max
-    assert any(e["kind"] == "suspension" and "readmitted" in e["payload"].get("msg", "") for e in w.history.entries)
+    assert w.fund_in > 0 and abs(w.fund_in - w.fund_out - w.ledger.wallet("DUTY-FUND").U) < 1e-6   # 1.3.0: the fund flows
 
 
 def test_scheduled_full_audit_runs_inside_advance():

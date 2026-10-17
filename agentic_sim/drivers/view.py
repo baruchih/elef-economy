@@ -60,6 +60,30 @@ class Public:
     def rule(self, cid: str, outcome: str, objection: Optional[str] = None):
         self._w.rule(cid, outcome, objection)
 
+    def roll_audit(self, cid: str):
+        """1.4.0 §2.2: the driver's roll said yes — record the audit as an obligation of the case."""
+        self._w.roll_audit(cid)
+
+    def audit_odds(self, cid: str) -> float:
+        """The odds to roll for a pending approval (1.3.0 §2.2 applied odds; 1 for the state's own work)."""
+        return self._w.audit_odds(cid)
+
+    def is_troop(self, wid) -> bool:
+        return self._w.is_troop(wid)
+
+    def troops(self) -> dict:
+        """1.4.0 §2.5 readings: the troops and the counters."""
+        w = self._w
+        return {"troops": {k: dict(v) for k, v in w.troops.items()},
+                "active_reviews": sum(1 for t in w.troops.values() if t["kind"] == "review" and t["t_release"] is None),
+                "active_deliveries": sum(1 for t in w.troops.values() if t["kind"] == "delivery" and t["t_release"] is None),
+                "summons_reviews": w.troop_summons_reviews, "summons_deliveries": w.troop_summons_deliveries,
+                "shortfall_seats": w.troop_shortfall_seats, "shortfall_awards": w.troop_shortfall_awards,
+                "held_ticks": w.troop_held_ticks, "troop_ticks_reviews": w.troop_ticks_reviews,
+                "troop_ticks_deliveries": w.troop_ticks_deliveries,
+                "held_market_audit_now": w.held_market_audit_now, "held_market_audit_max_age": w.held_market_audit_max_age,
+                "fund_reserve": w.R_T, "advance_outstanding": w.advance_outstanding, "B_bar": w.mean_awarded_price()}
+
     # -- the orchestrator's planted work and its clock (1.2.0 §2.1–§2.3) -----------
     def create_plant(self, truth: bool, B: float) -> str:
         """A case whose fulfillment the orchestrator knows by construction, funded by Ω."""

@@ -1,4 +1,4 @@
-"""Spec §17 invariants (twenty-three since 1.3.0). Each is a function of the whole world.
+"""Spec §17 invariants (twenty-five since 1.4.0). Each is a function of the whole world.
 
 A failing invariant is a bug in the engine or a contradiction in the spec; it is never a
 property of a strategy. Each check states what it actually establishes.
@@ -318,8 +318,8 @@ def I15_locks_reconcile(w, cases=None, reviews=None):
     rejection bonds. No record exists for an obligation that has ended."""
     _I15_wallets(w)
     expected = {}
-    _I15_expected_cases(_cases(w, cases), expected, w.p.net_plant_capital)
-    _I15_expected_reviews(_reviews(w, reviews), expected)
+    _I15_expected_cases(_cases(w, cases), expected, w.p.net_plant_capital, w.ledger.resolve)
+    _I15_expected_reviews(_reviews(w, reviews), expected, w.ledger.resolve)
     _I15_compare(w, expected)
 
 
@@ -331,21 +331,21 @@ def _I15_wallets(w):
             _fail(f"I15 {wid}: L={wl.L} but lock records sum to {recs}")
 
 
-def _I15_expected_cases(cases, expected, netted_plants: bool = True):
+def _I15_expected_cases(cases, expected, netted_plants: bool = True, resolve=lambda x: x):
     for c in cases:
         if c.actor and c.state in ("COMMITTED", "SUBMITTED", "AWAITING_RESPONSE", "RESUBMITTING", "PENDING") \
                 and not (netted_plants and c.plant is not None):      # 1.3.0 §2.5: a plant's guarantee binds nothing
-            expected[(c.actor, f"G:{c.id}")] = c.G
+            expected[(resolve(c.actor), f"G:{c.id}")] = c.G          # a troop's lock sits on the fund (1.4.0)
         if c.is_nested() and c.state == "AVAILABLE":
             expected[(c.requester, f"beta:{c.id}")] = c.beta
         if c.is_nested() and c.rejection_bond > EPS:
             expected[(c.requester, f"rej:{c.id}")] = c.rejection_bond
 
 
-def _I15_expected_reviews(reviews, expected):
+def _I15_expected_reviews(reviews, expected, resolve=lambda x: x):
     for r in reviews:
         if r.status in ("open", "done"):
-            expected[(r.reviewer, f"bond:{r.id}")] = r.bond
+            expected[(resolve(r.reviewer), f"bond:{r.id}")] = r.bond
 
 
 def _I15_compare(w, expected):
@@ -651,7 +651,7 @@ def I22_membership(w, reviews=None):
         if a.readmitted_at == w.t and (a.since_susp < w.p.n_min or not a.record_passes(w.p.theta_duty)):
             _fail(f"I22 {a.id} readmitted with {a.since_susp} outcomes since suspension / record failing")
     for r in _reviews(w, reviews):
-        if r.status == "open" and r.role in ("appeal", "audit") and w.actors[r.reviewer].probation:
+        if r.status == "open" and r.role in ("appeal", "audit") and r.reviewer in w.actors and w.actors[r.reviewer].probation:
             _fail(f"I22 probationer {r.reviewer} holds a panel seat ({r.role} {r.id})")
 
 
@@ -659,6 +659,8 @@ def _I22_cases(w, cases):
     for c in cases:
         if not c.member_at_award:
             _fail(f"I22 {c.id} was awarded to a non-member")
+        if w.is_troop(c.actor) != c.troop_award:
+            _fail(f"I22 {c.id}: a troop holds an award without a summons, or a summons without a troop (1.4.0 §2.3)")
 
 
 def I23_load_and_fund(w):
@@ -680,10 +682,85 @@ def I23_load_and_fund(w):
             _fail(f"I23 {len(on_m)} members on duty below the panel floor {floor} while members were free to seat")
     if p.duty_fund:
         f = w.ledger.wallet(DUTY_FUND)
-        if f.L > EPS:
-            _fail("I23 the duty fund holds a lock")
-        if abs(f.U - (w.fund_in - w.fund_out)) > _tol(w.ledger.M):
-            _fail(f"I23 duty fund {f.U} ≠ collected {w.fund_in} − paid {w.fund_out}")
+        # 1.4.0: the fund's locks are troops' bonds and guarantees and nothing else (I15 reconciles them)
+        troop_locks = 0.0
+        for t in w.troops.values():
+            if t["kind"] == "review":
+                r = _peek(w.reviews, t["review"]) if t["review"] else None
+                if r is not None and r.status in ("open", "done"):
+                    troop_locks += r.bond
+            else:
+                c = _peek(w.cases, t["case"])
+                if c.state in ("COMMITTED", "SUBMITTED", "AWAITING_RESPONSE", "RESUBMITTING", "PENDING"):
+                    troop_locks += c.G
+        if abs(f.L - troop_locks) > EPS:
+            _fail(f"I23 the duty fund holds locks {f.L} beyond the troops' {troop_locks}")
+        # conservation: the wallet equals every event into it less every event out of it (tax, troop earnings
+        # and advances in; costs purchased, uplifts, bond burns, forfeits and repayments out)
+        if abs(f.W - w.fund_flow) > _tol(w.ledger.M):
+            _fail(f"I23 duty fund {f.W} ≠ its recorded flows {w.fund_flow}")
+        if w.advance_outstanding > p.A_T + EPS or w.advance_outstanding < -EPS:
+            _fail(f"I23 Ω's advance outstanding {w.advance_outstanding} outside [0, A_T={p.A_T}]")
+        if w._uplift_violation:
+            _fail(f"I23 {w._uplift_violation}")
+
+
+def I24_troops(w, cases=None):
+    """1.4.0 §2.1–2.3: a troop holds exactly one seat from summons to release and no seat thereafter; it
+    is not an actor (no ρ, κ, membership state or plant record); no troop reviews a plant or acts in one;
+    a troop review carries no emission and no uplift; no troop takes the audit of a troop reviewer's
+    approval of a troop's delivery; a troop's delivery is at B̄ where β ≥ B̄."""
+    for tid, t in w.troops.items():
+        if tid in w.actors:
+            _fail(f"I24 troop {tid} is an actor")
+        c = _peek(w.cases, t["case"])
+        if c.plant is not None:
+            _fail(f"I24 troop {tid} on plant {c.id}")
+        if t["kind"] == "review":
+            r = _peek(w.reviews, t["review"])
+            if r.reviewer != tid or r.case != c.id:
+                _fail(f"I24 troop {tid}'s seat {t['review']} is not its own")
+            if (r.status == "open") == (t["t_release"] is not None):
+                _fail(f"I24 troop {tid}: seat {r.status} but release {t['t_release']}")
+            if r.role == "audit" and c.market_audit_only:
+                _fail(f"I24 troop {tid} audits the state's own work on {c.id}")
+            if r.uplift > EPS:
+                _fail(f"I24 troop {tid} drew uplift {r.uplift}")
+        else:
+            if c.actor != tid or not c.troop_award:
+                _fail(f"I24 troop {tid}'s delivery {c.id} is not its own award")
+            if c.beta + EPS < c.B:
+                _fail(f"I24 troop {tid} delivered {c.id} above its ceiling")
+            if (c.final) != (t["t_release"] is not None):
+                _fail(f"I24 troop {tid}: case {c.state} but release {t['t_release']}")
+    seats = {}
+    for tid, t in w.troops.items():
+        key = ("r", t["review"]) if t["kind"] == "review" else ("c", t["case"])
+        if key in seats:
+            _fail(f"I24 troops {seats[key]} and {tid} hold the same seat")
+        seats[key] = tid
+
+
+def I25_the_obligation(w, cases=None):
+    """1.4.0 §2.2: a case with a rolled audit outstanding does not vest — without exception; a troop
+    reviewer's approval of a troop's delivery carries audit odds 1 (the engine records that obligation at
+    the verdict) and vests only after a member's audit completed. A pinned reviewer's approval is audited
+    because the orchestrator rolls at odds 1 and records the roll — that is the driver's conformance under
+    §18.2, which the engine then holds; it is not a predicate the engine can check on a world whose
+    orchestrator never rolls."""
+    for c in _cases(w, cases):
+        if c.state != "VESTED":
+            continue
+        if c.audit_obligation or c.audit_vacated:
+            _fail(f"I25 {c.id} vested with an audit obligation outstanding")
+        if c.market_audit_only:
+            audits = [_peek(w.reviews, r) for r in c.reviews if _peek(w.reviews, r).role == "audit"]
+            audited = any(r.status in ("done", "vested", "overturned") for r in audits)
+            ruled = any(a[3] == "override" for a in c.assessments)
+            if not audited and not ruled:
+                _fail(f"I25 {c.id}: the state's own work vested without the market's audit")
+            if any(w.is_troop(r.reviewer) for r in audits):
+                _fail(f"I25 {c.id}: a troop audited the state's own work")
 
 
 CHUNK = 2048
@@ -719,7 +796,7 @@ def check_all(w):
     I9_reserve(w)
     open_by, expected, pending = {}, {}, {}
     _I14_reviews(w.reviews.values(), open_by)
-    _I15_expected_reviews(w.reviews.values(), expected)
+    _I15_expected_reviews(w.reviews.values(), expected, w.ledger.resolve)
     _I17_reviews(w, w.reviews.values(), pending)
     _I14_actors(w, open_by)
     _I17_claims(w, pending)
@@ -735,7 +812,7 @@ def check_all(w):
         I11_exclusive_failure_indicators(w, chunk)
         I12_frozen_nominals(w, chunk)
         I13_grade_provenance(w, chunk)
-        _I15_expected_cases(chunk, expected, w.p.net_plant_capital)
+        _I15_expected_cases(chunk, expected, w.p.net_plant_capital, w.ledger.resolve)
         _I17_cases(chunk)
         I18_no_audit_outlives_a_ruling(w, chunk)
         I19_the_pots(w, chunk)                               # the event half was done in _audit_events
@@ -743,11 +820,13 @@ def check_all(w):
         I21_plant_capital(w, chunk)
         if w.p.membership:
             _I22_cases(w, chunk)
+        I25_the_obligation(w, chunk)
     _I15_wallets(w)
     _I15_compare(w, expected)
     I21_dial_and_reserve(w)
     I22_membership(w)
     I23_load_and_fund(w)
+    I24_troops(w)
     I16_history_is_authoritative(w)
 
 
@@ -802,6 +881,8 @@ def check_tick(w):
     if w.p.membership:
         _I22_cases(w, cases)
     I23_load_and_fund(w)
+    I24_troops(w)
+    I25_the_obligation(w, cases)
 
     w._events_checked = len(w.ledger.events)
     w._prune_working_set()

@@ -334,10 +334,10 @@ def test_I22_catches_an_award_to_a_non_member_and_a_probationer_on_a_panel():
 
 def test_I23_catches_a_fund_that_does_not_reconcile_and_idle_members_above_the_cap():
     w = make_world(omega_rate=0.05)
-    w.fund_in = 5.0
+    w.fund_flow = 5.0                                  # the fund's recorded flows no longer match its wallet
     with pytest.raises(InvariantError, match="I23"):
         check_all(w)
-    w.fund_in = 0.0
+    w.fund_flow = 0.0
     check_all(w)
     actors = [f"a{i:02d}" for i in range(20)]
     w2 = make_world(actors=actors, duty=actors[:4])

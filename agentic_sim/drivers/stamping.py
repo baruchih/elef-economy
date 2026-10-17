@@ -139,11 +139,13 @@ class Stamping:
         self.kind = {aid: (STAMPER if i < n_st else CAREFUL) for i, aid in enumerate(ids)}
         if a.rules == "1.1.0":                   # the control: the 1.1.0 engine's behaviour, declared
             a.pi0, a.dial, a.p_start, a.p_cap, a.omega0 = 0.0, "off", 0.5, 0.5, 20.0
-        rev3 = a.rules == "1.3.0"                # 1.2.0 and 1.1.0: membership, the fund and netted capital off
+        rev3 = a.rules in ("1.3.0", "1.4.0")     # 1.2.0 and 1.1.0: membership, the fund and netted capital off
+        rev4 = a.rules == "1.4.0" and a.troops == "on"
         p = Params(Res0=a.res0, X=a.on_duty, G_V=a.gv, p_start=a.p_start, p_cap=a.p_cap, p_floor=a.p_floor, band=a.band,
                    record_dir=a.record_dir, f_fee=a.fee, phi_E_root=a.phi_e, phi_F_root=a.phi_f,
                    pi0=a.pi0, dial=(a.dial == "on"), beta_P=a.beta_p, Omega0=a.omega0,
-                   membership=rev3, duty_fund=(rev3 and a.fund == "on"), net_plant_capital=rev3, m_max=a.m_max)
+                   membership=rev3, duty_fund=(rev3 and a.fund == "on"), net_plant_capital=rev3, m_max=a.m_max,
+                   troops=rev4, eps_T=a.eps_t, w_R=a.w_r, w_A=a.w_a, c_T=a.c_t, c_D_T=a.c_d_t, A_T=a.a_t, tau_T=a.work_ticks)
         self.p = p
         world = World(p, self.actors, humans={"H": a.human_budget}, on_duty=sorted(self.actors)[: a.on_duty])
         self.w = Public(world)
@@ -173,7 +175,10 @@ class Stamping:
                   "plants_created": 0, "plants_unfunded": 0, "plants_bad": 0, "plants_stood": 0, "plants_failed": 0,
                   "plants_spent": 0, "bad_plants_approved": 0, "good_plants_rejected": 0, "omega_plant_spend": 0.0,
                   # 1.3.0: membership
-                  "awards_refused_members_only_ticks": 0, "probation_false_approvals": 0}
+                  "awards_refused_members_only_ticks": 0, "probation_false_approvals": 0,
+                  # 1.4.0: troops
+                  "audit_obligations": 0, "troop_reviews": 0, "troop_audits": 0, "troop_deliveries": 0,
+                  "troop_delivered_vested": 0, "troop_delivered_final_n": 0, "troop_false_approvals": 0}
         self.omega0_total = self.w.money()["omega_total"]
         self.by_grade = {g: [0, 0] for g in GRADES}       # grade -> [cases, correct]
         self.title_n = 0
@@ -315,8 +320,10 @@ class Stamping:
         # actors work and submit
         for cid in list(self.active):
             c = w.case(cid)
-            if c.state == "COMMITTED" and t >= c.t_award + a.work_ticks:
+            if c.state == "COMMITTED" and t >= c.t_award + min(a.work_ticks, c.tau):
                 w.submit(cid)
+                if w.is_troop(c.actor):
+                    self.c["troop_deliveries"] += 1
         # reviewers complete reviews assigned at an earlier tick
         for cid in list(self.active):
             c = w.case(cid)
@@ -324,6 +331,15 @@ class Stamping:
                 r = w.review(rid)
                 if r.status == "open" and r.t_assign < t:
                     view = w.observe(r.reviewer, rid)
+                    if w.is_troop(r.reviewer):
+                        # 1.4.0 §2.1: the troop's declared disposition — the truth with probability 1 − ε_T, no cost
+                        truth = self.tasks[cid].fulfilled
+                        right = self.rng.random() >= a.eps_t
+                        w.complete_review(rid, F if (truth == right) else N, 0.0)
+                        self.c["troop_reviews"] += 1
+                        if r.role == "audit":
+                            self.c["troop_audits"] += 1
+                        continue
                     on_probation = w.actor(r.reviewer).probation
                     v, cost = self.verdict(r.reviewer, self.tasks[cid].fulfilled)
                     w.complete_review(rid, v, cost)
@@ -401,24 +417,28 @@ class Stamping:
                         self.c["disputes_refused"] += 1
                 c = w.case(cid)
             if c.state == "PENDING" and c.verdict == F and c.challenge is None:
-                if not task.audit_rolled:
+                if not task.audit_rolled and not c.audit_obligation:
                     task.audit_rolled = True
-                    initial = w.review(c.reviews[0])
                     self.c["audits_rolled"] += 1
-                    task.audit_wanted = self.rng.random() < w.p_effective(initial.reviewer)   # min(1, m_t p_j)
-                if task.audit_wanted:
-                    if t > c.window_end:
+                    # 1.4.0 §2.2: the roll on the applied odds (1 for the state's own work); a yes is recorded as
+                    # an obligation of the case and never dropped — a member takes it, or a troop after w_R
+                    if self.rng.random() < w.audit_odds(cid):
+                        w.roll_audit(cid)
+                        task.audit_wanted = True
+                        self.c["audit_obligations"] += 1
+                elif c.market_audit_only and not task.audit_rolled:
+                    task.audit_rolled, task.audit_wanted = True, True      # the engine recorded this one at the verdict
+                if task.audit_wanted and (c.audit_obligation or c.audit_vacated):
+                    el = self.eligible_reviewers(cid, panel=True)
+                    if el:
+                        rid = w.assign_audit(cid, self.pick_reviewer(el))
+                        self.review_owner[rid] = w.review(rid).reviewer
                         task.audit_wanted = False
-                        self.c["audits_lapsed"] += 1
+                        self.c["audits_assigned"] += 1
                     else:
-                        el = self.eligible_reviewers(cid, panel=True)
-                        if el:
-                            rid = w.assign_audit(cid, self.pick_reviewer(el))
-                            self.review_owner[rid] = w.review(rid).reviewer
-                            task.audit_wanted = False
-                            self.c["audits_assigned"] += 1
-                        else:
-                            self.c["audit_unassignable_ticks"] += 1
+                        self.c["audit_unassignable_ticks"] += 1
+                elif task.audit_wanted:
+                    task.audit_wanted = False                             # a troop took the seat
             ch = c.challenge
             if ch and not ch["resolved"]:
                 if not task.appeal_wanted:
@@ -504,10 +524,14 @@ class Stamping:
                 correct = (c.outcome_or_verdict() == F) == task.fulfilled
                 if c.state == "VESTED":
                     self.c["vested"] += 1
+                    if w.is_troop(c.actor):
+                        self.c["troop_delivered_vested"] += 1
                     if not task.fulfilled:
                         self.c["false_approvals"] += 1
                         if task.probation_false_approval:
                             self.c["probation_false_approvals"] += 1
+                        if any(w.is_troop(w.review(x).reviewer) and w.review(x).role == "initial" for x in c.reviews):
+                            self.c["troop_false_approvals"] += 1
                     if task.appealed:
                         self.c["appeals_won"] += 1
                         self.c["false_rejections_overturned" if task.fulfilled else "true_rejections_overturned"] += 1
@@ -515,6 +539,8 @@ class Stamping:
                         self.c["disputes_lost"] += 1
                 else:
                     self.c["final_n"] += 1
+                    if w.is_troop(c.actor):
+                        self.c["troop_delivered_final_n"] += 1
                     if task.fulfilled:
                         self.c["false_rejections"] += 1
                     if task.appealed:
@@ -527,6 +553,8 @@ class Stamping:
                     self.by_grade[c.grade][1] += int(correct)
                 for rid in c.reviews:
                     r = w.review(rid)
+                    if r.reviewer not in self.tally:
+                        continue                                          # a troop's seat: the fund's, not a population's
                     if r.status == "overturned":
                         self.tally[r.reviewer].overturned += 1
                     elif r.status == "vested":
@@ -600,6 +628,14 @@ class Stamping:
                     "duty_fund": round(m["duty_fund"], 3), "fund_in": round(m["fund_in"], 3), "fund_out": round(m["fund_out"], 3),
                     "members_on_duty": sum(1 for aid in self.actors if w.actor(aid).on_duty and w.actor(aid).is_member),
                     "probationers_on_duty": sum(1 for aid in self.actors if w.actor(aid).on_duty and w.actor(aid).probation)})
+        tr = w.troops()
+        row.update({"troops_active_reviews": tr["active_reviews"], "troops_active_deliveries": tr["active_deliveries"],
+                    "troop_summons_reviews": tr["summons_reviews"], "troop_summons_deliveries": tr["summons_deliveries"],
+                    "troop_shortfall_seats": tr["shortfall_seats"], "troop_shortfall_awards": tr["shortfall_awards"],
+                    "troop_held_ticks": tr["held_ticks"], "troop_ticks_reviews": tr["troop_ticks_reviews"],
+                    "troop_ticks_deliveries": tr["troop_ticks_deliveries"], "held_market_audit_now": tr["held_market_audit_now"],
+                    "held_market_audit_max_age": tr["held_market_audit_max_age"], "fund_reserve": round(tr["fund_reserve"], 3),
+                    "advance_outstanding": round(tr["advance_outstanding"], 3), "B_bar": round(tr["B_bar"], 3)})
         return row
 
 
@@ -618,9 +654,16 @@ def main(argv=None):
     ap.add_argument("--p-start", type=float, default=1.0, help="a newcomer's audit odds (1.2.0 §2.4: 1.0; 1.1.0: 0.5)")
     ap.add_argument("--p-cap", type=float, default=1.0, help="the audit odds' cap on doubling (1.2.0 §2.4: 1.0; 1.1.0: 0.5)")
     ap.add_argument("--p-floor", type=float, default=0.2, help="the audit rate's floor (§8.3)")
-    ap.add_argument("--rules", choices=["1.3.0", "1.2.0", "1.1.0"], default="1.3.0",
-                    help="1.2.0: membership, the duty fund and netted plant capital off; 1.1.0: also no plants, dial off, "
-                         "p_start = p_cap = 0.5, Ω float 20 — both declared controls")
+    ap.add_argument("--rules", choices=["1.4.0", "1.3.0", "1.2.0", "1.1.0"], default="1.4.0",
+                    help="1.3.0: troops off; 1.2.0: also membership, the duty fund and netted plant capital off; 1.1.0: also no "
+                         "plants, dial off, p_start = p_cap = 0.5, Ω float 20 — declared controls. The audit obligation holds in all")
+    ap.add_argument("--troops", choices=["on", "off"], default="on", help="the orchestrator's troops (1.4.0)")
+    ap.add_argument("--eps-t", type=float, default=0.05, help="ε_T, a troop reviewer's error rate (declared)")
+    ap.add_argument("--w-r", type=int, default=2, help="w_R, ticks a review seat waits before a troop takes it")
+    ap.add_argument("--w-a", type=int, default=2, help="w_A, ticks a request waits unawarded before a troop delivers it")
+    ap.add_argument("--c-t", type=float, default=3.0, help="c_T, a troop review's cost to the fund")
+    ap.add_argument("--c-d-t", type=float, default=10.0, help="c^D_T, a troop delivery's cost to the fund")
+    ap.add_argument("--a-t", type=float, default=100.0, help="A_T, Ω's advance to the fund, outstanding at most")
     ap.add_argument("--fund", choices=["on", "off"], default="on", help="the duty fund (1.3.0 §2.4)")
     ap.add_argument("--m-max", type=float, default=4.0, help="m_max, the dial's cap (1.3.0 §2.6 sweeps 2 against 4)")
     ap.add_argument("--stamper-mode", choices=["plain", "reformer"], default="plain",
@@ -669,7 +712,12 @@ def main(argv=None):
                       params=run.p, **({"root": a.results_root} if a.results_root else {}),
                       declared={"actors": a.actors, "on_duty": a.on_duty, "ticks": a.ticks, "tasks_per_tick": a.tasks,
                                 "beta": a.beta, "work_ticks": a.work_ticks, "seed": a.seed,
-                                "rules": a.rules, "fund": a.fund if a.rules == "1.3.0" else "n/a", "m_max": a.m_max,
+                                "rules": a.rules, "fund": a.fund if a.rules in ("1.3.0", "1.4.0") else "n/a", "m_max": a.m_max,
+                                "troops": {"spec": "1.4.0 design revision 4 — the orchestrator's troops" if a.rules == "1.4.0" and a.troops == "on" else "off",
+                                           "eps_T": a.eps_t, "w_R": a.w_r, "w_A": a.w_a, "c_T": a.c_t, "c_D_T": a.c_d_t, "A_T": a.a_t,
+                                           "disposition": "the truth with probability 1 − ε_T; delivery fails at b as any; no cost at completion",
+                                           "summons": "the engine's, at the seating step; the driver supplies the verdict and the submission"},
+                                "audit_roll": "on the engine's applied odds (audit_odds); a yes is recorded as an obligation (roll_audit) and never dropped",
                                 "stamper_mode": a.stamper_mode,
                                 "dispositions": {"stamper_fraction": a.stampers,
                                                  "assignment": dict(sorted(run.kind.items())),
@@ -765,6 +813,12 @@ def main(argv=None):
     print(f"  membership: members on duty={final['members_on_duty']} probationers on duty={final['probationers_on_duty']} member_seats={final['member_seats']} "
           f"readmissions={final['readmissions']} (mean ticks {final['readmission_ticks_mean']}) fund in/out={final['fund_in']}/{final['fund_out']} "
           f"awards refused (members only) ticks={final['awards_refused_members_only_ticks']} probation false approvals={final['probation_false_approvals']}")
+    print(f"  troops: active r/d={final['troops_active_reviews']}/{final['troops_active_deliveries']} summons r/d={final['troop_summons_reviews']}/"
+          f"{final['troop_summons_deliveries']} troop-ticks r/d={final['troop_ticks_reviews']}/{final['troop_ticks_deliveries']} shortfall s/a/held="
+          f"{final['troop_shortfall_seats']}/{final['troop_shortfall_awards']}/{final['troop_held_ticks']} held for market audit now/max age="
+          f"{final['held_market_audit_now']}/{final['held_market_audit_max_age']} fund reserve={final['fund_reserve']} advance={final['advance_outstanding']} "
+          f"troop deliveries={final['troop_deliveries']} vested/finalN={final['troop_delivered_vested']}/{final['troop_delivered_final_n']} "
+          f"troop reviews/audits={final['troop_reviews']}/{final['troop_audits']} troop FA={final['troop_false_approvals']} obligations={final['audit_obligations']}")
     print(f"  clock: m={final['m']} pi={final['pi']} X_t={final['X_t']} periods={final['periods']} F_hat(last)={final['F_hat']} "
           f"plants created/bad/stood/failed/spent={final['plants_created']}/{final['plants_bad']}/{final['plants_stood']}/"
           f"{final['plants_failed']}/{final['plants_spent']} unfunded={final['plants_unfunded']} shortfall={final['plant_shortfall']} "

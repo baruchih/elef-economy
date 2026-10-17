@@ -48,6 +48,7 @@ PLANT_REQ, PLANT_ACT = "OMEGA-REQ", "OMEGA-ACT"
 # The duty fund (1.3.0 §2.4): the dial's raised tax, (m_t − 1) ω_0 B of each award, paid out to the reviews
 # settling in each batch by role weight as an uplift on the fixed fee.
 DUTY_FUND = "DUTY-FUND"
+TROOP_PREFIX = "T"                              # 1.4.0: a troop id, single-use, aliased to the fund's wallet
 
 
 class Claim(tuple):
@@ -288,6 +289,14 @@ class Case:
     plant_outcome: Optional[str] = None    # stood | failure | spent
     plant_reveal_hseq: Optional[int] = None
     member_at_award: bool = True           # 1.3.0 §2.1 / I22: the actor was a member when awarded
+    # 1.4.0: the audit obligation, the seats' clocks, and troops
+    audit_obligation: bool = False         # a rolled audit not yet seated holds the case (I25)
+    audit_rolled_at: Optional[int] = None
+    audit_vacated_at: Optional[int] = None
+    seat_since: Optional[int] = None       # the initial seat has been required since this tick
+    market_audit_only: bool = False        # a troop reviewer approved a troop's delivery: only a member audits it
+    troop_award: bool = False              # awarded to a troop by summons (§2.3)
+    initial_pinned: bool = False           # the initial approval was a pinned reviewer's (I25)
     # outcome record
     grade: Optional[str] = None
     assessments: list = field(default_factory=list)
@@ -412,6 +421,23 @@ class World:
         self.readmissions = 0
         self.readmission_ticks_sum = 0
         self._member_pool_exhausted = True              # at the last rotation, no free fundable member was left to seat
+        # 1.4.0: troops and the fund's order
+        self.troops: dict[str, dict] = {}               # troop id -> kind, case, review, t_summons, t_release, cost, lock
+        self._n_troop = 0
+        self.advance_outstanding = 0.0                  # Ω's advance to the fund, repaid before uplift (≤ A_T)
+        self.troop_capital_peak = 0.0                   # peak troop capital this period
+        self.troop_capital_peak_prev = 0.0              # and the previous one; R_T is the larger
+        self.fund_flow = 0.0                            # Σ of every event into/out of the fund's wallet (I23)
+        self._uplift_violation = None
+        self.troop_summons_reviews = 0
+        self.troop_summons_deliveries = 0
+        self.troop_shortfall_seats = 0
+        self.troop_shortfall_awards = 0
+        self.troop_held_ticks = 0                       # case-ticks held for want of a seat no troop could take
+        self.troop_ticks_reviews = 0
+        self.troop_ticks_deliveries = 0
+        self.held_market_audit_now = 0
+        self.held_market_audit_max_age = 0
         self._pool_exhausted = False                    # at the last rotation, no eligible free actor was left
         self._reserve_dirty = False                     # an actor left duty since the last rotation (mid-tick)
         self.ledger.on_event = self._on_ledger_event
@@ -448,6 +474,12 @@ class World:
         establishes the two facts I4 and I10 would otherwise have to rescan the record for: how
         many times a case's court fee was reimbursed, and whether money moved on account of a
         vested case after its vesting (deferred reimbursements and Ω claims excepted, §6)."""
+        L = self.ledger
+        if e.kind not in ("lock", "release"):
+            if e.dst is not None and L.resolve(e.dst) == DUTY_FUND and not str(e.dst).startswith("pool:"):
+                self.fund_flow += e.amount
+            if e.src is not None and L.resolve(e.src) == DUTY_FUND:
+                self.fund_flow -= e.amount
         cid = e.case
         if cid is None:
             return
@@ -476,7 +508,9 @@ class World:
         return self.ledger.wallet(wid).W
 
     def _record_outcome(self, aid: str, stood: bool):
-        a = self.actors[aid]
+        a = self.actors.get(aid)
+        if a is None:
+            return                                      # a troop or the plant actor keeps no record (1.2.0, 1.4.0)
         a.outcomes.append((self.t, stood))
         if len(a.outcomes) > self.p.rho_window:
             del a.outcomes[: len(a.outcomes) - self.p.rho_window]
@@ -502,6 +536,8 @@ class World:
         parent = self._case(parent_id)
         if parent.state != "COMMITTED":
             raise RuleError("only a committed actor may post a nested request (§9.1)")
+        if self.is_troop(parent.actor):
+            raise RuleError("a troop never delegates (1.4.0 §2.1)")
         A = parent.actor
         idx = self.ledger.index()                 # §4.5: a nested case is denominated at posting
         D, K, GV = self.p.D * idx, self.p.K * idx, self.p.G_V * idx
@@ -541,6 +577,8 @@ class World:
         B = amount(B, "B")
         tau = _int_ticks(tau, "tau")
         c = self._case(cid)
+        if self.is_troop(actor_id):
+            raise RuleError(f"award: {actor_id} is a troop — awarded only by the engine's summons (1.4.0 §2.3)")
         a = self._actor(actor_id)
         if c.state != "AVAILABLE":
             raise RuleError(f"award: case {cid} is {c.state}")
@@ -607,6 +645,9 @@ class World:
                 self._service_omega_claims()
         c.state = "COMMITTED"
         c.member_at_award = a.is_member
+        if c.is_root:
+            self.period["award_price_sum"] += B
+            self.period["award_n"] += 1
         a.committed = cid
         self._log(c, f"awarded to {actor_id} B={B} tau={tau} G={G}; deadline {c.deadline}")
 
@@ -641,6 +682,7 @@ class World:
             if not self._child_milestone_reached(child):
                 raise RuleError(f"submit: nested {ch} has not reached its initial verdict (§9.1)")
         c.state, c.t_submit = "SUBMITTED", self.t
+        c.seat_since = self.t                              # the initial seat is required from now (1.4.0 §2.2)
         self._log(c, "submitted")
 
     @staticmethod
@@ -660,12 +702,20 @@ class World:
         r = self._initial_review(c)
         r.deadline += (self.t - r.t_done)        # the review clock paused while the actor acted
         r.status, r.verdict, r.objection, r.resumed = "open", None, None, True
+        if self.is_troop(r.reviewer):            # 1.4.0: a resumed review is the same assignment — the troop resumes its seat
+            self.troops[r.reviewer]["t_release"] = None
+            self.history.append("troop", {"t": self.t, "troop": r.reviewer, "kind": "review", "case": c.id, "msg": "resumes"})
         c.resubmitted = True                     # a property of the submission, not of who reviews it
         c.state, c.t_submit, c.resubmit_deadline = "SUBMITTED", self.t, None
         self._log(c, f"resubmitted; {r.reviewer} resumes review {r.id} (F or N only)")
 
     # --------------------------------------------------------------- reviews
+    def is_troop(self, wid) -> bool:
+        return isinstance(wid, str) and wid in self.troops
+
     def _eligible(self, c: Case, reviewer: str, role: str = "initial") -> None:
+        if self.is_troop(reviewer):
+            raise RuleError(f"{reviewer} is a troop: seated only by summons (1.4.0 §2.2)")
         a = self._actor(reviewer)
         if not a.on_duty:
             raise RuleError(f"{reviewer} is not on verification duty")
@@ -748,7 +798,7 @@ class World:
             raise RuleError("audit: a plant is adjudicated by its known truth; no challenge is opened on it (1.2.0 §2.1)")
         if c.state != "PENDING" or c.outcome_or_verdict() != F:
             raise RuleError("audit: only an F verdict in PENDING may be audited (§8.3)")
-        if self.t > c.window_end and not c.audit_vacated:
+        if self.t > c.window_end and not c.audit_vacated and not c.audit_obligation:
             raise RuleError("audit: window closed")
         if c.challenge_round_used:
             raise RuleError("audit: challenge round already used")
@@ -764,6 +814,8 @@ class World:
         self.period["audits"] += 1
         if c.audit_vacated:
             c.audit_vacated = False                      # the vacated obligation is taken over
+        elif c.audit_obligation:
+            c.audit_obligation = False                   # 1.4.0 §2.2: the rolled audit's obligation is discharged
         else:
             c.open_items += 1
         self._log(c, f"audit {r.id} -> {reviewer} (vesting suspended)")
@@ -774,6 +826,8 @@ class World:
         c = self._case(cid)
         if not c.audit_vacated:
             raise RuleError("waive_audit: no vacated audit position")
+        if c.market_audit_only:
+            raise RuleError("waive_audit: the audit of the state's own work is an obligation without exception (1.4.0 §2.3, I25)")
         c.audit_vacated = False
         c.open_items -= 1
         self._log(c, "vacated audit position waived by the orchestrator")
@@ -829,6 +883,9 @@ class World:
         if verdict in (P, BOT) and not self._responses_available(c, r):
             raise RuleError("P and ⊥ are responses to a submission and are available only while the actor "
                             "can still respond — the view says so (`responses_available`); here F or N")
+        troop = self.is_troop(r.reviewer)
+        if troop and cost > 0:
+            raise RuleError("a troop's cost was purchased from the fund at summons; its review reports no further cost (1.4.0 §2.1)")
         is_bot_appeal = (r.role == "appeal" and c.verdict == BOT)
         if is_bot_appeal:
             if objection not in (UPHELD, REJECTED):
@@ -845,6 +902,15 @@ class World:
         self._log(c, f"review {rid} by {r.reviewer}: {verdict}{' / ' + objection if objection else ''} (cost {credits:.3f} credits)")
         self.period["dur_sum"] += max(1, self.t - r.t_assign)      # mean review duration, for the reserve's sizing
         self.period["dur_n"] += 1
+        if troop:
+            self._release_troop(r.reviewer)
+            if r.role == "initial":
+                self._initial_verdict(c, verdict, None, troop_reviewer=True)
+            elif r.role == "audit":
+                self._audit_result(c, r)
+            else:
+                self._maybe_settle_challenge(c)
+            return
         a = self.actors[r.reviewer]
         if r.role == "initial":
             if verdict in (F, N):
@@ -861,15 +927,28 @@ class World:
             self._maybe_settle_challenge(c)
 
     # ------------------------------------------------------- initial verdict
-    def _initial_verdict(self, c: Case, verdict: str, reviewer: Optional[Actor] = None):
+    def _initial_verdict(self, c: Case, verdict: str, reviewer: Optional[Actor] = None, troop_reviewer: bool = False):
         c.verdict, c.t_verdict = verdict, self.t
         c.window_end = self.t + self.p.W
+        c.initial_pinned = reviewer is not None and reviewer.pinned
+        if self.is_troop(c.actor):
+            # 1.4.0 §2.1: a troop accepts every verdict on its own work — recorded at the verdict, not
+            # the deadline (the reviewer's note on rc.2), so the case settles and the troop is released now
+            if verdict != F:
+                self._release_attached_reviewer(c)
+                self._finalize_N(c, reason="troop accepts the verdict on its work", actor_fault=False)
+                return
+            c.market_audit_only = troop_reviewer        # §2.3: only a member audits the state's own work
+            if troop_reviewer:
+                # odds 1 is not a roll: the engine records the obligation at the verdict (I25)
+                c.audit_obligation, c.audit_rolled_at = True, self.t
+                c.open_items += 1
         if verdict == F:
             c.state = "PENDING"
             if c.is_root:
                 self.period["approvals"] += 1           # audit demand, for the reserve's sizing ...
-                # ... on the approving reviewer's applied odds (1.3.0 §2.3): 1 while pinned, m_t p_j otherwise
-                self.period["audit_demand"] += reviewer.p_eff if reviewer is not None else self.p.p_start
+                # ... on the applied odds (1.3.0 §2.3; 1.4.0 §2.3 for the state's own work)
+                self.period["audit_demand"] += self.audit_odds(c.id)
             self._release_capacity(c)
         else:
             c.state = "AWAITING_RESPONSE"
@@ -898,14 +977,17 @@ class World:
     def _release_attached_reviewer(self, c: Case):
         for rid in c.reviews:
             r = self.reviews[rid]
-            if r.role == "initial" and r.status in ("open", "done") and self.actors[r.reviewer].open_review == rid:
-                self.actors[r.reviewer].open_review = None
+            a = self.actors.get(r.reviewer)
+            if a is not None and r.role == "initial" and r.status in ("open", "done") and a.open_review == rid:
+                a.open_review = None
 
     # ---------------------------------------------------------- responses
     def respond(self, cid: str, action: str, d: Optional[str] = None):
         c = self._case(cid)
         if c.plant is not None:
             raise RuleError("respond: a plant has no response path; it is adjudicated by its known truth (1.2.0 §2.1)")
+        if self.is_troop(c.actor):
+            raise RuleError("respond: a troop accepts every verdict on its own work (1.4.0 §2.1)")
         if c.state != "AWAITING_RESPONSE":
             raise RuleError(f"respond: case {cid} is {c.state}")
         if self.t > c.response_deadline:
@@ -956,7 +1038,8 @@ class World:
             c.court_fee_paid_by = challenger
             self._service_omega_claims()
         c.challenge_round_used = True
-        c.challenge = {"kind": kind, "challenger": challenger, "reviews": [], "resolved": False, "d": d}
+        c.challenge = {"kind": kind, "challenger": challenger, "reviews": [], "resolved": False, "d": d,
+                       "seat_since": self.t}            # 1.4.0 §2.2: the panel seats are required from admission
         if audit_review is not None:
             audit_review.is_audit_as_appeal = True
             c.challenge["reviews"].append(audit_review.id)
@@ -1098,13 +1181,14 @@ class World:
 
     def _overturn_review(self, c: Case, r: Review, pay_fee_to: Optional[str]):
         r.status = "overturned"
-        a = self.actors[r.reviewer]
-        self._record_outcome(r.reviewer, False)
-        if not a.pinned:                               # 1.3.0 §2.2: the §8.3 update does not run while pinned
-            a.p_audit = min(self.p.p_cap, a.p_audit * 2)
-        a.streak = 0
-        if a.open_review == r.id:
-            a.open_review = None
+        a = self.actors.get(r.reviewer)                # None for a troop: no record, no odds (1.4.0 §2.1)
+        if a is not None:
+            self._record_outcome(r.reviewer, False)
+            if not a.pinned:                           # 1.3.0 §2.2: the §8.3 update does not run while pinned
+                a.p_audit = min(self.p.p_cap, a.p_audit * 2)
+            a.streak = 0
+            if a.open_review == r.id:
+                a.open_review = None
         bond = r.bond
         if pay_fee_to is not None and c.court_fee_paid_by == pay_fee_to and c.court_fee_reimbursed == 0:
             self.ledger.transfer_locked(r.reviewer, pay_fee_to, c.D, key=f"bond:{r.id}", case=c.id, note="court fee")
@@ -1203,6 +1287,8 @@ class World:
         c.state, c.final = "FINAL_N", True
         c.grade = self._grade(c)
         self._release_capacity(c)
+        if self.is_troop(c.actor):
+            self._release_troop(c.actor)
         self._log(c, f"final N: {reason}")
         self._maybe_close_tree(self.cases[c.root])     # final now; a settlement still pending defers this
 
@@ -1267,6 +1353,9 @@ class World:
                 self._withdraw_review(r, burn=False)
         if c.audit_vacated:
             c.audit_vacated = False
+            c.open_items -= 1
+        if c.audit_obligation:                          # 1.4.0: the ruling supersedes the rolled audit's obligation (I18)
+            c.audit_obligation = False
             c.open_items -= 1
         self._release_attached_reviewer(c)
         if open_challenge:
@@ -1367,8 +1456,9 @@ class World:
         nested = "nested " if c.is_nested() else ""
         surviving = [self.reviews[r] for r in c.reviews if self.reviews[r].status == "done"]
         for r in surviving:
-            e = self._w(r.role) * emission_per_weight
-            self.ledger.mint_emission_to_pool(c.id, e)
+            e = 0.0 if self.is_troop(r.reviewer) else self._w(r.role) * emission_per_weight   # a troop claims no emission (1.4.0)
+            if e > 0:
+                self.ledger.mint_emission_to_pool(c.id, e)
             r.fee = e
             r.fee_owed = self._w(r.role) * self.p.f_fee
         # 1. expense debts, every review — an overturned reviewer's bond was the penalty; its cost survives
@@ -1402,8 +1492,9 @@ class World:
                 if r.fee > 1e-12:
                     self.ledger.pay_emission(c.id, r.reviewer, r.fee, note="emission share")
                 r.fee += fixed
-                # 1.3.0 §2.4: the duty fund's uplift, by role weight, like emission — real money, so it carries
-                uplift = min(self._w(r.role) * uplift_per_weight, self.ledger.wallet(DUTY_FUND).U)
+                # 1.3.0 §2.4: the duty fund's uplift, by role weight, like emission — real money, so it carries;
+                # a troop claims none (1.4.0 §2.1)
+                uplift = 0.0 if self.is_troop(r.reviewer) else min(self._w(r.role) * uplift_per_weight, self.ledger.wallet(DUTY_FUND).U)
                 if uplift > 1e-12:
                     self.ledger.transfer(DUTY_FUND, r.reviewer, uplift, case=c.id, note="duty uplift")
                     r.uplift = uplift
@@ -1411,6 +1502,8 @@ class World:
                     self.fund_out += uplift
                 self.ledger.release(r.reviewer, r.bond, key=f"bond:{r.id}", case=c.id, note="bond released")
                 r.status = "vested"
+                if self.is_troop(r.reviewer):
+                    continue                            # no reliability, duty credit or odds for a troop
                 a = self.actors[r.reviewer]
                 self._record_outcome(r.reviewer, True)
                 a.vests.append(self.t)
@@ -1510,6 +1603,8 @@ class World:
         c.grade = self._grade(c)
         if c.actor in self.actors:                          # the plant actor is Ω's and keeps no record
             self._record_outcome(c.actor, True)
+        if self.is_troop(c.actor):
+            self._release_troop(c.actor)
         self._log(c, f"vested; grade {c.grade}")
         self._maybe_close_tree(self.cases[c.root])     # final now: the tree may have closed with this vest
 
@@ -1564,21 +1659,29 @@ class World:
         batch = vesting + settling
         if batch:
             total_w = sum(self._w(self.reviews[rid].role)
-                          for c in batch for rid in c.reviews if self.reviews[rid].status == "done")
+                          for c in batch for rid in c.reviews
+                          if self.reviews[rid].status == "done" and not self.is_troop(self.reviews[rid].reviewer))
             E = self.p.emission(tick)
             epw = (E / total_w) if total_w > 0 else 0.0
-            fund = self.ledger.wallet(DUTY_FUND).U if self.p.duty_fund else 0.0
-            upw = (fund / total_w) if total_w > 0 else 0.0     # 1.3.0 §2.4: the fund's balance, by weight, this batch
+            self._repay_advance()                               # 1.4.0 §2.4: the advance is repaid before any uplift
+            fund_u = self.ledger.wallet(DUTY_FUND).U
+            avail = max(0.0, fund_u - self.R_T) if self.p.duty_fund else 0.0   # uplift only above the troops' reserve
+            upw = (avail / total_w) if total_w > 0 else 0.0
+            paid_before = self.fund_out
             for c in vesting:
                 self._vest(c, epw, upw)
             for c in settling:
                 if c.needs_review_settlement:
                     self._settle_reviews(c, epw, upw)
+            if self.fund_out - paid_before > avail + 1e-6:          # I23: uplift only from above the reserve
+                self._uplift_violation = f"uplift {self.fund_out - paid_before} paid from a fund of {fund_u} with reserve {self.R_T}"
+            self._repay_advance()                               # the batch's inflows (fees, released locks) repay Ω first
         # step 4: Ω services claims
         self._service_omega_claims()
         # step 5: the dial, once per period (1.2.0 §2.3), then rotation under the reserve it sized
         self._maybe_end_period(tick)
         self._rotate(tick)
+        self._summon_troops(tick)                              # 1.4.0 §2.2–2.3: after the market has had its chance
 
     def _withdraw_review(self, r: Review, burn: bool = True):
         """Timeout (burn=True): half the bond burns, the reviewer is at fault, and the position
@@ -1587,21 +1690,28 @@ class World:
         assignment; the bond returns whole, no fault, and the obligation ends with it."""
         c = self.cases[r.case]
         r.status = "withdrawn"
-        a = self.actors[r.reviewer]
+        a = self.actors.get(r.reviewer)                # None for a troop
         if burn:
             half = r.bond / 2
             self.ledger.burn_locked(r.reviewer, half, key=f"bond:{r.id}", case=c.id, note="timeout: half burned")
             self.ledger.release(r.reviewer, r.bond - half, key=f"bond:{r.id}", case=c.id, note="timeout: half released")
-            self._record_outcome(r.reviewer, False)
+            if a is not None:
+                self._record_outcome(r.reviewer, False)
         else:
             self.ledger.release(r.reviewer, r.bond, key=f"bond:{r.id}", case=c.id, note="assignment voided")
-        if a.open_review == r.id:
+        if a is not None and a.open_review == r.id:
             a.open_review = None
+        if a is None:
+            self._release_troop(r.reviewer)
+        if r.role == "initial":
+            c.seat_since = self.t                        # the initial seat is required again (1.4.0 §2.2)
         if c.challenge and r.id in c.challenge["reviews"]:
             c.challenge["reviews"].remove(r.id)        # the appeal position is vacated
+            c.challenge["seat_since"] = self.t
         if r.role == "audit" and not r.is_audit_as_appeal:
             if burn:
                 c.audit_vacated = True                   # obligation stands; replacement admissible after the window
+                c.audit_vacated_at = self.t
             elif c.open_items > 0:
                 c.open_items -= 1                        # ruling supersedes the audit
         self._log(c, f"review {r.id} by {r.reviewer} {'timed out' if burn else 'voided'}; position vacated")
@@ -1950,7 +2060,11 @@ class World:
     def _new_period(start: int) -> dict:
         return {"start": start, "plants": 0, "bad": 0, "bad_approved": 0, "plants_created": 0, "initial": 0,
                 "approvals": 0, "audit_demand": 0.0, "audits": 0, "challenge_reviews": 0, "dur_sum": 0, "dur_n": 0,
-                "suspensions": 0, "eligibility_shortfall": 0}
+                "suspensions": 0, "eligibility_shortfall": 0,
+                "award_price_sum": 0.0, "award_n": 0,
+                "troop_ticks_reviews": 0, "troop_ticks_deliveries": 0, "troop_summons_reviews": 0,
+                "troop_summons_deliveries": 0, "troop_shortfall_seats": 0, "troop_shortfall_awards": 0,
+                "troop_held_ticks": 0, "held_market_audit_max": 0}
 
     def _maybe_end_period(self, tick: int):
         """Once per period — period_plants adjudicated plants or period_ticks ticks, whichever first —
@@ -1999,9 +2113,17 @@ class World:
                "member_seats": self.member_seats,
                "plants_created": per["plants_created"], "plant_shortfall": shortfall,
                "suspensions": per["suspensions"], "eligibility_shortfall": per["eligibility_shortfall"],
-               "alarm": alarm}
+               "alarm": alarm,
+               # 1.4.0 §2.5: the readings
+               "troop_ticks_reviews": per["troop_ticks_reviews"], "troop_ticks_deliveries": per["troop_ticks_deliveries"],
+               "troop_summons": [per["troop_summons_reviews"], per["troop_summons_deliveries"]],
+               "troop_shortfall": [per["troop_shortfall_seats"], per["troop_shortfall_awards"], per["troop_held_ticks"]],
+               "held_market_audit_max": per["held_market_audit_max"],
+               "fund": round(self.ledger.wallet(DUTY_FUND).U, 6), "fund_reserve": round(self.R_T, 6),
+               "advance": round(self.advance_outstanding, 6), "B_bar": round(self.mean_awarded_price(), 6)}
         self.periods.append(rec)
         self.history.append("period", rec)
+        self.troop_capital_peak_prev, self.troop_capital_peak = self.troop_capital_peak, self._troop_capital_now()
         if alarm:
             self.alarms += 1
             self._reseat_reserve(tick)
@@ -2035,6 +2157,265 @@ class World:
             seated.append(a.id)
             n += 1
         self.history.append("capture_alarm", {"t": tick, "m": self.m_t, "X": self.X_t, "seated": seated})
+
+    # ------------------------------------------------ the orchestrator's troops (1.4.0)
+    def roll_audit(self, cid: str):
+        """1.4.0 §2.2: a rolled audit is an obligation of the case. The driver rolls (the engine has no
+        roll) and calls this to record it: from now the window does not close and the case does not
+        vest until an audit completes — seated by a member when one is free, by a troop after w_R
+        (§2.2), or, for the state's own work, by a member only (§2.3)."""
+        c = self._case(cid)
+        if c.plant is not None:
+            raise RuleError("roll_audit: no audit is rolled on a plant (1.2.0 §2.1)")
+        if c.state != "PENDING" or c.outcome_or_verdict() != F:
+            raise RuleError("roll_audit: only a pending F verdict is audited (§8.3)")
+        if self.t > c.window_end:
+            raise RuleError("roll_audit: window closed")
+        if c.challenge_round_used or c.audit_obligation or c.audit_vacated \
+                or any(self.reviews[r].role == "audit" and self.reviews[r].status != "withdrawn" for r in c.reviews):
+            raise RuleError("roll_audit: the case's challenge round is used, or an audit is already rolled or seated")
+        if any(a[3] == "override" for a in c.assessments):
+            raise RuleError("roll_audit: a human ruling has settled this case's assessment (§15.2)")
+        c.audit_obligation, c.audit_rolled_at = True, self.t
+        c.open_items += 1
+        self._log(c, "audit rolled: an obligation of the case until an audit completes")
+
+    def audit_odds(self, cid: str) -> float:
+        """The odds a driver rolls for a pending approval: 1 for a troop reviewer's approval of a troop's
+        delivery (1.4.0 §2.3); the approving reviewer's applied odds otherwise (1.3.0 §2.2); for a troop
+        reviewer's approval of a member's work, the adaptive floor scaled by the dial — the odds a reviewer
+        whose record stood would carry (a default chosen at implementation, Appendix I)."""
+        c = self._case(cid)
+        if c.market_audit_only:
+            return 1.0
+        r = self._initial_review(c) if any(self.reviews[x].role == "initial" and self.reviews[x].status == "done"
+                                            for x in c.reviews) else None
+        if r is None:
+            return self.p.p_start
+        if self.is_troop(r.reviewer):
+            return min(1.0, self.m_t * self.p.p_floor)
+        return self.actors[r.reviewer].p_eff
+
+    def mean_awarded_price(self) -> float:
+        """B̄: the mean price awarded to members over the trailing period (this period if it has awards,
+        else the last period's), the ceiling of the request when there is none (1.4.0 §2.3)."""
+        if self.period["award_n"]:
+            return self.period["award_price_sum"] / self.period["award_n"]
+        if self.periods and self.periods[-1].get("B_bar"):
+            return self.periods[-1]["B_bar"]
+        return 0.0
+
+    @property
+    def R_T(self) -> float:
+        return max(self.troop_capital_peak, self.troop_capital_peak_prev)
+
+    def _troop_capital_now(self) -> float:
+        return sum(t["cost"] + t["lock"] for t in self.troops.values() if t["t_release"] is None)
+
+    def _fund_can_carry(self, need: float, cid: str) -> bool:
+        """The fund carries a summons from its unlocked balance; Ω advances the difference, up to A_T
+        outstanding, repaid first from the fund's inflows (1.4.0 §2.4)."""
+        if not self.p.duty_fund:
+            return False
+        fund = self.ledger.wallet(DUTY_FUND)
+        if fund.U + 1e-9 >= need:
+            return True
+        short = need - fund.U
+        room = max(0.0, self.p.A_T - self.advance_outstanding)
+        adv = min(short, room, self.ledger.wallet(Ledger.OMEGA).U)
+        if adv > 1e-12:
+            self.ledger.transfer(Ledger.OMEGA, DUTY_FUND, adv, case=cid, note="Ω advance to the duty fund")
+            self.advance_outstanding += adv
+        return fund.U + 1e-9 >= need
+
+    def _repay_advance(self):
+        if self.advance_outstanding <= 1e-12:
+            return
+        fund = self.ledger.wallet(DUTY_FUND)
+        pay = min(fund.U, self.advance_outstanding)
+        if pay > 1e-12:
+            self.ledger.transfer(DUTY_FUND, Ledger.OMEGA, pay, note="duty fund repays Ω's advance")
+            self.advance_outstanding -= pay
+            if self.advance_outstanding < 1e-12:
+                self.advance_outstanding = 0.0
+
+    def _new_troop(self, kind: str, cid: str, cost: float, lock: float) -> str:
+        self._n_troop += 1
+        tid = f"{TROOP_PREFIX}{self._n_troop}"
+        self.ledger.aliases[tid] = DUTY_FUND
+        self.troops[tid] = {"kind": kind, "case": cid, "review": None, "t_summons": self.t, "t_release": None,
+                            "cost": cost, "lock": lock}
+        return tid
+
+    def _release_troop(self, tid: str):
+        t = self.troops.get(tid)
+        if t is not None and t["t_release"] is None:
+            t["t_release"] = self.t
+            self.history.append("troop", {"t": self.t, "troop": tid, "kind": t["kind"], "case": t["case"], "msg": "released"})
+
+    def _free_eligible_reviewer(self, c: Case, role: str) -> bool:
+        """Is any on-duty reviewer eligible for this seat free to take it? (1.4.0 §2.2's test for 'unfilled'.)"""
+        GV = c.G_V
+        for a in self.actors.values():
+            if not a.on_duty or a.open_review is not None or a.committed is not None:
+                continue
+            if a.id in c.excluded or a.id == c.actor or a.id == c.requester:
+                continue
+            if self.ledger.wallet(a.id).U + 1e-9 < GV:
+                continue
+            if not a.duty_eligible or (role in PANEL_ROLES and not a.panel_eligible):
+                continue
+            return True
+        return False
+
+    def _free_fundable_member(self, G: float) -> bool:
+        for a in self.actors.values():
+            if not a.on_duty and a.committed is None and a.open_review is None and a.is_member \
+                    and self.ledger.wallet(a.id).U + 1e-9 >= G:
+                return True
+        return False
+
+    def _summon_review(self, c: Case, role: str, tick: int) -> Optional[str]:
+        if self._positions(c) + 1 > self.p.V_max:
+            return None                                 # no seat to take: the path is full (I8)
+        cost_credits = self.p.c_T                      # declared in credits at v ≈ 1; purchased as real cost c_T · v
+        need = cost_credits + c.G_V
+        if not self._fund_can_carry(need, c.id):
+            self.troop_shortfall_seats += 1
+            self.period["troop_shortfall_seats"] += 1
+            return None
+        tid = self._new_troop("review", c.id, cost_credits, c.G_V)
+        credits = self.ledger.purchase(tid, cost_credits * self.ledger.v, case=c.id, note="troop cost (review)")
+        self.ledger.lock(tid, c.G_V, key=None or f"bond:r{self._n_review + 1}", case=c.id, note=f"bond ({role}, troop)")
+        self._n_review += 1
+        rid = f"r{self._n_review}"
+        r = Review(rid, c.id, tid, role, tick, tick + self.p.T_review, bond=c.G_V)
+        r.cost = credits
+        self.reviews[rid] = r
+        self._live_reviews[rid] = r
+        c.reviews.append(rid)
+        c.excluded.add(tid)
+        self.troops[tid]["review"] = rid
+        if role == "audit":
+            if c.audit_vacated:
+                c.audit_vacated = False
+            elif c.audit_obligation:
+                c.audit_obligation = False
+            else:
+                c.open_items += 1
+            self.period["audits"] += 1
+        elif role == "appeal":
+            c.challenge["reviews"].append(rid)
+            self.period["challenge_reviews"] += 1
+        self.troop_summons_reviews += 1
+        self.period["troop_summons_reviews"] += 1
+        self.troop_capital_peak = max(self.troop_capital_peak, self._troop_capital_now())
+        self.history.append("troop", {"t": tick, "troop": tid, "kind": "review", "seat": role, "case": c.id,
+                                      "review": rid, "msg": "summoned"})
+        self._log(c, f"troop {tid} summoned for the {role} seat ({rid}) after it waited {self.p.w_R} ticks")
+        return tid
+
+    def _summon_delivery(self, c: Case, tick: int) -> Optional[str]:
+        B = self.mean_awarded_price() or c.beta
+        if c.beta + 1e-9 < B:
+            return None                                 # priced below the market: not a shortage; waits
+        G = max(1.0, math.ceil(self.p.G_frac * B))
+        omega_base = self.p.omega_rate * B
+        omega = omega_base * self.m_t
+        omega_fund = (omega - omega_base) if self.p.duty_fund else 0.0
+        idx = self.ledger.index()
+        D, K, GV = self.p.D * idx, self.p.K * idx, self.p.G_V * idx
+        phi_E, phi_F = self.p.phi_E_root * idx, self.p.phi_F_root * idx
+        if self.ledger.wallet(c.requester).U + 1e-9 < B + phi_E + phi_F + omega:
+            return None                                 # the requester cannot pay in: no award, troop or not
+        cost_credits = self.p.c_D_T
+        if not self._fund_can_carry(cost_credits + G, c.id):
+            self.troop_shortfall_awards += 1
+            self.period["troop_shortfall_awards"] += 1
+            return None
+        tid = self._new_troop("delivery", c.id, cost_credits, G)
+        c.D, c.K, c.G_V, c.phi_E, c.phi_F, c.omega, c.G = D, K, GV, phi_E, phi_F, omega, G
+        c.G_award = G
+        c.B, c.tau, c.actor = B, self.p.tau_T, tid
+        c.t_award, c.deadline = tick, tick + self.p.tau_T
+        self.ledger.purchase(tid, cost_credits * self.ledger.v, case=c.id, note="troop cost (delivery)")
+        self.ledger.lock(tid, G, key=f"G:{c.id}", case=c.id, note="guarantee (troop)")
+        self.ledger.fund_escrow(c.requester, c.id, B, note="delivery price")
+        self.ledger.fund_deposit(c.requester, c.id, phi_E, note="expense allowance")
+        if phi_F > 0:
+            self.ledger.fund_fee_pot(c.requester, c.id, phi_F, note="fee pot")
+        if omega - omega_fund > 1e-12:
+            self.ledger.transfer(c.requester, Ledger.OMEGA, omega - omega_fund, case=c.id, note="service fee")
+        if omega_fund > 1e-12:
+            self.ledger.transfer(c.requester, DUTY_FUND, omega_fund, case=c.id, note="duty fund")
+            self.fund_in += omega_fund
+        self._freeze(c)
+        c.state = "COMMITTED"
+        c.troop_award, c.member_at_award = True, True
+        self.troop_summons_deliveries += 1
+        self.period["troop_summons_deliveries"] += 1
+        self.troop_capital_peak = max(self.troop_capital_peak, self._troop_capital_now())
+        self.history.append("troop", {"t": tick, "troop": tid, "kind": "delivery", "case": c.id, "B": B, "msg": "summoned"})
+        self._log(c, f"troop {tid} awarded at the market price B={B:g} after the request waited {self.p.w_A} ticks unawarded")
+        self._service_omega_claims()
+        return tid
+
+    def _summon_troops(self, tick: int):
+        """1.4.0 §2.2–2.3, after the tick's seating: a required seat unfilled for w_R with no free eligible
+        on-duty reviewer, or a root request unawarded for w_A with no free fundable member, is taken by a
+        troop when the fund can carry it. The audit of a troop reviewer's approval of a troop's delivery is
+        never summoned for: it waits for a member and is counted. A seat's wait is the number of seating
+        steps since it was required — required at t, it has waited 1 at t's seating and w_R at the seating
+        of t + w_R − 1. Also the tick's readings."""
+        held_now, held_max_age = 0, 0
+        for c in list(self._live_cases.values()):
+            if c.plant is not None or any(a[3] == "override" for a in c.assessments):
+                continue                                # never a plant; never a case a human has ruled on (I18)
+            # the audit seat
+            if c.state == "PENDING" and (c.audit_obligation or c.audit_vacated) \
+                    and not any(self.reviews[r].role == "audit" and self.reviews[r].status == "open" for r in c.reviews):
+                since = c.audit_vacated_at if c.audit_vacated else c.audit_rolled_at
+                if c.market_audit_only:
+                    held_now += 1
+                    held_max_age = max(held_max_age, tick - (since or tick))
+                elif self.p.troops and since is not None and tick - since + 1 >= self.p.w_R \
+                        and not self._free_eligible_reviewer(c, "audit"):
+                    if self._summon_review(c, "audit", tick) is None:
+                        self.troop_held_ticks += 1
+                        self.period["troop_held_ticks"] += 1
+            # the initial seat
+            if c.state == "SUBMITTED" and c.is_root and self.p.troops and c.seat_since is not None \
+                    and not any(self.reviews[r].role == "initial" and self.reviews[r].status in ("open", "done", "vested")
+                                for r in c.reviews) \
+                    and tick - c.seat_since + 1 >= self.p.w_R and not self._free_eligible_reviewer(c, "initial"):
+                if self._summon_review(c, "initial", tick) is None:
+                    self.troop_held_ticks += 1
+                    self.period["troop_held_ticks"] += 1
+            # the panel seats
+            ch = c.challenge
+            if self.p.troops and ch and not ch["resolved"] and len(ch["reviews"]) < 2 \
+                    and tick - ch.get("seat_since", tick) + 1 >= self.p.w_R and not self._free_eligible_reviewer(c, "appeal"):
+                for _ in range(2 - len(ch["reviews"])):
+                    if self._summon_review(c, "appeal", tick) is None:
+                        self.troop_held_ticks += 1
+                        self.period["troop_held_ticks"] += 1
+                        break
+            # the award
+            if c.state == "AVAILABLE" and c.is_root and self.p.troops and c.requester in self.requesters \
+                    and tick - c.t_post + 1 >= self.p.w_A:
+                B = self.mean_awarded_price() or c.beta
+                G = max(1.0, math.ceil(self.p.G_frac * B))
+                if not self._free_fundable_member(G):
+                    self._summon_delivery(c, tick)
+        self.held_market_audit_now = held_now
+        self.held_market_audit_max_age = max(self.held_market_audit_max_age, held_max_age)
+        self.period["held_market_audit_max"] = max(self.period["held_market_audit_max"], held_now)
+        active_r = sum(1 for t in self.troops.values() if t["kind"] == "review" and t["t_release"] is None)
+        active_d = sum(1 for t in self.troops.values() if t["kind"] == "delivery" and t["t_release"] is None)
+        self.troop_ticks_reviews += active_r
+        self.troop_ticks_deliveries += active_d
+        self.period["troop_ticks_reviews"] += active_r
+        self.period["troop_ticks_deliveries"] += active_d
 
     # ------------------------------------------------------------ working set
     @staticmethod

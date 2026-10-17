@@ -107,7 +107,8 @@ def scenario(seed: int, ticks: int, audit_every: int = 0, record_dir=None) -> Wo
                     _try(w.complete_review, r.id, v, rng.choice([0, 1, 2, 7]), objection=obj)
                 else:
                     v = rng.choice([F, F, F, N, P, BOT]) if r.role == "initial" else rng.choice([F, N])
-                    _try(w.complete_review, r.id, v, rng.choice([0, 1, 2, 7]))
+                    cost = 0 if w.is_troop(r.reviewer) else rng.choice([0, 1, 2, 7])   # 1.4.0: a troop's cost was purchased at summons
+                    _try(w.complete_review, r.id, v, cost)
         for c in list(w.cases.values()):
             if c.state == "AWAITING_RESPONSE" and rng.random() < 0.6:
                 act = rng.choice(["accept", "appeal", "revise", "supply_evidence"])
@@ -117,6 +118,8 @@ def scenario(seed: int, ticks: int, audit_every: int = 0, record_dir=None) -> Wo
                 if r < 0.1:
                     _try(w.dispute, c.id, c.requester, "not convinced")
                 elif r < 0.3:
+                    if not c.audit_obligation and not c.audit_vacated:
+                        _try(w.roll_audit, c.id)                  # 1.4.0: the roll is an obligation; seated when a reviewer is free
                     fr = free_reviewers(c)
                     if fr:
                         _try(w.assign_audit, c.id, rng.choice(fr))
@@ -163,12 +166,12 @@ def fingerprint(w: World) -> dict:
 # eb337b97… / 5324; 1.2.0 (d40cde2) b9c5d1a1… / 7613 and 40a459d8… / 7078. Each changed with the rule, as a
 # change to settlement, the reserve or membership must, and was re-pinned once, at the implementing commit.
 GOLDEN = {
-    1: {"head": "289dcfc855c19fd17b7236aa2b42cf60a9d7551439646f10e566b25aaa31329d", "entries": 7359,
-        "M": 199499.512852, "Res": 198799.0,
-        "states": {"FINAL_N": 163, "VESTED": 73, "WITHDRAWN": 19, "CANCELLED": 3, "PENDING": 5, "AVAILABLE": 25}},
-    2: {"head": "8b6a2a1ef788ca3c3492b17723b7bae2aa1df9f8ea8062fad37f66ad04856234", "entries": 6175,
-        "M": 199776.577279, "Res": 199198.0,
-        "states": {"FINAL_N": 157, "VESTED": 52, "WITHDRAWN": 19, "AVAILABLE": 30, "PENDING": 3}},
+    1: {"head": "2b23701b993cbf07c5d27395a889c68679df3a2b0b4cb331dd317f2fb9ecf18e", "entries": 8220,
+        "M": 199185.167324, "Res": 198573.564871,
+        "states": {"FINAL_N": 177, "VESTED": 69, "WITHDRAWN": 21, "PENDING": 3, "AVAILABLE": 16, "COMMITTED": 1}},
+    2: {"head": "1f5bf32417583c2252c6934febbb2bb3df8e882f4dd039eac8c8fcef56ab69dd", "entries": 7876,
+        "M": 199100.635282, "Res": 198694.721702,
+        "states": {"FINAL_N": 164, "VESTED": 66, "WITHDRAWN": 13, "PENDING": 1, "COMMITTED": 1, "AVAILABLE": 31}},
 }
 
 
@@ -197,7 +200,7 @@ def test_full_audit_agrees_with_tick_check_and_behaviour_is_unchanged(seed):
     outcomes = {c.plant_outcome for c in w.cases.values() if c.plant is not None}
     assert outcomes >= {"stood", "failure", "spent"}
     assert w.suspensions > 0 and len(w.periods) == 4 and w.m_t == w.p.m_max
-    assert w.fund_in > 0 and abs(w.fund_in - w.fund_out - w.ledger.wallet("DUTY-FUND").U) < 1e-6   # 1.3.0: the fund flows
+    assert w.fund_in > 0 and abs(w.ledger.wallet("DUTY-FUND").W - w.fund_flow) < 1e-6   # 1.3.0/1.4.0: the fund's flows reconcile (I23)
 
 
 def test_scheduled_full_audit_runs_inside_advance():

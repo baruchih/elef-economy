@@ -58,12 +58,18 @@ KEYS = ["careful_wealth", "stamper_wealth", "careful_fees", "stamper_fees", "car
         "duty_fund", "fund_in", "fund_out", "awards_refused_members_only_ticks", "probation_false_approvals",
         "careful_members", "stamper_members", "careful_probationers", "stamper_probationers",
         "careful_fee_uplift", "stamper_fee_uplift", "careful_probation_reviews", "stamper_probation_reviews",
-        "careful_probation_approvals", "stamper_probation_approvals"]
+        "careful_probation_approvals", "stamper_probation_approvals",
+        # 1.4.0: troops
+        "audit_obligations", "troop_reviews", "troop_audits", "troop_deliveries", "troop_delivered_vested",
+        "troop_delivered_final_n", "troop_false_approvals", "troops_active_reviews", "troops_active_deliveries",
+        "troop_summons_reviews", "troop_summons_deliveries", "troop_shortfall_seats", "troop_shortfall_awards",
+        "troop_held_ticks", "troop_ticks_reviews", "troop_ticks_deliveries", "held_market_audit_now",
+        "held_market_audit_max_age", "fund_reserve", "advance_outstanding", "B_bar"]
 SHORT = {"stampers": "s", "fee": "f", "on-duty": "X", "gv": "gv", "p-floor": "pf", "p-start": "p", "p-cap": "pc", "band": "band",
          "fail-rate": "b", "accuracy": "a", "ruling-accuracy": "r", "appeal-policy": "appeal", "dispute-policy": "dispute",
          "dispute-rate": "dr", "assignment": "assign", "rules": "rules", "pi0": "pi", "dial": "dial", "beta-p": "bp",
          "camouflage": "cam", "omega0": "om", "drift-to": "drift", "adapt-rate": "adapt", "fund": "fund", "m-max": "mmax",
-         "stamper-mode": "mode"}
+         "stamper-mode": "mode", "troops": "troops", "w-r": "wR", "w-a": "wA", "c-d-t": "cD", "eps-t": "eT", "a-t": "AT"}
 
 
 def _num(x: str):

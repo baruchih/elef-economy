@@ -1,24 +1,29 @@
 # Agentic-OS — the economic loop
 
 A rulebook for a task → verification → dispute → settlement loop among autonomous actors, and a
-reference implementation of it with no strategies. Ten external reviews. The rulebook is at **1.3.0**:
-the frozen 1.0.1 baseline plus three design revisions made under §19 — the verification deposit is two
+reference implementation of it with no strategies. Ten external reviews. The rulebook is at **1.4.0**:
+the frozen 1.0.1 baseline plus four design revisions made under §19 — the verification deposit is two
 pots (1.1.0, §4.3; after the first scoped run showed careful review paid for its own care), the loop's
 own clock (1.2.0, §7.6, §11.2, §12.2: planted work, the plant record, the effort dial; after runs 2–3
 showed the loop fair only with both challengers present and blind under capture), and inspection is
 membership (1.3.0, §5.2, §11.2, §12.1: a suspended actor wins no award, probation is the way back, a
 cap on members' duty, the dial's raised tax paid to the reviewers; after run 4 showed suspension from
-duty was a reward). Read `HANDOFF.md` first for where things stand and what is proposed next.
+duty was a reward), and the orchestrator's troops (1.4.0, §7.7, §8.3, §12.3: a rolled audit is an obligation
+of the case; a seat unfilled for w_R ticks or a request unawarded for w_A with no free member is taken by a
+troop the engine summons and the duty fund pays, used last, used once, counted in public; after run 5 showed
+a captured market honest and short of hands). Read `HANDOFF.md` first for where things stand and what is
+proposed next.
 
 ## Layout
 
 ```
-spec/agentic_economics_loop_spec_v1_3_1.md   the text in force (1.3.0 + patch 1.3.1; standalone; Appendix A defaults, E errata, F/G/H design revisions 1/2/3)
+spec/agentic_economics_loop_spec_v1_4_0.md   the text in force (standalone; Appendix A defaults, E errata, F/G/H/I design revisions 1–4)
 spec/design_revisions/                       accepted design revisions, verbatim (dr1: two pots; dr2: the loop's own clock; dr3:
-                                             inspection is membership), and the implementer's reviews of dr2's and dr3's candidates
-spec/history/                                v0.1 … v1.3.0 — superseded, kept for provenance only
+                                             inspection is membership; dr4: the orchestrator's troops), and the implementer's
+                                             reviews of dr2–dr4's candidates
+spec/history/                                v0.1 … v1.3.1 — superseded, kept for provenance only
 reviews/                                     R01–R10, one external review per version, with the reviewer's notes
-agentic_sim/                                 the engine, 23 invariants, 20 test files, runner, drivers, results
+agentic_sim/                                 the engine, 25 invariants, 21 test files, runner, drivers, results
 docs/line_map_economic_loop_v1_0_1.txt       text export of the _line map of the loop (the live map is the source)
 HANDOFF.md                                   status, history table, open questions, proposed next step
 ```
@@ -27,13 +32,14 @@ HANDOFF.md                                   status, history table, open questio
 
 ```
 cd agentic_sim
-python3 run_tests.py        # expected: 208 passed, 0 failed, 26 expected failures
+python3 run_tests.py        # expected: 218 passed, 0 failed, 26 expected failures
 python3 -S run_tests.py     # same, with no site-packages
 python3 run_tests.py --record   # same, every World in record mode
-python3 -m pytest tests -q  # expected: 208 passed, 26 xfailed, 0 xpassed (conftest mirrors the runner; pytest is not installed here)
+python3 -m pytest tests -q  # expected: 218 passed, 26 xfailed, 0 xpassed (conftest mirrors the runner; pytest is not installed here)
 python3 -m drivers.load_run --actors 200 --ticks 10000 --on-duty 40 --tasks 30 --record-dir /path  # throughput run
-python3 -m drivers.stamping --actors 20 --ticks 1000 --stampers 0.6 --seed 1 --appeal-policy truthful   # §18.1 q1 under 1.3.0
-python3 -m drivers.stamping --rules 1.2.0 --seed 1   # the 1.2.0 control: membership, the fund and netted plant capital off
+python3 -m drivers.stamping --actors 20 --ticks 1000 --stampers 0.6 --seed 1 --appeal-policy truthful   # §18.1 q1 under 1.4.0
+python3 -m drivers.stamping --rules 1.3.0 --seed 1   # the 1.3.0 control: troops off (the audit obligation holds in every mode)
+python3 -m drivers.stamping --rules 1.2.0 --seed 1   # the 1.2.0 control: also membership, the fund and netted plant capital off
 python3 -m drivers.stamping --rules 1.1.0 --seed 1   # the 1.1.0 control: also no plants, dial off, p 0.5/0.5, Ω float 20
 python3 -m drivers.stamping --stamper-mode reformer --stampers 0.6 --seed 1   # the red team of 1.3.0 §8
 ```
@@ -84,14 +90,15 @@ consolidated into one standalone spec with the accepted revision kept verbatim i
 
 - Every action is validated whole before anything is recorded or moved. A refused action changes
   nothing — tests assert this against full world snapshots. Keep it that way for any new operation.
-- Twenty-three invariants run after every tick (`sim/invariants.py`). A failing invariant is an engine
+- Twenty-five invariants run after every tick (`sim/invariants.py`). A failing invariant is an engine
   bug or a spec contradiction, never a property of a strategy. Two entry points, one set of
   predicates: `check_all` is the full audit from genesis (what tests call; scheduled in a run by
   `Params.full_check_every`); `check_tick` is what `advance` runs, the same predicates over the
   working set — cases and reviews that can still change, plus anything touched since the last tick.
   `tests/test_perf_equivalence.py` holds the proof that they agree and pins the engine's History head
   (re-pinned once for 1.1.0, since settlement changed; once for 1.2.0, since the reserve and the
-  scenario — which now plants work — changed; once for 1.3.0, since membership and the fund changed). Keep new invariants in that shape: a predicate
+  scenario — which now plants work — changed; once for 1.3.0, since membership and the fund changed; once
+  for 1.4.0, since the roll became an obligation and troops are summoned). Keep new invariants in that shape: a predicate
   over an explicit scope.
   The per-tick check is not configurable: `advance` always runs it. `full_check_every` only adds
   the full audit on a cadence (0 = not scheduled; runs call `check_all` at the end), and
@@ -160,7 +167,24 @@ consolidated into one standalone spec with the accepted revision kept verbatim i
   (`drivers.stamping --rules 1.2.0`); `test_v12` asserts it. Two implementer's readings, confirmed as rules
   by patch 1.3.1 (§12.1): the members' cap never falls below the reserve floor V_max + 1 (`_member_cap`;
   the literal ⌈E_t/2⌉ breaks every six-actor world at tick 0), and an outgoing probationer with no free
-  probationer stays rather than hand its seat to a member who would yield it back. `Params.dial=False, pi0=0, p_start=p_cap=0.5, Omega0=20` is the 1.1.0 engine's behaviour
+  probationer stays rather than hand its seat to a member who would yield it back.
+- The orchestrator's troops (1.4.0 §7.7, §8.3, §12.3): `roll_audit(cid)` records a rolled audit as an
+  obligation (the shape of the vacated-audit hold: `audit_obligation`, `open_items`); the driver rolls on
+  `audit_odds(cid)` and never drops a roll; a human ruling ends the obligation. `_summon_troops` runs at
+  step 5 after the seating: a required seat unfilled for `w_R` seating steps with no free eligible on-duty
+  reviewer (`_free_eligible_reviewer`), or a root request unawarded for `w_A` with no free fundable member
+  and β ≥ B̄ (`mean_awarded_price`), gets a troop when the fund can carry cost plus bond (`_fund_can_carry`,
+  with Ω's advance up to `A_T`); the audit of a troop reviewer's approval of a troop's delivery
+  (`market_audit_only`, odds 1, recorded by the engine at the verdict) is never summoned for and is counted
+  as held. A troop is a single-use id `T<n>` whose ledger operations resolve to `DUTY_FUND` through
+  `Ledger.aliases`; it is not an `Actor` (every reviewer lookup is guarded), claims no emission or uplift
+  (excluded from the batch's weights), accepts every verdict on its delivery at the verdict (final N at
+  once), resumes its seat on a resubmission, and is recorded in `World.troops` and the History. The fund
+  repays the advance before and after each batch and pays uplift only from above `R_T` (the trailing peak
+  troop capital). I24, I25 per tick; I9, I22, I23 amended (the fund reconciles against `fund_flow`, every
+  recorded flow into and out of its wallet). `Params.troops=False` is the 1.3.0 engine with the obligation
+  held (`--rules 1.3.0`). A troop reviewer's approval of a member's work carries `min(1, m p_floor)` — a
+  default chosen at implementation, Appendix I. `Params.dial=False, pi0=0, p_start=p_cap=0.5, Omega0=20` is the 1.1.0 engine's behaviour
   (`drivers.stamping --rules 1.1.0`).
 - Money is checked by invariant I1 (conservation) — never silently create or lose credits.
 
@@ -177,5 +201,8 @@ fulfillment the orchestrator knows by construction (bad / good); π_t plant rate
 reserve's bad-plant approval rate against F*, m_t the effort multiplier, X_t the sized reserve, â / r̂ an
 actor's bad-plant approval and good-plant rejection rates against θ_panel / θ_duty, T_susp the suspension. Member / suspended / probationer — an actor's standing in the market (1.3.0); E_t the
 members eligible for duty; duty fund and uplift — the dial's raised tax and its payout to settling reviews.
+Troop — the orchestrator's own reviewer or deliverer, summoned for one seat (1.4.0); ε_T its declared error
+rate; w_R, w_A the seat and award windows; c_T, c^D_T its costs; B̄ the trailing market price; R_T the fund's
+troop reserve; A_T Ω's advance cap; troop-ticks, troop shortfall, held for the market's audit — the readings.
 "Ruling" has two senses: the orchestrator rules on splits inside the procedure; only a human
 *overrides* it (spec §15.2).

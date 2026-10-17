@@ -1,16 +1,16 @@
-# agentic_sim — reference implementation of the 1.3.0 baseline
+# agentic_sim — reference implementation of the 1.4.0 baseline
 
-Built up through v0.4–v0.10, unchanged by the v1.0 consolidation and the v1.0.1 errata, and changed three times
+Built up through v0.4–v0.10, unchanged by the v1.0 consolidation and the v1.0.1 errata, and changed four times
 since, all on October 17, 2026: for design revision 1 (1.1.0: the verification deposit is two pots), design revision 2
-(1.2.0: the loop's own clock — planted work, the plant record, the effort dial) and design revision 3 (1.3.0:
-inspection is membership — see the three sections below). Section numbers in code comments refer to the
-working-spec versions they were written against; `spec/agentic_economics_loop_spec_v1_3_1.md` is the text in force,
+(1.2.0: the loop's own clock — planted work, the plant record, the effort dial), design revision 3 (1.3.0: inspection
+is membership) and design revision 4 (1.4.0: the orchestrator's troops — see the four sections below). Section numbers in code comments refer to the
+working-spec versions they were written against; `spec/agentic_economics_loop_spec_v1_4_0.md` is the text in force,
 and its Appendix A holds the defaults that `sim/params.py` encodes.
 
 The loop's rules as code, with no strategies. Every bid, verdict, appeal, audit
 assignment, ruling and human action is injected by the caller. Each action is validated in
 full before anything is recorded or moved: it either completes under its rules or changes
-nothing. After every tick twenty-three invariants are checked; a failing invariant is a bug in
+nothing. After every tick twenty-five invariants are checked; a failing invariant is a bug in
 the engine or a contradiction in the spec, never a property of a strategy.
 
 ```
@@ -21,7 +21,7 @@ sim/ledger.py       wallets with named lock records, case pools (escrow, expense
 sim/engine.py       cases, reviews, challenges (incl. the two-question ⊥ appeal), delegation,
                     settlement (the two pots, tree closure), Ω claim servicing, rotation, the reviewer view,
                     the tick order
-sim/invariants.py   I1–I23, run after every tick; each says what it establishes
+sim/invariants.py   I1–I25, run after every tick; each says what it establishes
 sim/strategies.py   the decision seams a driver would fill (Protocols only)
 sim/record.py       record mode: journals for the History and the event copy, archives for settled
                     cases and reviews, the paged mapping the engine reads them through
@@ -65,6 +65,13 @@ tests/test_v13.py                   design revision 3 (1.3.0): the award refused
                                     panel seats later; the newcomer pin; the members' cap with probationers taking the initial
                                     seats; the cap's floor and the panel floor by availability; the duty fund's split and payout
                                     by role weight, and the fund off; plant capital on the pots alone; I22/I23 catching — 11
+tests/test_v14.py                   design revision 4 (1.4.0): a rolled audit holds the case and is admitted after the window;
+                                    an audit seat unfilled for w_R taken by a troop and netting the fund +3; summons refusals
+                                    (window, free member, fund short with Ω's advance exhausted, the state's own audit); the
+                                    advance drawn and repaid; plants never summon; a request unawarded for w_A delivered by a
+                                    troop at the market price (+10); the troop accepting every verdict at the verdict; the
+                                    state's own work audited by a member only and the held case counted; uplift only above the
+                                    reserve; I24/I25 catching — 10
 tests/test_perf_equivalence.py      the per-tick check equals the full audit; the working-set engine reproduces the
                                     pinned History head on a seeded random scenario that now plants work (re-pinned once for
                                     1.1.0 and once for 1.2.0); the working set stays bounded — 5
@@ -75,11 +82,11 @@ tests/test_record_mode.py           the record on disk (`Params.record_dir`): th
 run_tests.py        every suite with plain python; pytest reports the same (conftest marks the XFAIL)
 ```
 
-Run: `python3 run_tests.py` — 208 pass, 0 fail, 26 expected failures, each with a stated reason (one original,
+Run: `python3 run_tests.py` — 218 pass, 0 fail, 26 expected failures, each with a stated reason (one original,
 four superseded by the view contract, nineteen on the withdrawn reopening path, one superseded by design
-revision 1, one by design revision 2). With pytest: `python3 -m pytest tests -q` reports 208 passed, 26 xfailed; the
+revision 1, one by design revision 2). With pytest: `python3 -m pytest tests -q` reports 218 passed, 26 xfailed; the
 runner expands pytest parametrization as pytest does, including multi-argument and stacked marks. (Spec Appendix D
-records the count at the v1.0.1 freeze, 156; at 1.1.0, 181; at 1.2.0, 197; at 1.3.0, 208.)
+records the count at the v1.0.1 freeze, 156; at 1.1.0, 181; at 1.2.0, 197; at 1.3.0, 208; at 1.4.0, 218.)
 
 Expected failures are **strict and parameter-exact** in both entry points: `EXPECTED_FAIL_PARAMS` names the
 parameter runs that are expected to fail inside a mixed test (the P/⊥ runs of the eighth review's first case;
@@ -272,7 +279,7 @@ Run 4 under 1.2.0 (`results/studies/1.2.0-clock/`) showed the clock keeping the 
 and suspension from duty being a reward: the honest minority carried 500–800 reviews each at a fee of 2 while the
 suspended stampers, freed from duty, took the awards at 20 and ended richer at 60/40. Design revision 3 (accepted
 as rc.2 with the panel floor's availability clause; `spec/design_revisions/dr3_inspection_is_membership_1.3.0.md`,
-consolidated into `spec/agentic_economics_loop_spec_v1_3_1.md` §5.2, §8.3, §11.2, §12.1–12.2 and Appendix H) makes
+consolidated into `spec/agentic_economics_loop_spec_v1_4_0.md` §5.2, §8.3, §11.2, §12.1–12.2 and Appendix H) makes
 inspection the price of membership. In the engine:
 
 - **Membership.** `Actor.is_member` (neither suspended nor on probation). `award` refuses a non-member before any
@@ -309,6 +316,54 @@ inspection the price of membership. In the engine:
 - **Tests.** `test_v13.py` (11); `test_v12.py` now asserts the 1.2.1 engine mode explicitly; the equivalence
   scenario's goldens were re-pinned once (it now suspends actors from the market, puts them on probation and pays
   the fund). Reviewer tests untouched and passing.
+
+## Design revision 4 — the orchestrator's troops (1.4.0, October 17, 2026)
+
+Run 5 under 1.3.0 (`results/studies/1.3.0-membership/`) showed a captured fixed population honest and short of
+hands — awards unfilled for want of a free member in 800–900 of 1,000 ticks, and probationers' false approvals
+reaching customers because their pinned audits found no member free (a leak older than probation: the drivers
+had dropped a rolled audit that found no auditor since run 1). Design revision 4 (accepted as rc.2 with the
+external reviewer's note that a troop accepts a verdict at the verdict; `spec/design_revisions/
+dr4_the_orchestrators_troops_1.4.0.md`, consolidated into `spec/agentic_economics_loop_spec_v1_4_0.md` §7.7,
+§8.3, §12.3 and Appendix I) gives the orchestrator servers of its own. In the engine:
+
+- **The obligation.** `roll_audit(cid)` records a rolled audit as an obligation of the case — `audit_obligation`
+  with `open_items` up by one, the shape of the vacated-audit hold — so the window cannot close and the case
+  cannot vest until an audit completes; `assign_audit` discharges it and is admitted after the window for it; a
+  human ruling ends it (I18); `waive_audit` refuses the state's own work. `audit_odds(cid)` is what the driver
+  rolls: 1 for a troop reviewer's approval of a troop's delivery (`market_audit_only`, recorded by the engine at
+  the verdict), the reviewer's applied odds otherwise, `min(1, m p_floor)` for a troop reviewer's approval of a
+  member's work (a default chosen at implementation). The stamping driver rolls, records, and never drops.
+- **Troops.** `World.troops` holds each troop's kind, case, review, summons and release ticks, cost and lock. A
+  troop id (`T<n>`) is aliased to the fund's wallet in the ledger (`Ledger.aliases`, `resolve`), so bonds,
+  guarantees, costs, reimbursements, fees and prices land on `DUTY_FUND` and I15 reconciles through the alias;
+  every reviewer lookup in the engine is guarded for a non-actor (`_record_outcome`, `_release_attached_reviewer`,
+  `_overturn_review`, `_withdraw_review`, settlement). A troop's weight is excluded from the batch's emission and
+  uplift; a troop's delivery is final N at any verdict but F (`_initial_verdict`), its `respond` and `post_nested`
+  are refused, and a resumed review re-seats it.
+- **Summons.** `_summon_troops(tick)` at step 5 after `_rotate`: per live case (never a plant, never a ruled case),
+  the audit seat (since the roll or the vacate), the initial seat (`seat_since`, set at submission and at an
+  initial review's withdrawal), the panel seats (`challenge["seat_since"]`), each after `w_R` seating steps with
+  no free eligible on-duty reviewer (`_free_eligible_reviewer`), bounded by V_max; the award after `w_A` with no
+  free fundable member (`_free_fundable_member`) and β ≥ B̄ (`mean_awarded_price`, the period's mean awarded price,
+  the last period's, else the ceiling). `_fund_can_carry` draws Ω's advance up to `A_T`; `_summon_review` /
+  `_summon_delivery` purchase the cost (`ledger.purchase` by the fund), lock the bond or guarantee, create the
+  seat or the award, and record the summons in the History. The troop-on-troop audit seat is never summoned for
+  and counted as held. Counters: summons, shortfall (seats, awards, held ticks), troop-ticks, held for the
+  market's audit (now, max age); in the period record with the fund's balance, reserve and advance.
+- **The fund's order.** `_repay_advance` before the batch (and after it, from the batch's inflows); uplift from
+  `max(0, fund.U − R_T)` where `R_T` is the larger of this and the last period's peak troop capital; the engine
+  flags an uplift paid from below the reserve (I23).
+- **I24** (one seat per troop, not an actor, no plant, no emission or uplift, no troop-on-troop audit, delivery
+  within the ceiling) and **I25** (no vest with an obligation outstanding; the state's own work vests only after a
+  member's audit) per tick and in the full audit; I9, I22, I23 amended.
+- **Drivers.** `drivers/view.py`: `roll_audit`, `audit_odds`, `is_troop`, `troops()`. `drivers/stamping.py`:
+  rolls on `audit_odds` and records the roll; supplies a troop's verdict (truth w.p. 1 − ε_T, no cost) and
+  submission (at its own τ); `--rules 1.4.0|1.3.0|1.2.0|1.1.0`, `--troops`, `--eps-t`, `--w-r`, `--w-a`, `--c-t`,
+  `--c-d-t`, `--a-t`; troop columns (summons, troop-ticks, shortfall, held, fund reserve, advance, B̄, troop
+  deliveries by outcome, troop false approvals, obligations). `drivers/sweep.py` carries them.
+- **Tests.** `test_v14.py` (10); the equivalence scenario rolls audits as obligations and pays troops nothing
+  at completion, and its goldens were re-pinned once. Reviewer tests untouched and passing.
 
 ## The expected failure
 

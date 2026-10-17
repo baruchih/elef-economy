@@ -788,7 +788,7 @@ the reserve's floor V_max + 1, as the panel floor yields to the cap; the differe
 confined to memberships of four to seven, where the literal cap would leave two or three members free. One line
 (`World._member_cap`). (2) An outgoing probationer whose turn ends with no free probationer stays, rather than
 hand its seat to a member whom the next tick's "probationers first" would displace back. One branch of the
-rotation. Both are the implementer's; the alternative to each is one edit. **Confirmed** as patch 1.3.1 (October 17, 2026; the sentences of design revision 4 rc.1's Appendix A), applied to `spec/agentic_economics_loop_spec_v1_3_1.md`; 1.3.0 to history.
+rotation. Both are the implementer's; the alternative to each is one edit. **Confirmed** as patch 1.3.1 (October 17, 2026; the sentences of design revision 4 rc.1's Appendix A), applied to `spec/agentic_economics_loop_spec_v1_4_0.md`; 1.3.0 to history.
 
 **Engine (commit after `d8d3834`).** Membership on award with `member_at_award`; probation with the pin, the
 re-check on any failure, readmission on the trailing record with the since-suspension counter; two kinds of
@@ -798,7 +798,7 @@ settlement batch; plant capital on the pots alone with no escrow and no guarante
 I15 exempting a plant's guarantee. `test_v13` (11); `test_v12` pinned to the 1.2.1 engine mode
 (`Params(membership=False, duty_fund=False, net_plant_capital=False)`, the stamping driver's `--rules 1.2.0`);
 goldens re-pinned once. 208 passed, 26 expected failures in all three modes. Consolidated text
-`spec/agentic_economics_loop_spec_v1_3_1.md` (§2.1, §4.1, §5.2, §7.1, §7.6, §8.3, §10.4, §11.2, §12, §16, §17,
+`spec/agentic_economics_loop_spec_v1_4_0.md` (§2.1, §4.1, §5.2, §7.1, §7.6, §8.3, §10.4, §11.2, §12, §16, §17,
 §18.1, §20, Appendices A–D, H); 1.2.1 to history.
 
 **Driver.** Offers to members only; `--rules 1.3.0|1.2.0|1.1.0`, `--fund on|off`, `--m-max`, `--stamper-mode
@@ -885,6 +885,67 @@ member; member seats are sized on demand but the members are busy delivering; (3
 readings above (the cap's floor; the outgoing probationer stays) need confirming or replacing. The reviewer
 notes are `agentic_sim/results/studies/1.3.0-membership-notes-for-reviewer.md`. Untouched: §18.1 questions 2,
 4, 5, 7, 10.
+
+## Design revision 4 — the orchestrator's troops (1.4.0, October 17, 2026)
+
+The fourth use of §19's path, the first to add a participant, and the remedy revision 3 reserved. Run 5's
+two shortages — the audit nobody was free to take when a probationer approved, the award nobody was free to
+accept when a customer posted — are one shortage: the market's only source of capacity was its own members.
+Baruchi's answer: the orchestrator is like the government; it has **troops** — ELEF's own servers, honest by
+construction, not paid as reviewers, used as few as possible and retracted as early as possible. The
+revision: a **rolled audit is an obligation of the case** (the window does not close until an audit completes;
+the drivers had dropped a roll that found no auditor since run 1 — a conformance correction as much as a
+rule); a required seat unfilled for w_R ticks, or a root request unawarded for w_A with no free fundable
+member, is taken by a troop **the engine summons** when the duty fund can carry its cost and bond, with Ω's
+advance up to A_T; the troop's verdict and delivery are the driver's declared disposition (truth w.p. 1 − ε_T,
+failure at b); the **fund is the troop's wallet** and carries troops first — costs and locks at summons, the
+advance repaid, then uplift from above the troops' reserve R_T; a troop claims no emission or uplift, never
+touches a plant, never audits a troop reviewer's approval of a troop's delivery (that seat waits for a member
+and is counted), accepts every verdict on its own work **at the verdict** (the external reviewer's note at
+acceptance), and is counted in public: troop-ticks, troop shortfall, cases held for the market's audit.
+Patch **1.3.1** (the two run-5 readings confirmed) was applied first.
+
+**Reviews.** rc.1 (`spec/design_revisions/dr4_1.4.0-rc.1-review.md`): "unverified by the market" let a
+troop-reviewed troop delivery vest unaudited against its own §2.2 and I25; who summons and who answers was
+unstated; the troop's cost was called a burn; the held case's fate was unsaid; why minor; w_R = d̄ = 2 where
+reviews take one tick, B̄ = β in the drivers, no troop audits the state's own work. rc.2 adopted all of it and
+the smaller points (the obligation as a conformance correction with the controls re-run, panels with troops,
+A_T named, Hypothesis 4's size). The external reviewer: "Clean. Nothing to change in the text" — one note,
+acceptance at the verdict — "accept rc.2, implement."
+
+**Chosen at implementation (Appendix I).** A troop reviewer's approval of a member's work carries
+min(1, m p_floor) — the odds a reviewer whose record stood would carry — since a troop has no p_j. A seat's
+wait is counted in seating steps. A troop resumes its seat when its P or ⊥ is answered by a resubmission.
+I25's pinned-approval clause is the driver's conformance, not an engine predicate: the engine cannot hold an
+obligation an orchestrator never rolled, and the reviewer tests are such worlds — the engine does record the
+obligation itself for the state's own work, where odds 1 is a rule and not a roll.
+
+**Engine (commit after `0589ef2`).** `roll_audit`, `audit_odds`; troop ids aliased to the fund's wallet in the
+ledger (I15 reconciles through the alias); `_summon_troops` at step 5 after the seating with the windows, the
+free-reviewer and free-member tests, β ≥ B̄, the fund's carrying capacity and the advance; the troop's cost
+as a purchase; emission and uplift exclusion; the fund's order; a troop's delivery final N at any verdict but
+F; every reviewer lookup guarded; I24, I25; I9, I22, I23 amended. `test_v14` (10); the equivalence scenario
+rolls as obligations and summons troops; goldens re-pinned once. 218 passed, 26 expected failures.
+Consolidated text `spec/agentic_economics_loop_spec_v1_4_0.md` (§1, §2.1, §2.4, §4.4, §5.2, §7.1, §7.7, §8.3,
+§10.4, §12.3, §16, §17, §18.1, §20, Appendices A–D, I); 1.3.1 to history.
+
+**Driver.** Rolls on `audit_odds`, records the roll, never drops it; supplies troop verdicts and submissions;
+`--rules 1.4.0|1.3.0|1.2.0|1.1.0` (the obligation holds in every mode), `--troops`, `--eps-t`, `--w-r`,
+`--w-a`, `--c-t`, `--c-d-t`, `--a-t`; troop columns. One smoke run at 60/40, seed 1, truthful appeals: vested
+2,321 (1.3.0 with the roll held: 1,887; 1.2.0 in run 4: 2,410); troops delivered 1,116 tasks (806 vested, 290
+final N — b plus the careful reviewers' false rejections, accepted at the verdict) and took 1,444 review seats;
+false approvals 35, of them 6 by troops and 6 by probationers; the fund paid 10,456 in uplift — and **refused
+8,739 award summonses and 2,686 seat summonses for want of funds**: the uplift drains the fund down to R_T
+every batch, and R_T is the peak capital of troops that were fundable, so the reserve cannot grow past what it
+has already carried. The treasury, not the market's need, sets the state's share. One seed, no conclusion —
+but the first thing run 6 will measure.
+
+**Run 6 — the revision's §8 (next).** The controls re-run with the roll held first (1.2.0 and 1.3.0 at the
+run-5 cells, troops off); then the tipping point under 1.4.0 against them (vesting, the state's share,
+probationers' false approvals, the gap's sign, the fund); adaptive 1.4.0 against 1.3.0 at 3,000 ticks
+(convergence and troop-ticks to zero); drift at m_max ∈ {2, 4}; the windows w_R × w_A at 60/40 and A_T at
+80/20; c^D_T and ε_T; the red team — camouflage, the reformer, the all-troop corner. Results to
+`agentic_sim/results/studies/1.4.0-troops/`.
 
 ## Maps
 

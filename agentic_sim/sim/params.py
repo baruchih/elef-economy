@@ -77,6 +77,18 @@ class Params:
     duty_fund: bool = True     # (m_t − 1) ω_0 B of each award goes to the duty fund, paid out as a fee uplift (§2.4)
     net_plant_capital: bool = True   # a plant ties up φ^E + φ^F only; award and guarantee are notional (§2.5)
 
+    # Design revision 4 (1.4.0): the orchestrator's troops. The audit obligation (a rolled audit holds the
+    # case) is in force whatever `troops` says — it is a conformance correction of the drivers' dropped
+    # rolls as much as a rule. With `troops` off no seat or award is ever summoned for.
+    troops: bool = True
+    eps_T: float = 0.05        # a troop reviewer's error rate — the driver's disposition, declared here as the default
+    w_R: int = 2               # ticks a required review seat waits unfilled before a troop takes it
+    w_A: int = 2               # ticks a root request waits unawarded (no free fundable member) before a troop delivers it
+    c_T: float = 3.0           # a troop review's cost, purchased from the fund at summons (credits at v ≈ 1)
+    c_D_T: float = 10.0        # a troop delivery's cost, likewise
+    A_T: float = 100.0         # Ω's advance to the fund, outstanding at most
+    tau_T: int = 2             # a troop's delivery time
+
     # Reliability and duty credit windows (§11)
     rho_window: int = 100      # settled outcomes
     kappa_window: int = 100    # ticks

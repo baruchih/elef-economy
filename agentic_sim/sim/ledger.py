@@ -191,6 +191,9 @@ class Ledger:
         self.halted: bool = False
         self.wallets: dict[str, Wallet] = {}
         self.locks: dict[str, dict[str, float]] = {}
+        # 1.4.0: a troop holds no wallet of its own — every operation on a troop id resolves to the
+        # duty fund's wallet and lock records (the troop id stays on the event, so the record says who)
+        self.aliases: dict[str, str] = {}
         self.pools: dict[str, CasePool] = {}
         # the event copy: a list in memory, or — given a path — a Journal written through to it
         if events_path is None:
@@ -273,20 +276,24 @@ class Ledger:
         return self._recon_M
 
     # ---- wallets and lock records ----------------------------------------
+    def resolve(self, wid: str) -> str:
+        return self.aliases.get(wid, wid)
+
     def wallet(self, wid: str) -> Wallet:
+        wid = self.aliases.get(wid, wid)
         if wid not in self.wallets:
             self.wallets[wid] = Wallet(wid)
         return self.wallets[wid]
 
     def lock_record(self, wid: str, key: str) -> float:
-        return self.locks.get(wid, {}).get(key, 0.0)
+        return self.locks.get(self.resolve(wid), {}).get(key, 0.0)
 
     def _add_lock(self, wid, key, amt):
-        d = self.locks.setdefault(wid, {})
+        d = self.locks.setdefault(self.resolve(wid), {})
         d[key] = d.get(key, 0.0) + amt
 
     def _take_lock(self, wid, key, amt):
-        d = self.locks.setdefault(wid, {})
+        d = self.locks.setdefault(self.resolve(wid), {})
         have = d.get(key, 0.0)
         if have + 1e-9 < amt:
             raise LedgerError(f"{wid} lock {key} holds {have}, cannot take {amt}")

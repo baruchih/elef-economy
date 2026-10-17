@@ -350,8 +350,51 @@ default's bonds on their own 5% errors. At 10/90 the same bond lowers false appr
 **What this says for the next runs.** Within the declared regime no default rescues the 10/90 economy:
 the reserve is stamper-on-stamper and no knob changes who audits whom. The band is the cheap lever and
 has no capacity cost; the floor and the bond both spend reviewer capacity, which at X = 4 is the binding
-constraint — the X = 8 cells of the rerun are the control for that. Next, per the revision's §8: the
-appeals run (which measures the a of §7.3, the term stampers never pay), then the requester-dispute run.
+constraint — the X = 8 cells of the rerun are the control for that.
+
+## Appeals run — the term stampers never pay (October 17, 2026)
+
+`drivers/sweep.py`, 4 cells × 20 seeds = 80 runs, same declaration and defaults (X = 4, f = 2), with the
+actor's response to an N now declared by `--appeal-policy`: **truthful** — appeal an N on work that is
+truly fulfilled, accept otherwise; **always** — appeal every N. The court fee D = 2 is paid when the
+actor can fund it (it always could). Appeal reviews go to whoever the reserve makes eligible, stampers
+included, and answer by disposition; splits are ruled by the truth with probability 0.8. Results in
+`agentic_sim/results/studies/1.1.0-stamping/appeals/` (summary `runs/20261017-111325-appeals/`).
+Per actor, means over 20 seeds; the "none" rows are the rerun's default cells:
+
+| cell | careful | stamper | stamper − careful (se) | richer | careful bonds lost | a = false N appealed and overturned | false approvals | vested |
+|---|---|---|---|---|---|---|---|---|
+| 50/50, none | 3,275 | 3,102 | −173 (73) | 6 of 20 | 9.9 | — | 284 | 2,596 |
+| **50/50, truthful** | 3,269 | 3,129 | **−140 (120)** | 8 of 20 | 46.4 | **0.98** (65.6 of 66.6) | 248 | 2,606 |
+| 50/50, always | 2,990 | 2,938 | −53 (69) | 9 of 20 | 108.9 | 0.98 | 325 | 2,367 |
+| 10/90, none | 3,687 | 3,626 | −61 (89) | 8 of 20 | 14.0 | — | 522 | 2,881 |
+| 10/90, truthful | 3,460 | 3,639 | **+179 (120)** | 13 of 20 | 52.8 | 0.98 | 509 | 2,875 |
+| 10/90, always | 2,879 | 3,596 | **+717 (67)** | 19 of 20 | 483.1 | 0.98 | 535 | 2,784 |
+
+**a is about 1, and the §7.3 condition then fails at the effective catch rate.** With truthful appeals,
+98% of false rejections are appealed and overturned. The careful reviewer's own 5% error on the 80% of
+work that is good is therefore paid in full — its bond, its fee, and the court fee — while a stamper's
+false approvals are caught 3% of the time. §7.3's sign condition, pb > 0.04 a, needs an effective pb of
+about 0.04; the run's is 0.03. The money gap at 50/50 shrinks from −173 to −140 and is no longer
+distinguishable from zero (se 120); at 10/90 it turns against the careful reviewers (+179, 13 of 20),
+whose ρ falls below the stampers' (0.96 against 0.97) because their errors are the ones that get
+adjudicated. Careful reviewers forfeit five times the bonds they did without appeals (46 against 10).
+
+**Frivolous appeals turn the appeal into a weapon in a stamper-majority reserve.** With every N appealed
+at 10/90, the appeal panel is drawn from stampers and answers F: 147 of 155 true rejections are
+overturned, each careful actor is overturned 96 times and forfeits 483 in bonds, ends with ρ 0.89
+against 0.98, and the stampers end richer by 717 in 19 of 20 seeds. Only 30 of 3,000 tasks reach final N;
+label accuracy under the procedural grade falls to 0.76. At 50/50 the same policy files 320 appeals and
+wins 40% of the unfounded ones, the reserve spends 8,100 review-ticks waiting, awards go unfilled in 980
+ticks and both populations end poorer.
+
+**What this says.** Design revision 1 removed the fee penalty on care; the appeal path is the next
+structural asymmetry: a careful reviewer's error is appealable by the party who knows the truth, a
+stamper's error is found only by an audit at the floor rate, and the appeal panel is as careless as the
+reserve. The run measured a ≈ 1, so the appeals term is the full ε(1−b)(f̄ + G^V) and the question moves
+to the catch rate: the audit floor at X = 4 cannot be raised without starving the reserve (default sweep),
+so either the reserve must be larger or the panel must be chosen by ρ. Under §19 these are evaluations and
+design questions to write up, not patches. Next: the requester-dispute run.
 
 The engine and its tests stay as they are; a driver that needs an engine change has found either a
 conformance bug (fix + regression) or a design question (write it up, do not patch around it).

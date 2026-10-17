@@ -1198,6 +1198,71 @@ price, the uplift is throttled. *The reformer* is readmitted 28 (60/40) and 56 (
 The reviewer notes are `agentic_sim/results/studies/1.5.0-reserve-notes-for-reviewer.md`. Untouched: §18.1
 questions 2, 4, 5, 7, 10.
 
+## Design revision 6 — auto-scale (1.6.0, October 17, 2026)
+
+The sixth use of §19's path and the largest since 1.3.0: five rules, each behind a flag so that run 8 can say which
+did what. Run 7's finding was that the reviewing seat, not the treasury, caps the market — reviews that found no
+reviewer 7,300–11,400 case-ticks a run, the open-case queue ~300, vesting pinned near the posting-rate ceiling whoever
+delivered, twelve probationers idle while reviews waited — that the demand stock counted a never-expiring queue, that
+the one-period reset saw-toothed, and that the probation leak was the plant record's detection lag on the auditor
+(55–75% at fixed splits, 73–80% under drift). Baruchi's reading: a request on hold is a problem for the network's
+rating — re-queue it with priority and have the orchestrator take some of the blame in money; and if ELEF controls the
+network and the servers, allow auto-scale. The design reviewer's rc.1 was reviewed (`spec/design_revisions/
+dr6_1.6.0-rc.1-review.md`: seven points — the determined-record panel rule refused every panel seat in a world that had
+not planted, every reviewer test and the first period of every run; Ω's order named a plant cap the engine lacks and
+would spend the honesty clock under stress; Hypothesis 1 asked for vesting above the 2.4 ceiling, the seat costs the
+queue not the rate; the delivery check's advance; a clock with no verdict; withdrawal is of unawarded requests; the cold
+start is every run's first period), rc.2 adopted all seven (`dr6_1.6.0-rc.2-review.md`: implementable as it stands),
+and the design reviewer relayed acceptance: "accept rc.2, implement … the one-factor-at-a-time cells first, every
+comparison against run 7 read from the second period on".
+
+**The rules (§3.1, §6.1, §7.1, §10.4, §12.1, §12.3, I26).** *The service clock:* every root request is timed from
+posting to its first verdict or its final without one, oldest first in every pass; past T_s = 8 the orchestrator owes
+the requester r_s = ω₀B a tick, capped at B, from Ω when the clock stops or as Ω's liability; a request withdrawn before
+award is owed nothing; the clock runs only while β ≥ B̄. *Auto-scale:* A_T removed — Ω backs the fund from its balance
+above a plant reserve, in a stated order (the reserve; liabilities older than a period; inspection seats, then
+deliveries; younger liabilities); review seats are summoned before deliveries; a delivery is summoned only when the fund
+plus Ω's available advance can carry its own 20 and two review seats (36), drawing only its own shortfall. *Seat the
+queue:* the reserve target is at least the reviews waiting, by kind, plus the period's initial rate, at every rotation;
+probationers are seated as far as the queue needs. *A panel seat requires a determined record* (≥ n_min bad plants
+seen), dormant until the world's first plant is adjudicated — so in every run the first period's panels are the
+state's, and §8 reads from the second period on. *R_T over two periods* (the 1.4.0 reading restored). The members' duty
+cap keeps its rule and its default is swept against ⌈2E_t/3⌉ and E_t for Baruchi's decision; Ω₀ 300 against 1,000;
+θ_panel and the record window for the drift lag. Rejected and recorded: requests expire; members earn less while the
+state scales; a rebate before anything was bought; lateness measured to the award.
+
+**Implemented** (`spec/agentic_economics_loop_spec_v1_6_0.md`; 1.5.0 to history; rc.2 verbatim as
+`spec/design_revisions/dr6_auto_scale_1.6.0.md`; Appendix K; I26; §18.1 Q11 restated, Q15 and Q16 new). Engine: the
+clock in the summons pass with three stops (`_initial_verdict`, `_finalize_N`, and `_vest` for a human's override with
+no initial verdict — the case the text's two stops did not name), the rebate transfer and the liability list serviced
+oldest first before and after the pass, the I10 exemption for a liability serviced after vesting; `_omega_available()`
+above `_plant_reserve()`; the pass in two loops with the priority check; the delivery check; `_reserve_target()` and
+`_waiting_reviews()` by kind at every rotation; `panel_eligible` with determination behind `first_plant_adjudicated_at`;
+`R_T` over two periods; `duty_cap_frac`. I9, I22, I23, I24 amended; I26 new. `test_v16` (11); suite 236 + 26; goldens
+re-pinned once; reviewer tests untouched and passing; `test_v12`–`test_v15` pinned to their revisions' mode. Driver:
+`--rules 1.6.0` with one flag per rule, `--duty-cap`, `--t-s`, `--plant-reserve`, `--beta-low/--beta-low-share`, the
+rating and Ω columns.
+
+**Three implementer's readings, flagged.** (1) *The plant reserve's horizon.* The text says π_t × initial rate ×
+(φ^E+φ^F) × *the ticks remaining in the period*; a plant's pots return to Ω at its closure, so the clock's need at once
+is a plant's life of plants. The literal horizon at 60/40 is about 360 — more than Ω₀ = 300 — and the state cannot
+advance at all; the engine's default is a plant's life, W + T_review = 15 ticks (`plant_reserve_life`), and the literal
+formula is kept as the declared cell `--plant-reserve period`, run in §8.1 beside the others. This is my own rc.1 point
+2 adopted too literally, and the reviewer should rule on it. (2) *Reviews waiting by kind*, I9 per kind under the cap.
+(3) *The 1.5.0 control* turns all five flags off with A_T binding and the one-period reset. A first smoke at 60/40 seed
+1, for orientation only: on-time share 0.40, mean lateness 46, Ω's liabilities 28,000 against Ω's balance of 11, troop
+deliveries 1,102 summoned and 827 vested (1.5.0: 719), reviews unassigned 7,557 case-ticks still, the queue 256 — the
+seat is still short because the reserve can only seat eligible actors and after the stampers' suspensions there are
+few, and because one idle member at the seating blocks every award summons however long the queue. Read with the sweeps.
+
+**Run 8 — the revision's §8 (next).** One factor at a time at 60/40 against `--rules 1.5.0` (each flag on alone, and the
+literal plant-reserve horizon); reproduce §6 at 60/40 and 80/20 at both Ω₀; the tipping point under 1.6.0 against run 7
+read from the second period on — reviews waiting, the open-case queue, vesting against the ceiling, the state's share,
+the on-time share and lateness (Q15), rebates, Ω's minimum and the plant reserve (Q16), plants unfunded (must be zero),
+members' awards, false approvals by route and kind (Q14); the cap ⌈E_t/2⌉ / ⌈2E_t/3⌉ / E_t at 60/40 and 80/20; Ω₀ ×
+T_s; the windows; drift with θ_panel / window; adaptive; the ramp by period; the red team (the below-market poster, a
+flood, a withdrawer, the decliner, the reformer, camouflage). Results to `agentic_sim/results/studies/1.6.0-autoscale/`.
+
 ## Maps
 
 Two `_line` artifacts in project Agentic-OS (`c54120a6-aaff-40f7-8a9f-3667da542879`):

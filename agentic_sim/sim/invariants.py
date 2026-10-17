@@ -189,10 +189,11 @@ def I9_reserve(w):
     if not w.enforce_reserve:
         return
     n = sum(1 for a in w.actors.values() if a.on_duty)
-    if n < w.X_t and not w._pool_exhausted and not w._reserve_dirty:
-        _fail(f"I9 reserve {n} < X_t={w.X_t} while eligible actors were free to seat")
-    if n < w.X_t and not w._reserve_dirty and w.reserve_shortfall_now != w.X_t - n:
-        _fail(f"I9 reserve short by {w.X_t - n} but the shortfall counted is {w.reserve_shortfall_now}")
+    X = max(w.X_t, w._x_target) if w.p.seat_the_queue else w.X_t     # 1.6.0 §2.3: at least the reviews waiting
+    if n < X and not w._pool_exhausted and not w._reserve_dirty:
+        _fail(f"I9 reserve {n} < target {X} (X_t={w.X_t}) while eligible actors were free to seat")
+    if n < X and not w._reserve_dirty and w.reserve_shortfall_now != X - n:
+        _fail(f"I9 reserve short by {X - n} but the shortfall counted is {w.reserve_shortfall_now}")
 
 
 def _I10_event(e, c):
@@ -653,6 +654,11 @@ def I22_membership(w, reviews=None):
     for r in _reviews(w, reviews):
         if r.status == "open" and r.role in ("appeal", "audit") and r.reviewer in w.actors and w.actors[r.reviewer].probation:
             _fail(f"I22 probationer {r.reviewer} holds a panel seat ({r.role} {r.id})")
+        # 1.6.0 §2.4: once the world's first plant is adjudicated, no undetermined member holds a panel seat
+        if r.status == "open" and r.role in ("appeal", "audit") and r.reviewer in w.actors and w.p.panel_determined \
+                and w.first_plant_adjudicated_at is not None and r.t_assign >= w.first_plant_adjudicated_at \
+                and len(w.actors[r.reviewer].plant_bad) < w.p.n_min:
+            _fail(f"I22 undetermined member {r.reviewer} holds a panel seat ({r.role} {r.id}) after the first plant")
 
 
 def _I22_cases(w, cases):
@@ -680,6 +686,9 @@ def I23_load_and_fund(w):
             _fail(f"I23 {len(on_m)} members on duty above the cap {cap} with {len(idle_above)} idle")
         if len(on_m) < floor and not w._member_pool_exhausted and not w._reserve_dirty:
             _fail(f"I23 {len(on_m)} members on duty below the panel floor {floor} while members were free to seat")
+        # 1.6.0 §2.3: member seats at least the panel seats waiting, within the cap, while members were free to seat
+        if p.seat_the_queue and len(on_m) < min(cap, w._waiting_panel) and not w._member_pool_exhausted and not w._reserve_dirty:
+            _fail(f"I23 {len(on_m)} members on duty with {w._waiting_panel} panel seats waiting under the cap {cap}")
     if p.duty_fund:
         f = w.ledger.wallet(DUTY_FUND)
         # 1.4.0: the fund's locks are troops' bonds and guarantees and nothing else (I15 reconciles them)
@@ -699,8 +708,10 @@ def I23_load_and_fund(w):
         # and advances in; costs purchased, uplifts, bond burns, forfeits and repayments out)
         if abs(f.W - w.fund_flow) > _tol(w.ledger.M):
             _fail(f"I23 duty fund {f.W} ≠ its recorded flows {w.fund_flow}")
-        if w.advance_outstanding > p.A_T + EPS or w.advance_outstanding < -EPS:
+        if not p.omega_backs_fund and (w.advance_outstanding > p.A_T + EPS or w.advance_outstanding < -EPS):
             _fail(f"I23 Ω's advance outstanding {w.advance_outstanding} outside [0, A_T={p.A_T}]")
+        if w.advance_outstanding < -EPS:
+            _fail(f"I23 Ω's advance outstanding {w.advance_outstanding} negative")
         if p.reserve_demand:                    # 1.5.0 §2.1: the reserve is at least the capital held and the last demand
             held = sum(t["cost"] + t["lock"] for t in w.troops.values() if t["t_release"] is None)
             if w.R_T + EPS < held:
@@ -709,6 +720,40 @@ def I23_load_and_fund(w):
                 _fail(f"I23 reserve {w.R_T} below the demand at the last seating {w.troop_demand_now}")
         if w._uplift_violation:
             _fail(f"I23 {w._uplift_violation}")
+
+
+def I26_service(w, cases=None):
+    """1.6.0 §2.1: every root request's clock stops once, at its first verdict or at its final without one; the rebate
+    owed is min(r_s · ticks late, B), paid or carried as Ω's liability — paid plus outstanding equals owed, a bookkeeping
+    identity over the counter; waiting items are served oldest-first in every summons pass (a younger case summoned after
+    an older one of the same kind was refused for funds is the violation)."""
+    if not w.p.service_clock:
+        return
+    if w._priority_violation:
+        _fail(f"I26 {w._priority_violation}")
+    outstanding = sum(l["amount"] for l in w.omega_liabilities)
+    if abs(w.rebates_owed - (w.rebates_paid + w.liabilities_accrued)) > EPS:
+        _fail(f"I26 rebates owed {w.rebates_owed} ≠ paid {w.rebates_paid} + liabilities accrued {w.liabilities_accrued}")
+    if abs(outstanding - (w.liabilities_accrued - w.liabilities_paid)) > EPS:
+        _fail(f"I26 liabilities outstanding {outstanding} ≠ accrued {w.liabilities_accrued} − paid {w.liabilities_paid}")
+    for c in _cases(w, cases):
+        if not c.is_root or c.plant is not None:
+            continue
+        if c.clock_stopped_at is not None:
+            B = c.B if c.B else 0.0
+            r_s = w.p.r_s if w.p.r_s > 0 else w.p.omega_rate * B
+            owed = min(r_s * c.late_ticks, B) if B > 0 else 0.0
+            if abs(c.rebate_owed - owed) > EPS:
+                _fail(f"I26 {c.id} rebate owed {c.rebate_owed} ≠ min(r_s·late, B) = {owed}")
+            if c.rebate_paid > c.rebate_owed + EPS:
+                _fail(f"I26 {c.id} rebate paid {c.rebate_paid} above what was owed {c.rebate_owed}")
+            if c.late_ticks != max(0, c.clock_ticks - w.p.T_s):
+                _fail(f"I26 {c.id} lateness {c.late_ticks} ≠ clock {c.clock_ticks} − T_s {w.p.T_s}")
+        elif c.first_verdict_at is not None or (c.final and c.state in ("FINAL_N", "VESTED")):
+            if w.p.service_clock and c.B:
+                _fail(f"I26 {c.id} reached a verdict or a final without its clock stopping")
+        if c.state == "WITHDRAWN" and c.rebate_owed > EPS:
+            _fail(f"I26 {c.id} withdrawn before award yet owed a rebate")
 
 
 def I24_troops(w, cases=None):
@@ -833,6 +878,7 @@ def check_all(w):
     I22_membership(w)
     I23_load_and_fund(w)
     I24_troops(w)
+    I26_service(w)
     I16_history_is_authoritative(w)
 
 
@@ -889,6 +935,7 @@ def check_tick(w):
     I23_load_and_fund(w)
     I24_troops(w)
     I25_the_obligation(w, cases)
+    I26_service(w, cases)
 
     w._events_checked = len(w.ledger.events)
     w._prune_working_set()

@@ -139,15 +139,22 @@ class Stamping:
         self.kind = {aid: (STAMPER if i < n_st else CAREFUL) for i, aid in enumerate(ids)}
         if a.rules == "1.1.0":                   # the control: the 1.1.0 engine's behaviour, declared
             a.pi0, a.dial, a.p_start, a.p_cap, a.omega0 = 0.0, "off", 0.5, 0.5, 20.0
-        rev3 = a.rules in ("1.3.0", "1.4.0", "1.5.0")     # 1.2.0 and 1.1.0: membership, the fund and netted capital off
-        rev4 = a.rules in ("1.4.0", "1.5.0") and a.troops == "on"
-        rev5 = a.rules == "1.5.0"                # 1.4.0: the reserve is the peak capital carried, over two periods
+        rev3 = a.rules in ("1.3.0", "1.4.0", "1.5.0", "1.6.0")     # 1.2.0 and 1.1.0: membership, the fund and netted capital off
+        rev4 = a.rules in ("1.4.0", "1.5.0", "1.6.0") and a.troops == "on"
+        rev5 = a.rules in ("1.5.0", "1.6.0")    # 1.4.0: the reserve is the peak capital carried, over two periods
+        rev6 = a.rules == "1.6.0"                # 1.6.0: the five rules, each behind its flag; `--rules 1.5.0` turns them off
+        on = lambda flag: rev6 and flag == "on"
         p = Params(Res0=a.res0, X=a.on_duty, G_V=a.gv, p_start=a.p_start, p_cap=a.p_cap, p_floor=a.p_floor, band=a.band,
                    record_dir=a.record_dir, f_fee=a.fee, phi_E_root=a.phi_e, phi_F_root=a.phi_f,
                    pi0=a.pi0, dial=(a.dial == "on"), beta_P=a.beta_p, Omega0=a.omega0,
                    membership=rev3, duty_fund=(rev3 and a.fund == "on"), net_plant_capital=rev3, m_max=a.m_max,
                    troops=rev4, eps_T=a.eps_t, w_R=a.w_r, w_A=a.w_a, c_T=a.c_t, c_D_T=a.c_d_t, A_T=a.a_t, tau_T=a.work_ticks,
-                   reserve_demand=rev5)
+                   reserve_demand=rev5,
+                   service_clock=on(a.clock), T_s=a.t_s, omega_backs_fund=on(a.backing), seat_the_queue=on(a.seat_queue),
+                   panel_determined=on(a.panel_determined), reserve_periods=(a.reserve_periods if rev6 else 1),
+                   duty_cap_frac={"half": 0.5, "twothirds": 2.0 / 3.0, "all": 1.0}[a.duty_cap],
+                   plant_reserve_life=(0 if a.plant_reserve == "period" else 15),
+                   theta_panel=a.theta_panel, n_P=a.record_window)
         self.p = p
         world = World(p, self.actors, humans={"H": a.human_budget}, on_duty=sorted(self.actors)[: a.on_duty])
         self.w = Public(world)
@@ -180,7 +187,9 @@ class Stamping:
                   "awards_refused_members_only_ticks": 0, "probation_false_approvals": 0,
                   # 1.4.0: troops
                   "audit_obligations": 0, "troop_reviews": 0, "troop_audits": 0, "troop_deliveries": 0,
-                  "troop_delivered_vested": 0, "troop_delivered_final_n": 0, "troop_false_approvals": 0}
+                  "troop_delivered_vested": 0, "troop_delivered_final_n": 0, "troop_false_approvals": 0,
+                  # 1.6.0: panels held by troops; the red team's withdrawals
+                  "troop_panel_seats": 0, "withdrawn_unawarded": 0}
         self.omega0_total = self.w.money()["omega_total"]
         self.by_grade = {g: [0, 0] for g in GRADES}       # grade -> [cases, correct]
         # 1.5.0 §2.3: the route-and-kind reading
@@ -312,11 +321,20 @@ class Stamping:
         for _ in range(a.tasks):
             if w.unlocked("H") < a.beta + self.p.phi_root + self.p.omega_rate * a.beta:
                 break
-            cid = w.post_root("H", a.beta)
+            low = a.beta_low > 0 and self.rng.random() < a.beta_low_share       # 1.6.0 §8 red team: the below-market poster
+            cid = w.post_root("H", a.beta_low if low else a.beta)
             self.title_n += 1
             self.tasks[cid] = Task(cid, f"task #{self.title_n}", fulfilled=self.rng.random() >= a.fail_rate)
             self.active[cid] = True
             self.c["posted"] += 1
+        # 1.6.0 §8 red team: a requester that withdraws its late unawarded requests (expected: nothing owed, nothing gained)
+        if a.withdraw_after > 0:
+            for cid in sorted(self.active, key=lambda s: int(s[1:])):
+                c = w.case(cid)
+                if c.state == "AVAILABLE" and t - c.t_post >= a.withdraw_after:
+                    w.withdraw_unawarded(cid)
+                    self.c["withdrawn_unawarded"] += 1
+                    self.active.pop(cid, None)
         # orchestrator awards
         for cid in sorted(self.active, key=lambda s: int(s[1:])):
             if w.case(cid).state != "AVAILABLE":
@@ -329,7 +347,7 @@ class Stamping:
                     self.c["awards_refused_members_only_ticks"] += 1
                 break
             actor = self.select(offers)
-            w.award(cid, actor, a.beta, a.work_ticks)
+            w.award(cid, actor, min(a.beta, w.case(cid).beta), a.work_ticks)
             self.tally[actor].awards += 1
             self.c["awarded"] += 1
         # actors work and submit
@@ -354,6 +372,8 @@ class Stamping:
                         self.c["troop_reviews"] += 1
                         if r.role == "audit":
                             self.c["troop_audits"] += 1
+                        if r.role in ("audit", "appeal"):
+                            self.c["troop_panel_seats"] += 1
                         continue
                     on_probation = w.actor(r.reviewer).probation
                     v, cost = self.verdict(r.reviewer, self.tasks[cid].fulfilled)
@@ -693,6 +713,18 @@ class Stamping:
                     kinds["readmitted"] += 1
                 else:
                     kinds["standing"] += 1
+        sv = w.service()
+        served = sv["on_time"] + sv["late"]
+        row.update({"on_time": sv["on_time"], "late": sv["late"], "on_time_share": round(sv["on_time"] / served, 4) if served else "",
+                    "mean_lateness": round(sv["lateness_sum"] / sv["late"], 3) if sv["late"] else 0.0,
+                    "rebates_owed": round(sv["rebates_owed"], 3), "rebates_paid": round(sv["rebates_paid"], 3),
+                    "omega_liability": round(sv["liabilities_outstanding"], 3), "liabilities_accrued": round(sv["liabilities_accrued"], 3),
+                    "open_late": sv["open_late"],
+                    "omega_unlocked": round(tr["omega_unlocked"], 3), "omega_min_period": round(tr["omega_min_period"], 3) if tr["omega_min_period"] is not None else "",
+                    "plant_reserve": round(tr["plant_reserve"], 3), "x_target": tr["x_target"],
+                    "waiting_initial": tr["waiting_initial"], "waiting_panel": tr["waiting_panel"],
+                    "troop_panel_summons_period": tr["troop_panel_summons_period"],
+                    "first_plant_adjudicated_at": tr["first_plant_adjudicated_at"] if tr["first_plant_adjudicated_at"] is not None else ""})
         row.update({"pfa_route_upheld": len(self.pfa_upheld_by), "pfa_route_overturned": self.pfa_overturned,
                     "pfa_route_other": self.pfa_other, "pfa_kind_troop": kinds["troop"], "pfa_kind_standing": kinds["standing"],
                     "pfa_kind_lag": kinds["lag"], "pfa_kind_readmitted": kinds["readmitted"]})
@@ -714,10 +746,26 @@ def main(argv=None):
     ap.add_argument("--p-start", type=float, default=1.0, help="a newcomer's audit odds (1.2.0 §2.4: 1.0; 1.1.0: 0.5)")
     ap.add_argument("--p-cap", type=float, default=1.0, help="the audit odds' cap on doubling (1.2.0 §2.4: 1.0; 1.1.0: 0.5)")
     ap.add_argument("--p-floor", type=float, default=0.2, help="the audit rate's floor (§8.3)")
-    ap.add_argument("--rules", choices=["1.5.0", "1.4.0", "1.3.0", "1.2.0", "1.1.0"], default="1.5.0",
+    ap.add_argument("--rules", choices=["1.6.0", "1.5.0", "1.4.0", "1.3.0", "1.2.0", "1.1.0"], default="1.6.0",
                     help="1.3.0: troops off; 1.2.0: also membership, the duty fund and netted plant capital off; 1.1.0: also no "
                          "plants, dial off, p_start = p_cap = 0.5, Ω float 20 — declared controls. The audit obligation holds in all")
     ap.add_argument("--troops", choices=["on", "off"], default="on", help="the orchestrator's troops (1.4.0)")
+    # 1.6.0: one flag per rule (all on under --rules 1.6.0; --rules 1.5.0 and earlier turn them off together)
+    ap.add_argument("--clock", choices=["on", "off"], default="on", help="1.6.0 §2.1 the service clock and the orchestrator's rebate")
+    ap.add_argument("--t-s", type=int, default=8, help="T_s, the service target in ticks (posting to first verdict)")
+    ap.add_argument("--backing", choices=["on", "off"], default="on", help="1.6.0 §2.2 Ω backs the fund above the plant reserve; A_T removed")
+    ap.add_argument("--seat-queue", choices=["on", "off"], default="on", help="1.6.0 §2.3 the reserve at least the reviews waiting")
+    ap.add_argument("--panel-determined", choices=["on", "off"], default="on", help="1.6.0 §2.4 a panel seat needs a determined record")
+    ap.add_argument("--reserve-periods", type=int, choices=[1, 2], default=2, help="1.6.0 §2.5 R_T over this and the previous period")
+    ap.add_argument("--duty-cap", choices=["half", "twothirds", "all"], default="half", help="1.6.0 §2.6 the members' duty cap as a share of E_t")
+    ap.add_argument("--theta-panel", type=float, default=0.20, help="θ_panel, the panel tier's bad-plant approval threshold (1.6.0 §8 sweeps 0.15)")
+    ap.add_argument("--record-window", type=int, default=20, help="n_P, the plant record's trailing window (1.6.0 §8 sweeps 12)")
+    ap.add_argument("--withdraw-after", type=int, default=0,
+                    help="1.6.0 §8 red team: H withdraws an unawarded request older than this many ticks (0: never)")
+    ap.add_argument("--plant-reserve", choices=["life", "period"], default="life",
+                    help="1.6.0 §2.2 the plant reserve's horizon: a plant's life (W + T_review; the implementer's reading) or the ticks remaining in the period (the text's literal formula)")
+    ap.add_argument("--beta-low", type=float, default=0.0, help="1.6.0 §8 red team: a share of requests posted at this lower ceiling (0: none)")
+    ap.add_argument("--beta-low-share", type=float, default=0.0, help="the share of requests posted at --beta-low")
     ap.add_argument("--decline-awards", type=float, default=0.0,
                     help="1.5.0 §8.6 red team: the share of careful actors that offer for nothing and live on fees and uplift")
     ap.add_argument("--eps-t", type=float, default=0.05, help="ε_T, a troop reviewer's error rate (declared)")
@@ -774,10 +822,10 @@ def main(argv=None):
                       params=run.p, **({"root": a.results_root} if a.results_root else {}),
                       declared={"actors": a.actors, "on_duty": a.on_duty, "ticks": a.ticks, "tasks_per_tick": a.tasks,
                                 "beta": a.beta, "work_ticks": a.work_ticks, "seed": a.seed,
-                                "rules": a.rules, "fund": a.fund if a.rules in ("1.3.0", "1.4.0", "1.5.0") else "n/a", "m_max": a.m_max,
-                                "troops": {"spec": "1.4.0 design revision 4 — the orchestrator's troops" if a.rules in ("1.4.0", "1.5.0") and a.troops == "on" else "off",
+                                "rules": a.rules, "fund": a.fund if a.rules in ("1.3.0", "1.4.0", "1.5.0", "1.6.0") else "n/a", "m_max": a.m_max,
+                                "troops": {"spec": "1.4.0 design revision 4 — the orchestrator's troops" if a.rules in ("1.4.0", "1.5.0", "1.6.0") and a.troops == "on" else "off",
                                            "reserve": ("1.5.0 design revision 5 — the reserve is sized to the need: R_T is the current period's peak "
-                                                       "troop demand, held plus refused for funds" if a.rules == "1.5.0" else
+                                                       "troop demand, held plus refused for funds" if a.rules in ("1.5.0", "1.6.0") else
                                                        "1.4.0: the peak capital carried over this period and the previous one"),
                                            "eps_T": a.eps_t, "w_R": a.w_r, "w_A": a.w_a, "c_T": a.c_t, "c_D_T": a.c_d_t, "A_T": a.a_t,
                                            "disposition": "the truth with probability 1 − ε_T; delivery fails at b as any; no cost at completion",
@@ -785,6 +833,16 @@ def main(argv=None):
                                 "audit_roll": "on the engine's applied odds (audit_odds); a yes is recorded as an obligation (roll_audit) and never dropped",
                                 "stamper_mode": a.stamper_mode,
                                 "decline_awards": {"share_of_careful": a.decline_awards, "decliners": sorted(run.decliners)},
+                                "auto_scale": {"spec": "1.6.0 design revision 6 — auto-scale" if a.rules == "1.6.0" else "off (control)",
+                                               "service_clock": a.clock if a.rules == "1.6.0" else "off", "T_s": a.t_s,
+                                               "omega_backs_fund": a.backing if a.rules == "1.6.0" else "off (A_T binds)",
+                                               "seat_the_queue": a.seat_queue if a.rules == "1.6.0" else "off",
+                                               "panel_determined": a.panel_determined if a.rules == "1.6.0" else "off",
+                                               "reserve_periods": a.reserve_periods if a.rules == "1.6.0" else 1,
+                                               "duty_cap": a.duty_cap, "plant_reserve_horizon": a.plant_reserve,
+                                               "theta_panel": a.theta_panel, "record_window": a.record_window, "withdraw_after": a.withdraw_after,
+                                               "beta_low": a.beta_low, "beta_low_share": a.beta_low_share,
+                                               "awards": "oldest request first (case-id order) — conformance, I26"},
                                 "dispositions": {"stamper_fraction": a.stampers,
                                                  "assignment": dict(sorted(run.kind.items())),
                                                  "careful": {"accuracy": a.accuracy, "cost": "uniform {2, 3} credits, or what unlocked "
@@ -792,7 +850,7 @@ def main(argv=None):
                                                  "stamper": {"verdict": "F" if a.camouflage == 0 else f"F, N w.p. {a.camouflage} (camouflage)",
                                                              "cost": 0,
                                                              "on_probation": "careful" if a.stamper_mode == "reformer" else "as above"}},
-                                "membership": {"spec": "1.3.0 design revision 3 — inspection is membership" if a.rules in ("1.3.0", "1.4.0", "1.5.0") else "none (control)",
+                                "membership": {"spec": "1.3.0 design revision 3 — inspection is membership" if a.rules in ("1.3.0", "1.4.0", "1.5.0", "1.6.0") else "none (control)",
                                                "offers": "members only; a suspended actor or probationer is not offered work",
                                                "panel": "the engine's two tiers; probationers are offered initial reviews only"},
                                 "task_world": {"fail_rate_b": a.fail_rate, "truth": "hidden, independent of actor"},

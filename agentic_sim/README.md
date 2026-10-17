@@ -1,9 +1,9 @@
-# agentic_sim — reference implementation of the 1.5.0 baseline
+# agentic_sim — reference implementation of the 1.6.0 baseline
 
 Built up through v0.4–v0.10, unchanged by the v1.0 consolidation and the v1.0.1 errata, and changed four times
 since, all on October 17, 2026: for design revision 1 (1.1.0: the verification deposit is two pots), design revision 2
 (1.2.0: the loop's own clock — planted work, the plant record, the effort dial), design revision 3 (1.3.0: inspection
-is membership), design revision 4 (1.4.0: the orchestrator's troops) and design revision 5 (1.5.0: the reserve is sized to the need — see the five sections below). Section numbers in code comments refer to the
+is membership), design revision 4 (1.4.0: the orchestrator's troops), design revision 5 (1.5.0: the reserve is sized to the need) and design revision 6 (1.6.0: auto-scale — see the six sections below). Section numbers in code comments refer to the
 working-spec versions they were written against; `spec/agentic_economics_loop_spec_v1_4_0.md` is the text in force,
 and its Appendix A holds the defaults that `sim/params.py` encodes.
 
@@ -77,6 +77,13 @@ tests/test_v15.py                   design revision 5 (1.5.0): a refusal for fun
                                     requester adds nothing; a panel short of both seats adds two; refused-then-carried raises the
                                     peak once; no uplift at or below the reserve and the balance above it paid; the peak holds
                                     within the period and restarts at the standing demand at the boundary; I23 catching — 7
+tests/test_v16.py                   design revision 6 (1.6.0): the service clock from posting to the first verdict, on time and
+                                    late with the rebate capped at B; the clock stopped for a below-market request and at a final
+                                    without a verdict; nothing owed on withdrawal before award; Ω's liability serviced oldest first;
+                                    Ω advancing only above the plant reserve; review seats before deliveries and the delivery's
+                                    inspection check with the advance drawn on its own shortfall; the reserve seating the queue;
+                                    a panel seat needing a determined record once the first plant is adjudicated; R_T over two
+                                    periods; I26 catching — 11
 tests/test_perf_equivalence.py      the per-tick check equals the full audit; the working-set engine reproduces the
                                     pinned History head on a seeded random scenario that now plants work (re-pinned once for
                                     1.1.0 and once for 1.2.0); the working set stays bounded — 5
@@ -87,11 +94,11 @@ tests/test_record_mode.py           the record on disk (`Params.record_dir`): th
 run_tests.py        every suite with plain python; pytest reports the same (conftest marks the XFAIL)
 ```
 
-Run: `python3 run_tests.py` — 225 pass, 0 fail, 26 expected failures, each with a stated reason (one original,
+Run: `python3 run_tests.py` — 236 pass, 0 fail, 26 expected failures, each with a stated reason (one original,
 four superseded by the view contract, nineteen on the withdrawn reopening path, one superseded by design
-revision 1, one by design revision 2). With pytest: `python3 -m pytest tests -q` reports 225 passed, 26 xfailed; the
+revision 1, one by design revision 2). With pytest: `python3 -m pytest tests -q` reports 236 passed, 26 xfailed; the
 runner expands pytest parametrization as pytest does, including multi-argument and stacked marks. (Spec Appendix D
-records the count at the v1.0.1 freeze, 156; at 1.1.0, 181; at 1.2.0, 197; at 1.3.0, 208; at 1.4.0, 218; at 1.5.0, 225.)
+records the count at the v1.0.1 freeze, 156; at 1.1.0, 181; at 1.2.0, 197; at 1.3.0, 208; at 1.4.0, 218; at 1.5.0, 225; at 1.6.0, 236.)
 
 Expected failures are **strict and parameter-exact** in both entry points: `EXPECTED_FAIL_PARAMS` names the
 parameter runs that are expected to fail inside a mixed test (the P/⊥ runs of the eighth review's first case;
@@ -402,6 +409,53 @@ measures. In the engine:
   `drivers/sweep.py` carries the new columns and `dec`, `k` for `decline-awards`, `tasks`.
 - **Tests.** `test_v15.py` (7); the equivalence scenario's goldens were re-pinned once (the uplift paid changes where
   a refusal occurred, and the period record carries the new readings). Reviewer tests untouched and passing.
+
+## Design revision 6 — auto-scale (1.6.0, October 17, 2026)
+
+Run 7 under 1.5.0 (`results/studies/1.5.0-reserve/`) showed the reserve rule doing what it said and not helping: the
+reviewing seat, not the treasury, capped the market (reviews that found no reviewer 7,300–11,400 case-ticks a run, the
+open-case queue ~300, vesting pinned near the posting-rate ceiling whoever delivered); the demand stock counted a
+never-expiring queue; the one-period reset saw-toothed; and the probation leak was the plant record's lag on the
+auditor. Design revision 6 (accepted as rc.2; `spec/design_revisions/dr6_auto_scale_1.6.0.md`, consolidated into
+`spec/agentic_economics_loop_spec_v1_6_0.md` §3.1, §6.1, §7.1, §10.4, §12.1, §12.3, I26 and Appendix K) adds five
+rules, each behind a `Params` flag so run 8 can attribute them; `--rules 1.5.0` turns them off together. In the engine:
+
+- **The service clock** (`service_clock`, `T_s`, `r_s`). `Case.clock_ticks` counts one per tick in the summons pass for
+  every live root request that is not a plant, while β ≥ B̄ before award (`_clock_runs`); `_stop_clock` runs once, from
+  `_initial_verdict` (F or N), `_finalize_N` (a deadline missed) or `_vest` (a human's override with no initial
+  verdict): lateness past `T_s`, rebate `min(r_s · late, B)` (r_s 0 means ω₀B), paid Ω → requester from Ω's balance
+  above the plant reserve, the remainder appended to `omega_liabilities` with its tick. `_service_omega_liabilities`
+  pays oldest first — those older than a period before the pass, the rest after it; the note is I10-exempt. Readings:
+  `on_time_n`, `late_n`, `lateness_sum`, `rebates_owed/paid`, `liabilities_accrued/paid`, `open_late()`; per period in
+  the record. `withdraw_unawarded` settles nothing.
+- **Ω backs the fund above a plant reserve** (`omega_backs_fund`). `_omega_available()` is Ω's unlocked balance above
+  `_plant_reserve()` — π_t × the period's initial-review rate (floored at the previous period's) × (φ^E + φ^F) ×
+  `plant_reserve_life` ticks (15, a plant's life — the implementer's reading; 0 is the text's ticks remaining, kept as
+  the declared cell `--plant-reserve period`) — and replaces A_T's room in `_fund_can_carry`; with the flag off A_T
+  binds as under 1.5.0.
+- **Inspection first; a delivery carries its inspection.** `_summon_troops` runs two passes over the live cases in
+  creation order — the review seats, then the awards; `_summon_delivery` first checks fund.U + Ω available ≥
+  c^D_T + G + 2(c_T + G^V) and then draws the delivery's own shortfall; a younger case summoned after an older one of
+  the same kind was refused for funds sets `_priority_violation` (I26). Ω's minimum unlocked balance is read per period.
+- **Seat the queue** (`seat_the_queue`). `_waiting_reviews()` counts root submissions without an open initial review and
+  panel seats waiting (rolled or vacated audits without an open audit, challenge seats unfilled); `_reserve_target()`
+  is max(X_t, waiting + the period's initial rate), computed at every rotation into `_x_target`; `_rotate` and
+  `_rotate_membership` fill and shrink to it, the member seats at least the panel seats waiting within the cap
+  (`_member_cap` now `⌈duty_cap_frac · E_t⌉`, never below V_max + 1). I9 checks the target; I23 the member seats.
+- **A panel seat requires a determined record** (`panel_determined`). `Actor.panel_eligible` adds
+  `len(plant_bad) ≥ n_min` once `World.first_plant_adjudicated_at` is set (in `_adjudicate_plant`, on the first stood or
+  failed plant); the assignment validator and the summons' free-reviewer test both read it. Reviewer-authored worlds
+  never plant and are untouched; `test_v12`–`test_v15` are pinned to their revisions' mode.
+- **R_T over two periods** (`reserve_periods`). `troop_demand_peak_prev` is kept at the period's end and `R_T` is the
+  larger of the two peaks; `reserve_periods=1` is 1.5.0's reset.
+- **Drivers.** `view.service()` and the extended `troops()`; `drivers/stamping.py` writes the rating (`on_time`, `late`,
+  `on_time_share`, `mean_lateness`, `rebates_owed/paid`, `omega_liability`, `open_late`), Ω's readings
+  (`omega_unlocked`, `omega_min_period`, `plant_reserve`, `advance_outstanding`), the seats (`x_target`,
+  `waiting_initial/panel`, `troop_panel_seats`) and offers `--rules 1.6.0|1.5.0|…`, `--clock`, `--backing`,
+  `--seat-queue`, `--panel-determined`, `--reserve-periods`, `--duty-cap {half,twothirds,all}`, `--t-s`,
+  `--plant-reserve {life,period}`, `--beta-low`/`--beta-low-share` (the below-market poster; awards at the request's own
+  ceiling). `drivers/sweep.py` carries the columns and the abbreviations.
+- **Tests.** `test_v16.py` (11); goldens re-pinned once. Reviewer tests untouched and passing.
 
 ## The expected failure
 

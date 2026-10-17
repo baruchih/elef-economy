@@ -93,6 +93,22 @@ class Params:
     # starting at the standing demand at the period's first seating (§2.1). False: 1.4.0's reading, the peak capital
     # carried over this period and the previous one.
     reserve_demand: bool = True
+    # Design revision 6 (1.6.0): auto-scale — one flag per rule, all on; `drivers.stamping --rules 1.5.0` turns them
+    # off together (and A_T then binds). §2.1 the service clock; §2.2 Ω backs the fund above a plant reserve, inspection
+    # first, a delivery carries its inspection; §2.3 the reserve sized on the reviews waiting; §2.4 a panel seat needs a
+    # determined record once the world's first plant is adjudicated; §2.5 R_T over this and the previous period.
+    service_clock: bool = True
+    T_s: int = 8               # the service target: posting to first verdict, in ticks
+    r_s: float = 0.0           # the rebate per tick late; 0 = ω_0 B (omega_rate × B); capped at B
+    omega_backs_fund: bool = True
+    seat_the_queue: bool = True
+    panel_determined: bool = True
+    reserve_periods: int = 2   # 1 = 1.5.0's one-period reset
+    duty_cap_frac: float = 0.5 # the members' duty cap as a fraction of E_t (§2.6 sweeps 1/2, 2/3, 1)
+    # The plant reserve's horizon (§2.2): the text says the ticks remaining in the period; a plant's pots return to Ω at
+    # its closure, so the capital the clock needs at once is a plant's life of plants — the implementer's reading, W +
+    # T_review ticks. 0 = the text's literal horizon (kept as a declared cell).
+    plant_reserve_life: int = 15
 
     # Reliability and duty credit windows (§11)
     rho_window: int = 100      # settled outcomes

@@ -85,7 +85,21 @@ class Public:
                 "fund_reserve": w.R_T, "advance_outstanding": w.advance_outstanding, "B_bar": w.mean_awarded_price(),
                 # 1.5.0 §2.1: the troop demand at the last seating and its components
                 "demand": w.troop_demand_now, "demand_held": w.troop_demand_held, "demand_refused": w.troop_demand_refused,
-                "demand_peak_refused": w.troop_demand_peak_refused}
+                "demand_peak_refused": w.troop_demand_peak_refused,
+                # 1.6.0: panels held by troops this period, the seats and the queue, Ω's readings
+                "troop_panel_summons_period": w.period["troop_panel_summons"],
+                "x_target": w._x_target, "waiting_initial": w._waiting_initial, "waiting_panel": w._waiting_panel,
+                "omega_unlocked": w.ledger.wallet(w.ledger.OMEGA).U, "omega_min_period": w.period["omega_min"],
+                "plant_reserve": w._plant_reserve(), "first_plant_adjudicated_at": w.first_plant_adjudicated_at}
+
+    def service(self) -> dict:
+        """1.6.0 §2.1 readings: the network rating and Ω's liabilities."""
+        w = self._w
+        return {"on_time": w.on_time_n, "late": w.late_n, "lateness_sum": w.lateness_sum,
+                "rebates_owed": w.rebates_owed, "rebates_paid": w.rebates_paid,
+                "liabilities_accrued": w.liabilities_accrued, "liabilities_paid": w.liabilities_paid,
+                "liabilities_outstanding": sum(l["amount"] for l in w.omega_liabilities),
+                "open_late": w.open_late()}
 
     # -- the orchestrator's planted work and its clock (1.2.0 §2.1–§2.3) -----------
     def create_plant(self, truth: bool, B: float) -> str:

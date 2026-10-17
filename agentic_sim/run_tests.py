@@ -144,7 +144,7 @@ def param_runs(fn):
 
 SUITES = ["test_spec", "test_review_regressions", "test_v05", "test_review2_interactions", "test_v06",
           "test_review3_boundaries", "test_v07", "test_review4_followthrough", "test_v08",
-          "test_review5_contracts", "test_v09", "test_review6_reopening", "test_v10", "test_v101", "test_v11", "test_v12", "test_v13", "test_v14", "test_v15",
+          "test_review5_contracts", "test_v09", "test_review6_reopening", "test_v10", "test_v101", "test_v11", "test_v12", "test_v13", "test_v14", "test_v15", "test_v16",
           "test_perf_equivalence", "test_record_mode"]
 # For a parametrized test with both withdrawn-path runs and controls, only the named parameter
 # labels are expected to fail; every other run of it must pass.

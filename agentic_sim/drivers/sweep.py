@@ -68,13 +68,20 @@ KEYS = ["careful_wealth", "stamper_wealth", "careful_fees", "stamper_fees", "car
         # 1.5.0: the demand-sized reserve, the route-and-kind reading, the decliners
         "troop_demand", "troop_demand_refused", "demand_peak_refused", "pfa_route_upheld", "pfa_route_overturned",
         "pfa_route_other", "pfa_kind_troop", "pfa_kind_standing", "pfa_kind_lag", "pfa_kind_readmitted",
-        "decliner_wealth", "careful_offering_wealth", "decliner_awards", "careful_offering_awards"]
+        "decliner_wealth", "careful_offering_wealth", "decliner_awards", "careful_offering_awards",
+        # 1.6.0: the network rating, Ω's readings, the seats
+        "on_time", "late", "on_time_share", "mean_lateness", "rebates_owed", "rebates_paid", "omega_liability",
+        "liabilities_accrued", "open_late", "omega_unlocked", "omega_min_period", "plant_reserve", "x_target",
+        "waiting_initial", "waiting_panel", "troop_panel_seats", "active_cases", "reviews_unassignable_ticks",
+        "careful_delivery", "stamper_delivery", "members_on_duty", "probationers_on_duty", "plants_unfunded", "withdrawn_unawarded"]
 SHORT = {"stampers": "s", "fee": "f", "on-duty": "X", "gv": "gv", "p-floor": "pf", "p-start": "p", "p-cap": "pc", "band": "band",
          "fail-rate": "b", "accuracy": "a", "ruling-accuracy": "r", "appeal-policy": "appeal", "dispute-policy": "dispute",
          "dispute-rate": "dr", "assignment": "assign", "rules": "rules", "pi0": "pi", "dial": "dial", "beta-p": "bp",
          "camouflage": "cam", "omega0": "om", "drift-to": "drift", "adapt-rate": "adapt", "fund": "fund", "m-max": "mmax",
          "stamper-mode": "mode", "troops": "troops", "w-r": "wR", "w-a": "wA", "c-d-t": "cD", "eps-t": "eT", "a-t": "AT",
-         "decline-awards": "dec", "tasks": "k"}
+         "decline-awards": "dec", "tasks": "k", "clock": "clk", "backing": "bak", "seat-queue": "sq", "panel-determined": "pd",
+         "reserve-periods": "rp", "duty-cap": "cap", "t-s": "Ts", "beta-low": "bl", "beta-low-share": "bls",
+         "plant-reserve": "pr", "theta-panel": "thp", "record-window": "nP", "withdraw-after": "wd", "omega0": "om"}
 
 
 def _num(x: str):

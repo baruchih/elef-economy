@@ -28,7 +28,8 @@ DUTY = ["C", "D", "E", "F"]
 
 def make_world(budget=1000.0, actors=ACTORS, duty=DUTY, **over):
     # no emission, no service fee (the fund is seeded by hand where a test needs it), Ω 100, long turns
-    kw = dict(E0=0.0, H=1e9, omega_rate=0.0, Omega0=100.0, duty_turn_reviews=10_000, duty_turn_ticks=100_000)
+    kw = dict(E0=0.0, H=1e9, omega_rate=0.0, Omega0=100.0, duty_turn_reviews=10_000, duty_turn_ticks=100_000,
+              service_clock=False, omega_backs_fund=False, seat_the_queue=False, panel_determined=False, reserve_periods=1)
     kw.update(over)
     return World(Params(**kw), actors, humans={"H": budget}, on_duty=duty)
 

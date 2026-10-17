@@ -30,7 +30,8 @@ SEAT = 3.0 + 5.0          # a troop review seat's need at v = 1: c_T 3 purchased
 
 def make_world(budget=1000.0, actors=ACTORS, duty=DUTY, **over):
     # no emission, no service fee, Ω 100, long turns; A_T = 0 so that an empty fund refuses (Ω advances nothing)
-    kw = dict(E0=0.0, H=1e9, omega_rate=0.0, Omega0=100.0, duty_turn_reviews=10_000, duty_turn_ticks=100_000, A_T=0.0)
+    kw = dict(E0=0.0, H=1e9, omega_rate=0.0, Omega0=100.0, duty_turn_reviews=10_000, duty_turn_ticks=100_000, A_T=0.0,
+              service_clock=False, omega_backs_fund=False, seat_the_queue=False, panel_determined=False, reserve_periods=1)
     kw.update(over)
     return World(Params(**kw), actors, humans={"H": budget}, on_duty=duty)
 

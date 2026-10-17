@@ -43,9 +43,11 @@ def amount(x, name="amount") -> float:
 def _i10_exempt(note: str) -> bool:
     """§6 / §4.3: after vesting, obligations established before it may still be paid (deferred
     reimbursements, Ω claims); and, since 1.1.0, a nested case may draw on its root's pots and
-    the tree's closure moves the root's remaining deposit. Nothing else moves money on a vested
-    case."""
-    return "deferred" in note or "Ω claim" in note or note.startswith("nested ") or note.startswith("tree closure")
+    the tree's closure moves the root's remaining deposit; and, since 1.6.0 §2.1, a rebate Ω owed at the
+    clock's stop and carried as its liability is paid when Ω can — an obligation established before
+    vesting. Nothing else moves money on a vested case."""
+    return "deferred" in note or "Ω claim" in note or note.startswith("nested ") or note.startswith("tree closure") \
+        or note.startswith("rebate (Ω liability serviced)")
 
 
 def _i19_event_ok(e) -> bool:

@@ -1,8 +1,8 @@
 # Agentic-OS — the economic loop
 
 A rulebook for a task → verification → dispute → settlement loop among autonomous actors, and a
-reference implementation of it with no strategies. Ten external reviews. The rulebook is at **1.5.0**:
-the frozen 1.0.1 baseline plus five design revisions made under §19 — the verification deposit is two
+reference implementation of it with no strategies. Ten external reviews. The rulebook is at **1.6.0**:
+the frozen 1.0.1 baseline plus six design revisions made under §19 — the verification deposit is two
 pots (1.1.0, §4.3; after the first scoped run showed careful review paid for its own care), the loop's
 own clock (1.2.0, §7.6, §11.2, §12.2: planted work, the plant record, the effort dial; after runs 2–3
 showed the loop fair only with both challengers present and blind under capture), and inspection is
@@ -15,18 +15,25 @@ a captured market honest and short of hands), and the reserve is sized to the ne
 troop reserve is the current period's peak troop *demand* — capital held plus the cost of the summonses it
 refused for funds — starting at the standing demand, so the fund grows into the need and pays out the rest at the
 period's end; after run 6 showed the 1.4.0 reserve, the peak capital once carried, drained to by every batch's
-uplift and so never able to rise). Read `HANDOFF.md` first for where things stand and what is proposed next.
+uplift and so never able to rise), and auto-scale (1.6.0, §3.1, §6.1, §7.1, §10.4, §12.1, §12.3, I26: every root
+request carries a service clock and the orchestrator owes the requester for lateness past T_s, from Ω or as Ω's
+liability; Ω backs the fund above a plant reserve with no advance cap, inspection seats before deliveries, a delivery
+summoned only when its inspection can be carried too; the reserve is sized on the reviews waiting; a panel seat needs
+a determined record once the world's first plant is adjudicated; R_T over two periods — five rules, one flag each;
+after run 7 showed the reviewing seat, not the treasury, capping the market, the demand stock counting a never-expiring
+queue, and the probation leak as the plant record's lag on the auditor). Read `HANDOFF.md` first for where things stand
+and what is proposed next.
 
 ## Layout
 
 ```
-spec/agentic_economics_loop_spec_v1_5_0.md   the text in force (standalone; Appendix A defaults, E errata, F/G/H/I/J design revisions 1–5)
+spec/agentic_economics_loop_spec_v1_6_0.md   the text in force (standalone; Appendix A defaults, E errata, F–K design revisions 1–6)
 spec/design_revisions/                       accepted design revisions, verbatim (dr1: two pots; dr2: the loop's own clock; dr3:
                                              inspection is membership; dr4: the orchestrator's troops; dr5: the reserve is sized to
-                                             the need), and the implementer's reviews of dr2–dr5's candidates
-spec/history/                                v0.1 … v1.4.0 — superseded, kept for provenance only
+                                             the need; dr6: auto-scale), and the implementer's reviews of dr2–dr6's candidates
+spec/history/                                v0.1 … v1.5.0 — superseded, kept for provenance only
 reviews/                                     R01–R10, one external review per version, with the reviewer's notes
-agentic_sim/                                 the engine, 25 invariants, 22 test files, runner, drivers, results
+agentic_sim/                                 the engine, 26 invariants, 23 test files, runner, drivers, results
 docs/line_map_economic_loop_v1_0_1.txt       text export of the _line map of the loop (the live map is the source)
 HANDOFF.md                                   status, history table, open questions, proposed next step
 ```
@@ -35,12 +42,15 @@ HANDOFF.md                                   status, history table, open questio
 
 ```
 cd agentic_sim
-python3 run_tests.py        # expected: 225 passed, 0 failed, 26 expected failures
+python3 run_tests.py        # expected: 236 passed, 0 failed, 26 expected failures
 python3 -S run_tests.py     # same, with no site-packages
 python3 run_tests.py --record   # same, every World in record mode
-python3 -m pytest tests -q  # expected: 225 passed, 26 xfailed, 0 xpassed (conftest mirrors the runner; pytest is not installed here)
+python3 -m pytest tests -q  # expected: 236 passed, 26 xfailed, 0 xpassed (conftest mirrors the runner; pytest is not installed here)
 python3 -m drivers.load_run --actors 200 --ticks 10000 --on-duty 40 --tasks 30 --record-dir /path  # throughput run
-python3 -m drivers.stamping --actors 20 --ticks 1000 --stampers 0.6 --seed 1 --appeal-policy truthful   # §18.1 q1 under 1.5.0
+python3 -m drivers.stamping --actors 20 --ticks 1000 --stampers 0.6 --seed 1 --appeal-policy truthful   # §18.1 q1 under 1.6.0
+python3 -m drivers.stamping --rules 1.5.0 --seed 1   # the 1.5.0 control: the five 1.6.0 flags off, A_T binds, one-period reset
+python3 -m drivers.stamping --seat-queue off --seed 1   # one 1.6.0 rule off alone (also --clock, --backing, --panel-determined, --reserve-periods 1)
+python3 -m drivers.stamping --duty-cap all --omega0 1000 --t-s 5 --seed 1   # the 1.6.0 §8 sweeps' knobs; --plant-reserve period is the text's literal horizon
 python3 -m drivers.stamping --rules 1.4.0 --seed 1   # the 1.4.0 control: the reserve is the peak capital carried (two periods)
 python3 -m drivers.stamping --rules 1.3.0 --seed 1   # the 1.3.0 control: troops off (the audit obligation holds in every mode)
 python3 -m drivers.stamping --rules 1.2.0 --seed 1   # the 1.2.0 control: also membership, the fund and netted plant capital off
@@ -104,7 +114,8 @@ consolidated into one standalone spec with the accepted revision kept verbatim i
   (re-pinned once for 1.1.0, since settlement changed; once for 1.2.0, since the reserve and the
   scenario — which now plants work — changed; once for 1.3.0, since membership and the fund changed; once
   for 1.4.0, since the roll became an obligation and troops are summoned; once for 1.5.0, since the reserve counts refused
-  demand and the uplift paid changed). Keep new invariants in that shape: a predicate
+  demand and the uplift paid changed; once for 1.6.0, since the clock pays rebates, Ω backs the fund, the reserve
+  seats the queue and panels need a determined record). Keep new invariants in that shape: a predicate
   over an explicit scope.
   The per-tick check is not configurable: `advance` always runs it. `full_check_every` only adds
   the full audit on a cadence (0 = not scheduled; runs call `check_all` at the end), and
@@ -204,6 +215,22 @@ consolidated into one standalone spec with the accepted revision kept verbatim i
   attributes each probationer's false approval by route (audit upheld / audit rejected and ruling overturned) and, on
   the upheld route, by the auditor's kind at the time (troop / member never suspended / suspended later / readmitted
   before), classified after the run from its own suspension log; `--decline-awards` is the 1.5.0 red team.
+- Auto-scale (1.6.0; `Params.service_clock, omega_backs_fund, seat_the_queue, panel_determined, reserve_periods`, all on;
+  `--rules 1.5.0` turns them off together). The clocks run in the summons pass (`_clock_runs`: a live root, not a plant,
+  β ≥ B̄ while unawarded) and stop once, in `_initial_verdict`, `_finalize_N` or `_vest` (`_stop_clock`: lateness past
+  `T_s`, rebate `min(r_s·late, B)` paid Ω → requester from above the plant reserve or appended to `omega_liabilities`;
+  `_service_omega_liabilities(min_age)` runs before the pass with a period's age and after it with none; the serviced
+  note is I10-exempt). `_omega_available()` is Ω's unlocked balance above `_plant_reserve()` (π_t × the period's initial
+  rate × (φ^E+φ^F) × `plant_reserve_life`, 15 — the implementer's reading; 0 = the text's ticks remaining) and replaces
+  A_T's room in `_fund_can_carry`. `_summon_troops` runs the review seats first, then the awards, oldest case first, with
+  `_priority_violation` for I26; `_summon_delivery` checks fund + Ω available ≥ cost + G + 2(c_T + G^V) and draws the
+  delivery's own shortfall. `_reserve_target()` = max(X_t, waiting initial + waiting panel + the period's initial rate),
+  taken at every rotation (`_x_target`; `_waiting_reviews()` by kind); `_rotate` and `_rotate_membership` fill to it,
+  member seats at least the panel seats waiting within the cap (`duty_cap_frac`). `Actor.panel_eligible` requires
+  `len(plant_bad) ≥ n_min` once `first_plant_adjudicated_at` is set (`_adjudicate_plant`). `R_T` over two periods
+  (`troop_demand_peak_prev`). The period record carries on-time, late, lateness, rebates, liabilities, Ω's minimum, the
+  plant reserve, troop panel summonses. I26 per tick; I9, I22, I23, I24 amended. The driver writes the rating, Ω and
+  seat columns and offers `--duty-cap`, `--t-s`, `--plant-reserve`, `--beta-low/--beta-low-share`.
 - Money is checked by invariant I1 (conservation) — never silently create or lose credits.
 
 ## Vocabulary (spec Appendix C has the full notation)
@@ -222,6 +249,9 @@ members eligible for duty; duty fund and uplift — the dial's raised tax and it
 Troop — the orchestrator's own reviewer or deliverer, summoned for one seat (1.4.0); ε_T its declared error
 rate; w_R, w_A the seat and award windows; c_T, c^D_T its costs; B̄ the trailing market price; R_T the fund's
 troop reserve; A_T Ω's advance cap; troop-ticks, troop shortfall, held for the market's audit — the readings. D_s the troop demand at a seating (held plus
-refused for funds); since 1.5.0 R_T is its peak over the current period.
+refused for funds); since 1.5.0 R_T is its peak over the period, since 1.6.0 over the current and the previous one.
+Service clock, T_s, r_s — a root request's ticks from posting to its first verdict, the target, the rebate a tick late;
+the network rating (on-time share, lateness, rebates, Ω's liability); the plant reserve; the reserve target; a
+determined record (≥ n_min bad plants adjudicated) — 1.6.0.
 "Ruling" has two senses: the orchestrator rules on splits inside the procedure; only a human
 *overrides* it (spec §15.2).

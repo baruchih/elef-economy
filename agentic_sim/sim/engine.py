@@ -148,7 +148,10 @@ class Actor:
     def panel_eligible(self) -> bool:
         """Eligible for a challenge-panel seat (appeal, dispute, audit): duty-eligible, not on
         probation, and the record within θ_panel."""
-        return self.duty_eligible and not self.probation and self.record_passes(self._world.p.theta_panel)
+        w = self._world
+        if w.p.panel_determined and w.first_plant_adjudicated_at is not None and len(self.plant_bad) < w.p.n_min:
+            return False                                # 1.6.0 §2.4: a determined record, once the clock has started
+        return self.duty_eligible and not self.probation and self.record_passes(w.p.theta_panel)
 
     # -- membership (1.3.0 §2.1–2.2) ---------------------------------------------------------
     @property
@@ -297,6 +300,14 @@ class Case:
     market_audit_only: bool = False        # a troop reviewer approved a troop's delivery: only a member audits it
     troop_award: bool = False              # awarded to a troop by summons (§2.3)
     initial_pinned: bool = False           # the initial approval was a pinned reviewer's (I25)
+    # 1.6.0 §2.1: the service clock — ticks counted from posting while β ≥ B̄, stopped at the first verdict or at a
+    # final without one; the lateness past T_s and the rebate owed, paid at the stop or carried as Ω's liability
+    clock_ticks: int = 0
+    clock_stopped_at: Optional[int] = None
+    first_verdict_at: Optional[int] = None
+    late_ticks: int = 0
+    rebate_owed: float = 0.0
+    rebate_paid: float = 0.0
     # outcome record
     grade: Optional[str] = None
     assessments: list = field(default_factory=list)
@@ -434,6 +445,22 @@ class World:
         self.troop_demand_refused = 0.0                 # ... plus the cost of the summonses refused for funds
         self._pass_refused = 0.0                        # the refused demand of the summons pass in progress
         self._last_refusal_funds = False                # the last summons returned None because the fund could not carry it
+        self.troop_demand_peak_prev = 0.0               # 1.6.0 §2.5: the previous period's peak demand (R_T over two periods)
+        # 1.6.0 §2.1: the service clock's readings and Ω's liabilities
+        self.first_plant_adjudicated_at: Optional[int] = None   # §2.4's switch
+        self.omega_liabilities: list = []               # [{requester, amount, t, case}] — rebates Ω could not pay at the stop
+        self.rebates_owed = 0.0
+        self.rebates_paid = 0.0
+        self.liabilities_accrued = 0.0
+        self.liabilities_paid = 0.0
+        self.on_time_n = 0
+        self.late_n = 0
+        self.lateness_sum = 0
+        self._last_initial_rate = 0.0                   # the previous period's initial reviews a tick (the plant reserve's floor)
+        self._x_target = params.X                       # 1.6.0 §2.3: the reserve target at the last rotation
+        self._waiting_initial = 0
+        self._waiting_panel = 0
+        self._priority_violation = None                 # I26: a younger case summoned after an older one was refused
         self.fund_flow = 0.0                            # Σ of every event into/out of the fund's wallet (I23)
         self._uplift_violation = None
         self.troop_summons_reviews = 0
@@ -936,6 +963,9 @@ class World:
     # ------------------------------------------------------- initial verdict
     def _initial_verdict(self, c: Case, verdict: str, reviewer: Optional[Actor] = None, troop_reviewer: bool = False):
         c.verdict, c.t_verdict = verdict, self.t
+        if c.first_verdict_at is None and c.plant is None:
+            c.first_verdict_at = self.t
+            self._stop_clock(c, "the first verdict")             # 1.6.0 §2.1
         c.window_end = self.t + self.p.W
         c.initial_pinned = reviewer is not None and reviewer.pinned
         if self.is_troop(c.actor):
@@ -1272,6 +1302,8 @@ class World:
     # ------------------------------------------------------------ finality
     def _finalize_N(self, c: Case, reason: str, forfeit_fraction: float = 1.0, actor_fault: bool = True):
         c.outcome = N
+        if c.is_root and c.plant is None and c.first_verdict_at is None:
+            self._stop_clock(c, "a final without a verdict")       # 1.6.0 §2.1
         if forfeit_fraction >= 1.0:
             c.I_N = True
         forfeit = forfeit_fraction * c.G
@@ -1598,6 +1630,8 @@ class World:
         return c.plant is not None and self.p.net_plant_capital
 
     def _vest(self, c: Case, epw: float, upw: float = 0.0):
+        if c.is_root and c.plant is None and c.clock_stopped_at is None:
+            self._stop_clock(c, "a final without a verdict")      # 1.6.0 §2.1: a human's override vests with no initial verdict
         if not self._plant_notional(c):                 # a plant's price and guarantee are notional (1.3.0 §2.5)
             self.ledger.pay_from_escrow(c.id, c.actor, c.B, note="delivery price")
             self.ledger.release(c.actor, c.G, key=f"G:{c.id}", case=c.id, note="guarantee released")
@@ -1731,6 +1765,7 @@ class World:
         not; the reserve is then filled up to X_t from the eligible pool or shrunk to it, and the
         gap, when no eligible actor is left, is the eligibility shortfall."""
         GV = self.p.G_V * self.ledger.index()
+        self._x_target = self._reserve_target()        # 1.6.0 §2.3: at least the reviews waiting
         # 0. suspensions that have run their course. The record persists; a passing record is
         # readmitted clean. A record that still fails cannot change while the actor is off duty (it
         # is a trailing window of plant outcomes, and a suspended actor judges no plants), so the
@@ -1781,28 +1816,150 @@ class World:
             inc.on_duty, inc.duty_since, inc.duty_reviews = True, tick, 0
             out.on_duty, out.duty_since, out.duty_reviews = False, None, 0
             self.history.append("rotation", {"t": tick, "in": inc.id, "out": out.id})
-        # 3. the reserve holds min(X_t, eligible): fill up to X_t ...
+        # 3. the reserve holds min(X_t, eligible): fill up to X_t (or the queue's target, 1.6.0 §2.3) ...
+        X = self._x_target
         n = sum(1 for a in self.actors.values() if a.on_duty)
-        while n < self.X_t and pool:
+        while n < X and pool:
             inc = min((self.actors[i] for i in pool), key=lambda a: (a.kappa, a.id))
             pool.discard(inc.id)
             inc.on_duty, inc.duty_since, inc.duty_reviews = True, tick, 0
             self.history.append("rotation", {"t": tick, "in": inc.id, "out": None, "why": "reserve sized up"})
             n += 1
         # ... or shrink to it: idle, non-volunteer duty actors, those whose turn is done first
-        if n > self.X_t:
+        if n > X:
             idle = [a for a in self.actors.values() if a.on_duty and not a.volunteer and a.open_review is None]
             idle.sort(key=lambda a: (0 if (a.duty_since is not None and (a.duty_reviews >= self.p.duty_turn_reviews
                                            or tick - a.duty_since >= self.p.duty_turn_ticks)) else 1, a.id))
-            for a in idle[: n - self.X_t]:
+            for a in idle[: n - X]:
                 self._leave_duty(a, tick, "reserve sized down")
                 n -= 1
-        self.reserve_shortfall_now = max(0, self.X_t - n)
+        self.reserve_shortfall_now = max(0, X - n)
         self._pool_exhausted = not pool
         self._reserve_dirty = False
         if self.reserve_shortfall_now:
             self.eligibility_shortfall += self.reserve_shortfall_now
             self.period["eligibility_shortfall"] += self.reserve_shortfall_now
+
+    # ------------------------------------------------ 1.6.0: the queue, Ω's order, the service clock
+    def _waiting_reviews(self) -> tuple:
+        """The reviews waiting for a reviewer, by kind (1.6.0 §2.3): root submissions without an open initial review;
+        rolled or vacated audits without an open audit, and challenge seats not yet filled (panel seats)."""
+        initial = panel = 0
+        for c in self._live_cases.values():
+            if c.final:
+                continue
+            if c.state == "SUBMITTED" and c.is_root and not any(self.reviews[r].role == "initial" and self.reviews[r].status == "open"
+                                                                for r in c.reviews):
+                initial += 1
+            if c.state == "PENDING" and (c.audit_obligation or c.audit_vacated) \
+                    and not any(self.reviews[r].role == "audit" and self.reviews[r].status == "open" for r in c.reviews):
+                panel += 1
+            ch = c.challenge
+            if ch and not ch["resolved"] and len(ch["reviews"]) < 2:
+                panel += 2 - len(ch["reviews"])
+        return initial, panel
+
+    def _reserve_target(self) -> int:
+        """1.6.0 §2.3: the reserve is at least the reviews waiting plus the period's initial-review rate, never less than
+        the period's sizing X_t; taken at every rotation."""
+        self._waiting_initial, self._waiting_panel = self._waiting_reviews()
+        if not self.p.seat_the_queue:
+            return self.X_t
+        elapsed = max(1, self.t - self.period["start"])
+        rate = max(self.period["initial"] / elapsed, self._last_initial_rate)
+        return max(self.X_t, self._waiting_initial + self._waiting_panel + int(math.ceil(rate - 1e-9)))
+
+    def _plant_reserve(self) -> float:
+        """1.6.0 §2.2: the capital the honesty clock will need for the rest of the period — the period's plant rate so far
+        (π_t × the initial-review rate, floored at the previous period's) × (φ^E + φ^F) × the ticks remaining — held back
+        from Ω's advances and from rebate liabilities."""
+        if not (self.p.omega_backs_fund or self.p.service_clock) or not self.p.dial or self.pi_t <= 0:
+            return 0.0
+        elapsed = max(1, self.t - self.period["start"])
+        rate = max(self.period["initial"] / elapsed, self._last_initial_rate)
+        remaining = max(0, self.p.period_ticks - elapsed)
+        horizon = min(remaining, self.p.plant_reserve_life) if self.p.plant_reserve_life > 0 else remaining
+        return self.pi_t * rate * (self.p.phi_E_root + self.p.phi_F_root) * self.ledger.index() * horizon
+
+    def _omega_available(self) -> float:
+        """What Ω may advance now: its unlocked balance above the plant reserve (1.6.0 §2.2), or under 1.5.0 the room left
+        under A_T."""
+        om = self.ledger.wallet(Ledger.OMEGA).U
+        if self.p.omega_backs_fund:
+            return max(0.0, om - self._plant_reserve())
+        return max(0.0, min(self.p.A_T - self.advance_outstanding, om))
+
+    def _service_omega_liabilities(self, min_age: int):
+        """1.6.0 §2.2: Ω pays its rebate liabilities of at least `min_age` ticks, oldest first, from its balance above the
+        plant reserve."""
+        if not self.omega_liabilities:
+            return
+        keep = []
+        for l in self.omega_liabilities:
+            avail = max(0.0, self.ledger.wallet(Ledger.OMEGA).U - self._plant_reserve())
+            if self.t - l["t"] >= min_age and avail > 1e-12:
+                pay = min(l["amount"], avail)
+                self.ledger.transfer(Ledger.OMEGA, l["requester"], pay, case=l["case"], note="rebate (Ω liability serviced)")
+                self.liabilities_paid += pay
+                c = self.cases[l["case"]]
+                c.rebate_paid += pay
+                if l["amount"] - pay > 1e-12:
+                    keep.append({**l, "amount": l["amount"] - pay})
+            else:
+                keep.append(l)
+        self.omega_liabilities = keep
+
+    def _clock_runs(self, c: Case) -> bool:
+        """1.6.0 §2.1: a root request's clock runs from posting to its first verdict while its ceiling admits the market
+        price; never a plant's, never a nested case's."""
+        if not self.p.service_clock or not c.is_root or c.plant is not None or c.final or c.clock_stopped_at is not None:
+            return False
+        if c.state == "AVAILABLE":
+            B = self.mean_awarded_price() or c.beta
+            return c.beta + 1e-9 >= B
+        return True
+
+    def _stop_clock(self, c: Case, reason: str):
+        """1.6.0 §2.1: the clock stops at the first verdict or at a final without one; the lateness past T_s owes the
+        requester r_s a tick, capped at B, paid from Ω above the plant reserve or carried as Ω's liability."""
+        if not self.p.service_clock or not c.is_root or c.plant is not None or c.clock_stopped_at is not None:
+            return
+        c.clock_stopped_at = self.t
+        c.late_ticks = max(0, c.clock_ticks - self.p.T_s)
+        if c.late_ticks:
+            self.late_n += 1
+            self.lateness_sum += c.late_ticks
+            self.period["late"] += 1
+            self.period["lateness_sum"] += c.late_ticks
+        else:
+            self.on_time_n += 1
+            self.period["on_time"] += 1
+        B = c.B if c.B else 0.0
+        r_s = self.p.r_s if self.p.r_s > 0 else self.p.omega_rate * B
+        owed = min(r_s * c.late_ticks, B) if B > 0 else 0.0
+        c.rebate_owed = owed
+        self.rebates_owed += owed
+        if owed <= 1e-12:
+            self._log(c, f"clock stopped at {reason}: {c.clock_ticks} ticks, on time" if not c.late_ticks
+                      else f"clock stopped at {reason}: {c.clock_ticks} ticks, {c.late_ticks} late, nothing owed")
+            return
+        avail = max(0.0, self.ledger.wallet(Ledger.OMEGA).U - self._plant_reserve())
+        pay = min(owed, avail)
+        if pay > 1e-12:
+            self.ledger.transfer(Ledger.OMEGA, c.requester, pay, case=c.id, note="rebate")
+            c.rebate_paid += pay
+            self.rebates_paid += pay
+            self.period["rebates_paid"] += pay
+        if owed - pay > 1e-12:
+            self.omega_liabilities.append({"requester": c.requester, "amount": owed - pay, "t": self.t, "case": c.id})
+            self.liabilities_accrued += owed - pay
+            self.period["liabilities_accrued"] += owed - pay
+        self._log(c, f"clock stopped at {reason}: {c.clock_ticks} ticks, {c.late_ticks} late; rebate {owed:g} "
+                     f"(paid {pay:g}, Ω's liability {owed - pay:g})")
+
+    def open_late(self) -> int:
+        """Requests whose clock is running past T_s (1.6.0 §2.1 reading)."""
+        return sum(1 for c in self._live_cases.values() if self._clock_runs(c) and c.clock_ticks > self.p.T_s)
 
     def _member_cap(self, E_t: int) -> int:
         """1.3.0 §2.3: at most ⌈E_t/2⌉ members on duty — and never a cap below the reserve's own floor
@@ -1812,7 +1969,7 @@ class World:
         make the baseline's own worlds — and every reviewer test built on them — violate the revision at
         tick 0. The cap yields to the reserve floor as the panel floor yields to the cap. Flagged in the
         consolidated text and HANDOFF; confirmed as the rule by patch 1.3.1.]"""
-        return max((E_t + 1) // 2, self.p.V_max + 1)
+        return max(int(math.ceil(self.p.duty_cap_frac * E_t - 1e-9)), self.p.V_max + 1)
 
     def _turn_done(self, a: Actor, tick: int) -> bool:
         return a.duty_since is not None and (a.duty_reviews >= self.p.duty_turn_reviews
@@ -1839,8 +1996,11 @@ class World:
         on_m = lambda: [a for a in self.actors.values() if a.on_duty and a.is_member]
         on_p = lambda: [a for a in self.actors.values() if a.on_duty and a.probation]
         lowest = lambda ids: min((self.actors[i] for i in ids), key=lambda a: (a.kappa, a.id))
-        # the seats only members may hold: the sized demand within the cap, never below the floor
-        target_m = max(min(self.member_seats, cap), floor)
+        # the seats only members may hold: the sized demand within the cap, never below the floor — and since
+        # 1.6.0 §2.3 at least the panel seats waiting, within the cap
+        X = self._x_target
+        seats_m = max(self.member_seats, self._waiting_panel) if self.p.seat_the_queue else self.member_seats
+        target_m = max(min(seats_m, cap), floor)
         # members above the cap leave as their reviews complete (idle ones now), down to max(cap, floor)
         idle_m = sorted((a for a in on_m() if a.open_review is None and not a.volunteer),
                         key=lambda a: (0 if self._turn_done(a, tick) else 1, a.id))
@@ -1880,30 +2040,30 @@ class World:
             inc = lowest(members_pool)
             members_pool.discard(inc.id)
             self._seat(inc, tick, "member seat")
-        # initial seats: probationers first, lowest duty credit
-        while len(on_m()) + len(on_p()) < self.X_t and probs_pool:
+        # initial seats: probationers first, lowest duty credit — all of them if the queue needs them (1.6.0 §2.3)
+        while len(on_m()) + len(on_p()) < X and probs_pool:
             inc = lowest(probs_pool)
             probs_pool.discard(inc.id)
             self._seat(inc, tick, "initial seat: probationer")
         # then members for what initial demand is left, while below the cap
-        while len(on_m()) + len(on_p()) < self.X_t and len(on_m()) < cap and members_pool:
+        while len(on_m()) + len(on_p()) < X and len(on_m()) < cap and members_pool:
             inc = lowest(members_pool)
             members_pool.discard(inc.id)
             self._seat(inc, tick, "initial seat: member")
-        # shrink to X_t: idle probationers first, then idle members above the member seats and the floor
+        # shrink to the target: idle probationers first, then idle members above the member seats and the floor
         n = len(on_m()) + len(on_p())
-        if n > self.X_t:
+        if n > X:
             idle_p = sorted((a for a in on_p() if a.open_review is None), key=lambda a: (0 if self._turn_done(a, tick) else 1, a.id))
-            while n > self.X_t and idle_p:
+            while n > X and idle_p:
                 self._leave_duty(idle_p.pop(0), tick, "reserve sized down")
                 n -= 1
             idle_m = sorted((a for a in on_m() if a.open_review is None and not a.volunteer),
                             key=lambda a: (0 if self._turn_done(a, tick) else 1, a.id))
-            while n > self.X_t and len(on_m()) > max(target_m, floor) and idle_m:
+            while n > X and len(on_m()) > max(target_m, floor) and idle_m:
                 self._leave_duty(idle_m.pop(0), tick, "reserve sized down")
                 n -= 1
         n = len(on_m()) + len(on_p())
-        self.reserve_shortfall_now = max(0, self.X_t - n)
+        self.reserve_shortfall_now = max(0, X - n)
         self._member_pool_exhausted = not members_pool
         self._pool_exhausted = (not probs_pool) and (not members_pool or len(on_m()) >= cap)
         self._reserve_dirty = False
@@ -2001,6 +2161,8 @@ class World:
         if len(rec) > self.p.n_P:
             del rec[: len(rec) - self.p.n_P]
         c.plant_outcome = "stood" if right else "failure"
+        if self.first_plant_adjudicated_at is None:
+            self.first_plant_adjudicated_at = self.t         # 1.6.0 §2.4: the determination requirement is live from here
         self.period["plants"] += 1
         if truth is False:
             self.period["bad"] += 1
@@ -2071,7 +2233,10 @@ class World:
                 "award_price_sum": 0.0, "award_n": 0,
                 "troop_ticks_reviews": 0, "troop_ticks_deliveries": 0, "troop_summons_reviews": 0,
                 "troop_summons_deliveries": 0, "troop_shortfall_seats": 0, "troop_shortfall_awards": 0,
-                "troop_held_ticks": 0, "held_market_audit_max": 0}
+                "troop_held_ticks": 0, "held_market_audit_max": 0,
+                # 1.6.0: the network rating and Ω's readings
+                "on_time": 0, "late": 0, "lateness_sum": 0, "rebates_paid": 0.0, "liabilities_accrued": 0.0,
+                "omega_min": None, "troop_panel_summons": 0}
 
     def _maybe_end_period(self, tick: int):
         """Once per period — period_plants adjudicated plants or period_ticks ticks, whichever first —
@@ -2130,10 +2295,19 @@ class World:
                "advance": round(self.advance_outstanding, 6), "B_bar": round(self.mean_awarded_price(), 6),
                # 1.5.0 §2.1: the period's peak demand, how much of it was refused, and the demand at its last seating
                "demand_peak": round(self.troop_demand_peak, 6), "demand_peak_refused": round(self.troop_demand_peak_refused, 6),
-               "demand_last": round(self.troop_demand_now, 6)}
+               "demand_last": round(self.troop_demand_now, 6),
+               # 1.6.0 §2.1–2.2: the network rating and Ω's readings
+               "on_time": per["on_time"], "late": per["late"],
+               "lateness_mean": (per["lateness_sum"] / per["late"]) if per["late"] else 0.0,
+               "rebates_paid": round(per["rebates_paid"], 6), "liabilities_accrued": round(per["liabilities_accrued"], 6),
+               "liabilities_outstanding": round(sum(l["amount"] for l in self.omega_liabilities), 6),
+               "open_late": self.open_late(), "omega_min": per["omega_min"], "plant_reserve": round(self._plant_reserve(), 6),
+               "troop_panel_summons": per["troop_panel_summons"]}
         self.periods.append(rec)
         self.history.append("period", rec)
         self.troop_capital_peak_prev, self.troop_capital_peak = self.troop_capital_peak, self._troop_capital_now()
+        self.troop_demand_peak_prev = self.troop_demand_peak                   # 1.6.0 §2.5
+        self._last_initial_rate = per["initial"] / max(1, ticks)
         # 1.5.0 §2.1: the new period's peak starts at the standing demand — every troop still in the field; the same
         # tick's summons pass adds whatever that seating refuses
         self.troop_demand_peak, self.troop_demand_peak_refused = self._troop_capital_now(), 0.0
@@ -2223,6 +2397,8 @@ class World:
         """The fund's troop reserve. 1.5.0 §2.1: the peak troop demand of the current period; 1.4.0: the peak capital
         carried over this period and the previous one (`reserve_demand=False`)."""
         if self.p.reserve_demand:
+            if self.p.reserve_periods >= 2:            # 1.6.0 §2.5: over this and the previous period
+                return max(self.troop_demand_peak, self.troop_demand_peak_prev)
             return self.troop_demand_peak
         return max(self.troop_capital_peak, self.troop_capital_peak_prev)
 
@@ -2243,8 +2419,8 @@ class World:
         if fund.U + 1e-9 >= need:
             return True
         short = need - fund.U
-        room = max(0.0, self.p.A_T - self.advance_outstanding)
-        adv = min(short, room, self.ledger.wallet(Ledger.OMEGA).U)
+        room = self._omega_available()                 # 1.6.0 §2.2: above the plant reserve; 1.5.0: under A_T
+        adv = min(short, room)
         if adv > 1e-12:
             self.ledger.transfer(Ledger.OMEGA, DUTY_FUND, adv, case=cid, note="Ω advance to the duty fund")
             self.advance_outstanding += adv
@@ -2308,6 +2484,8 @@ class World:
             self.period["troop_shortfall_seats"] += 1
             self._pass_refused += need                  # 1.5.0 §2.1: the amount the carry check refused is demand
             self._last_refusal_funds = True
+            if self._pass_refused_review_tpost is None or (c.t_post is not None and c.t_post < self._pass_refused_review_tpost):
+                self._pass_refused_review_tpost = c.t_post
             return None
         tid = self._new_troop("review", c.id, cost_credits, c.G_V)
         credits = self.ledger.purchase(tid, cost_credits * self.ledger.v, case=c.id, note="troop cost (review)")
@@ -2334,6 +2512,10 @@ class World:
             self.period["challenge_reviews"] += 1
         self.troop_summons_reviews += 1
         self.period["troop_summons_reviews"] += 1
+        if role in PANEL_ROLES:
+            self.period["troop_panel_summons"] += 1
+        if self._pass_refused_review_tpost is not None and c.t_post is not None and c.t_post > self._pass_refused_review_tpost:
+            self._priority_violation = f"review seat of {c.id} (posted {c.t_post}) summoned after an older case was refused"
         self.troop_capital_peak = max(self.troop_capital_peak, self._troop_capital_now())
         self.history.append("troop", {"t": tick, "troop": tid, "kind": "review", "seat": role, "case": c.id,
                                       "review": rid, "msg": "summoned"})
@@ -2354,11 +2536,21 @@ class World:
         if self.ledger.wallet(c.requester).U + 1e-9 < B + phi_E + phi_F + omega:
             return None                                 # the requester cannot pay in: no award, troop or not
         cost_credits = self.p.c_D_T
-        if not self._fund_can_carry(cost_credits + G, c.id):
+        # 1.6.0 §2.2: a delivery carries its inspection — a check against the fund plus Ω's available advance for its
+        # own capital and two review seats; the advance drawn is the delivery's own shortfall
+        carries = True
+        if self.p.omega_backs_fund:
+            need_all = cost_credits + G + 2 * (self.p.c_T + GV)
+            carries = self.ledger.wallet(DUTY_FUND).U + self._omega_available() + 1e-9 >= need_all
+        if not carries or not self._fund_can_carry(cost_credits + G, c.id):
             self.troop_shortfall_awards += 1
             self.period["troop_shortfall_awards"] += 1
             self._pass_refused += cost_credits + G       # 1.5.0 §2.1: the amount the carry check refused is demand
+            if self._pass_refused_delivery_tpost is None or c.t_post < self._pass_refused_delivery_tpost:
+                self._pass_refused_delivery_tpost = c.t_post
             return None
+        if self._pass_refused_delivery_tpost is not None and c.t_post > self._pass_refused_delivery_tpost:
+            self._priority_violation = f"delivery of {c.id} (posted {c.t_post}) summoned after an older request was refused"
         tid = self._new_troop("delivery", c.id, cost_credits, G)
         c.D, c.K, c.G_V, c.phi_E, c.phi_F, c.omega, c.G = D, K, GV, phi_E, phi_F, omega, G
         c.G_award = G
@@ -2395,6 +2587,16 @@ class World:
         of t + w_R − 1. Also the tick's readings."""
         held_now, held_max_age = 0, 0
         self._pass_refused = 0.0
+        self._pass_refused_review_tpost = None
+        self._pass_refused_delivery_tpost = None
+        self._priority_violation = None
+        # 1.6.0 §2.1: the clocks run — one tick for every open root request whose ceiling admits the market price
+        for c in self._live_cases.values():
+            if self._clock_runs(c):
+                c.clock_ticks += 1
+        # 1.6.0 §2.2: Ω's order — liabilities older than a period before any advance
+        self._service_omega_liabilities(self.p.period_ticks)
+        # first pass: the review seats (1.6.0 §2.2: inspection first), oldest case first
         for c in list(self._live_cases.values()):
             if c.plant is not None or any(a[3] == "override" for a in c.assessments):
                 continue                                # never a plant; never a case a human has ruled on (I18)
@@ -2430,13 +2632,20 @@ class World:
                         if self._last_refusal_funds:    # 1.5.0 §2.1: a case's demand is its unfilled seats — both
                             self._pass_refused += (remaining - i - 1) * (self.p.c_T + c.G_V)
                         break
-            # the award
+        # second pass: the awards, oldest request first
+        for c in list(self._live_cases.values()):
+            if c.plant is not None or any(a[3] == "override" for a in c.assessments):
+                continue
             if c.state == "AVAILABLE" and c.is_root and self.p.troops and c.requester in self.requesters \
                     and tick - c.t_post + 1 >= self.p.w_A:
                 B = self.mean_awarded_price() or c.beta
                 G = max(1.0, math.ceil(self.p.G_frac * B))
                 if not self._free_fundable_member(G):
                     self._summon_delivery(c, tick)
+        # 1.6.0 §2.2: younger liabilities after the pass; Ω's minimum balance is the period's solvency reading
+        self._service_omega_liabilities(0)
+        om = self.ledger.wallet(Ledger.OMEGA).U
+        self.period["omega_min"] = om if self.period["omega_min"] is None else min(self.period["omega_min"], om)
         self.held_market_audit_now = held_now
         self.held_market_audit_max_age = max(self.held_market_audit_max_age, held_max_age)
         self.period["held_market_audit_max"] = max(self.period["held_market_audit_max"], held_now)

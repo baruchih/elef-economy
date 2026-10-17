@@ -104,8 +104,8 @@ class Stamping:
         ids = list(self.actors)
         self.rng.shuffle(ids)
         self.kind = {aid: (STAMPER if i < n_st else CAREFUL) for i, aid in enumerate(ids)}
-        p = Params(Res0=a.res0, X=a.on_duty, G_V=a.gv, p_start=a.p_start, record_dir=a.record_dir,
-                   f_fee=a.fee, phi_E_root=a.phi_e, phi_F_root=a.phi_f)
+        p = Params(Res0=a.res0, X=a.on_duty, G_V=a.gv, p_start=a.p_start, p_floor=a.p_floor, band=a.band,
+                   record_dir=a.record_dir, f_fee=a.fee, phi_E_root=a.phi_e, phi_F_root=a.phi_f)
         self.p = p
         world = World(p, self.actors, humans={"H": a.human_budget}, on_duty=sorted(self.actors)[: a.on_duty])
         self.w = Public(world)
@@ -376,6 +376,8 @@ def main(argv=None):
     ap.add_argument("--fail-rate", type=float, default=0.2, help="b: P(task is truly unfulfilled)")
     ap.add_argument("--ruling-accuracy", type=float, default=0.8, help="r: P(orchestrator rules by the truth)")
     ap.add_argument("--p-start", type=float, default=0.5)
+    ap.add_argument("--p-floor", type=float, default=0.2, help="the audit rate's floor (§8.3)")
+    ap.add_argument("--band", type=float, default=0.05, help="the κ tie band of selection (§5.2)")
     ap.add_argument("--gv", type=float, default=5.0, help="G^V, the reviewer bond")
     ap.add_argument("--fee", type=float, default=2.0, help="f, the ordinary-review fee (1.1.0 §4.3); appeal/audit pay 1.5 f")
     ap.add_argument("--phi-e", type=float, default=10.0, help="φ^E, the expense allowance of a root request")
@@ -387,12 +389,13 @@ def main(argv=None):
     ap.add_argument("--log-every", type=int, default=10)
     ap.add_argument("--name", default=None)
     ap.add_argument("--expect-head", default=None)
+    ap.add_argument("--results-root", default=None, help="write results/runs under this directory instead of results/")
     a = ap.parse_args(argv)
 
     name = a.name or f"stamping-s{a.stampers:g}-p{a.p_start:g}-gv{a.gv:g}-b{a.fail_rate:g}-f{a.fee:g}-X{a.on_duty}-seed{a.seed}"
     run = Stamping(a)
     rec = RunRecorder(name, kind="scoped run — §18.1 q1 careful vs careless review; policies fixed by disposition",
-                      params=run.p,
+                      params=run.p, **({"root": a.results_root} if a.results_root else {}),
                       declared={"actors": a.actors, "on_duty": a.on_duty, "ticks": a.ticks, "tasks_per_tick": a.tasks,
                                 "beta": a.beta, "work_ticks": a.work_ticks, "seed": a.seed,
                                 "dispositions": {"stamper_fraction": a.stampers,

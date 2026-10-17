@@ -1,17 +1,24 @@
-"""The rerun of strategy run 1 under 1.1.0 (design revision 1, §8 step 2), and the shape of any
-later sweep over the stamping run: a grid of cells × seeds, each cell a `drivers.stamping` run with
-its own results directory, plus one summary directory with every run's final row and the per-cell
-means and spreads.
+"""Sweeps of the stamping run: a set of cells × seeds, each cell a `drivers.stamping` run with its own
+results directory, plus one summary directory with every run's final row and the per-cell means and
+spreads. Everything a sweep writes goes under one study folder (`--root`), so a study is one directory.
 
-    python3 -m drivers.sweep --seeds 20 --on-duty 4 8 --fee 2 4 --stampers 0.5 0.9
+    # the 1.1.0 rerun of strategy run 1 (design revision 1, §8 step 2): a full grid
+    python3 -m drivers.sweep --root results/studies/1.1.0-stamping/rerun --name stamping-rerun-1.1.0 \\
+        --grid stampers=0.5,0.9 fee=2,4 on-duty=4,8 --seeds 20
 
-The X = 4, f = 2 cell is the like-for-like comparison with run 1 (same actors, ticks, tasks, β, b,
-accuracy, p_start, G^V, ruling accuracy; only the fee rule changed). The other cells separate the
-fee level and the reviewer-capacity ceiling from the rule. Means are over seeds; "stampers richer"
-counts the seeds in which the stamper population ended with more wealth per actor.
+    # the default sweep (§8 step 3): one factor at a time around the defaults, at both splits
+    python3 -m drivers.sweep --root results/studies/1.1.0-stamping/default-sweep --name default-sweep \\
+        --grid stampers=0.5,0.9 --ofat band=0.05:0,0.2 p-floor=0.2:0.05,0.5 gv=5:10,20 --seeds 20
+
+A factor is a `drivers.stamping` option. `--grid` factors are crossed in full; `--ofat` factors vary one
+at a time from the stated baseline (`name=baseline:alt1,alt2`), the others held at their baseline, and
+the all-baseline cell is run once. φ^F is sized with the fee (2.5 f, §4.3) unless --phi-f-per-fee 0.
+Means are over seeds; "stampers richer" counts the seeds in which the stamper population ended with
+more wealth per actor.
 """
 from __future__ import annotations
 import argparse
+import itertools
 import json
 import os
 import statistics
@@ -32,90 +39,123 @@ KEYS = ["careful_wealth", "stamper_wealth", "careful_fees", "stamper_fees", "car
         "reviews_unassignable_ticks", "awards_unfilled_ticks", "underfunded_careful_reviews",
         "omega_unrecovered_advances", "claims_outstanding", "allowance_refunded", "pot_refunded",
         "grade_procedural_n", "grade_procedural_acc", "grade_protocol-default_n", "grade_protocol-default_acc", "omega"]
+SHORT = {"stampers": "s", "fee": "f", "on-duty": "X", "gv": "gv", "p-floor": "pf", "p-start": "p", "band": "band",
+         "fail-rate": "b", "accuracy": "a", "ruling-accuracy": "r"}
 
 
-def cell_name(split, fee, X):
-    return f"s{split:g}-f{fee:g}-X{X}"
+def _num(x: str):
+    return int(x) if x.lstrip("-").isdigit() else float(x)
+
+
+def parse_factors(specs, ofat: bool):
+    """`name=v1,v2` (grid) or `name=base:alt1,alt2` (one at a time) -> list of (name, baseline, values)."""
+    out = []
+    for spec in specs:
+        name, _, vals = spec.partition("=")
+        if ofat:
+            base, _, alts = vals.partition(":")
+            out.append((name, _num(base), [_num(base)] + [_num(v) for v in alts.split(",") if v]))
+        else:
+            vs = [_num(v) for v in vals.split(",")]
+            out.append((name, vs[0], vs))
+    return out
+
+
+def cells_of(grid, ofat):
+    """Each cell: an ordered dict factor -> value."""
+    grid_points = [dict(zip([g[0] for g in grid], combo)) for combo in itertools.product(*[g[2] for g in grid])] or [{}]
+    ofat_points = [{name: base for name, base, _ in ofat}]
+    for name, base, values in ofat:
+        for v in values:
+            if v != base:
+                pt = {n: b for n, b, _ in ofat}
+                pt[name] = v
+                ofat_points.append(pt)
+    return [{**g, **o} for g in grid_points for o in ofat_points]
+
+
+def cell_name(cell):
+    return "-".join(f"{SHORT.get(k, k)}{v:g}" for k, v in cell.items())
 
 
 def main(argv=None):
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
+    ap.add_argument("--root", default=RESULTS, help="the study folder; runs go to <root>/runs/")
+    ap.add_argument("--name", default="sweep")
+    ap.add_argument("--grid", nargs="*", default=[], help="factors crossed in full: name=v1,v2,...")
+    ap.add_argument("--ofat", nargs="*", default=[], help="factors varied one at a time: name=baseline:alt1,alt2")
     ap.add_argument("--seeds", type=int, default=20)
     ap.add_argument("--seed-from", type=int, default=1)
-    ap.add_argument("--on-duty", type=int, nargs="+", default=[4, 8])
-    ap.add_argument("--fee", type=float, nargs="+", default=[2.0, 4.0])
-    ap.add_argument("--stampers", type=float, nargs="+", default=[0.5, 0.9])
     ap.add_argument("--ticks", type=int, default=1000)
     ap.add_argument("--actors", type=int, default=20)
     ap.add_argument("--log-every", type=int, default=100)
-    ap.add_argument("--name", default="stamping-rerun-1.1.0")
     ap.add_argument("--phi-f-per-fee", type=float, default=2.5,
-                    help="φ^F = this × f for each fee level (§4.3 default: f·(w_ordinary + w_audit) = 2.5 f); "
-                         "0 keeps the stamping driver's own default (5) at every fee level")
+                    help="φ^F = this × f (§4.3 default: f·(w_ordinary + w_audit) = 2.5 f); 0 keeps the driver's default")
     ap.add_argument("--extra", nargs=argparse.REMAINDER, default=[], help="passed through to drivers.stamping")
     a = ap.parse_args(argv)
 
-    cells = [(s, f, X) for s in a.stampers for f in a.fee for X in a.on_duty]
+    grid, ofat = parse_factors(a.grid, False), parse_factors(a.ofat, True)
+    cells = cells_of(grid, ofat)
     seeds = list(range(a.seed_from, a.seed_from + a.seeds))
-    rec = RunRecorder(a.name, kind="sweep summary — strategy run 1 rerun under 1.1.0 with only the fee rule changed (§8 step 2)",
-                      params=Params(),
-                      declared={"cells": [cell_name(*c) for c in cells], "seeds": seeds, "ticks": a.ticks, "actors": a.actors,
-                                "per_run": "drivers.stamping at its defaults except --stampers, --fee, --on-duty, --seed, "
-                                           "and --phi-f = phi_f_per_fee × fee",
-                                "phi_f_per_fee": a.phi_f_per_fee,
-                                "extra_args": a.extra, "comparison": "the s0.5/s0.9, f2, X4 cells against run 1 (v1.0.1, 5 seeds)"})
+    os.makedirs(os.path.join(a.root, "runs"), exist_ok=True)
+    rec = RunRecorder(a.name, kind="sweep summary over drivers.stamping cells × seeds", params=Params(), root=a.root,
+                      declared={"cells": [cell_name(c) for c in cells], "factors_grid": a.grid, "factors_ofat": a.ofat,
+                                "seeds": seeds, "ticks": a.ticks, "actors": a.actors,
+                                "per_run": "drivers.stamping at its defaults except the cell's factors and --seed; "
+                                           "--phi-f = phi_f_per_fee × fee", "phi_f_per_fee": a.phi_f_per_fee,
+                                "extra_args": a.extra})
     runs, finals = [], {}
     t0 = time.time()
-    for (split, fee, X) in cells:
+    for cell in cells:
+        cname = cell_name(cell)
         for seed in seeds:
-            name = f"rerun110-{cell_name(split, fee, X)}-seed{seed}"
-            argv_run = ["--actors", str(a.actors), "--ticks", str(a.ticks), "--stampers", str(split), "--fee", str(fee),
-                        "--on-duty", str(X), "--seed", str(seed), "--log-every", str(a.log_every), "--name", name] + a.extra
+            name = f"{a.name}-{cname}-seed{seed}"
+            argv_run = ["--actors", str(a.actors), "--ticks", str(a.ticks), "--seed", str(seed),
+                        "--log-every", str(a.log_every), "--name", name, "--results-root", a.root]
+            for k, v in cell.items():
+                argv_run += [f"--{k}", str(v)]
+            fee = cell.get("fee", 2.0)
             if a.phi_f_per_fee > 0:
-                argv_run += ["--phi-f", str(a.phi_f_per_fee * fee)]       # the pot sized for one review and one audit
-            before = set(os.listdir(os.path.join(RESULTS, "runs")))
+                argv_run += ["--phi-f", str(a.phi_f_per_fee * fee)]
+            argv_run += a.extra
+            runs_dir = os.path.join(a.root, "runs")
+            before = set(os.listdir(runs_dir))
             rc = stamping.main(argv_run)
-            new = [d for d in os.listdir(os.path.join(RESULTS, "runs")) if d not in before and d.endswith(name)]
-            run_dir = os.path.join(RESULTS, "runs", new[0])
-            with open(os.path.join(run_dir, "manifest.json")) as f:
+            new = [d for d in os.listdir(runs_dir) if d not in before and d.endswith(name)]
+            with open(os.path.join(runs_dir, new[0], "manifest.json")) as f:
                 m = json.load(f)
             final = m["final"]
-            row = {"cell": cell_name(split, fee, X), "stampers": split, "fee": fee, "on_duty": X, "seed": seed,
-                   "run_id": m["run_id"], "status": m["status"], "head": m["head"]}
+            row = {"cell": cname, **cell, "seed": seed, "run_id": m["run_id"], "status": m["status"], "head": m["head"]}
             row.update({k: final.get(k, "") for k in KEYS})
             rec.tick(row)
             runs.append({"run_id": m["run_id"], "status": m["status"], "rc": rc})
-            finals.setdefault(cell_name(split, fee, X), []).append(final)
-    # per-cell statistics
+            finals.setdefault(cname, []).append(final)
     summary = {}
-    for cell, rows in finals.items():
+    for cname, rows in finals.items():
         st = {}
         for k in KEYS:
             vals = [r[k] for r in rows if isinstance(r.get(k), (int, float))]
             if vals:
-                st[k] = {"mean": round(statistics.fmean(vals), 3),
-                         "sd": round(statistics.stdev(vals), 3) if len(vals) > 1 else 0.0,
+                st[k] = {"mean": round(statistics.fmean(vals), 3), "sd": round(statistics.stdev(vals), 3) if len(vals) > 1 else 0.0,
                          "min": round(min(vals), 3), "max": round(max(vals), 3)}
         diffs = [r["stamper_wealth"] - r["careful_wealth"] for r in rows]
-        st["stamper_minus_careful_wealth"] = {"mean": round(statistics.fmean(diffs), 3),
-                                              "sd": round(statistics.stdev(diffs), 3) if len(diffs) > 1 else 0.0,
-                                              "se": round(statistics.stdev(diffs) / len(diffs) ** 0.5, 3) if len(diffs) > 1 else 0.0}
+        sd = statistics.stdev(diffs) if len(diffs) > 1 else 0.0
+        st["stamper_minus_careful_wealth"] = {"mean": round(statistics.fmean(diffs), 3), "sd": round(sd, 3),
+                                              "se": round(sd / len(diffs) ** 0.5, 3)}
         st["stampers_richer_in"] = f"{sum(1 for d in diffs if d > 0)} of {len(diffs)}"
-        per_review = [((r["stamper_fees"] - r["stamper_costs"] if "stamper_costs" in r else r["stamper_fees"]) / max(1, r["stamper_reviews"]))
-                      - ((r["careful_fees"] + r["careful_reimbursed"] - r["careful_costs"]) / max(1, r["careful_reviews"])) for r in rows]
-        st["stamper_minus_careful_net_fee_per_review"] = {"mean": round(statistics.fmean(per_review), 3),
-                                                          "sd": round(statistics.stdev(per_review), 3) if len(per_review) > 1 else 0.0}
-        summary[cell] = st
+        summary[cname] = st
     ok = all(r["status"] == "completed" for r in runs)
-    lines = [f"# {a.name}: {len(runs)} runs, {len(cells)} cells × {len(seeds)} seeds, {a.actors} actors × {a.ticks} ticks", ""]
-    lines.append("| cell | careful wealth | stamper wealth | stamper − careful (se) | stampers richer | net fee/review Δ | false approvals | final N | audits assigned/rolled | reviews unassignable ticks | Ω unrecovered |")
-    lines.append("|---|---|---|---|---|---|---|---|---|---|---|")
-    for cell, st in summary.items():
+    lines = [f"# {a.name}: {len(runs)} runs, {len(cells)} cells × {len(seeds)} seeds, {a.actors} actors × {a.ticks} ticks", "",
+             "| cell | careful wealth | stamper wealth | stamper − careful (se) | stampers richer | stamper overturned % "
+             "| false approvals | final N | audits assigned | reviews unassignable ticks | Ω unrecovered |",
+             "|---|---|---|---|---|---|---|---|---|---|---|"]
+    for cname, st in summary.items():
         g = lambda k: st[k]["mean"]
-        lines.append(f"| {cell} | {g('careful_wealth'):.0f} ± {st['careful_wealth']['sd']:.0f} | {g('stamper_wealth'):.0f} ± {st['stamper_wealth']['sd']:.0f} "
+        ov = 100 * g("stamper_overturned") / max(1e-9, g("stamper_reviews"))
+        lines.append(f"| {cname} | {g('careful_wealth'):.0f} ± {st['careful_wealth']['sd']:.0f} | {g('stamper_wealth'):.0f} ± {st['stamper_wealth']['sd']:.0f} "
                      f"| {st['stamper_minus_careful_wealth']['mean']:+.0f} ({st['stamper_minus_careful_wealth']['se']:.0f}) | {st['stampers_richer_in']} "
-                     f"| {st['stamper_minus_careful_net_fee_per_review']['mean']:+.2f} | {g('false_approvals'):.0f} | {g('final_n'):.0f} "
-                     f"| {g('audits_assigned'):.0f}/{g('audits_rolled'):.0f} | {g('reviews_unassignable_ticks'):.0f} | {g('omega_unrecovered_advances'):.1f} |")
+                     f"| {ov:.1f} | {g('false_approvals'):.0f} | {g('final_n'):.0f} | {g('audits_assigned'):.0f} "
+                     f"| {g('reviews_unassignable_ticks'):.0f} | {g('omega_unrecovered_advances'):.1f} |")
     with open(os.path.join(rec.dir, "summary.md"), "w") as f:
         f.write("\n".join(lines) + "\n")
     out = rec.finish(fp={"head": "sweep summary: each run's head is in metrics.csv and its own directory", "runs": len(runs)},

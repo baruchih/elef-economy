@@ -944,7 +944,7 @@ but the first thing run 6 will measure.
 
 `agentic_sim/results/studies/1.4.0-troops/` (and `1.4.0-troops.zip`): `controls/` (160 runs: 1.2.0 and 1.3.0 with
 the roll held at 50–80%), `tipping/` (80), `adaptive/` (40), `drift/` (40), `windows/` (180), `cost/` (120),
-`float/` (40), `redteam/` (120: camouflage 80, reformer 40) — 780 runs, 20 seeds per cell, 20 actors, every
+`float/` (40), `redteam/` (120: camouflage 80, reformer 40), `ruling/` (160, after the reviewer's reply) — 940 runs, 20 seeds per cell, 20 actors, every
 final audit passed, engine f0779ac. Appeals truthful, no disputes. The §6 reproduction is `test_v14`.
 
 **The controls with the roll held barely moved.** 1.2.0: false approvals 53 / 67 / 89 / 121 at 50–80% (run 4:
@@ -1023,9 +1023,29 @@ most 21 ticks, vesting 2,424 (1.3.0: 1,352).
    "no crowding out" clause of Hypothesis 4 should be restated — the honest keep their income, but it moves
    from awards to fees — or the troops' reviews should carry less audit load (a default: the odds a troop
    reviewer's approval carries).
-3. **The roll held changed little at m_max 4; the residual probation leak is the ruling's.** With every audit
-   served, probationers' false approvals are the auditor's 5% miss plus the ruling's 20% error on the
-   caught ones; `--ruling-accuracy` is a driver parameter the runs have never swept.
+3. **The roll held changed little at m_max 4; the residual probation leak is mostly the auditor's, not the
+   ruling's.** The reviewer asked for the sweep before any default moved; it is below. Ruling accuracy
+   0.80 → 0.95 removes three quarters of the wrong rulings and a sixth of the probationers' false approvals
+   at drift, none at the tipping cells. What reaches a customer through a probationer is the auditor's own
+   miss — a member whose record has not yet failed, or a troop at ε_T — more than the ruling's.
+
+**The ruling sweep** (`ruling/`, 160 runs, same seeds; the r = 0.80 cells reproduce the figures above to
+the unit, engine code unchanged at results commit e9a4f85):
+
+| cell | ruling accuracy | vested | FA | probationers' FA | troops' FA | false rejections | rulings (wrong) |
+|---|---|---|---|---|---|---|---|
+| drift m_max 2 | 0.80 / 0.95 | 3,621 / 3,608 | 157 / 142 | 62 / 52 | 8 / 8 | 90 / 77 | 176 (34) / 173 (9) |
+| drift m_max 4 | 0.80 / 0.95 | 3,494 / 3,521 | 78 / 68 | 22 / 16 | 7 / 6 | 126 / 105 | 168 (34) / 161 (9) |
+| 60/40 | 0.80 / 0.95 | 2,237 / 2,315 | 49 / 49 | 7 / 9 | 4 / 3 | 46 / 43 | 96 (19) / 102 (5) |
+| 80/20 | 0.80 / 0.95 | 2,376 / 2,374 | 98 / 94 | 13 / 13 | 5 / 5 | 74 / 68 | 103 (19) / 101 (5) |
+
+The leak does not close. Wrong rulings fall from 34 to 9 a run at drift, but probationers' false approvals
+fall by ten and six, and at the tipping cells not at all; false rejections fall by a similar count, since a
+wrong ruling cuts both ways. So the ruling is a sixth of the probationers' leak where it is largest, and the
+rest is the audit itself: the auditor of a pinned approval is whichever member or troop was free, and a
+member whose record has not yet failed approves what the probationer approved. A default of 1 − ε_T for the
+ruling is not warranted by this; what would be is a reading of who audits pinned approvals, a driver column
+the runs do not yet carry.
 
 The reviewer notes are `agentic_sim/results/studies/1.4.0-troops-notes-for-reviewer.md`. Untouched: §18.1
 questions 2, 4, 5, 7, 10.

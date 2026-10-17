@@ -940,12 +940,95 @@ every batch, and R_T is the peak capital of troops that were fundable, so the re
 has already carried. The treasury, not the market's need, sets the state's share. One seed, no conclusion —
 but the first thing run 6 will measure.
 
-**Run 6 — the revision's §8 (next).** The controls re-run with the roll held first (1.2.0 and 1.3.0 at the
-run-5 cells, troops off); then the tipping point under 1.4.0 against them (vesting, the state's share,
-probationers' false approvals, the gap's sign, the fund); adaptive 1.4.0 against 1.3.0 at 3,000 ticks
-(convergence and troop-ticks to zero); drift at m_max ∈ {2, 4}; the windows w_R × w_A at 60/40 and A_T at
-80/20; c^D_T and ε_T; the red team — camouflage, the reformer, the all-troop corner. Results to
-`agentic_sim/results/studies/1.4.0-troops/`.
+## Run 6 — the revision's §8 under 1.4.0 (October 17, 2026)
+
+`agentic_sim/results/studies/1.4.0-troops/` (and `1.4.0-troops.zip`): `controls/` (160 runs: 1.2.0 and 1.3.0 with
+the roll held at 50–80%), `tipping/` (80), `adaptive/` (40), `drift/` (40), `windows/` (180), `cost/` (120),
+`float/` (40), `redteam/` (120: camouflage 80, reformer 40) — 780 runs, 20 seeds per cell, 20 actors, every
+final audit passed, engine f0779ac. Appeals truthful, no disputes. The §6 reproduction is `test_v14`.
+
+**The controls with the roll held barely moved.** 1.2.0: false approvals 53 / 67 / 89 / 121 at 50–80% (run 4:
+53 / 67 / 89 / 121); 1.3.0: 53 / 66 / 90 / 112 (run 5: 53 / 69 / 90 / 113), probationers' 7 / 12 / 14 / 15
+(run 5: 7 / 15 / 14 / 16). The dropped roll was hiding almost nothing at m_max = 4; what it hid was the m_max = 2
+drift of run 5 (65 of 97). Every comparison below is against these.
+
+**The tipping point.**
+
+| stampers | 1.4.0 vested / 1.3.0 / 1.2.0 | troop deliveries (vested) | state's share of vested work | FA 1.4.0 / 1.3.0 (probationers') | troop FA | stamper − careful 1.4.0 / 1.3.0 | members' awards 1.4.0 / 1.3.0 | careful fees + uplift | award summonses refused for funds (case-ticks) |
+|---|---|---|---|---|---|---|---|---|---|
+| 50% | 2,136 / 1,923 / 2,399 | 349 (257) | 12% | 42 / 53 (7 / 7) | 2 | −2,761 / −2,130 | 164 / 152 | 1,921 (545) | 7,243 |
+| 60% | 2,237 / 1,719 / 2,412 | 828 (613) | 27% | 49 / 66 (7 / 12) | 4 | −3,196 / −2,386 | 147 / 153 | 2,549 (922) | 8,768 |
+| 70% | 2,361 / 1,443 / 2,396 | 1,390 (1,033) | 44% | 69 / 90 (12 / 14) | 4 | −3,965 / −2,489 | 118 / 145 | 3,691 (1,666) | 4,888 |
+| 80% | 2,376 / 1,173 / 2,024 | 1,784 (1,338) | 56% | 98 / 112 (13 / 15) | 5 | −5,094 / −2,426 | 73 / 137 | 5,392 (2,709) | 4,832 |
+
+*Hypothesis 2 holds:* vesting recovers to the 1.2.0 control at 50–70% and above it at 80%, and the state's
+share reads the capture — 12% of vested work at 50/50, 56% at 80/20. *Hypothesis 1 holds in rate, not in
+count:* false approvals fall below the controls (troop reviewers at ε_T = 0.05 and no dropped audit), but the
+probationers' count is unchanged at m_max = 4 because there was little to close there; in the m_max = 2 drift
+(below) the count stays at 62 while throughput doubles, so the rate per vested case halves (3.6% → 1.7%) — the
+residual is now the audit's 5% miss and the ruling's 20% error, not the missing auditor. *Hypothesis 4 holds
+in sign and fails in its clause:* the gap widens by the uplift as predicted (545–2,709 per careful actor), but
+members' awards are **not** unchanged — at 70–80% they fall by a fifth to a half (118 and 73 against 145 and
+137), because every troop delivery needs an initial review and most need an audit, and that work keeps the
+members on duty; careful wealth still rises (fees 5,392 against 1,602 at 80/20). *Hypothesis 5 fails:* the
+fund refuses thousands of award summonses at every split (4,800–8,800 case-ticks a run) while paying 6,400–12,700
+in uplift. The reserve R_T is the peak capital of troops that *were* fundable; the uplift drains the fund to it
+every batch; so the fund can never carry more troops than it once did — a self-limiting reserve. The treasury,
+not the market's need, sets the state's share. *Hypothesis 6 holds:* cases held for the market's audit live 6–16
+ticks at most, and the held count at any tick is 0–1.
+
+**Adaptive dispositions** (3,000 ticks): under 1.4.0 the stamper share reaches ≤ 10% at a mean tick of 900 in
+20 of 20 (1.3.0 with the roll held: 870); troops are active about 0.9 at a time at ticks 500 and 1,000 and
+**zero from tick 1,500** in every seed; vesting 7,203 against 7,138. *Hypothesis 3 holds:* the state retracts on
+its own, within a few hundred ticks of the market turning honest.
+
+**Drift** (50% → 90% over 1,500 ticks):
+
+| m_max | FA (probationers', troops') | vested 1.4.0 / 1.3.0 / 1.2.0 / 1.1.0 | troop deliveries (vested) | troop audits | award summonses refused | fund paid out | stamper − careful |
+|---|---|---|---|---|---|---|---|
+| 2 | 157 (62, 8) | 3,621 / 1,856 / — / — | 2,527 (1,950) | 407 | 21,883 | 15,065 | −6,763 |
+| 4 | 78 (22, 7) | 3,494 / 1,506 / 2,518 / 4,209 | 2,942 (2,206) | 407 | 10,197 | 22,334 | −10,595 |
+
+Vesting doubles against 1.3.0 and reaches 85% of the 1.1.0 control's at m_max 4 with false approvals at an
+eighth of its; the state delivers 55–60% of what vests at 90% stampers and says so. At m_max 2 the
+probationers' 62 false approvals are 1.7% of vested work (run 5: 3.6%).
+
+**Windows** (60/40, w_R × w_A): w_R decides the state's share of *reviewing* — 1,410–1,450 troop review seats a
+run at w_R = 1 against 760–990 at w_R = 4 — with vesting almost flat (2,210–2,342) and false approvals
+46–66; w_A barely matters (troop deliveries 700–1,030 across its range), because the fund, not the window,
+limits deliveries. At w_R = 1 the troops take the market's ordinary slack, as the revision warned; the members'
+awards rise (170 against 113–121) because troops carry the reviewing. w_R = 2, w_A = 2 is a reasonable middle.
+
+**Cost and competence** (60/40): c^D_T = 20 makes a delivery a loss in expectation (0.8 × 0 − 0.2 × 30) and the
+fund stops carrying — troop deliveries 209 against 828 at c^D_T = 10 and 950 at 5, award summonses refused
+23,900, vesting back to 1,894 (the 1.3.0 level). ε_T = 0.10 doubles troops' false approvals (3–4 → 6–8) and
+adds 20–30 false rejections; everything else within noise. **A_T** 300 against 100 at 80/20: refused award
+summonses fall from 4,832 to 1,640 but troop deliveries do not move (1,805 against 1,784) — the advance is
+not the binding constraint; the fund's inflow against its uplift is.
+
+**Red team.** Camouflage under troops buys nothing (−2,882 against −2,761 at 50/50; −7,221 against −7,559 at
+90/10). The reformer is readmitted 29 times a run at 60/40 and 55 at 90/10 and ends 2,375 and 3,953 poorer;
+probationers' false approvals in the all-troop corner (90/10) are 4, troops' 6, held-for-market-audit age at
+most 21 ticks, vesting 2,424 (1.3.0: 1,352).
+
+**What run 6 leaves — three findings for the next decision, in order.**
+
+1. **The fund's reserve is self-limiting.** R_T is the peak capital of fundable troops and the uplift drains
+   the fund to it every batch, so the treasury can never carry more troops than it once did, however many the
+   market needs; A_T does not help, and c^D_T = 20 collapses it. Candidates, all design questions: a reserve
+   sized to the *unmet* demand (the refused summonses) rather than the met one; uplift paid only when troop
+   shortfall was zero in the period; or the raised tax split between the fund's reserve and the uplift.
+2. **Troops consume member capacity.** Every troop delivery is reviewed, and every troop-reviewed approval of a
+   member's work is audited at the floor: at 70–80% the members review more and deliver less. The
+   "no crowding out" clause of Hypothesis 4 should be restated — the honest keep their income, but it moves
+   from awards to fees — or the troops' reviews should carry less audit load (a default: the odds a troop
+   reviewer's approval carries).
+3. **The roll held changed little at m_max 4; the residual probation leak is the ruling's.** With every audit
+   served, probationers' false approvals are the auditor's 5% miss plus the ruling's 20% error on the
+   caught ones; `--ruling-accuracy` is a driver parameter the runs have never swept.
+
+The reviewer notes are `agentic_sim/results/studies/1.4.0-troops-notes-for-reviewer.md`. Untouched: §18.1
+questions 2, 4, 5, 7, 10.
 
 ## Maps
 

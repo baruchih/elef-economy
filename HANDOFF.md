@@ -1091,12 +1091,112 @@ that offer for nothing — the 1.5.0 red team); `--rules 1.5.0|1.4.0|1.3.0|1.2.0
 compares the fund's *unlocked* balance against a reserve that counts capital held (costs purchased plus locks), so
 the fund's total when uplift resumes is about R_T plus the locks then held — as under 1.4.0.
 
-**Run 7 — the revision's §8 (next).** Reproduce §6 (the 60/40 ramp: refusals to zero, R_T climbing toward ~270,
-uplift resuming inside the period); the tipping point under 1.5.0 against the 1.4.0 control re-run on this engine
-(refused summonses, the state's share, vesting, members' awards, uplift paid and when, R_T and D_s); the windows
-w_A ∈ {1, 2, 5} at 60/40; adaptive 1.5.0 against 1.4.0 at 3,000 ticks (convergence, troop-ticks and R_T to zero);
-drift at m_max ∈ {2, 4} with the route-and-kind reading; the red team — decliners, a requester flood, the reformer
-and camouflage once more. Results to `agentic_sim/results/studies/1.5.0-reserve/`.
+## Run 7 — the revision's §8 under 1.5.0 (October 17, 2026)
+
+`agentic_sim/results/studies/1.5.0-reserve/` (and `1.5.0-reserve.zip`): `tipping/` (160: 1.5.0 and the 1.4.0 control
+on this engine at 50–80%), `windows/` (60: w_A ∈ {1, 2, 5} at 60/40), `adaptive/` (40: 1.5.0 and 1.4.0 at 3,000 ticks),
+`drift/` (80: m_max ∈ {2, 4} under both), `redteam/` (140: decliners 40, flood 20, reformer 40, camouflage 40),
+`ramp/` (2: the §6 pair at 60/40 seed 1, logged every tick) — 482 runs, 20 seeds per cell, 20 actors, every final
+audit passed, engine 01b75e2. Appeals truthful, no disputes. The 1.4.0 control on this engine reproduces run 6 to the
+unit (vested 2,136 / 2,237 / 2,361 / 2,377; refusals 7,243 / 8,768 / 4,888 / 4,832), so `Params.reserve_demand=False` is
+a faithful control.
+
+**The rule does what it says, and the fund still does not carry the need.** The engine's reserve tracks the demand
+(`test_v15`), and in every run R_T rose to thousands when requests queued — and the troops delivered no more.
+
+| stampers | vested 1.5.0 / 1.4.0 | troop deliveries vested | award summonses refused (case-ticks) | uplift paid | R_T at the end | members' awards | FA (probationers') |
+|---|---|---|---|---|---|---|---|
+| 50% | 2,175 / 2,136 | 305 / 257 | 7,995 / 7,243 | 6,818 / 6,396 | 2,567 / 542 | 163 / 164 | 42 / 42 (6.4 / 6.8) |
+| 60% | 2,186 / 2,237 | 545 / 613 | 11,211 / 8,768 | 8,504 / 8,602 | 2,766 / 941 | 153 / 147 | 47 / 49 (8.2 / 6.9) |
+| 70% | 2,347 / 2,361 | 1,031 / 1,033 | 8,846 / 4,888 | 11,564 / 11,409 | 905 / 650 | 121 / 118 | 66 / 69 (9.8 / 11.6) |
+| 80% | 2,375 / 2,377 | 1,331 / 1,338 | 5,777 / 4,832 | 12,556 / 12,738 | 712 / 751 | 74 / 73 | 96 / 98 (11.8 / 12.8) |
+
+*Hypothesis 1 fails.* Refusals rise, deliveries do not, vesting is identical, the uplift paid is identical. **The §6
+ramp** (60/40 seed 1, `ramp/`): the first refusal at tick 423 under both rules; the demand stock peaks at 3,568 (1.5.0;
+the 1.4.0 run reads 5,452 — the readings run in both modes), not 270; troops in flight peak at 94 (1.4.0: 133), not
+13; the uplift is paid in 393 of 1,000 ticks (1.4.0: 477); vested 2,274 against 2,321; troop deliveries 719 against
+806; refused 12,801 against 8,739; the request backlog 133 against 49; reviews that found no reviewer 8,383 case-ticks
+against 9,428. Per period under 1.5.0 the peak demand ran 1,500 → 3,568 → 2,988 → 3,396 → 2,820, R_T at the period's
+end 0 / 1,140 / 0 / 944 / 440 / 0 / 2,000, and the uplift paid 117 / 599 / 296 / 3,135 / 1,152 / 3,146.
+
+Three things the text did not see, each upstream of the reserve:
+
+1. **The demand stock counts the queue.** A request has no expiry; at 50–60% the queue of open cases is ~300 and each
+   waiting request is refused at every seating, so D_s is the queue's price — thousands — and R_T is a number the fund's
+   inflow (3 of tax plus troop earnings a tick) can never reach in a period. The uplift stops, as designed; the fund
+   carries all it can — 59–94 deliveries at once, 1,200–1,900 of capital against the §6 steady 270 — and the backlog
+   still grows. §6's "one extra delivery a tick" assumed the flow; the engine met the stock.
+2. **The reviewing seat is the cap.** On duty 4.5–5 (X_t ≈ 5), audits assigned 1,800–2,150, reviews that found no
+   reviewer 7,300–11,400 case-ticks a run under both rules at every split. A troop's delivery waits for its initial
+   review and then its pinned audit; its capital stays held; cash tied up in deliveries waiting for review is cash the
+   fund cannot put into a review seat (seat refusals 290–530) or the next delivery. Vesting is pinned at 2.2–2.4 a tick
+   by the market's reviewing capacity whoever delivers. Run 6's "troops consume member capacity" was this, seen from
+   the other side.
+3. **The boundary reset saw-tooths.** The peak restarts at the standing demand *at one seating*; when the in-flight
+   cohort has just vested, the standing demand is near zero and the whole accumulated balance pays out in one batch
+   (3,135 and 3,146 in two of the ramp's periods, at 60/40 where the fund was refusing nine summonses a tick). This is
+   the sawtooth rc.2 rejected for the shortfall-zero rule, arriving by the reset instead. The 1.4.0 two-period reading
+   damped it; one period does not.
+
+**Windows** (60/40): w_A = 1 / 2 / 5 → vested 2,112 / 2,186 / 2,063; troop deliveries 432 / 545 / 373; summonses 598 /
+732 / 507; refused 15,253 / 11,211 / 13,845. *Hypothesis 2 fails:* the window is not a knob while the review seat and
+the cash tied in deliveries bind; a shorter window summons more and is refused more.
+
+**Adaptive** (3,000 ticks): ≤ 10% stampers at a mean tick of 890 (1.4.0: 900), 20 of 20; troops active 0.05 / 0 /
+0.05 / 0 at ticks 500 / 1,000 / 1,500 / 2,000 (1.4.0: 0.9 / 0.95 / 0 / 0); R_T 0–4 from tick 1,000 on; vested 7,187
+against 7,203; false approvals 74 against 77. *Hypothesis 3 holds* — and under 1.5.0 the troops are gone sooner, since a
+backlog peak stops the uplift and the fund's cash goes into the few deliveries, not the many.
+
+**Drift** (50% → 90%): m_max 2: vested 3,566 / 3,621, false approvals 154 / 157 (probationers' 58 / 62, troops' 6 / 8),
+troop deliveries 1,884 / 1,950, refused 40,071 / 21,883; m_max 4: 3,495 / 3,494, 81 / 78 (24 / 22), 2,190 / 2,206,
+11,911 / 10,197. Same market, twice the refusals.
+
+**Q14 — how a probationer's false approval reaches the customer** (the route-and-kind reading, both rules alike):
+
+| cell | probationers' FA | audit upheld | audit rejected, ruling overturned | upheld by: troop / member never suspended / member suspended *later* / readmitted |
+|---|---|---|---|---|
+| drift m_max 2 | 58–62 | 51–56 | 6.5–6.8 (11%) | 3.4–3.9 / 3.4–9.6 / **42.6–44.0** / 0 |
+| drift m_max 4 | 22–24 | 19–20 | 3.0–3.8 (15%) | 3.4–4.6 / 1.1–1.4 / **14.6** / 0 |
+| 50–80% fixed | 6–13 | 6–12 | 0.6–1.4 (10–13%) | 0.1–0.7 / 1.8–2.5 / **3.2–9.1** / 0 |
+
+*Hypothesis 4 holds in its first clause and fails in its second:* the member inside its detection lag — one whose
+record fails *after* it audited — carries 73–80% of the upheld route under drift **and 55–75% at the fixed splits
+too**. At a fixed split the lagging member is a stamper not yet caught by the plant record, not a careful actor turned;
+the lag is the record's, not the drift's. A member in standing misses 2–3 a run; a troop under 1; the ruling 10–15%.
+Readmitted members audited none of them.
+
+**Red team.** *Decliners* (careful actors that offer for nothing, 60/40): a quarter of them (two actors) end 901
+poorer than the careful who offer (3,461 against 4,362), troop deliveries 458 against 545 and refusals double
+(23,820); half of them (four) end at 2,163 against 4,203, troop deliveries collapse to 17, vesting falls a quarter
+(1,649), the backlog reaches 986 and the stampers get richer (1,817 against 1,389) — fewer awards, less tax, a fund
+that cannot carry. Declining loses 20 an award and gains almost no uplift, as predicted; it also starves the state.
+*A requester flood* (six tasks a tick): vested 2,642 (+21% on three a tick), refused 83,924, backlog 2,812, R_T 18,088,
+uplift paid 6,912 (less than at three), reviews unassigned 64,547 case-ticks; stampers 2,647 (more awards for all),
+careful 4,352 (less uplift). Not served and not an exploit: the review seat caps it, the reserve becomes the queue's
+price, the uplift is throttled. *The reformer* is readmitted 28 (60/40) and 56 (90/10) times a run and ends 2,479 and
+3,958 poorer than careful; probationers' false approvals 0.7 and 3.8. *Camouflage* 0.1 costs its user (1,287 against
+1,417 at 50/50); held-for-market age reaches 53 at 90/10.
+
+**What run 7 leaves — for the next decision, in order.**
+
+1. **The queue, not the reserve, is the design question.** Demand measured on a never-expiring stock is unbounded,
+   and a reserve sized to it is "retain everything" until a boundary. Candidates, all rules: a request unawarded for
+   some T withdraws (the human's `withdraw` exists; §6.1 has no such deadline and the drivers never use it); or D_s
+   counts the refused *flow* — cases first refused in this period — not the stock; or the refused component is capped
+   at what the fund's period inflow could carry.
+2. **The reviewing seat is the throughput cap** at every split under every rule since 1.3.0: X_t ≈ 5 on duty, the duty
+   cap ⌈E_t/2⌉, and audits of every pinned and every troop approval. The 1.4.0 text left "whether the duty cap should
+   loosen now that the floor is the state" open; the evidence now says the cap, not the fund, sets the market's size.
+   The reserve rule is downstream of this and cannot fix it.
+3. **The boundary reset.** Restart at the standing demand of one seating saw-tooths; the two-period reading damped it.
+   A reset to max(standing demand, a fraction of the last peak), or a decayed peak — the "reserve that tracks the stock"
+   rc.2 recorded and rejected — is the smaller fix, once 1 is settled.
+4. **Q14 is answered and it is not the ruling and not the drift.** The leak through probation is the plant record's
+   detection lag on the *auditor*: a pinned approval audited by a member whose record has not yet failed. Whether a
+   pinned approval's auditor should itself have a determined record is now the question the text deferred.
+
+The reviewer notes are `agentic_sim/results/studies/1.5.0-reserve-notes-for-reviewer.md`. Untouched: §18.1
+questions 2, 4, 5, 7, 10.
 
 ## Maps
 

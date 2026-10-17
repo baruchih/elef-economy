@@ -155,7 +155,7 @@ class Stamping:
                   "true_approvals_disputed": 0, "true_approvals_overturned": 0,
                   "awards_unfilled_ticks": 0, "appeals_unassignable_ticks": 0, "underfunded_careful_reviews": 0,
                   "omega_unrecovered_advances": 0.0, "allowance_refunded": 0.0, "pot_refunded": 0.0,
-                  "trees_closed": 0,
+                  "trees_closed": 0, "disposition_switches": 0,
                   # 1.2.0: planted work and the dial
                   "plants_created": 0, "plants_unfunded": 0, "plants_bad": 0, "plants_stood": 0, "plants_failed": 0,
                   "plants_spent": 0, "bad_plants_approved": 0, "good_plants_rejected": 0, "omega_plant_spend": 0.0}
@@ -236,8 +236,38 @@ class Stamping:
         return max(tied, key=lambda aid: (self.w.actor(aid).kappa, -int(aid[1:])))
 
     # -- one tick ----------------------------------------------------------------
+    def stamper_share(self) -> float:
+        return sum(1 for aid in self.actors if self.kind[aid] == STAMPER) / max(1, len(self.actors))
+
+    def move_dispositions(self, t: int):
+        """1.2.0 §8 runs 2 and 3. Drift: every `drift_every` ticks the stamper share rises by
+        `drift_step` toward `drift_to`, careful actors re-drawn as stampers at random. Adaptive: every
+        `adapt_every` ticks each actor compares the mean wealth of the two dispositions (public wallets)
+        and, with probability `adapt_rate`, takes the richer one. Both are the driver's declared
+        policies; the engine sees only verdicts."""
+        a = self.a
+        if a.drift_to > 0 and t % a.drift_every == 0:
+            target = min(a.drift_to, self.stamper_share() + a.drift_step)
+            want = round(target * len(self.actors))
+            careful = [aid for aid in self.actors if self.kind[aid] == CAREFUL]
+            while sum(1 for aid in self.actors if self.kind[aid] == STAMPER) < want and careful:
+                aid = careful.pop(self.rng.randrange(len(careful)))
+                self.kind[aid] = STAMPER
+                self.c["disposition_switches"] += 1
+        if a.adapt_rate > 0 and t % a.adapt_every == 0 and t > 0:
+            by = {CAREFUL: [], STAMPER: []}
+            for aid in self.actors:
+                by[self.kind[aid]].append(self.w.wealth(aid))
+            if by[CAREFUL] and by[STAMPER]:
+                richer = CAREFUL if sum(by[CAREFUL]) / len(by[CAREFUL]) >= sum(by[STAMPER]) / len(by[STAMPER]) else STAMPER
+                for aid in self.actors:
+                    if self.kind[aid] != richer and self.rng.random() < a.adapt_rate:
+                        self.kind[aid] = richer
+                        self.c["disposition_switches"] += 1
+
     def tick(self, t: int):
         a, w = self.a, self.w
+        self.move_dispositions(t)
         # requester posts
         for _ in range(a.tasks):
             if w.unlocked("H") < a.beta + self.p.phi_root + self.p.omega_rate * a.beta:
@@ -509,6 +539,7 @@ class Stamping:
                 f"{kind}_panel_eligible": sum(1 for aid in ids if w.actor(aid).panel_eligible),
             })
         row.update(self.c)
+        row["stamper_share"] = round(self.stamper_share(), 4)
         for g, (nn, ok) in self.by_grade.items():
             row[f"grade_{g}_n"] = nn
             row[f"grade_{g}_acc"] = round(ok / nn, 4) if nn else ""
@@ -550,6 +581,13 @@ def main(argv=None):
     ap.add_argument("--camouflage", type=float, default=0.0,
                     help="red team (1.2.0 §8): a stamper answers N on this fraction of its reviews at random")
     ap.add_argument("--omega0", type=float, default=300.0, help="Ω's cold-start float (1.2.0 Appendix A: 300)")
+    ap.add_argument("--drift-to", type=float, default=0.0,
+                    help="1.2.0 §8 run 2: raise the stamper share toward this value (0: no drift)")
+    ap.add_argument("--drift-every", type=int, default=100, help="ticks between drift steps")
+    ap.add_argument("--drift-step", type=float, default=0.05, help="stamper share added per drift step")
+    ap.add_argument("--adapt-rate", type=float, default=0.0,
+                    help="1.2.0 §8 run 3: probability per adaptation step that an actor takes the richer disposition (0: fixed)")
+    ap.add_argument("--adapt-every", type=int, default=100, help="ticks between adaptation steps")
     ap.add_argument("--assignment", choices=["round-robin", "seeded"], default="round-robin",
                     help="choice among eligible duty actors: round-robin (§7.5) or seeded random (the first sweeps' declared policy)")
     ap.add_argument("--dispute-rate", type=float, default=1.0,
@@ -591,6 +629,12 @@ def main(argv=None):
                                 "task_world": {"fail_rate_b": a.fail_rate, "truth": "hidden, independent of actor"},
                                 "fee_rule": {"spec": "1.1.0 design revision 1 — the verification deposit is two pots",
                                              "f": a.fee, "phi_E": a.phi_e, "phi_F": a.phi_f, "K": run.p.K, "G_V": a.gv},
+                                "dispositions_move": {"drift": None if a.drift_to == 0 else
+                                                      {"to": a.drift_to, "every": a.drift_every, "step": a.drift_step,
+                                                       "how": "careful actors re-drawn as stampers at random"},
+                                                      "adaptive": None if a.adapt_rate == 0 else
+                                                      {"rate": a.adapt_rate, "every": a.adapt_every,
+                                                       "how": "each actor takes the richer disposition by mean public wealth, w.p. rate"}},
                                 "clock": {"spec": "1.2.0 design revision 2 — the loop's own clock" if a.rules == "1.2.0" else "none (1.1.0 control)",
                                           "pi0": a.pi0, "beta_P": a.beta_p, "dial": a.dial, "p_start": a.p_start, "p_cap": a.p_cap,
                                           "Omega0": a.omega0,

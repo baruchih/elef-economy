@@ -51,11 +51,12 @@ KEYS = ["careful_wealth", "stamper_wealth", "careful_fees", "stamper_fees", "car
         "bad_plants_approved", "good_plants_rejected", "omega_plant_spend",
         "careful_plant_reviews", "stamper_plant_reviews", "careful_plant_failures", "stamper_plant_failures",
         "careful_a_hat", "stamper_a_hat", "careful_suspended", "stamper_suspended",
-        "careful_duty_eligible", "stamper_duty_eligible", "careful_panel_eligible", "stamper_panel_eligible"]
+        "careful_duty_eligible", "stamper_duty_eligible", "careful_panel_eligible", "stamper_panel_eligible",
+        "stamper_share", "disposition_switches", "careful_n", "stamper_n"]
 SHORT = {"stampers": "s", "fee": "f", "on-duty": "X", "gv": "gv", "p-floor": "pf", "p-start": "p", "p-cap": "pc", "band": "band",
          "fail-rate": "b", "accuracy": "a", "ruling-accuracy": "r", "appeal-policy": "appeal", "dispute-policy": "dispute",
          "dispute-rate": "dr", "assignment": "assign", "rules": "rules", "pi0": "pi", "dial": "dial", "beta-p": "bp",
-         "camouflage": "cam", "omega0": "om"}
+         "camouflage": "cam", "omega0": "om", "drift-to": "drift", "adapt-rate": "adapt"}
 
 
 def _num(x: str):

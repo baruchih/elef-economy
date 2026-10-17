@@ -62,10 +62,12 @@ PERMITTED = ["post_root (human H, β fixed)", "award (every free actor offers B 
              "complete_review F/N (verdict by disposition and the hidden truth; cost by disposition)",
              "respond accept / appeal (by --appeal-policy: none = accept every N; truthful = appeal an N on work that is "
              "truly fulfilled, accept otherwise; always = appeal every N; an actor that cannot fund the court fee accepts)",
+             "dispute (by --dispute-policy: none; truthful = H disputes a pending F on work that truly failed; half = the "
+             "same, half the time; always = H disputes every pending F; H pays the court fee D)",
              "assign_audit (p_audit of the initial reviewer rolled once per F verdict)",
              "assign_appeal (the second review of an audit challenge)", "rule (split ruled by the truth w.p. r)",
              "advance"]
-NOT_IN_RUN = ["appeals by actors (unless --appeal-policy is set)", "disputes", "human overrides", "P/⊥", "revision/evidence", "delegation (nested cases)",
+NOT_IN_RUN = ["appeals by actors (unless --appeal-policy is set)", "disputes (unless --dispute-policy is set)", "human overrides", "P/⊥", "revision/evidence", "delegation (nested cases)",
               "cancellation", "resource spend by actors", "volunteering for duty", "actor competence (truth is actor-independent)",
               "price competition (every offer is at the ceiling)", "requester budget pressure (H is funded beyond the run)"]
 
@@ -79,6 +81,8 @@ class Task:
     audit_wanted: bool = False   # rolled yes, not yet assigned
     appeal_wanted: bool = False
     appealed: bool = False       # the actor appealed its N (the appeals run)
+    dispute_rolled: bool = False
+    disputed: bool = False       # H disputed the pending F (the dispute run)
 
 
 @dataclass
@@ -126,6 +130,9 @@ class Stamping:
                   "appeals_filed": 0, "appeals_unfunded": 0, "appeals_won": 0, "appeals_lost": 0,
                   "false_rejections_total": 0, "false_rejections_appealed": 0, "false_rejections_overturned": 0,
                   "true_rejections_appealed": 0, "true_rejections_overturned": 0,
+                  "disputes_filed": 0, "disputes_refused": 0, "disputes_won": 0, "disputes_lost": 0,
+                  "false_approvals_disputed": 0, "false_approvals_overturned": 0,
+                  "true_approvals_disputed": 0, "true_approvals_overturned": 0,
                   "awards_unfilled_ticks": 0, "appeals_unassignable_ticks": 0, "underfunded_careful_reviews": 0,
                   "omega_unrecovered_advances": 0.0, "allowance_refunded": 0.0, "pot_refunded": 0.0,
                   "trees_closed": 0}
@@ -248,6 +255,21 @@ class Stamping:
                     self.review_owner[rid] = w.review(rid).reviewer
                 else:
                     self.c["reviews_unassignable_ticks"] += 1
+            if c.state == "PENDING" and c.verdict == F and c.challenge is None and not task.dispute_rolled \
+                    and a.dispute_policy != "none":
+                task.dispute_rolled = True             # the requester acts once, before the audit roll
+                pol = a.dispute_policy
+                want = pol == "always" or (not task.fulfilled and (pol == "truthful" or (pol == "half" and self.rng.random() < 0.5)))
+                if want:
+                    try:
+                        w.dispute(cid, "H", "the result does not meet the request")
+                        task.disputed = True
+                        task.audit_wanted = False
+                        self.c["disputes_filed"] += 1
+                        self.c["true_approvals_disputed" if task.fulfilled else "false_approvals_disputed"] += 1
+                    except (RuleError, LedgerError):
+                        self.c["disputes_refused"] += 1
+                c = w.case(cid)
             if c.state == "PENDING" and c.verdict == F and c.challenge is None:
                 if not task.audit_rolled:
                     task.audit_rolled = True
@@ -328,12 +350,17 @@ class Stamping:
                     if task.appealed:
                         self.c["appeals_won"] += 1
                         self.c["false_rejections_overturned" if task.fulfilled else "true_rejections_overturned"] += 1
+                    if task.disputed:
+                        self.c["disputes_lost"] += 1
                 else:
                     self.c["final_n"] += 1
                     if task.fulfilled:
                         self.c["false_rejections"] += 1
                     if task.appealed:
                         self.c["appeals_lost"] += 1
+                    if task.disputed:
+                        self.c["disputes_won"] += 1
+                        self.c["true_approvals_overturned" if task.fulfilled else "false_approvals_overturned"] += 1
                 if c.grade in self.by_grade:
                     self.by_grade[c.grade][0] += 1
                     self.by_grade[c.grade][1] += int(correct)
@@ -403,6 +430,9 @@ def main(argv=None):
     ap.add_argument("--ruling-accuracy", type=float, default=0.8, help="r: P(orchestrator rules by the truth)")
     ap.add_argument("--p-start", type=float, default=0.5)
     ap.add_argument("--p-floor", type=float, default=0.2, help="the audit rate's floor (§8.3)")
+    ap.add_argument("--dispute-policy", choices=["none", "truthful", "half", "always"], default="none",
+                    help="H's response to a pending F: none; truthful = dispute when the work truly failed; half = the same "
+                         "with probability 0.5; always = dispute every pending F (H pays D)")
     ap.add_argument("--appeal-policy", choices=["none", "truthful", "always"], default="none",
                     help="the actor's response to an N: none = accept; truthful = appeal when the work is truly fulfilled; "
                          "always = appeal every N (the court fee D is paid when the actor can fund it)")
@@ -443,7 +473,10 @@ def main(argv=None):
                                            "respond_to_N": {"none": "accept", "truthful": "appeal iff truly fulfilled, else accept",
                                                             "always": "appeal every N"}[a.appeal_policy] + " (accept when D cannot be funded)",
                                            "spend": "none"},
-                                "requester": {"H": "silent; posts tasks_per_tick per tick at β", "budget": a.human_budget},
+                                "requester": {"H": "posts tasks_per_tick per tick at β; " + {
+                                    "none": "silent", "truthful": "disputes every pending F on work that truly failed",
+                                    "half": "disputes a pending F on work that truly failed with probability 0.5",
+                                    "always": "disputes every pending F"}[a.dispute_policy], "budget": a.human_budget},
                                 "permitted_operations": PERMITTED, "not_in_run": NOT_IN_RUN,
                                 "record_dir": a.record_dir,
                                 "checks": {"per_tick": "check_tick after every tick — always; not configurable",
@@ -487,6 +520,8 @@ def main(argv=None):
           f"{final['audits_lapsed']} challenges={final['challenges']} rulings={final['rulings']} "
           f"appeals filed/won/lost/unfunded={final['appeals_filed']}/{final['appeals_won']}/{final['appeals_lost']}/{final['appeals_unfunded']} "
           f"false rejections total/appealed/overturned={final['false_rejections_total']}/{final['false_rejections_appealed']}/{final['false_rejections_overturned']} "
+          f"disputes filed/won/lost/refused={final['disputes_filed']}/{final['disputes_won']}/{final['disputes_lost']}/{final['disputes_refused']} "
+          f"false approvals disputed/overturned={final['false_approvals_disputed']}/{final['false_approvals_overturned']} "
           f"reviews_unassignable_ticks={final['reviews_unassignable_ticks']} awards_unfilled_ticks={final['awards_unfilled_ticks']} "
           f"underfunded_careful_reviews={final['underfunded_careful_reviews']}")
     print(f"  Ω unrecovered advances={final['omega_unrecovered_advances']} claims outstanding={final['claims_outstanding']} "

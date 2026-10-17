@@ -11,10 +11,10 @@ loop's own clock (1.2.0, §7.6, §11.2, §12.2: planted work, the plant record, 
 ## Layout
 
 ```
-spec/agentic_economics_loop_spec_v1_2_0.md   the text in force (standalone; Appendix A defaults, E errata, F/G design revisions 1/2)
+spec/agentic_economics_loop_spec_v1_2_1.md   the text in force (1.2.0 + patch 1.2.1; standalone; Appendix A defaults, E errata, F/G design revisions 1/2)
 spec/design_revisions/                       accepted design revisions, verbatim (dr1: two pots; dr2: the loop's own clock), and
                                              the implementer's reviews of dr2's release candidates
-spec/history/                                v0.1 … v1.1.0 — superseded, kept for provenance only
+spec/history/                                v0.1 … v1.2.0 — superseded, kept for provenance only
 reviews/                                     R01–R10, one external review per version, with the reviewer's notes
 agentic_sim/                                 the engine, 21 invariants, 19 test files, runner, drivers, results
 docs/line_map_economic_loop_v1_0_1.txt       text export of the _line map of the loop (the live map is the source)
@@ -139,10 +139,9 @@ consolidated into one standalone spec with the accepted revision kept verbatim i
   shortfall. The dial is read once per period in `_maybe_end_period` (before rotation) and sizes `pi_t`,
   the applied audit odds (`Actor.p_eff`, what a driver rolls), `X_t` and ω; `plants_due()` is what the
   rate calls for and the driver supplies. I20 and I21 are per tick; I9 is `min(X_t, eligible)`. The
-  reviewer's view carries no actor. **One implementer's reading** is in the engine: a still-failing
-  record at the end of a suspension readmits on probation until the next plant (`_rotate`, §11.2 of the
-  text, Appendix G) — to be confirmed or revised by the next design decision; the alternative is one
-  branch. `Params.dial=False, pi0=0, p_start=p_cap=0.5, Omega0=20` is the 1.1.0 engine's behaviour
+  reviewer's view carries no actor. A still-failing record at the end of a suspension readmits on
+  probation until the next plant (`_rotate`, §11.2) — the implementer's reading, confirmed as the rule by
+  patch 1.2.1. `Params.dial=False, pi0=0, p_start=p_cap=0.5, Omega0=20` is the 1.1.0 engine's behaviour
   (`drivers.stamping --rules 1.1.0`).
 - Money is checked by invariant I1 (conservation) — never silently create or lose credits.
 

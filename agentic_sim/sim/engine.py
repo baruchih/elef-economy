@@ -1556,7 +1556,7 @@ class World:
         # is a trailing window of plant outcomes, and a suspended actor judges no plants), so the
         # actor is readmitted on probation: to duty, not to panels, until its next plant
         # adjudication re-checks the record — a still-failing record suspends it again at once.
-        # [Implementer's reading of 1.2.0 §2.2, October 17, 2026; see HANDOFF.]
+        # [Implementer's reading of 1.2.0 §2.2, October 17, 2026; confirmed as the rule by patch 1.2.1 (§11.2).]
         for a in sorted(self.actors.values(), key=lambda a: a.id):
             if a.suspended_until is not None and tick >= a.suspended_until:
                 a.suspended_until = None

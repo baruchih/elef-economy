@@ -4,7 +4,7 @@ Built up through v0.4–v0.10, unchanged by the v1.0 consolidation and the v1.0.
 for design revision 1 (1.1.0, October 17, 2026: the verification deposit is two pots) and design revision 2 (1.2.0,
 the same day: the loop's own clock — planted work, the plant record, the effort dial; see the two sections below).
 Section numbers in code comments refer to the working-spec versions they were written against;
-`spec/agentic_economics_loop_spec_v1_2_0.md` is the text in force, and its Appendix A holds the defaults that
+`spec/agentic_economics_loop_spec_v1_2_1.md` is the text in force, and its Appendix A holds the defaults that
 `sim/params.py` encodes.
 
 The loop's rules as code, with no strategies. Every bid, verdict, appeal, audit
@@ -217,7 +217,7 @@ Runs 2–3 under 1.1.0 (`results/studies/`) showed the loop fair only when both 
 actor appealing rejections, the requester disputing approvals — and blind under capture: a stamper-majority
 reserve produces every signal the loop has, reliability included. Design revision 2 (accepted as rc.3 with one
 consolidation fix; `spec/design_revisions/dr2_the_loops_own_clock_1.2.0.md`, consolidated into
-`spec/agentic_economics_loop_spec_v1_2_0.md` §7.6, §11.2, §12.2 and Appendix G) gives the orchestrator truth of
+`spec/agentic_economics_loop_spec_v1_2_1.md` §7.6, §11.2, §12.2 and Appendix G) gives the orchestrator truth of
 its own. In the engine:
 
 - **Plants.** `World.create_plant(truth, B)` builds a root case in the submitted state, attributed to two system

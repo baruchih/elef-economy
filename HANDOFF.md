@@ -635,7 +635,8 @@ still-failing record suspended again at once (§11.2 of the consolidated text, A
 the implementer's reading, marked as such in the text; confirming or revising it is the next design decision,
 and the alternative is one branch of `_rotate`. The first smoke run shows its consequence: at the defaults a
 returning stamper judges about one plant before it is out again, which is enough to hold F̂ just above F* and
-pin m at m_max (below).
+pin m at m_max (below). **Confirmed** as the rule in force by patch 1.2.1 (October 17, 2026; the sentence of
+design revision 3 rc.1's Appendix A), applied to `spec/agentic_economics_loop_spec_v1_2_1.md`; 1.2.0 to history.
 
 **Engine (commit after `0ccf8bc`).** `create_plant` from two Ω-funded system wallets, the sealed marker and its
 reveal, adjudication by truth, refusal of every challenge on a plant, the plant grade; the record, the two
@@ -645,7 +646,7 @@ re-seat; the applied audit odds `min(1, m p_j)`; ω scaled; the view without the
 amended; defaults p_start = p_cap = 1, Ω₀ = 300. `test_v12` (15) carries the revision's §6 figures and the
 mechanism's properties; the equivalence scenario plants work and its goldens were re-pinned once. 197 passed,
 26 expected failures in all three modes (the twenty-sixth: the third review's test 18, Ω's float pinned at 20).
-The consolidated text is `spec/agentic_economics_loop_spec_v1_2_0.md` (§1, §2, §4.1, §7.1, §7.5–7.6, §8.3,
+The consolidated text is `spec/agentic_economics_loop_spec_v1_2_1.md` (§1, §2, §4.1, §7.1, §7.5–7.6, §8.3,
 §11.2, §12 whole, §14, §15.3, §16, §17, §18.1, §20, Appendices A–D, G); 1.1.0 moved to `spec/history/`.
 
 **Driver.** `drivers.stamping` supplies the plants the engine's rate calls for before each tick's assignments

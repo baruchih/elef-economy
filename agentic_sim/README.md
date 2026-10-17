@@ -1,15 +1,16 @@
-# agentic_sim — reference implementation of the 1.1.0 baseline
+# agentic_sim — reference implementation of the 1.2.0 baseline
 
-Built up through v0.4–v0.10, unchanged by the v1.0 consolidation and the v1.0.1 errata, and changed once since,
-for design revision 1 (1.1.0, October 17, 2026: the verification deposit is two pots — see "Design revision 1"
-below). Section numbers in code comments refer to the working-spec versions they were written against;
-`spec/agentic_economics_loop_spec_v1_1_0.md` is the text in force, and its Appendix A holds the defaults that
+Built up through v0.4–v0.10, unchanged by the v1.0 consolidation and the v1.0.1 errata, and changed twice since:
+for design revision 1 (1.1.0, October 17, 2026: the verification deposit is two pots) and design revision 2 (1.2.0,
+the same day: the loop's own clock — planted work, the plant record, the effort dial; see the two sections below).
+Section numbers in code comments refer to the working-spec versions they were written against;
+`spec/agentic_economics_loop_spec_v1_2_0.md` is the text in force, and its Appendix A holds the defaults that
 `sim/params.py` encodes.
 
 The loop's rules as code, with no strategies. Every bid, verdict, appeal, audit
 assignment, ruling and human action is injected by the caller. Each action is validated in
 full before anything is recorded or moved: it either completes under its rules or changes
-nothing. After every tick nineteen invariants are checked; a failing invariant is a bug in
+nothing. After every tick twenty-one invariants are checked; a failing invariant is a bug in
 the engine or a contradiction in the spec, never a property of a strategy.
 
 ```
@@ -20,7 +21,7 @@ sim/ledger.py       wallets with named lock records, case pools (escrow, expense
 sim/engine.py       cases, reviews, challenges (incl. the two-question ⊥ appeal), delegation,
                     settlement (the two pots, tree closure), Ω claim servicing, rotation, the reviewer view,
                     the tick order
-sim/invariants.py   I1–I19, run after every tick; each says what it establishes
+sim/invariants.py   I1–I21, run after every tick; each says what it establishes
 sim/strategies.py   the decision seams a driver would fill (Protocols only)
 sim/record.py       record mode: journals for the History and the event copy, archives for settled
                     cases and reviews, the paged mapping the engine reads them through
@@ -53,9 +54,14 @@ tests/test_v11.py                   design revision 1 (1.1.0): the §20 example 
                                     consideration, the appeal variant's scaled fees, the refund waiting for tree
                                     closure, the r4_07 shape, the fee pot's remainder paying a claim and an advance,
                                     nested-first draws, the pay-in, the superseded r5_a principle, I19, record mode, a tree whose expenses exceed the allowance — 14
+tests/test_v12.py                   design revision 2 (1.2.0): the §20 planted-work figures, the dial's clamps and what it
+                                    moves, the record persisting through suspension and probation, the two tiers, the reserve
+                                    running short with its shortfall counted, the capital cap, plants due and the plant
+                                    shortfall, the alarm and re-seating, the view without the actor, no challenge on a plant,
+                                    I20/I21 catching, newcomer odds — 15
 tests/test_perf_equivalence.py      the per-tick check equals the full audit; the working-set engine reproduces the
-                                    pinned History head on a seeded random scenario (re-pinned once for 1.1.0); the
-                                    working set stays bounded — 5
+                                    pinned History head on a seeded random scenario that now plants work (re-pinned once for
+                                    1.1.0 and once for 1.2.0); the working set stays bounded — 5
 tests/test_record_mode.py           the record on disk (`Params.record_dir`): the same scenario gives the identical
                                     fingerprint, the chain re-hashes from the file alone, a paged-out case comes back
                                     when touched, the resident set stays bounded, the Journal reads like a list, identity and
@@ -63,11 +69,11 @@ tests/test_record_mode.py           the record on disk (`Params.record_dir`): th
 run_tests.py        every suite with plain python; pytest reports the same (conftest marks the XFAIL)
 ```
 
-Run: `python3 run_tests.py` — 182 pass, 0 fail, 25 expected failures, each with a stated reason (one original,
+Run: `python3 run_tests.py` — 197 pass, 0 fail, 26 expected failures, each with a stated reason (one original,
 four superseded by the view contract, nineteen on the withdrawn reopening path, one superseded by design
-revision 1). With pytest: `python3 -m pytest tests -q` reports 182 passed, 25 xfailed; the runner expands pytest
-parametrization as pytest does, including multi-argument and stacked marks. (Spec Appendix D records the count at
-the v1.0.1 freeze, 156, and at 1.1.0, 181.)
+revision 1, one by design revision 2). With pytest: `python3 -m pytest tests -q` reports 197 passed, 26 xfailed; the
+runner expands pytest parametrization as pytest does, including multi-argument and stacked marks. (Spec Appendix D
+records the count at the v1.0.1 freeze, 156; at 1.1.0, 181; at 1.2.0, 197.)
 
 Expected failures are **strict and parameter-exact** in both entry points: `EXPECTED_FAIL_PARAMS` names the
 parameter runs that are expected to fail inside a mixed test (the P/⊥ runs of the eighth review's first case;
@@ -204,6 +210,55 @@ Appendix F) makes the deposit two named pots. In the engine:
   deposit through a human budget of exactly B + 10 and is an expected failure for that stated reason,
   with its principle re-asserted in `test_v11`; every other reviewer test passes unchanged, including
   r4_07, which the revision's tree-closure wording was shaped to keep.
+
+## Design revision 2 — the loop's own clock (1.2.0, October 17, 2026)
+
+Runs 2–3 under 1.1.0 (`results/studies/`) showed the loop fair only when both challengers are present — the
+actor appealing rejections, the requester disputing approvals — and blind under capture: a stamper-majority
+reserve produces every signal the loop has, reliability included. Design revision 2 (accepted as rc.3 with one
+consolidation fix; `spec/design_revisions/dr2_the_loops_own_clock_1.2.0.md`, consolidated into
+`spec/agentic_economics_loop_spec_v1_2_0.md` §7.6, §11.2, §12.2 and Appendix G) gives the orchestrator truth of
+its own. In the engine:
+
+- **Plants.** `World.create_plant(truth, B)` builds a root case in the submitted state, attributed to two system
+  wallets (`PLANT_REQ`, `PLANT_ACT`) that Ω funds at creation (price, both pots, the actor's guarantee — 45 at the
+  defaults) and that are swept back to Ω when the plant's tree closes; the marker is committed sealed
+  (`plant_created`, a hash of case, truth and nonce) and revealed at adjudication (`plant_revealed`). Refused whole
+  when Ω's unlocked balance cannot fund it. `plants_due()` is what the rate π_t calls for — it accrues at every real
+  initial assignment — and the driver supplies; what is still owed at a period's end is the plant shortfall.
+- **Adjudication by truth.** `_adjudicate_plant` runs at a plant's initial F/N: right → stood (paid at settlement,
+  record +1); wrong → `_overturn_review` (bond burned whole, ρ down, p doubled, record −1); P/⊥ → spent. The plant
+  then settles by its truth (good: pending F, vests; bad: final N at once), grade `plant`. `assign_audit`, `dispute`,
+  `respond`, `override`, `accept_explicit` refuse a plant.
+- **The plant record.** `Actor.plant_bad` / `plant_good` are trailing windows of (tick, wrong); `a_hat`, `r_hat`,
+  `record_passes(θ)`, `duty_eligible`, `panel_eligible`. `_eligible(c, reviewer, role)` refuses an ineligible
+  assignment for the tier; `_check_record` suspends at a crossing (`suspended_until`) and the actor leaves duty as its
+  review completes. **Implementer's reading:** a record that still fails when the suspension ends cannot have changed
+  (a suspended actor judges no plants), so `_rotate` readmits it *on probation* — duty, not panels — until its next
+  plant re-checks it; read literally the revision made every suspension permanent. Flagged in the text and Appendix
+  G for confirmation; the alternative is one branch of `_rotate`.
+- **The reserve.** `_rotate` readmits, removes duty-ineligible actors with no open review (replacement or not),
+  swaps turns as before, fills to `X_t` from the eligible pool (lowest κ) or shrinks to it, and sets
+  `reserve_shortfall_now` / `eligibility_shortfall`; I9 is `min(X_t, eligible)`.
+- **The dial.** `_maybe_end_period` (step 5, before rotation) closes a period at `period_plants` adjudicated plants
+  or `period_ticks` ticks: F̂ from the period's bad plants, m clamped to [0.9 m, 2 m] then [1, m_max], π_t, X_t from
+  the period's demand (initial × (1 + π), audits at m p̄ × approvals, challenge reviews; × mean review duration;
+  floor V_max + 1), the alarm after two periods at m_max with F̂ > F*, which `_reseat_reserve`s by lowest â. ω is
+  `omega_rate × m_t` at award; `Actor.p_eff = min(1, m_t p_j)` is what a driver rolls. `Params.dial=False` holds m
+  and X_t; with `pi0=0`, `p_start=p_cap=0.5`, `Omega0=20` that is the 1.1.0 engine (`--rules 1.1.0` in the driver).
+- **I20** (plants self-adjudicated, the commitment and the reveal) and **I21** (the dial bounded, the reserve sized,
+  no ineligible assignment, no ineligible actor past its review) per tick; I13 admits the plant grade. The reviewer's
+  view drops `actor`.
+- **Drivers.** `drivers/view.py` exposes `create_plant`, `plants_due`, `p_effective`, `dial`, and Ω's total with its
+  plant capital in `money`. `drivers/stamping.py` supplies plants before the tick's assignments (bad w.p. β_P, truth
+  from its task world), rolls `p_effective`, applies the two tiers when offering reviewers, has `--rules 1.1.0`,
+  `--pi0`, `--dial`, `--beta-p`, `--camouflage` (the red team), `--p-cap`, `--omega0`, and new columns (m, π, X_t,
+  F̂, suspensions, alarms, shortfalls, plants by outcome, Ω's plant spend and net, per-population plant failures,
+  â, eligibility). `drivers/sweep.py` carries them.
+- **Tests.** `test_v12.py` (15); `test_v05`'s view assertion and `test_spec`'s Ω figures, audit cap and
+  initialization bound revised; `test_v11`'s advance test pins Ω's float at 20 explicitly; the equivalence scenario
+  plants work with short periods and its goldens were re-pinned once. Reviewer tests untouched: the third review's
+  test 18 pinned Ω's float at 20 and is an expected failure with that reason.
 
 ## The expected failure
 

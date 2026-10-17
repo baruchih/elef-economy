@@ -212,7 +212,8 @@ def test_observe_hides_verdicts_identities_and_role():
     r = initial(w, q, reviewer="C")
     a = w.assign_audit(q, "D")
     view = w.observe("D", a)
-    assert view.case_id == q and view.actor == "A"
+    assert view.case_id == q
+    assert not hasattr(view, "actor")       # 1.2.0 §14: the reviewer judges the work, not the worker
     assert not hasattr(view, "role") and not hasattr(view, "verdict") and not hasattr(view, "reviews")
     with pytest.raises(RuleError):
         w.observe("E", a)

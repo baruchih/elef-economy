@@ -42,11 +42,31 @@ class Params:
     E0: float = 10.0
     H: float = 1000.0
 
-    # Audit rate (§8.3)
-    p_start: float = 0.5
+    # Audit rate (§8.3). 1.2.0 (design revision 2): a newcomer is audited every time until five in a
+    # row have stood, and the doubling on an overturn or a plant failure can return a reviewer to
+    # full audit — p_start and p_cap are 1.0 (were 0.5 / 0.5). The dial scales the odds a driver
+    # rolls: min(1, m_t · p_j) (`Actor.p_eff`).
+    p_start: float = 1.0
     p_floor: float = 0.2
-    p_cap: float = 0.5
+    p_cap: float = 1.0
     p_halve_every: int = 5
+
+    # Design revision 2 (1.2.0): planted work, the plant record, the effort dial.
+    dial: bool = True          # False: m_t stays 1 and X_t stays X — the 1.1.0 reserve and audit odds,
+    #                            kept for control runs (with pi0 = 0 and p_start = p_cap = 0.5, 1.1.0 exactly)
+    pi0: float = 0.10          # base plant rate: plants per real initial review at m = 1
+    pi_max: float = 0.40
+    beta_P: float = 0.75       # bad-plant share — the driver's choice of truth; the engine records both kinds
+    F_star: float = 0.10       # target bad-plant approval rate
+    gamma: float = 1.0         # gain of the dial
+    period_plants: int = 50    # a period ends after this many adjudicated plants ...
+    period_ticks: int = 200    # ... or this many ticks, whichever first
+    m_max: float = 4.0
+    n_min: int = 4             # plants of a kind before an actor's record of that kind is determined
+    n_P: int = 20              # trailing window per kind
+    theta_panel: float = 0.20  # above it, no seat on appeal, dispute or audit panels (= 2 F*)
+    theta_duty: float = 0.50   # above it, suspended from duty
+    T_susp: int = 100          # suspension length; also the re-check interval while the record still fails
 
     # Reliability and duty credit windows (§11)
     rho_window: int = 100      # settled outcomes
@@ -74,7 +94,7 @@ class Params:
     Res0: float = 10000.0
     v0: float = 1.0
     float_per_actor: float = 50.0
-    Omega0: float = 20.0
+    Omega0: float = 300.0      # 1.2.0 Appendix A: one period of plants at m = 1 (was 20)
 
     @property
     def phi_root(self) -> float:

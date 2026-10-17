@@ -1,4 +1,4 @@
-"""Spec §17 invariants (nineteen since 1.1.0). Each is a function of the whole world.
+"""Spec §17 invariants (twenty-one since 1.2.0). Each is a function of the whole world.
 
 A failing invariant is a bug in the engine or a contradiction in the spec; it is never a
 property of a strategy. Each check states what it actually establishes.
@@ -17,6 +17,7 @@ Two entry points, one set of predicates:
 """
 from __future__ import annotations
 from itertools import islice
+import hashlib
 import math
 from .ledger import Ledger, _i10_exempt, _i19_event_ok
 
@@ -27,7 +28,7 @@ ALLOWED_EVENT_KINDS = {
     "mint_backed", "mint_emission", "escrow_in", "deposit_in", "feepot_in", "escrow_out",
     "deposit_out", "feepot_out", "fee_out",
 }
-GRADES = {"human-explicit", "delegate-explicit", "protocol-default", "procedural"}
+GRADES = {"human-explicit", "delegate-explicit", "protocol-default", "procedural", "plant"}
 
 
 class InvariantError(AssertionError):
@@ -181,11 +182,16 @@ def I8_positions_bound(w, cases=None):
 
 
 def I9_reserve(w):
+    """The reserve holds min(X_t, eligible) (1.2.0 §2.2, amending the 1.1.0 'holds X'): a reserve
+    short of X_t is admissible only when the last rotation found no eligible free actor to seat,
+    and the gap is then counted as the eligibility shortfall."""
     if not w.enforce_reserve:
         return
     n = sum(1 for a in w.actors.values() if a.on_duty)
-    if n < w.p.X:
-        _fail(f"I9 reserve {n} < X={w.p.X}")
+    if n < w.X_t and not w._pool_exhausted and not w._reserve_dirty:
+        _fail(f"I9 reserve {n} < X_t={w.X_t} while eligible actors were free to seat")
+    if n < w.X_t and not w._reserve_dirty and w.reserve_shortfall_now != w.X_t - n:
+        _fail(f"I9 reserve short by {w.X_t - n} but the shortfall counted is {w.reserve_shortfall_now}")
 
 
 def _I10_event(e, c):
@@ -242,6 +248,10 @@ def I13_grade_provenance(w, cases=None):
             continue
         if c.grade not in GRADES:
             _fail(f"I13 {c.id} final without a valid grade: {c.grade}")
+        if (c.grade == "plant") != (c.plant is not None):
+            _fail(f"I13 {c.id}: the plant grade belongs to plants and only to them (graded {c.grade})")
+        if c.plant is not None:
+            continue
         if c.is_nested():
             if c.grade != "procedural":
                 _fail(f"I13 nested {c.id} graded {c.grade}")
@@ -537,6 +547,78 @@ def I19_the_pots(w, cases=None, events=None):
                 stack.extend(ch.children)
 
 
+def I20_plants_self_adjudicated(w, cases=None):
+    """1.2.0 §2.1: a plant's outcome is set only by its known truth; no audit, appeal, dispute or
+    ruling is ever opened on it; its marker is in the History at creation, sealed, and revealed
+    only at adjudication — the reveal names the truth and nonce that hash to the commitment.
+    (That a plant's view is indistinguishable is a property of the view function, asserted by a
+    test, not a per-tick predicate.)"""
+    for c in _cases(w, cases):
+        if c.plant is None:
+            continue
+        if c.challenge is not None or c.challenge_round_used:
+            _fail(f"I20 {c.id}: a challenge was opened on a plant")
+        if any(a[3] in ("override", "dispute", "accept") for a in c.assessments):
+            _fail(f"I20 {c.id}: a root judgment or ruling was recorded on a plant")
+        if c.plant_commit is None or c.plant_hseq is None or \
+                not w.history.matches(c.plant_hseq, "plant_created", {"t": c.t_post, "case": c.id, "commit": c.plant_commit}):
+            _fail(f"I20 {c.id}: the plant marker is not committed at creation")
+        initial = [_peek(w.reviews, rid) for rid in c.reviews]
+        if any(r.role != "initial" for r in initial):
+            _fail(f"I20 {c.id}: a plant carries a non-initial review")
+        done = [r for r in initial if r.status in ("done", "vested", "overturned")]
+        if c.plant_outcome is None:
+            if done or c.plant_reveal_hseq is not None:
+                _fail(f"I20 {c.id}: a plant review completed without adjudication")
+            continue
+        if len(done) != 1 or c.plant_reveal_hseq is None:
+            _fail(f"I20 {c.id}: adjudicated plant without exactly one completed review and a reveal")
+        r = done[0]
+        truth = "good" if c.plant else "bad"
+        if hashlib.sha256(f"{c.id}|{truth}|{c.plant_nonce}".encode()).hexdigest() != c.plant_commit:
+            _fail(f"I20 {c.id}: the revealed truth does not hash to the sealed commitment")
+        if not w.history.matches(c.plant_reveal_hseq, "plant_revealed",
+                                 {"t": r.t_done, "case": c.id, "truth": truth, "nonce": c.plant_nonce, "commit": c.plant_commit,
+                                  "review": r.id, "reviewer": r.reviewer, "verdict": r.verdict, "outcome": c.plant_outcome}):
+            _fail(f"I20 {c.id}: the reveal is not the committed one")
+        right = (r.verdict == "F") == c.plant
+        if c.plant_outcome == "stood" and not (right and r.status in ("done", "vested")):
+            _fail(f"I20 {c.id}: plant 'stood' but the review was {r.verdict} on a {truth} plant / {r.status}")
+        if c.plant_outcome == "failure" and not (r.verdict in ("F", "N") and not right and r.status == "overturned"):
+            _fail(f"I20 {c.id}: plant 'failure' but the review was {r.verdict} on a {truth} plant / {r.status}")
+        if c.plant_outcome == "spent" and r.verdict not in ("P", "⊥"):
+            _fail(f"I20 {c.id}: plant 'spent' by a {r.verdict} verdict")
+        if c.final and c.plant and c.state not in ("PENDING", "VESTED") and c.plant_outcome != "spent":
+            _fail(f"I20 {c.id}: a good plant settled {c.state}")
+        if c.final and not c.plant and c.state != "FINAL_N":
+            _fail(f"I20 {c.id}: a bad plant settled {c.state}")
+
+
+def I21_dial_and_reserve(w, reviews=None):
+    """1.2.0 §2.3: 1 ≤ m_t ≤ m_max and each step within [0.9, 2]; π_t ≤ π_max; X_t ≥ V_max + 1; no
+    assignment was made to an actor ineligible for its tier at the time; no actor remains on duty
+    past the completion of its active review once duty-ineligible; the shortfalls are counted."""
+    p = w.p
+    if not (1.0 - EPS <= w.m_t <= p.m_max + EPS):
+        _fail(f"I21 m_t={w.m_t} outside [1, {p.m_max}]")
+    if w.pi_t > p.pi_max + EPS or w.pi_t < -EPS:
+        _fail(f"I21 π_t={w.pi_t} outside [0, {p.pi_max}]")
+    if w.X_t < p.V_max + 1:
+        _fail(f"I21 X_t={w.X_t} below V_max + 1")
+    for per in w.periods[-1:]:
+        lo, hi = 0.9 * per["m_before"] - EPS, 2.0 * per["m_before"] + EPS
+        if not (max(lo, 1.0 - EPS) <= per["m"] <= min(hi, p.m_max + EPS)) and per["m"] != per["m_before"]:
+            _fail(f"I21 dial step {per['m_before']} → {per['m']} outside its bounds")
+    for a in w.actors.values():
+        if a.on_duty and not a.duty_eligible and a.open_review is None:
+            _fail(f"I21 {a.id} remains on duty, duty-ineligible, with no active review")
+    for r in _reviews(w, reviews):
+        if not r.panel_ok:
+            _fail(f"I21 review {r.id} was assigned to an actor ineligible for its tier")
+    if w.plant_shortfall < 0 or w.eligibility_shortfall < 0:
+        _fail("I21 a shortfall count is negative")
+
+
 CHUNK = 2048
 
 
@@ -590,8 +672,10 @@ def check_all(w):
         _I17_cases(chunk)
         I18_no_audit_outlives_a_ruling(w, chunk)
         I19_the_pots(w, chunk)                               # the event half was done in _audit_events
+        I20_plants_self_adjudicated(w, chunk)
     _I15_wallets(w)
     _I15_compare(w, expected)
+    I21_dial_and_reserve(w)
     I16_history_is_authoritative(w)
 
 
@@ -639,6 +723,8 @@ def check_tick(w):
     I17_debts_and_claims_reconcile(w, cases, reviews)
     I18_no_audit_outlives_a_ruling(w, cases)
     I19_the_pots(w, cases, new_events)
+    I20_plants_self_adjudicated(w, cases)
+    I21_dial_and_reserve(w, reviews)
 
     w._events_checked = len(w.ledger.events)
     w._prune_working_set()

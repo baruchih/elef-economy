@@ -60,6 +60,28 @@ class Public:
     def rule(self, cid: str, outcome: str, objection: Optional[str] = None):
         self._w.rule(cid, outcome, objection)
 
+    # -- the orchestrator's planted work and its clock (1.2.0 §2.1–§2.3) -----------
+    def create_plant(self, truth: bool, B: float) -> str:
+        """A case whose fulfillment the orchestrator knows by construction, funded by Ω."""
+        return self._w.create_plant(truth, B)
+
+    def plants_due(self) -> int:
+        """Whole plants the plant rate calls for that have not been created."""
+        return self._w.plants_due()
+
+    def p_effective(self, aid: str) -> float:
+        """The audit odds to roll for a reviewer: min(1, m_t · p_j)."""
+        return self._w.actors[aid].p_eff
+
+    def dial(self) -> dict:
+        """The dial's public state: m_t, π_t, X_t, the counters and the period records."""
+        w = self._w
+        return {"m": w.m_t, "pi": w.pi_t, "X_t": w.X_t, "plant_credit": w.plant_credit,
+                "plants_created": w.plants_created, "plant_shortfall": w.plant_shortfall,
+                "eligibility_shortfall": w.eligibility_shortfall, "reserve_shortfall_now": w.reserve_shortfall_now,
+                "suspensions": w.suspensions, "alarms": w.alarms, "alarm_streak": w.alarm_streak,
+                "periods": list(w.periods), "period": dict(w.period)}
+
     # -- actor operations (§5, §6, §9) -------------------------------------------
     def submit(self, cid: str):
         self._w.submit(cid)
@@ -117,7 +139,11 @@ class Public:
 
     def money(self) -> dict:
         L = self._w.ledger
+        from sim.engine import PLANT_REQ, PLANT_ACT
+        plant_wallets = L.wallet(PLANT_REQ).W + L.wallet(PLANT_ACT).W
         return {"M": L.M, "Res": L.Res, "v": L.v, "omega": L.wallet(L.OMEGA).U,
+                "omega_total": L.wallet(L.OMEGA).W + plant_wallets,      # Ω's money, plants' working capital included
+                "omega_in_plants": plant_wallets,
                 "claims_outstanding": sum(cl.amount for cl in self._w.omega_claims)}
 
     def events_since(self, n: int) -> list:

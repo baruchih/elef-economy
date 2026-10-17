@@ -8,7 +8,8 @@ checked, never what the engine does. This file is that claim in test form:
 
   1. On a seeded random scenario that exercises most paths — appeals, disputes, audits,
      rulings, overrides before and after settlement, delegation with cancellation, pool
-     exhaustion and kill fees, timeouts and replacements, rotation — the full audit passes after
+     exhaustion and kill fees, timeouts and replacements, rotation, and since 1.2.0 planted work
+     with its adjudication, suspensions and the dial's period — the full audit passes after
      every tick while the per-tick check runs, and the final world's fingerprint (History head,
      supply, reserve, every wallet, every case's state and grade) equals the one the v1.0.1
      engine produced for the same scenario (GOLDEN, recorded from commit 6a746a1).
@@ -43,7 +44,9 @@ def _try(fn, *a, **k):
 def scenario(seed: int, ticks: int, audit_every: int = 0, record_dir=None) -> World:
     """A seeded random drive of the engine through most of its paths."""
     rng = random.Random(seed)
-    w = World(Params(Res0=2e5, omega_rate=0.05, record_dir=record_dir), ACTORS,
+    # 1.2.0: short periods, a two-plant record and a short suspension, so the dial moves and
+    # actors are suspended, readmitted and re-seated within the scenario's 200 ticks
+    w = World(Params(Res0=2e5, omega_rate=0.05, record_dir=record_dir, period_ticks=40, n_min=2, T_susp=30), ACTORS,
               humans={"H1": 60000.0, "H2": 30000.0, "D1": 30000.0}, delegates=["D1"], on_duty=ACTORS[:4])
 
     def free_actors():
@@ -58,6 +61,8 @@ def scenario(seed: int, ticks: int, audit_every: int = 0, record_dir=None) -> Wo
         for req in ("H1", "H2", "D1"):
             if rng.random() < 0.35:
                 _try(w.post_root, req, rng.choice([10, 20, 30, 45]))
+        for _ in range(w.plants_due()):                # 1.2.0: the orchestrator's plants at the rate the dial sets
+            _try(w.create_plant, rng.random() >= 0.75, rng.choice([10, 20, 30]))
         for c in list(w.cases.values()):
             if c.state != "AVAILABLE":
                 continue
@@ -150,20 +155,22 @@ def fingerprint(w: World) -> dict:
     }
 
 
-# Recorded from the 1.1.0 engine (design revision 1: the verification deposit is two pots) running
-# `scenario(seed, 200)` with the full audit after every tick. The head commits every event in order;
-# the rest are the readable consequences. The v1.0.1 goldens (commit 6a746a1) were
-# 586af764… / 5686 entries and ab79fe65… / 4849 entries; they changed with the rule, as a change
-# to settlement must, and were re-pinned once, at the commit that implemented the revision.
+# Recorded from the 1.2.0 engine (design revision 2: the loop's own clock) running `scenario(seed, 200)`
+# with the full audit after every tick. The head commits every event in order; the rest are the
+# readable consequences. The scenario now plants work, and its short periods move the dial to m_max,
+# suspend and readmit actors, size the reserve and (seed 2) fire the alarm. The v1.0.1 goldens
+# (commit 6a746a1) were 586af764… / 5686 and ab79fe65… / 4849 entries; the 1.1.0 goldens (a1e726a)
+# bb0aa856… / 7489 and eb337b97… / 5324; each changed with the rule, as a change to settlement or to
+# the reserve must, and was re-pinned once, at the commit that implemented the revision.
 GOLDEN = {
-    1: {"head": "bb0aa8565d6625570fb46af0068f258e03dca0ecb6b859b52ed394260aac56a4", "entries": 7489,
-        "M": 199301.96958, "Res": 198735.0,
-        "states": {"FINAL_N": 137, "VESTED": 84, "WITHDRAWN": 16, "CANCELLED": 1, "PENDING": 5, "SUBMITTED": 6,
-                   "AVAILABLE": 3}},
-    2: {"head": "eb337b976974edfe763395a21216d4346a6ea96c9572ef61a66f3f0ddacc5346", "entries": 5324,
-        "M": 199757.652068, "Res": 199183.0,
-        "states": {"FINAL_N": 115, "VESTED": 48, "WITHDRAWN": 13, "CANCELLED": 1, "AVAILABLE": 42,
-                   "AWAITING_RESPONSE": 1, "PENDING": 1}},
+    1: {"head": "b9c5d1a1d0eb8ec9b0f91c4fa00766692b1f90a5f1d67064e51d758fe8d508f7", "entries": 7613,
+        "M": 199593.398135, "Res": 198843.0,
+        "states": {"FINAL_N": 170, "VESTED": 74, "WITHDRAWN": 24, "CANCELLED": 4, "PENDING": 10, "SUBMITTED": 5,
+                   "COMMITTED": 1, "AWAITING_RESPONSE": 1, "AVAILABLE": 9}},
+    2: {"head": "40a459d830c3e8c5bb10c2e0f669c67ea8bc27ed286a0a42552ea8eef274a1f9", "entries": 7078,
+        "M": 199556.601906, "Res": 199036.0,
+        "states": {"FINAL_N": 174, "VESTED": 57, "WITHDRAWN": 21, "PENDING": 4, "AVAILABLE": 15,
+                   "AWAITING_RESPONSE": 2, "SUBMITTED": 6}},
 }
 
 
@@ -188,6 +195,11 @@ def test_full_audit_agrees_with_tick_check_and_behaviour_is_unchanged(seed):
     assert any(c.is_nested() for c in w.cases.values())
     assert any(r.status == "overturned" for r in w.reviews.values())
     assert any(r.status == "withdrawn" for r in w.reviews.values())
+    # and, since 1.2.0, the paths of design revision 2
+    outcomes = {c.plant_outcome for c in w.cases.values() if c.plant is not None}
+    assert outcomes >= {"stood", "failure", "spent"}
+    assert w.suspensions > 0 and len(w.periods) == 4 and w.m_t == w.p.m_max
+    assert any(e["kind"] == "suspension" and "readmitted" in e["payload"].get("msg", "") for e in w.history.entries)
 
 
 def test_scheduled_full_audit_runs_inside_advance():

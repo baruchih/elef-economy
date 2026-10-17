@@ -17,7 +17,7 @@ except ImportError:  # plain `python3 run_tests.py`
     sys.path.insert(0, os.path.dirname(__file__))
     from _mini_pytest import pytest
 
-from sim import Params, World, RuleError, InvariantError, Ledger
+from sim import Params, World, RuleError, InvariantError, Ledger, check_all
 from sim.engine import F, N, P, BOT, HUMAN, DELEGATE, DEFAULT, PROCEDURAL
 
 ACTORS = ["A", "B", "C", "D", "E", "F"]
@@ -77,7 +77,7 @@ def test_main_path_nets_and_escrow():
     assert n["C"] == pytest.approx(4)      # -3 cost +3 reimbursed + fixed fee 2 + emission 2x1.0
     assert n["D"] == pytest.approx(6)      # -3 +3 + fixed fee 3 (audit weight 1.5) + emission 2x1.5
     assert w.W("H") - 100 == pytest.approx(-51)         # paid 40 + 10 + 5; the unused allowance 4 came back
-    assert w.W(Ledger.OMEGA) == pytest.approx(20)       # Ω untouched
+    assert w.W(Ledger.OMEGA) == pytest.approx(300)      # Ω untouched (Ω₀ = 300 since 1.2.0)
     pool = w.ledger.pool(q)
     assert pool.escrow == pytest.approx(0) and pool.deposit == pytest.approx(0) and pool.fee_pot == pytest.approx(0)
     # escrow in 55 = 40 (A) + 6 (reimbursements) + 5 (fixed fees: Owed = 2 + 3 = φ^F) + 4 (allowance returned)
@@ -94,7 +94,7 @@ def test_main_path_with_service_fee():
     w = make_world(omega_rate=0.05)
     q, qn, r1, r2 = run_main_path(w)
     w.advance(17)
-    assert w.W(Ledger.OMEGA) == pytest.approx(20 + 2 + 0.25)   # ω on root (5% of 40) and nested (5% of 5)
+    assert w.W(Ledger.OMEGA) == pytest.approx(300 + 2 + 0.25)   # ω on root (5% of 40) and nested (5% of 5)
     assert w.W("H") - 100 == pytest.approx(-53)         # -51 and the service fee 2
     assert nets(w)["A"] == pytest.approx(23 - 0.25)
 
@@ -153,7 +153,7 @@ def test_appeal_variant():
     n = nets(w)
     assert n["A"] == pytest.approx(23)      # court fee reimbursed from C's bond
     assert n["C"] == pytest.approx(-5)      # bond: 2 to A, 3 burned; costs reimbursed; no fee
-    assert w.W(Ledger.OMEGA) == pytest.approx(22)        # the court fee is Ω's income; the loser bore it
+    assert w.W(Ledger.OMEGA) == pytest.approx(302)       # the court fee is Ω's income; the loser bore it
     assert c.court_fee_reimbursed == pytest.approx(2)
     # E and F: emission 5 over weights 3 -> 2.5 each; fixed fees 3 each, Owed 6 > φ^F 5 -> scaled to 2.5 each
     assert w.reviews[rE].fee == pytest.approx(5.0) and w.reviews[rF].fee == pytest.approx(5.0)
@@ -161,7 +161,7 @@ def test_appeal_variant():
     assert c.tree_closed and c.allowance_refunded == pytest.approx(1)   # 10 - 3 - 3 - 3
     assert w.W("H") - 100 == pytest.approx(-54)
     assert c.grade == PROCEDURAL
-    assert w.actors["C"].p_audit == pytest.approx(0.5)   # doubled from 0.5, capped at 0.5
+    assert w.actors["C"].p_audit == pytest.approx(1.0)   # p_start 1.0 doubled on the overturn, capped at p_cap = 1.0 (1.2.0 §2.4)
 
 
 # ---------------------------------------------- §16 variant: pool exhaustion
@@ -283,7 +283,7 @@ def test_nested_rejection_is_bonded_and_reimburses_the_appellant():
     assert c.state == "VESTED" and c.t_vest == 13
     assert nets(w)["B"] == pytest.approx(2)  # exactly as if accepted: 5 - 3, fee reimbursed
     assert w.W("A") == pytest.approx(50 - 5 - 5)         # paid B's price (5) and lost the bond (5)
-    assert w.W(Ledger.OMEGA) == pytest.approx(22)
+    assert w.W(Ledger.OMEGA) == pytest.approx(302)
     assert w.actors["A"].o == 1
     # E and F were reimbursed from the ROOT's deposit (nested φ = 0)
     assert w.ledger.pool(q).deposit == pytest.approx(10 - 6)
@@ -308,7 +308,7 @@ def test_shortfall_haircut_single_payout_rule():
     w.complete_review(rF, F, 5)              # deposit empty: Ω advances 5 (22 -> 17)
     c = w.cases[q]
     assert c.omega_advance == pytest.approx(5)
-    assert w.W(Ledger.OMEGA) == pytest.approx(17)
+    assert w.W(Ledger.OMEGA) == pytest.approx(297)
     assert c.challenge["resolved"] and c.outcome == F   # dispute rejected; all three verdicts stand
     w.advance(13)
     assert c.state == "VESTED" and c.t_vest == 12
@@ -321,7 +321,7 @@ def test_shortfall_haircut_single_payout_rule():
     assert fees["F"] == pytest.approx(3 * 5 / 8 + 2.25)
     assert sum(fees.values()) == pytest.approx(5 + 6)
     assert c.tree_closed and c.omega_advance == pytest.approx(5) and c.pot_refunded == 0
-    assert w.W(Ledger.OMEGA) == pytest.approx(17)        # advance unrecovered; court fee kept
+    assert w.W(Ledger.OMEGA) == pytest.approx(297)       # advance unrecovered; court fee kept
     assert c.grade == PROCEDURAL                         # the human disputed and lost
     assert any(a[1] == "H" and a[2] == N for a in c.assessments)
     assert w.W("H") - 100 == pytest.approx(-57)          # 40 + 10 + 5 paid in, the court fee 2, nothing came back
@@ -482,15 +482,21 @@ def test_reserve_exhaustion_is_a_halt_state_not_a_price():
 def test_initialization_validity():
     p = Params()
     with pytest.raises(RuleError):
-        World(p, [f"a{i}" for i in range(200)])          # 200 x 50 + 20 > 10000
-    World(p, [f"a{i}" for i in range(199)])              # 199 x 50 + 20 = 9970 ok
+        World(p, [f"a{i}" for i in range(195)])          # 195 x 50 + 300 > 10000 (Ω₀ = 300 since 1.2.0)
+    World(p, [f"a{i}" for i in range(194)])              # 194 x 50 + 300 = 10000 ok
 
 
 def test_reserve_invariant_enforced_when_enabled():
+    """1.2.0 §2.2: the reserve holds min(X_t, eligible). Started one short with free eligible actors,
+    the first rotation seats the lowest-κ free actor and I9 holds; a reserve short of X_t while an
+    eligible actor is free is what I9 fails on (asserted directly in test_v12)."""
     p = Params(E0=5.0, H=1e9, omega_rate=0.0)
     w = World(p, ACTORS, humans={"H": 100.0}, on_duty=["C", "D", "E"], enforce_reserve=True)
+    w.advance(1)
+    assert sum(1 for a in w.actors.values() if a.on_duty) == 4 and w.reserve_shortfall_now == 0
+    next(a for a in w.actors.values() if a.on_duty).on_duty = False    # a reserve left short by hand, with a free actor
     with pytest.raises(InvariantError):
-        w.advance(1)
+        check_all(w)
 
 
 # ------------------------------------------- rule guards worth pinning down

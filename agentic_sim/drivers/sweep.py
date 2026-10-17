@@ -43,10 +43,19 @@ KEYS = ["careful_wealth", "stamper_wealth", "careful_fees", "stamper_fees", "car
         "disputes_filed", "disputes_refused", "disputes_won", "disputes_lost", "false_approvals_disputed",
         "false_approvals_overturned", "true_approvals_disputed", "true_approvals_overturned", "grade_human-explicit_n",
         "grade_human-explicit_acc", "duty_short_of_bond_ticks",
-        "grade_procedural_n", "grade_procedural_acc", "grade_protocol-default_n", "grade_protocol-default_acc", "omega"]
-SHORT = {"stampers": "s", "fee": "f", "on-duty": "X", "gv": "gv", "p-floor": "pf", "p-start": "p", "band": "band",
+        "grade_procedural_n", "grade_procedural_acc", "grade_protocol-default_n", "grade_protocol-default_acc",
+        "grade_plant_n", "grade_plant_acc", "omega", "omega_total", "omega_in_plants", "omega_net",
+        # 1.2.0: the clock and the plant record
+        "m", "pi", "X_t", "on_duty", "F_hat", "periods", "suspensions", "alarms", "eligibility_shortfall", "plant_shortfall",
+        "plants_created", "plants_unfunded", "plants_bad", "plants_stood", "plants_failed", "plants_spent",
+        "bad_plants_approved", "good_plants_rejected", "omega_plant_spend",
+        "careful_plant_reviews", "stamper_plant_reviews", "careful_plant_failures", "stamper_plant_failures",
+        "careful_a_hat", "stamper_a_hat", "careful_suspended", "stamper_suspended",
+        "careful_duty_eligible", "stamper_duty_eligible", "careful_panel_eligible", "stamper_panel_eligible"]
+SHORT = {"stampers": "s", "fee": "f", "on-duty": "X", "gv": "gv", "p-floor": "pf", "p-start": "p", "p-cap": "pc", "band": "band",
          "fail-rate": "b", "accuracy": "a", "ruling-accuracy": "r", "appeal-policy": "appeal", "dispute-policy": "dispute",
-         "dispute-rate": "dr", "assignment": "assign"}
+         "dispute-rate": "dr", "assignment": "assign", "rules": "rules", "pi0": "pi", "dial": "dial", "beta-p": "bp",
+         "camouflage": "cam", "omega0": "om"}
 
 
 def _num(x: str):
@@ -156,15 +165,18 @@ def main(argv=None):
     ok = all(r["status"] == "completed" for r in runs)
     lines = [f"# {a.name}: {len(runs)} runs, {len(cells)} cells × {len(seeds)} seeds, {a.actors} actors × {a.ticks} ticks", "",
              "| cell | careful wealth | stamper wealth | stamper − careful (se) | stampers richer | stamper overturned % "
-             "| false approvals | final N | audits assigned | reviews unassignable ticks | Ω unrecovered |",
-             "|---|---|---|---|---|---|---|---|---|---|---|"]
+             "| false approvals | final N | audits assigned | reviews unassignable ticks | Ω unrecovered "
+             "| m | X_t | plants | suspensions | alarms | elig. shortfall | Ω plant spend | Ω net |",
+             "|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|"]
     for cname, st in summary.items():
-        g = lambda k: st[k]["mean"]
+        g = lambda k: st[k]["mean"] if k in st else float("nan")
         ov = 100 * g("stamper_overturned") / max(1e-9, g("stamper_reviews"))
         lines.append(f"| {cname} | {g('careful_wealth'):.0f} ± {st['careful_wealth']['sd']:.0f} | {g('stamper_wealth'):.0f} ± {st['stamper_wealth']['sd']:.0f} "
                      f"| {st['stamper_minus_careful_wealth']['mean']:+.0f} ({st['stamper_minus_careful_wealth']['se']:.0f}) | {st['stampers_richer_in']} "
                      f"| {ov:.1f} | {g('false_approvals'):.0f} | {g('final_n'):.0f} | {g('audits_assigned'):.0f} "
-                     f"| {g('reviews_unassignable_ticks'):.0f} | {g('omega_unrecovered_advances'):.1f} |")
+                     f"| {g('reviews_unassignable_ticks'):.0f} | {g('omega_unrecovered_advances'):.1f} "
+                     f"| {g('m'):.2f} | {g('X_t'):.1f} | {g('plants_created'):.0f} | {g('suspensions'):.0f} | {g('alarms'):.1f} "
+                     f"| {g('eligibility_shortfall'):.0f} | {g('omega_plant_spend'):.0f} | {g('omega_net'):.0f} |")
     with open(os.path.join(rec.dir, "summary.md"), "w") as f:
         f.write("\n".join(lines) + "\n")
     out = rec.finish(fp={"head": "sweep summary: each run's head is in metrics.csv and its own directory", "runs": len(runs)},

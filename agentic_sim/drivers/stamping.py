@@ -14,7 +14,14 @@ reviewers — the reserve rotates through them — and each has a fixed reviewin
 
   careful   verdict equals the truth with probability a; costs 2–3 credits per review (within K),
             or what its unlocked credit can buy when earlier bonds have left it short (counted)
-  stamper   always F, cost 0
+  stamper   always F, cost 0 — or, with --camouflage k, N on a random fraction k of its reviews
+            (the red-team disposition of 1.2.0 §8: looking careful without looking)
+
+Planted work (1.2.0 §2.1). The engine states how many plants its rate calls for (`plants_due`); the
+orchestrator supplies them each tick before assigning reviews — bad with probability β_P — from
+the same task world, so a plant's truth is as hidden from the reviewer as a task's. No audit is
+rolled and no dispute filed on a plant; the engine refuses both. `--rules 1.1.0` is the control:
+no plants, dial off, p_start = p_cap = 0.5, Ω float 20 — the 1.1.0 engine's behaviour, declared.
 
 Orchestrator. Every free actor offers the ceiling (B = β) with the same τ, so S_θ = ρ − λB/β
 reduces to argmax ρ, with the κ tie band: among offers within `band` of the best score the
@@ -50,12 +57,12 @@ from dataclasses import dataclass, field
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from sim import Params, World, RuleError, LedgerError, check_all   # noqa: E402
-from sim.engine import F, N                                         # noqa: E402
+from sim.engine import F, N, PLANT                                  # noqa: E402
 from drivers.view import Public                                     # noqa: E402
 from drivers.results import RunRecorder                             # noqa: E402
 
 CAREFUL, STAMPER = "careful", "stamper"
-GRADES = ("human-explicit", "delegate-explicit", "procedural", "protocol-default")
+GRADES = ("human-explicit", "delegate-explicit", "procedural", "protocol-default", PLANT)
 
 PERMITTED = ["post_root (human H, β fixed)", "award (every free actor offers B = β, τ = work_ticks; S_θ argmax ρ, κ tie band)",
              "submit (after work_ticks, no spend)",
@@ -66,12 +73,15 @@ PERMITTED = ["post_root (human H, β fixed)", "award (every free actor offers B 
              "truly fulfilled, accept otherwise; always = appeal every N; an actor that cannot fund the court fee accepts)",
              "dispute (by --dispute-policy: none; truthful = H disputes a pending F on work that truly failed; half = the "
              "same, half the time; always = H disputes every pending F; H pays the court fee D)",
-             "assign_audit (p_audit of the initial reviewer rolled once per F verdict)",
+             "assign_audit (the initial reviewer's effective audit odds min(1, m_t p_j) rolled once per F verdict)",
              "assign_appeal (the second review of an audit challenge)", "rule (split ruled by the truth w.p. r)",
+             "create_plant (1.2.0: the orchestrator supplies the plants the engine's rate calls for, bad w.p. β_P, "
+             "at B = β; no audit roll, no dispute on a plant)",
              "advance"]
 NOT_IN_RUN = ["appeals by actors (unless --appeal-policy is set)", "disputes (unless --dispute-policy is set)", "human overrides", "P/⊥", "revision/evidence", "delegation (nested cases)",
               "cancellation", "resource spend by actors", "volunteering for duty", "actor competence (truth is actor-independent)",
-              "price competition (every offer is at the ceiling)", "requester budget pressure (H is funded beyond the run)"]
+              "price competition (every offer is at the ceiling)", "requester budget pressure (H is funded beyond the run)",
+              "a reviewer that tries to tell a plant from real work (the view carries nothing to tell by; 1.2.0 §2.1)"]
 
 
 @dataclass
@@ -85,6 +95,7 @@ class Task:
     appealed: bool = False       # the actor appealed its N (the appeals run)
     dispute_rolled: bool = False
     disputed: bool = False       # H disputed the pending F (the dispute run)
+    plant: bool = False          # the orchestrator's planted work (1.2.0)
 
 
 @dataclass
@@ -102,6 +113,8 @@ class Tally:
     reviews: int = 0
     overturned: int = 0
     audits_done: int = 0
+    plant_reviews: int = 0       # plants judged F or N
+    plant_failures: int = 0      # of them, wrong: bond forfeited, record −1
 
 
 class Stamping:
@@ -113,8 +126,11 @@ class Stamping:
         ids = list(self.actors)
         self.rng.shuffle(ids)
         self.kind = {aid: (STAMPER if i < n_st else CAREFUL) for i, aid in enumerate(ids)}
-        p = Params(Res0=a.res0, X=a.on_duty, G_V=a.gv, p_start=a.p_start, p_floor=a.p_floor, band=a.band,
-                   record_dir=a.record_dir, f_fee=a.fee, phi_E_root=a.phi_e, phi_F_root=a.phi_f)
+        if a.rules == "1.1.0":                   # the control: the 1.1.0 engine's behaviour, declared
+            a.pi0, a.dial, a.p_start, a.p_cap, a.omega0 = 0.0, "off", 0.5, 0.5, 20.0
+        p = Params(Res0=a.res0, X=a.on_duty, G_V=a.gv, p_start=a.p_start, p_cap=a.p_cap, p_floor=a.p_floor, band=a.band,
+                   record_dir=a.record_dir, f_fee=a.fee, phi_E_root=a.phi_e, phi_F_root=a.phi_f,
+                   pi0=a.pi0, dial=(a.dial == "on"), beta_P=a.beta_p, Omega0=a.omega0)
         self.p = p
         world = World(p, self.actors, humans={"H": a.human_budget}, on_duty=sorted(self.actors)[: a.on_duty])
         self.w = Public(world)
@@ -139,7 +155,11 @@ class Stamping:
                   "true_approvals_disputed": 0, "true_approvals_overturned": 0,
                   "awards_unfilled_ticks": 0, "appeals_unassignable_ticks": 0, "underfunded_careful_reviews": 0,
                   "omega_unrecovered_advances": 0.0, "allowance_refunded": 0.0, "pot_refunded": 0.0,
-                  "trees_closed": 0}
+                  "trees_closed": 0,
+                  # 1.2.0: planted work and the dial
+                  "plants_created": 0, "plants_unfunded": 0, "plants_bad": 0, "plants_stood": 0, "plants_failed": 0,
+                  "plants_spent": 0, "bad_plants_approved": 0, "good_plants_rejected": 0, "omega_plant_spend": 0.0}
+        self.omega0_total = self.w.money()["omega_total"]
         self.by_grade = {g: [0, 0] for g in GRADES}       # grade -> [cases, correct]
         self.title_n = 0
 
@@ -151,6 +171,8 @@ class Stamping:
         an unaffordable purchase whole). Accuracy is a parameter of the disposition, not of the
         money spent; the shortfall is counted as `underfunded_careful_reviews`."""
         if self.kind[reviewer] == STAMPER:
+            if self.a.camouflage > 0 and self.rng.random() < self.a.camouflage:
+                return N, 0.0                    # looks careful without looking (1.2.0 §8 red team)
             return F, 0.0
         right = self.rng.random() < self.a.accuracy
         v = F if (truth == right) else N
@@ -170,13 +192,17 @@ class Stamping:
                 out.append(aid)
         return out
 
-    def eligible_reviewers(self, cid: str) -> list[str]:
+    def eligible_reviewers(self, cid: str, panel: bool = False) -> list[str]:
+        """§7.1: on duty, fresh, free, able to fund the bond — and, since 1.2.0 §2.2, eligible by
+        plant record for the tier: any review needs duty eligibility, a challenge-panel seat
+        (audit, appeal, dispute review) panel eligibility. The engine refuses what this misses."""
         c = self.w.case(cid)
         out = []
         for aid in self.actors:
             ac = self.w.actor(aid)
             if ac.on_duty and ac.open_review is None and ac.committed is None and aid != c.actor \
-                    and aid not in c.excluded and self.w.unlocked(aid) + 1e-9 >= c.G_V:
+                    and aid not in c.excluded and self.w.unlocked(aid) + 1e-9 >= c.G_V \
+                    and (ac.panel_eligible if panel else ac.duty_eligible):
                 out.append(aid)
         return out
 
@@ -269,6 +295,21 @@ class Stamping:
                 self.c["false_rejections_appealed" if task.fulfilled else "true_rejections_appealed"] += 1
             else:
                 w.respond(cid, "accept")
+        # orchestrator: the plants the rate calls for (1.2.0 §2.1), created before this tick's
+        # assignments so they join the queue behind the real work submitted so far
+        for _ in range(w.plants_due()):
+            truth = self.rng.random() >= a.beta_p            # bad with probability β_P
+            try:
+                cid = w.create_plant(truth, a.beta)
+            except LedgerError:
+                self.c["plants_unfunded"] += 1               # Ω's working capital is the cap; the engine counts the shortfall
+                break
+            self.title_n += 1
+            self.tasks[cid] = Task(cid, f"plant #{self.title_n}", fulfilled=truth, plant=True)
+            self.active[cid] = True
+            self.c["plants_created"] += 1
+            if not truth:
+                self.c["plants_bad"] += 1
         # orchestrator: initial reviews, audits, appeal reviews, rulings
         for cid in sorted(self.active, key=lambda s: int(s[1:])):
             c = w.case(cid)
@@ -280,6 +321,8 @@ class Stamping:
                     self.review_owner[rid] = w.review(rid).reviewer
                 else:
                     self.c["reviews_unassignable_ticks"] += 1
+            if task.plant:
+                continue                                     # no audit roll, no dispute: adjudicated by truth
             if c.state == "PENDING" and c.verdict == F and c.challenge is None and not task.dispute_rolled \
                     and a.dispute_policy != "none":
                 task.dispute_rolled = True             # the requester acts once, before the audit roll
@@ -302,13 +345,13 @@ class Stamping:
                     task.audit_rolled = True
                     initial = w.review(c.reviews[0])
                     self.c["audits_rolled"] += 1
-                    task.audit_wanted = self.rng.random() < w.actor(initial.reviewer).p_audit
+                    task.audit_wanted = self.rng.random() < w.p_effective(initial.reviewer)   # min(1, m_t p_j)
                 if task.audit_wanted:
                     if t > c.window_end:
                         task.audit_wanted = False
                         self.c["audits_lapsed"] += 1
                     else:
-                        el = self.eligible_reviewers(cid)
+                        el = self.eligible_reviewers(cid, panel=True)
                         if el:
                             rid = w.assign_audit(cid, self.pick_reviewer(el))
                             self.review_owner[rid] = w.review(rid).reviewer
@@ -323,7 +366,7 @@ class Stamping:
                     self.c["challenges"] += 1
                 done = [w.review(r) for r in ch["reviews"] if w.review(r).status == "done"]
                 if len(ch["reviews"]) < 2:
-                    el = self.eligible_reviewers(cid)
+                    el = self.eligible_reviewers(cid, panel=True)
                     if el:
                         rid = w.assign_appeal(cid, self.pick_reviewer(el))
                         self.review_owner[rid] = w.review(rid).reviewer
@@ -368,8 +411,33 @@ class Stamping:
         self.n_events = w.n_events()
         for cid in list(self.active):
             c = w.case(cid)
+            task = self.tasks[cid]
+            if task.plant:
+                # a plant leaves the queue once adjudicated and closed; its outcome is the reviewer's
+                if c.plant_outcome is not None and c.tree_closed:
+                    r = w.review(c.reviews[-1])
+                    if c.plant_outcome == "spent":
+                        self.c["plants_spent"] += 1
+                    else:
+                        self.tally[r.reviewer].plant_reviews += 1
+                        if c.plant_outcome == "failure":
+                            self.tally[r.reviewer].plant_failures += 1
+                            self.c["plants_failed"] += 1
+                            self.c["bad_plants_approved" if task.fulfilled is False else "good_plants_rejected"] += 1
+                        else:
+                            self.c["plants_stood"] += 1
+                    # what the plant's pots paid reviewers is Ω's cost of the plant
+                    self.c["omega_plant_spend"] = round(self.c["omega_plant_spend"] + (c.phi_E - c.allowance_refunded)
+                                                        + (c.phi_F - c.pot_refunded), 6)
+                    for rid in c.reviews:
+                        if w.review(rid).status == "overturned":
+                            self.tally[w.review(rid).reviewer].overturned += 1
+                    if c.grade in self.by_grade:
+                        self.by_grade[c.grade][0] += 1
+                        self.by_grade[c.grade][1] += int((c.outcome_or_verdict() == F) == task.fulfilled)
+                    self.active.pop(cid, None)
+                continue
             if c.state in ("VESTED", "FINAL_N"):
-                task = self.tasks[cid]
                 correct = (c.outcome_or_verdict() == F) == task.fulfilled
                 if c.state == "VESTED":
                     self.c["vested"] += 1
@@ -432,15 +500,30 @@ class Stamping:
                 f"{kind}_kappa": round(sum(w.actor(aid).kappa for aid in ids) / n, 3),
                 f"{kind}_p_audit": round(sum(w.actor(aid).p_audit for aid in ids) / n, 4),
                 f"{kind}_on_duty": sum(1 for aid in ids if w.actor(aid).on_duty),
+                # 1.2.0: the plant record and its consequences, per population
+                f"{kind}_plant_reviews": round(sum(x.plant_reviews for x in T) / n, 3),
+                f"{kind}_plant_failures": round(sum(x.plant_failures for x in T) / n, 3),
+                f"{kind}_a_hat": round(sum(w.actor(aid).a_hat for aid in ids) / n, 4),
+                f"{kind}_suspended": sum(1 for aid in ids if w.actor(aid).suspended_until is not None),
+                f"{kind}_duty_eligible": sum(1 for aid in ids if w.actor(aid).duty_eligible),
+                f"{kind}_panel_eligible": sum(1 for aid in ids if w.actor(aid).panel_eligible),
             })
         row.update(self.c)
         for g, (nn, ok) in self.by_grade.items():
             row[f"grade_{g}_n"] = nn
             row[f"grade_{g}_acc"] = round(ok / nn, 4) if nn else ""
         m = w.money()
+        d = w.dial()
+        last = d["periods"][-1] if d["periods"] else {}
         row.update({"M": round(m["M"], 3), "Res": round(m["Res"], 3), "v": round(m["v"], 6), "omega": round(m["omega"], 3),
+                    "omega_total": round(m["omega_total"], 3), "omega_in_plants": round(m["omega_in_plants"], 3),
+                    "omega_net": round(m["omega_total"] - self.omega0_total, 3),
                     "claims_outstanding": round(m["claims_outstanding"], 3),
-                    "H_unlocked": round(w.unlocked("H"), 3), "active_cases": len(self.active)})
+                    "H_unlocked": round(w.unlocked("H"), 3), "active_cases": len(self.active),
+                    "m": round(d["m"], 4), "pi": round(d["pi"], 4), "X_t": d["X_t"], "on_duty": sum(1 for aid in self.actors if w.actor(aid).on_duty),
+                    "F_hat": last.get("F_hat", ""), "periods": len(d["periods"]), "suspensions": d["suspensions"],
+                    "alarms": d["alarms"], "eligibility_shortfall": d["eligibility_shortfall"],
+                    "plant_shortfall": d["plant_shortfall"]})
         return row
 
 
@@ -456,8 +539,17 @@ def main(argv=None):
     ap.add_argument("--accuracy", type=float, default=0.95, help="careful reviewer: P(verdict = truth)")
     ap.add_argument("--fail-rate", type=float, default=0.2, help="b: P(task is truly unfulfilled)")
     ap.add_argument("--ruling-accuracy", type=float, default=0.8, help="r: P(orchestrator rules by the truth)")
-    ap.add_argument("--p-start", type=float, default=0.5)
+    ap.add_argument("--p-start", type=float, default=1.0, help="a newcomer's audit odds (1.2.0 §2.4: 1.0; 1.1.0: 0.5)")
+    ap.add_argument("--p-cap", type=float, default=1.0, help="the audit odds' cap on doubling (1.2.0 §2.4: 1.0; 1.1.0: 0.5)")
     ap.add_argument("--p-floor", type=float, default=0.2, help="the audit rate's floor (§8.3)")
+    ap.add_argument("--rules", choices=["1.2.0", "1.1.0"], default="1.2.0",
+                    help="1.1.0 is the control: no plants, dial off, p_start = p_cap = 0.5, Ω float 20")
+    ap.add_argument("--pi0", type=float, default=0.10, help="π_0, plants per real initial review at m = 1 (0: no plants)")
+    ap.add_argument("--dial", choices=["on", "off"], default="on", help="the effort dial (off: m_t = 1, X_t = X fixed)")
+    ap.add_argument("--beta-p", type=float, default=0.75, help="β_P, the share of plants that are bad")
+    ap.add_argument("--camouflage", type=float, default=0.0,
+                    help="red team (1.2.0 §8): a stamper answers N on this fraction of its reviews at random")
+    ap.add_argument("--omega0", type=float, default=300.0, help="Ω's cold-start float (1.2.0 Appendix A: 300)")
     ap.add_argument("--assignment", choices=["round-robin", "seeded"], default="round-robin",
                     help="choice among eligible duty actors: round-robin (§7.5) or seeded random (the first sweeps' declared policy)")
     ap.add_argument("--dispute-rate", type=float, default=1.0,
@@ -489,14 +581,24 @@ def main(argv=None):
                       params=run.p, **({"root": a.results_root} if a.results_root else {}),
                       declared={"actors": a.actors, "on_duty": a.on_duty, "ticks": a.ticks, "tasks_per_tick": a.tasks,
                                 "beta": a.beta, "work_ticks": a.work_ticks, "seed": a.seed,
+                                "rules": a.rules,
                                 "dispositions": {"stamper_fraction": a.stampers,
                                                  "assignment": dict(sorted(run.kind.items())),
                                                  "careful": {"accuracy": a.accuracy, "cost": "uniform {2, 3} credits, or what unlocked "
                                                                                            "credit can buy (counted as underfunded)"},
-                                                 "stamper": {"verdict": "F", "cost": 0}},
+                                                 "stamper": {"verdict": "F" if a.camouflage == 0 else f"F, N w.p. {a.camouflage} (camouflage)",
+                                                             "cost": 0}},
                                 "task_world": {"fail_rate_b": a.fail_rate, "truth": "hidden, independent of actor"},
                                 "fee_rule": {"spec": "1.1.0 design revision 1 — the verification deposit is two pots",
                                              "f": a.fee, "phi_E": a.phi_e, "phi_F": a.phi_f, "K": run.p.K, "G_V": a.gv},
+                                "clock": {"spec": "1.2.0 design revision 2 — the loop's own clock" if a.rules == "1.2.0" else "none (1.1.0 control)",
+                                          "pi0": a.pi0, "beta_P": a.beta_p, "dial": a.dial, "p_start": a.p_start, "p_cap": a.p_cap,
+                                          "Omega0": a.omega0,
+                                          "plant_supplier": "the orchestrator creates plants_due() plants each tick before assigning "
+                                                            "reviews, bad w.p. β_P, at B = β; truth from the task world; refused plants "
+                                                            "(Ω short) stop the tick's supply and are counted",
+                                          "panel": "the engine's two tiers (§2.2) refuse ineligible assignments; the driver offers "
+                                                   "the next eligible duty actor in round-robin"},
                                 "orchestrator": {"selection": "argmax ρ − λB/β at B = β; κ tie band; lowest id",
                                                  "assignment": {"round-robin": "round-robin among eligible duty actors (§7.5)",
                                                                 "seeded": "seeded random choice among eligible duty actors"}[a.assignment],
@@ -561,6 +663,15 @@ def main(argv=None):
           f"underfunded_careful_reviews={final['underfunded_careful_reviews']}")
     print(f"  Ω unrecovered advances={final['omega_unrecovered_advances']} claims outstanding={final['claims_outstanding']} "
           f"returned to H: allowance={final['allowance_refunded']} fee pot={final['pot_refunded']} trees closed={final['trees_closed']}")
+    print(f"  clock: m={final['m']} pi={final['pi']} X_t={final['X_t']} periods={final['periods']} F_hat(last)={final['F_hat']} "
+          f"plants created/bad/stood/failed/spent={final['plants_created']}/{final['plants_bad']}/{final['plants_stood']}/"
+          f"{final['plants_failed']}/{final['plants_spent']} unfunded={final['plants_unfunded']} shortfall={final['plant_shortfall']} "
+          f"suspensions={final['suspensions']} alarms={final['alarms']} eligibility_shortfall={final['eligibility_shortfall']} "
+          f"Ω plant spend={final['omega_plant_spend']} Ω net={final['omega_net']}")
+    for kind in (CAREFUL, STAMPER):
+        print(f"  {kind:8s} plant reviews={final[kind + '_plant_reviews']:6.2f} failures={final[kind + '_plant_failures']:5.2f} "
+              f"a_hat={final[kind + '_a_hat']:.3f} suspended={final[kind + '_suspended']} duty-eligible={final[kind + '_duty_eligible']} "
+              f"panel-eligible={final[kind + '_panel_eligible']}")
     return 0 if ok else 1
 
 

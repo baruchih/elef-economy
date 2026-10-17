@@ -19,6 +19,7 @@ Nothing here chooses a bid, a verdict, or a ruling.
 from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Optional
+import hashlib
 import math
 import os
 
@@ -35,10 +36,15 @@ F, N, P, BOT = "F", "N", "P", "⊥"
 VERDICTS = {F, N, P, BOT}
 UPHELD, REJECTED = "upheld", "rejected"          # disposition of a ⊥ objection (§8.1)
 
-# Label grades (§15.3)
-HUMAN, DELEGATE, DEFAULT, PROCEDURAL = "human-explicit", "delegate-explicit", "protocol-default", "procedural"
+# Label grades (§15.3); `plant` since 1.2.0 — truth known by construction, never promoted
+HUMAN, DELEGATE, DEFAULT, PROCEDURAL, PLANT = "human-explicit", "delegate-explicit", "protocol-default", "procedural", "plant"
 
 ROLE_W = {"initial": "w_ordinary", "appeal": "w_appeal", "audit": "w_audit"}
+PANEL_ROLES = ("appeal", "audit")              # the challenge-panel seats (1.2.0 §2.2)
+
+# The orchestrator's two system wallets (1.2.0 §2.1, Appendix A): a plant's requester and its actor.
+# Funded by transfer from Ω when a plant is created and swept back to Ω when its tree closes.
+PLANT_REQ, PLANT_ACT = "OMEGA-REQ", "OMEGA-ACT"
 
 
 class Claim(tuple):
@@ -78,6 +84,12 @@ class Actor:
     duty_since: Optional[int] = None
     duty_reviews: int = 0
     volunteer: bool = False
+    # the plant record (1.2.0 §2.2): trailing n_P outcomes per kind — for a bad plant whether it was
+    # approved, for a good plant whether it was rejected — and the suspension clock
+    plant_bad: list = field(default_factory=list)    # (t, approved)
+    plant_good: list = field(default_factory=list)   # (t, rejected)
+    suspended_until: Optional[int] = None
+    probation: bool = False     # readmitted with a record that still fails: re-checked at its next plant
     _world: object = None
 
     @property
@@ -98,6 +110,44 @@ class Actor:
         horizon = w.t - w.p.kappa_window
         return sum(1 for tv in self.vests if tv > horizon)
 
+    # -- the plant record (1.2.0 §2.2) --------------------------------------------------------
+    @property
+    def a_hat(self) -> float:
+        """Smoothed bad-plant approval rate, (o_bad + 1) / (n_bad + 2)."""
+        return (sum(1 for _, x in self.plant_bad if x) + 1) / (len(self.plant_bad) + 2)
+
+    @property
+    def r_hat(self) -> float:
+        """Smoothed good-plant rejection rate, (o_good + 1) / (n_good + 2)."""
+        return (sum(1 for _, x in self.plant_good if x) + 1) / (len(self.plant_good) + 2)
+
+    def record_passes(self, theta: float) -> bool:
+        """Each kind's rate is within the threshold, or that kind's record is undetermined
+        (fewer than n_min plants of the kind)."""
+        p = self._world.p
+        if len(self.plant_bad) >= p.n_min and self.a_hat > theta + 1e-12:
+            return False
+        if len(self.plant_good) >= p.n_min and self.r_hat > theta + 1e-12:
+            return False
+        return True
+
+    @property
+    def duty_eligible(self) -> bool:
+        """Eligible for any review: not suspended, and the record within θ_duty — or readmitted on
+        probation, until its next plant adjudication re-checks the record."""
+        return self.suspended_until is None and (self.probation or self.record_passes(self._world.p.theta_duty))
+
+    @property
+    def panel_eligible(self) -> bool:
+        """Eligible for a challenge-panel seat (appeal, dispute, audit): duty-eligible, not on
+        probation, and the record within θ_panel."""
+        return self.duty_eligible and not self.probation and self.record_passes(self._world.p.theta_panel)
+
+    @property
+    def p_eff(self) -> float:
+        """The audit odds a driver rolls: the adaptive p_j scaled by the dial, min(1, m_t · p_j)."""
+        return min(1.0, self._world.m_t * self.p_audit)
+
 
 @dataclass
 class ReviewView:
@@ -107,10 +157,11 @@ class ReviewView:
     unrevised submission. The view does not say whether a fulfillment question is an initial
     review or an audit; it says what may be answered, so identical views admit identical
     answers (§8.3). An appeal or a dispute states the question it asks (§8.1). Other verdicts
-    and identities stay hidden."""
+    and identities stay hidden — since 1.2.0 (§14 amended) the submission's actor too: the
+    reviewer judges the work, not the worker, and a plant's view then carries nothing a case's
+    does not. The view is a function of case fields that exclude the actor and the plant marker."""
     review_id: str
     case_id: str
-    actor: str
     t_submit: Optional[int]
     deadline: int
     bond: float
@@ -146,6 +197,7 @@ class Review:
     resumed: bool = False
     contradicted_by_override: bool = False
     reimbursed_pending: float = 0.0   # an Ω claim outstanding for this review's costs
+    panel_ok: bool = True             # the reviewer was eligible for this tier when assigned (1.2.0 §2.2, I21)
 
 
 @dataclass
@@ -205,6 +257,14 @@ class Case:
     pot_refunded: float = 0.0
     tree_closed: bool = False
     t_closed: Optional[int] = None
+    # planted work (1.2.0 §2.1): the truth known by construction (True = good, False = bad), the
+    # sealed marker committed at creation and where, and the adjudication once given
+    plant: Optional[bool] = None
+    plant_commit: Optional[str] = None
+    plant_nonce: Optional[str] = None
+    plant_hseq: Optional[int] = None
+    plant_outcome: Optional[str] = None    # stood | failure | spent
+    plant_reveal_hseq: Optional[int] = None
     # outcome record
     grade: Optional[str] = None
     assessments: list = field(default_factory=list)
@@ -303,6 +363,26 @@ class World:
         self._court_fee_reimb: dict[str, int] = {}      # case id -> court-fee reimbursements recorded
         self._violations: list[str] = []                # I4/I10 facts established as events were recorded
         self._events_checked = 0                        # ledger events already checked by the tick check
+        # The effort dial (1.2.0 §2.3) and the reserve it sizes. m_t is updated once per period from
+        # the bad-plant approval rate; π_t, the audit odds, X_t and ω_t follow it. `plant_credit` is
+        # what the plant rate calls for and has not been created: it grows by π_t at every real
+        # initial assignment and falls by one per plant; what is still owed at the period's end is
+        # the period's plant shortfall. With `dial` off, m_t stays 1 and X_t stays X.
+        self.m_t: float = 1.0
+        self.pi_t: float = params.pi0
+        self.X_t: int = params.X
+        self.plant_credit: float = 0.0
+        self.plants_created = 0
+        self.plant_shortfall = 0                        # plants the rate called for that Ω could not fund
+        self.eligibility_shortfall = 0                  # Σ over ticks of (X_t − actors on duty) when the pool was empty
+        self.reserve_shortfall_now = 0
+        self.suspensions = 0
+        self.alarm_streak = 0
+        self.alarms = 0
+        self.periods: list[dict] = []
+        self.period = self._new_period(0)
+        self._pool_exhausted = False                    # at the last rotation, no eligible free actor was left
+        self._reserve_dirty = False                     # an actor left duty since the last rotation (mid-tick)
         self.ledger.on_event = self._on_ledger_event
         for e in self.ledger.events:                    # the floats and budgets paid in above
             self._on_ledger_event(e)
@@ -442,7 +522,7 @@ class World:
         if actor_id == c.requester:
             raise RuleError("an actor cannot be awarded its own request")
         G = max(1.0, math.ceil(self.p.G_frac * B))
-        omega = self.p.omega_rate * B
+        omega = self.p.omega_rate * self.m_t * B          # ω_t = ω_0 · m_t (1.2.0 §2.3)
         # --- pre-checks: no mutation until every leg is known to be fundable (atomicity)
         if self.ledger.wallet(actor_id).U + 1e-9 < G:
             raise LedgerError(f"award: {actor_id} cannot fund the guarantee {G}")
@@ -540,7 +620,7 @@ class World:
         self._log(c, f"resubmitted; {r.reviewer} resumes review {r.id} (F or N only)")
 
     # --------------------------------------------------------------- reviews
-    def _eligible(self, c: Case, reviewer: str) -> None:
+    def _eligible(self, c: Case, reviewer: str, role: str = "initial") -> None:
         a = self._actor(reviewer)
         if not a.on_duty:
             raise RuleError(f"{reviewer} is not on verification duty")
@@ -550,6 +630,12 @@ class World:
             raise RuleError(f"{reviewer} already holds an active assignment (one at a time, §2.2)")
         if self.ledger.wallet(reviewer).U + 1e-9 < c.G_V:
             raise RuleError(f"{reviewer} cannot fund the bond {c.G_V} (§7.1)")
+        # 1.2.0 §2.2: eligibility is a property at assignment — duty eligibility for any review,
+        # panel eligibility for a seat on an appeal, dispute or audit panel
+        if not a.duty_eligible:
+            raise RuleError(f"{reviewer} is not eligible for duty by its plant record (§7.1, 1.2.0)")
+        if role in PANEL_ROLES and not a.panel_eligible:
+            raise RuleError(f"{reviewer} may not sit on a challenge panel: plant record above θ_panel (§7.1, 1.2.0)")
 
     def _positions(self, c: Case) -> int:
         """Review positions on the current challenge path (§12). A withdrawn review vacates its
@@ -557,7 +643,7 @@ class World:
         return sum(1 for rid in c.reviews if self.reviews[rid].status != "withdrawn")
 
     def _new_review(self, c: Case, reviewer: str, role: str) -> Review:
-        self._eligible(c, reviewer)
+        self._eligible(c, reviewer, role)
         if self._positions(c) + 1 > self.p.V_max:
             raise RuleError(f"case {c.id} would exceed V_max={self.p.V_max} review positions")
         self._n_review += 1
@@ -586,7 +672,7 @@ class World:
         if r.reviewer != reviewer:
             raise RuleError("observe: not this reviewer's assignment")
         c = self.cases[r.case]
-        view = ReviewView(r.id, c.id, c.actor, c.t_submit, r.deadline, r.bond, c.K,
+        view = ReviewView(r.id, c.id, c.t_submit, r.deadline, r.bond, c.K,
                           r.resumed or c.resubmitted, c.is_nested(),
                           responses_available=self._responses_available(c, r))
         if r.role == "appeal" and c.challenge:
@@ -605,11 +691,16 @@ class World:
                for r in c.reviews):
             raise RuleError("initial review already assigned")
         r = self._new_review(c, reviewer, "initial")
+        if c.plant is None:
+            self.plant_credit += self.pi_t              # the plant rate: π_t plants per real initial review
+            self.period["initial"] += 1
         self._log(c, f"initial review {r.id} -> {reviewer}, deadline {r.deadline}")
         return r.id
 
     def assign_audit(self, cid: str, reviewer: str) -> str:
         c = self._case(cid)
+        if c.plant is not None:
+            raise RuleError("audit: a plant is adjudicated by its known truth; no challenge is opened on it (1.2.0 §2.1)")
         if c.state != "PENDING" or c.outcome_or_verdict() != F:
             raise RuleError("audit: only an F verdict in PENDING may be audited (§8.3)")
         if self.t > c.window_end and not c.audit_vacated:
@@ -625,6 +716,7 @@ class World:
         if c.t_verdict is None or self.t < c.t_verdict:
             raise RuleError("audit: the verdict must be committed before the audit is assigned (§14)")
         r = self._new_review(c, reviewer, "audit")
+        self.period["audits"] += 1
         if c.audit_vacated:
             c.audit_vacated = False                      # the vacated obligation is taken over
         else:
@@ -649,6 +741,7 @@ class World:
             raise RuleError("assign_appeal: two appeal reviews already assigned")
         r = self._new_review(c, reviewer, "appeal")
         c.challenge["reviews"].append(r.id)
+        self.period["challenge_reviews"] += 1
         self._log(c, f"appeal review {r.id} -> {reviewer}")
         return r.id
 
@@ -705,11 +798,16 @@ class World:
         r.verdict, r.objection, r.t_done, r.status = verdict, objection, self.t, "done"
         self._reimburse(c, r)
         self._log(c, f"review {rid} by {r.reviewer}: {verdict}{' / ' + objection if objection else ''} (cost {credits:.3f} credits)")
+        self.period["dur_sum"] += max(1, self.t - r.t_assign)      # mean review duration, for the reserve's sizing
+        self.period["dur_n"] += 1
         a = self.actors[r.reviewer]
         if r.role == "initial":
             if verdict in (F, N):
                 a.open_review = None                    # a P or ⊥ keeps the reviewer attached (§6)
-            self._initial_verdict(c, verdict)
+            if c.plant is not None:
+                self._adjudicate_plant(c, r, verdict)   # 1.2.0 §2.1: by the known truth, at once
+            else:
+                self._initial_verdict(c, verdict)
         elif r.role == "audit":
             a.open_review = None
             self._audit_result(c, r)
@@ -723,6 +821,8 @@ class World:
         c.window_end = self.t + self.p.W
         if verdict == F:
             c.state = "PENDING"
+            if c.is_root:
+                self.period["approvals"] += 1           # audit demand, for the reserve's sizing
             self._release_capacity(c)
         else:
             c.state = "AWAITING_RESPONSE"
@@ -757,6 +857,8 @@ class World:
     # ---------------------------------------------------------- responses
     def respond(self, cid: str, action: str, d: Optional[str] = None):
         c = self._case(cid)
+        if c.plant is not None:
+            raise RuleError("respond: a plant has no response path; it is adjudicated by its known truth (1.2.0 §2.1)")
         if c.state != "AWAITING_RESPONSE":
             raise RuleError(f"respond: case {cid} is {c.state}")
         if self.t > c.response_deadline:
@@ -819,6 +921,8 @@ class World:
 
     def dispute(self, cid: str, challenger: str, d: Optional[str] = None):
         c = self._case(cid)
+        if c.plant is not None:
+            raise RuleError("dispute: no challenge is opened on a plant (1.2.0 §2.1)")
         if not c.is_root:
             raise RuleError("only root requesters dispute; a requester-actor is its own judge")
         if challenger != c.requester:
@@ -1035,7 +1139,7 @@ class World:
         self.ledger.transfer_locked(c.actor, c.requester, forfeit, key=f"G:{c.id}", case=c.id, note=f"forfeit: {reason}")
         if c.G - forfeit > 1e-12:
             self.ledger.release(c.actor, c.G - forfeit, key=f"G:{c.id}", case=c.id, note="guarantee remainder")
-        if actor_fault:
+        if actor_fault and c.actor in self.actors:          # the plant actor is Ω's and keeps no record
             self._record_outcome(c.actor, False)
         self._return_escrow(c)
         if any(self.reviews[r].status == "done" for r in c.reviews):
@@ -1070,6 +1174,8 @@ class World:
         # ---- validate everything before recording anything (atomicity)
         if human not in self.humans:
             raise RuleError("override: only a human may rule; a delegate accepts or disputes (§15.2)")
+        if c.plant is not None:
+            raise RuleError("override: no ruling is sought on a plant; its truth is known by construction (1.2.0 §2.1)")
         if outcome not in (F, N):
             raise RuleError("override: outcome is F or N")
         if c.state in ("AVAILABLE", "COMMITTED", "WITHDRAWN", "CANCELLED"):
@@ -1172,6 +1278,8 @@ class World:
 
     def accept_explicit(self, cid: str, requester: str):
         c = self._case(cid)
+        if c.plant is not None:
+            raise RuleError("accept_explicit: a plant's outcome is set only by its known truth (1.2.0 §2.1)")
         if requester != c.requester or c.state != "PENDING" or c.outcome_or_verdict() != F:
             raise RuleError("accept_explicit: not a pending F for this requester")
         c.assessments.append((self.t, requester, F, "accept"))
@@ -1182,6 +1290,8 @@ class World:
         """§15.3: the grade is that of the event that *established* the settled outcome, by the
         author of that event — a human who rules on a delegate's request establishes a
         human-explicit outcome; a delegate who accepts establishes a delegate-explicit one."""
+        if c.plant is not None:
+            return PLANT                                    # truth known by construction, never promoted (1.2.0)
         if c.is_nested():
             return PROCEDURAL
         explicit = [a for a in c.assessments if a[2] == c.outcome and a[3] in ("accept", "dispute", "override")]
@@ -1318,6 +1428,13 @@ class World:
             root.pot_refunded += back_F
         root.tree_closed, root.t_closed = True, self.t
         self._log(root, f"tree closed; unused allowance {back_E:g} and fee pot {back_F:g} returned")
+        if root.plant is not None:
+            # 1.2.0 Appendix A: the two system wallets hold Ω's money; what a closed plant left in
+            # them — the price, the refunds, the released or forfeited guarantee — goes back to Ω
+            for wid in (PLANT_REQ, PLANT_ACT):
+                u = self.ledger.wallet(wid).U
+                if u > 1e-12:
+                    self.ledger.transfer(wid, Ledger.OMEGA, u, case=root.id, note="tree closure: plant funds swept to Ω")
         self._service_omega_claims()
 
     def _vest(self, c: Case, epw: float):
@@ -1330,7 +1447,8 @@ class World:
         c.outcome = c.outcome or F
         c.t_vest, c.final, c.state = self.t, True, "VESTED"
         c.grade = self._grade(c)
-        self._record_outcome(c.actor, True)
+        if c.actor in self.actors:                          # the plant actor is Ω's and keeps no record
+            self._record_outcome(c.actor, True)
         self._log(c, f"vested; grade {c.grade}")
         self._maybe_close_tree(self.cases[c.root])     # final now: the tree may have closed with this vest
 
@@ -1395,7 +1513,8 @@ class World:
                     self._settle_reviews(c, epw)
         # step 4: Ω services claims
         self._service_omega_claims()
-        # step 5: rotation
+        # step 5: the dial, once per period (1.2.0 §2.3), then rotation under the reserve it sized
+        self._maybe_end_period(tick)
         self._rotate(tick)
 
     def _withdraw_review(self, r: Review, burn: bool = True):
@@ -1425,14 +1544,40 @@ class World:
         self._log(c, f"review {r.id} by {r.reviewer} {'timed out' if burn else 'voided'}; position vacated")
 
     def _rotate(self, tick: int):
-        """§13: replacement-before-release; a turn is duty_turn_reviews vested reviews or
-        duty_turn_ticks ticks; incoming replacements are the free actors with the lowest κ."""
+        """§12: replacement-before-release; a turn is duty_turn_reviews vested reviews or
+        duty_turn_ticks ticks; incoming replacements are the free, eligible actors with the lowest κ.
+        Since 1.2.0 (§2.2, §2.3): a suspension that has run its course is re-checked against the
+        record; a duty-ineligible actor leaves when its active review is complete, replacement or
+        not; the reserve is then filled up to X_t from the eligible pool or shrunk to it, and the
+        gap, when no eligible actor is left, is the eligibility shortfall."""
         GV = self.p.G_V * self.ledger.index()
+        # 0. suspensions that have run their course. The record persists; a passing record is
+        # readmitted clean. A record that still fails cannot change while the actor is off duty (it
+        # is a trailing window of plant outcomes, and a suspended actor judges no plants), so the
+        # actor is readmitted on probation: to duty, not to panels, until its next plant
+        # adjudication re-checks the record — a still-failing record suspends it again at once.
+        # [Implementer's reading of 1.2.0 §2.2, October 17, 2026; see HANDOFF.]
+        for a in sorted(self.actors.values(), key=lambda a: a.id):
+            if a.suspended_until is not None and tick >= a.suspended_until:
+                a.suspended_until = None
+                a.p_audit, a.streak = self.p.p_start, 0              # a newcomer for the audit odds (§2.4)
+                if a.record_passes(self.p.theta_duty):
+                    self.history.append("suspension", {"t": tick, "actor": a.id, "msg": "readmitted: record passes"})
+                else:
+                    a.probation = True
+                    self.history.append("suspension", {"t": tick, "actor": a.id,
+                                                       "msg": "readmitted on probation: record still fails; "
+                                                              "re-checked at its next plant"})
+        # 1. ineligible duty actors with no active review leave now, whether or not a replacement exists
+        for a in sorted((a for a in self.actors.values() if a.on_duty), key=lambda a: a.id):
+            if not a.duty_eligible and a.open_review is None:
+                self._leave_duty(a, tick, "ineligible by plant record")
         # batch-start snapshot: only actors off duty when the tick began may be conscripted this
-        # tick, so a released actor has at least one tick of ordinary eligibility (§13)
+        # tick, so a released actor has at least one tick of ordinary eligibility (§12)
         pool = {a.id for a in self.actors.values()
-                if not a.on_duty and a.committed is None and a.open_review is None
+                if not a.on_duty and a.committed is None and a.open_review is None and a.duty_eligible
                 and self.ledger.wallet(a.id).U + 1e-9 >= GV}
+        # 2. turns: replacement before release
         for out in sorted((a for a in self.actors.values() if a.on_duty), key=lambda a: a.id):
             if out.volunteer or out.open_review is not None or out.duty_since is None:
                 continue
@@ -1448,10 +1593,225 @@ class World:
             inc.on_duty, inc.duty_since, inc.duty_reviews = True, tick, 0
             out.on_duty, out.duty_since, out.duty_reviews = False, None, 0
             self.history.append("rotation", {"t": tick, "in": inc.id, "out": out.id})
+        # 3. the reserve holds min(X_t, eligible): fill up to X_t ...
+        n = sum(1 for a in self.actors.values() if a.on_duty)
+        while n < self.X_t and pool:
+            inc = min((self.actors[i] for i in pool), key=lambda a: (a.kappa, a.id))
+            pool.discard(inc.id)
+            inc.on_duty, inc.duty_since, inc.duty_reviews = True, tick, 0
+            self.history.append("rotation", {"t": tick, "in": inc.id, "out": None, "why": "reserve sized up"})
+            n += 1
+        # ... or shrink to it: idle, non-volunteer duty actors, those whose turn is done first
+        if n > self.X_t:
+            idle = [a for a in self.actors.values() if a.on_duty and not a.volunteer and a.open_review is None]
+            idle.sort(key=lambda a: (0 if (a.duty_since is not None and (a.duty_reviews >= self.p.duty_turn_reviews
+                                           or tick - a.duty_since >= self.p.duty_turn_ticks)) else 1, a.id))
+            for a in idle[: n - self.X_t]:
+                self._leave_duty(a, tick, "reserve sized down")
+                n -= 1
+        self.reserve_shortfall_now = max(0, self.X_t - n)
+        self._pool_exhausted = not pool
+        self._reserve_dirty = False
+        if self.reserve_shortfall_now:
+            self.eligibility_shortfall += self.reserve_shortfall_now
+            self.period["eligibility_shortfall"] += self.reserve_shortfall_now
+
+    def _leave_duty(self, a: Actor, tick: int, why: str):
+        a.on_duty, a.duty_since, a.duty_reviews = False, None, 0
+        self._reserve_dirty = True                      # the tick's rotation refills or counts the gap
+        self.history.append("rotation", {"t": tick, "in": None, "out": a.id, "why": why})
 
     def volunteer(self, aid: str, flag: bool = True):
         self._actor(aid).volunteer = flag
         self.history.append("actor", {"t": self.t, "actor": aid, "msg": f"volunteer={flag}"})
+
+    # --------------------------------------------- planted work (1.2.0 §2.1, §2.2)
+    def create_plant(self, truth: bool, B: float) -> str:
+        """The orchestrator introduces a case whose fulfillment it knows by construction: `truth`
+        True is a good plant (fulfilled), False a bad one. The case is created in the submitted
+        state, attributed to the orchestrator's plant requester and plant actor, funded by Ω — the
+        price, both pots and the actor's guarantee — and assigned an initial reviewer like any case.
+        The marker is committed to the History sealed (a hash of the case, its truth and a nonce)
+        and revealed at adjudication. Refused whole when Ω cannot fund it; what the rate called for
+        and could not be funded is the period's plant shortfall (§2.3)."""
+        if not isinstance(truth, bool):
+            raise RuleError("create_plant: truth is True (good) or False (bad)")
+        B = amount(B, "B")
+        idx = self.ledger.index()
+        D, K, GV = self.p.D * idx, self.p.K * idx, self.p.G_V * idx
+        phi_E, phi_F = self.p.phi_E_root * idx, self.p.phi_F_root * idx
+        G = max(1.0, math.ceil(self.p.G_frac * B))
+        need = B + phi_E + phi_F + G
+        if self.ledger.wallet(Ledger.OMEGA).U + 1e-9 < need:
+            raise LedgerError(f"create_plant: Ω cannot fund {need} (B + φ^E + φ^F + G) from its unlocked balance")
+        self._n_case += 1
+        cid = f"q{self._n_case}"
+        c = Case(cid, root=cid, requester=PLANT_REQ, is_root=True, beta=B, t_post=self.t)
+        c.plant = truth
+        c.plant_nonce = hashlib.sha256(f"{self.history.head}|{cid}".encode()).hexdigest()[:16]
+        c.plant_commit = hashlib.sha256(f"{cid}|{'good' if truth else 'bad'}|{c.plant_nonce}".encode()).hexdigest()
+        self.cases[cid] = c
+        self._live_cases[cid] = c
+        # Ω funds its two system wallets; the plant is then awarded and submitted at once
+        self.ledger.transfer(Ledger.OMEGA, PLANT_REQ, B + phi_E + phi_F, case=cid, note="plant: requester funded by Ω")
+        self.ledger.transfer(Ledger.OMEGA, PLANT_ACT, G, case=cid, note="plant: actor funded by Ω")
+        c.D, c.K, c.G_V, c.phi_E, c.phi_F, c.omega, c.G = D, K, GV, phi_E, phi_F, 0.0, G
+        c.G_award = G
+        c.B, c.tau, c.actor = B, 1, PLANT_ACT
+        c.t_award, c.deadline = self.t, self.t + 1
+        self.ledger.lock(PLANT_ACT, G, key=f"G:{cid}", case=cid, note="guarantee")
+        self.ledger.fund_escrow(PLANT_REQ, cid, B, note="delivery price")
+        self.ledger.fund_deposit(PLANT_REQ, cid, phi_E, note="expense allowance")
+        if phi_F > 0:
+            self.ledger.fund_fee_pot(PLANT_REQ, cid, phi_F, note="fee pot")
+        self._freeze(c)
+        c.state, c.t_submit = "SUBMITTED", self.t
+        self.history.append("plant_created", {"t": self.t, "case": cid, "commit": c.plant_commit})
+        c.plant_hseq = len(self.history.entries) - 1
+        self._log(c, f"plant created and submitted (B={B}); marker sealed")
+        self.plant_credit -= 1.0
+        self.plants_created += 1
+        self.period["plants_created"] += 1
+        return cid
+
+    def plants_due(self) -> int:
+        """How many plants the rate calls for that have not been created (whole plants)."""
+        return int(math.floor(self.plant_credit + 1e-9)) if self.plant_credit > 0 else 0
+
+    def _adjudicate_plant(self, c: Case, r: Review, verdict: str):
+        """1.2.0 §2.1: a plant's initial verdict is judged against its known truth the moment it
+        is given. Right → stood (paid at settlement, plant record +1). Wrong → plant failure: the
+        bond is forfeited whole and burned, no fee, expenses already reimbursed, reliability down,
+        audit odds doubled, plant record −1. P or ⊥ → spent: no plant outcome. The marker is
+        revealed; the plant then settles by its truth — a good plant runs its window and vests, a
+        bad one is final N — and its pots return to Ω at closure."""
+        a = self.actors[r.reviewer]
+        truth = c.plant
+        c.verdict, c.t_verdict = verdict, self.t
+        c.window_end = self.t + self.p.W
+        if verdict in (P, BOT):
+            c.plant_outcome = "spent"
+            a.open_review = None                        # the plant actor never responds
+            self._reveal_plant(c, r, "spent")
+            self._finalize_N(c, reason="plant spent: P/⊥ has no response path on a plant", actor_fault=False)
+            return
+        right = (verdict == F) == truth
+        rec = a.plant_bad if truth is False else a.plant_good
+        rec.append((self.t, not right))
+        if len(rec) > self.p.n_P:
+            del rec[: len(rec) - self.p.n_P]
+        c.plant_outcome = "stood" if right else "failure"
+        self.period["plants"] += 1
+        if truth is False:
+            self.period["bad"] += 1
+            if not right:
+                self.period["bad_approved"] += 1
+        self._reveal_plant(c, r, c.plant_outcome)
+        if not right:
+            self._overturn_review(c, r, pay_fee_to=None)
+        if truth:
+            c.outcome, c.state = F, "PENDING"
+        else:
+            self._finalize_N(c, reason="plant: not fulfilled by construction", actor_fault=False)
+        self._check_record(a)
+
+    def _reveal_plant(self, c: Case, r: Review, outcome: str):
+        self.history.append("plant_revealed", {"t": self.t, "case": c.id, "truth": "good" if c.plant else "bad",
+                                               "nonce": c.plant_nonce, "commit": c.plant_commit,
+                                               "review": r.id, "reviewer": r.reviewer, "verdict": r.verdict,
+                                               "outcome": outcome})
+        c.plant_reveal_hseq = len(self.history.entries) - 1
+        self._log(c, f"plant revealed: {'good' if c.plant else 'bad'}; review {r.id} {r.verdict} → {outcome}")
+
+    def _check_record(self, a: Actor):
+        """1.2.0 §2.2: a record that has just crossed θ_duty suspends the actor for T_susp ticks;
+        on duty with no active review, it leaves now (its review has just completed)."""
+        a.probation = False                               # a plant has been judged: the record speaks again
+        if a.suspended_until is None and not a.record_passes(self.p.theta_duty):
+            a.suspended_until = self.t + self.p.T_susp
+            self.suspensions += 1
+            self.period["suspensions"] += 1
+            self.history.append("suspension", {"t": self.t, "actor": a.id, "until": a.suspended_until,
+                                               "a_hat": round(a.a_hat, 4), "r_hat": round(a.r_hat, 4)})
+            if a.on_duty and a.open_review is None:
+                self._leave_duty(a, self.t, "suspended")
+
+    # ------------------------------------------------ the effort dial (1.2.0 §2.3)
+    @staticmethod
+    def _new_period(start: int) -> dict:
+        return {"start": start, "plants": 0, "bad": 0, "bad_approved": 0, "plants_created": 0, "initial": 0,
+                "approvals": 0, "audits": 0, "challenge_reviews": 0, "dur_sum": 0, "dur_n": 0,
+                "suspensions": 0, "eligibility_shortfall": 0}
+
+    def _maybe_end_period(self, tick: int):
+        """Once per period — period_plants adjudicated plants or period_ticks ticks, whichever first —
+        the clock is read and the dial moves: m_{t+1} = clamp(m_t (F̂/F*)^γ, 0.9 m_t, 2 m_t) into
+        [1, m_max]; then π_t, X_t (sized to the period's review demand, floor V_max + 1) follow.
+        With no bad plant adjudicated there is no reading and m_t holds. At m_max with F̂ > F* for
+        two consecutive periods the capture alarm is committed and the reserve re-seated by plant
+        record. The period's plant shortfall is what the rate called for and was not created."""
+        per = self.period
+        if per["plants"] < self.p.period_plants and tick - per["start"] < self.p.period_ticks:
+            return
+        ticks = max(1, tick - per["start"])
+        F_hat = (per["bad_approved"] / per["bad"]) if per["bad"] else None
+        m_old = self.m_t
+        if self.p.dial and F_hat is not None:
+            ratio = (F_hat / self.p.F_star) ** self.p.gamma if F_hat > 0 else 0.0
+            m_new = min(max(m_old * ratio, 0.9 * m_old), 2.0 * m_old)
+            self.m_t = min(max(m_new, 1.0), self.p.m_max)
+        alarm = False
+        if self.p.dial:
+            self.pi_t = min(self.p.pi_max, self.p.pi0 * self.m_t)
+            duty = [a for a in self.actors.values() if a.on_duty]
+            p_bar = (sum(a.p_audit for a in duty) / len(duty)) if duty else self.p.p_start
+            r_t = (per["initial"] / ticks) * (1.0 + self.pi_t) + self.m_t * p_bar * (per["approvals"] / ticks) \
+                + per["challenge_reviews"] / ticks
+            d_bar = max(1.0, per["dur_sum"] / per["dur_n"]) if per["dur_n"] else 1.0
+            self.X_t = max(self.p.V_max + 1, int(math.ceil(r_t * d_bar - 1e-9)))
+            if F_hat is not None and m_old >= self.p.m_max - 1e-12 and F_hat > self.p.F_star:
+                self.alarm_streak += 1
+                alarm = self.alarm_streak >= 2
+            else:
+                self.alarm_streak = 0
+        shortfall = self.plants_due()
+        self.plant_shortfall += shortfall
+        self.plant_credit -= shortfall
+        rec = {"t": tick, "start": per["start"], "plants": per["plants"], "bad": per["bad"],
+               "bad_approved": per["bad_approved"], "F_hat": None if F_hat is None else round(F_hat, 6),
+               "m_before": round(m_old, 6), "m": round(self.m_t, 6), "pi": round(self.pi_t, 6), "X": self.X_t,
+               "plants_created": per["plants_created"], "plant_shortfall": shortfall,
+               "suspensions": per["suspensions"], "eligibility_shortfall": per["eligibility_shortfall"],
+               "alarm": alarm}
+        self.periods.append(rec)
+        self.history.append("period", rec)
+        if alarm:
+            self.alarms += 1
+            self._reseat_reserve(tick)
+        self.period = self._new_period(tick)
+
+    def _reseat_reserve(self, tick: int):
+        """The capture alarm (1.2.0 §2.3): the duty reserve is re-seated from the actors with the
+        lowest bad-plant approval rate (ties: lowest good-plant rejection rate, then duty credit) —
+        the one place a record chooses the panel. Duty actors holding a review leave at its
+        completion if their record then fails; the rest are released now and the seats refilled."""
+        GV = self.p.G_V * self.ledger.index()
+        for a in sorted((a for a in self.actors.values() if a.on_duty), key=lambda a: a.id):
+            if a.open_review is None:
+                self._leave_duty(a, tick, "capture alarm: reserve re-seated")
+        pool = [a for a in self.actors.values()
+                if not a.on_duty and a.committed is None and a.open_review is None and a.duty_eligible
+                and self.ledger.wallet(a.id).U + 1e-9 >= GV]
+        pool.sort(key=lambda a: (round(a.a_hat, 9), round(a.r_hat, 9), -a.kappa, a.id))
+        n = sum(1 for a in self.actors.values() if a.on_duty)
+        seated = []
+        for a in pool:
+            if n >= self.X_t:
+                break
+            a.on_duty, a.duty_since, a.duty_reviews = True, tick, 0
+            seated.append(a.id)
+            n += 1
+        self.history.append("capture_alarm", {"t": tick, "m": self.m_t, "X": self.X_t, "seated": seated})
 
     # ------------------------------------------------------------ working set
     @staticmethod

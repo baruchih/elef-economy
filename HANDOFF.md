@@ -598,6 +598,76 @@ the questions for the proposal are: the panel's composition (§7.5's round-robin
 the reserve's size against the challenge load (a default, X, with the measured capacity cost); and the
 cost of a dispute against an audit (defaults D and X first).
 
+## Design revision 2 — the loop's own clock (1.2.0, October 17, 2026)
+
+The second use of §19's design-revision path. Run 3's reading was that three measured inputs decided the
+careful–careless contest under 1.1.0 — whether the party who knows the truth challenges, how often the careful
+reviewer errs, and who sits on the panel — and that the third was the rule's: a stamper-majority reserve
+produces every signal the loop has, reliability included, so no remedy that leans on ρ can cure it. The design
+discussion the same day added the assumption the baseline had left implicit — **humans do not intervene** —
+which removes the one external oracle the loop leaned on. The revision gives the orchestrator truth of its own:
+**planted work** whose fulfillment it knows by construction (§7.6), a **plant record** per actor adjudicated by
+that truth and not by the panel, in two eligibility tiers (§11.2), and an **effort dial** that reads the
+reserve's bad-plant approval rate once a period and moves the plant rate, the audit odds, the reserve's size
+and the service fee with it — "the block-difficulty adjustment with negligence in place of block time" (§12.2).
+A reserve that runs short of eligible actors runs short and says so; the loop does not seat the negligent to
+make a number.
+
+**Reviews.** Three release candidates, each read on its own (`spec/design_revisions/dr2_1.2.0-rc.*-review.md`).
+rc.1: the plant actor was named in a view that carried the actor (§14) — the actor leaves the view; I9 and I21
+could not both hold when eligible actors ran short — the reserve may run short and the gap is counted; a single
+plant reliability let a reviewer approving half the bad plants stay eligible for ever — the record is defined on
+the quantity the clock measures; newcomer plant-doubling cannot coexist with round-robin; the solvency figure
+(29% of slots) was 7% of slot-ticks; Ω's working capital (45 per plant), the audit cap and the channels of the
+hypothesis were unstated. rc.2: clearing the record on return would have readmitted every stamper with a clean
+slate for ~50 reviews and kept panels captured at ~70% strength — the record persists; two rules for a
+newcomer's audit odds; eligibility is a property at assignment, and a suspended actor leaves duty whether or not
+a replacement exists. rc.3 adopted all of it; one leftover sentence was fixed in the accepted text
+(`spec/design_revisions/dr2_the_loops_own_clock_1.2.0.md`, verbatim).
+
+**Found at implementation — flagged for confirmation.** With the record persisting, "at the end of the
+suspension it is readmitted only if its record passes, and otherwise remains suspended for a further T_susp"
+makes every suspension permanent: the record is a trailing window of plant outcomes and a suspended actor
+judges no plants, so a record that failed cannot pass later. That leaves T_susp inert and contradicts the
+revision's §2.4 and its §8 run 2. The engine implements the smallest reading that gives T_susp its meaning:
+readmission **on probation** — to duty, not to panels — until the actor's next plant re-checks the record, with a
+still-failing record suspended again at once (§11.2 of the consolidated text, Appendix G, `World._rotate`). It is
+the implementer's reading, marked as such in the text; confirming or revising it is the next design decision,
+and the alternative is one branch of `_rotate`. The first smoke run shows its consequence: at the defaults a
+returning stamper judges about one plant before it is out again, which is enough to hold F̂ just above F* and
+pin m at m_max (below).
+
+**Engine (commit after `0ccf8bc`).** `create_plant` from two Ω-funded system wallets, the sealed marker and its
+reveal, adjudication by truth, refusal of every challenge on a plant, the plant grade; the record, the two
+tiers in every assignment and at rotation, suspension and probation; rotation filling to X_t or shrinking to
+it, the eligibility shortfall; the dial once a period on adjudications with its clamps, the alarm and the
+re-seat; the applied audit odds `min(1, m p_j)`; ω scaled; the view without the actor; I20 and I21; I9 and I13
+amended; defaults p_start = p_cap = 1, Ω₀ = 300. `test_v12` (15) carries the revision's §6 figures and the
+mechanism's properties; the equivalence scenario plants work and its goldens were re-pinned once. 197 passed,
+26 expected failures in all three modes (the twenty-sixth: the third review's test 18, Ω's float pinned at 20).
+The consolidated text is `spec/agentic_economics_loop_spec_v1_2_0.md` (§1, §2, §4.1, §7.1, §7.5–7.6, §8.3,
+§11.2, §12 whole, §14, §15.3, §16, §17, §18.1, §20, Appendices A–D, G); 1.1.0 moved to `spec/history/`.
+
+**Driver.** `drivers.stamping` supplies the plants the engine's rate calls for before each tick's assignments
+(bad w.p. β_P, truth from its task world), rolls the effective odds, offers only tier-eligible reviewers, and
+carries `--rules 1.1.0` (no plants, dial off, p_start = p_cap = 0.5, Ω float 20 — the 1.1.0 engine, declared),
+`--pi0`, `--dial`, `--beta-p`, `--camouflage` (the red team) and the clock's columns. One smoke run at the
+defaults (50/50, X₀ = 4, seed 1, no appeals or disputes), 1.2.0 against the 1.1.0 control: false approvals 53
+against 291; stampers 9 of 10 suspended at the end, each suspended about seven times; the careful actors carry
+the reviewing (506 reviews each against 77) and the stampers, free of duty, take the awards (193 against 107);
+careful still richer, by 293 against 407 in the control; m pinned at 4, X_t 8, 930 plants, Ω net +5,720 after a
+plant spend of 3,656. One seed, no conclusion — but the dynamic to watch in run 4 is already visible: suspension
+frees the stampers for paid work, and the money contest then runs through delivery, not fees.
+
+**Run 4 — the revision's §8, in order (next).** The §6 reproduction is `test_v12`. Then: controller on against
+off under a drifting stamper share (dispositions re-drawn each 100 ticks toward stampers until 90%, appeals
+truthful, no disputes, X free to track) — does the honest regime hold, does the alarm fire, how large and how
+long is the eligibility shortfall, the three channels measured separately; adaptive dispositions (actors switch
+on observed wealth) under 1.2.0 and, as control, 1.1.0; the tipping point at 40/60, 30/70, 20/80 under both;
+the red team (camouflaged stampers; a plant-detecting reviewer has nothing to detect, which the view test
+asserts); Ω's plant spend and ω_t across m, and the reserve's size trajectory. Results go to
+`agentic_sim/results/studies/1.2.0-clock/`.
+
 ## Maps
 
 Two `_line` artifacts in project Agentic-OS (`c54120a6-aaff-40f7-8a9f-3667da542879`):

@@ -87,6 +87,8 @@ EXPECTED_FAIL = {
         "appeals of ⊥ must state the objection disposition explicitly (§8.1); see test_v05 for the explicit form",
     # the fifth review's unfunded-dispute test pins the v1.0.1 deposit through the human's budget
     "test_r5_a_unfunded_dispute_keeps_vacated_audit_obligation": 'superseded by design revision 1 (1.1.0, §4.3): the root pay-in is B + φ^E + φ^F + ω, so a human budget of exactly B + 10 no longer funds the award; the principle — a refused filing waives nothing — is re-asserted in test_v11 at the 1.1.0 pay-in',
+    # the third review's test 18 pins Ω's cold-start float at 20 (Appendix A, 1.1.0)
+    "test_review_18_unused_deposit_returned_when_no_review_entitled": "superseded by design revision 2 (1.2.0, Appendix A): Ω's cold-start float is 300, one period of plants at m = 1, not 20; the principle — an explicit acceptance with no paid review returns the whole deposit — holds at the new float (the test's other assertions pass)",
     # the seventh review's identical-views test: superseded, not refuted
     "test_identical_fulfillment_views_have_same_response_admissibility": "superseded in v0.10: an initial review's view and an audit's view are no longer identical — the view states `responses_available`, so the admissibility it complained of is now visible; see test_v09/test_v10 for the contract as it stands",
     # the eighth review's cases that depend on reopening; its controls still pass
@@ -142,7 +144,7 @@ def param_runs(fn):
 
 SUITES = ["test_spec", "test_review_regressions", "test_v05", "test_review2_interactions", "test_v06",
           "test_review3_boundaries", "test_v07", "test_review4_followthrough", "test_v08",
-          "test_review5_contracts", "test_v09", "test_review6_reopening", "test_v10", "test_v101", "test_v11",
+          "test_review5_contracts", "test_v09", "test_review6_reopening", "test_v10", "test_v101", "test_v11", "test_v12",
           "test_perf_equivalence", "test_record_mode"]
 # For a parametrized test with both withdrawn-path runs and controls, only the named parameter
 # labels are expected to fail; every other run of it must pass.

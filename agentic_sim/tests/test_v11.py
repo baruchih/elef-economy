@@ -73,7 +73,7 @@ def test_worked_example_resettled_under_1_1_0():
     assert n["C"] == pytest.approx(4)                # -3 + 3 + f 2 + emission 2
     assert n["D"] == pytest.approx(6)                # -3 + 3 + f 3 + emission 3  (was +5 under v1.0.1)
     assert w.W("H") - 100 == pytest.approx(-51)      # 55 in, the unused allowance 4 back  (was -50)
-    assert w.W(Ledger.OMEGA) == pytest.approx(20)
+    assert w.W(Ledger.OMEGA) == pytest.approx(300)      # Ω₀ = 300 since 1.2.0
     # fees: Owed = 2 + 3 = 5 = φ^F, paid in full; emission in full
     assert (w.reviews[r1].fee_owed, w.reviews[r1].fee_fixed, w.reviews[r1].fee) == (2, 2, pytest.approx(4))
     assert (w.reviews[r2].fee_owed, w.reviews[r2].fee_fixed, w.reviews[r2].fee) == (3, 3, pytest.approx(6))
@@ -235,7 +235,7 @@ def test_fee_pot_remainder_pays_the_trees_claim_at_closure():
 
 
 def test_fee_pot_remainder_repays_an_unrecovered_advance_at_closure():
-    w = make_world(E0=0.0, phi_E_root=5.0, phi_F_root=8.0)      # Ω float 20
+    w = make_world(E0=0.0, phi_E_root=5.0, phi_F_root=8.0, Omega0=20.0)   # Ω float 20, as 1.1.0 had it
     q = w.post_root("H", 45)
     w.award(q, "A", 40, 8)
     w.advance(1)

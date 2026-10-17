@@ -1,19 +1,22 @@
 # Agentic-OS — the economic loop
 
 A rulebook for a task → verification → dispute → settlement loop among autonomous actors, and a
-reference implementation of it with no strategies. Ten external reviews. The rulebook is at **1.1.0**:
-the frozen 1.0.1 baseline plus one design revision (the verification deposit is two pots, §4.3),
-made under §19 after the first scoped run showed careful review paid for its own care. Read
+reference implementation of it with no strategies. Ten external reviews. The rulebook is at **1.2.0**:
+the frozen 1.0.1 baseline plus two design revisions made under §19 — the verification deposit is two
+pots (1.1.0, §4.3; after the first scoped run showed careful review paid for its own care) and the
+loop's own clock (1.2.0, §7.6, §11.2, §12.2: planted work, the plant record, the effort dial; after runs
+2–3 showed the loop fair only with both challengers present and blind under capture). Read
 `HANDOFF.md` first for where things stand and what is proposed next.
 
 ## Layout
 
 ```
-spec/agentic_economics_loop_spec_v1_1_0.md   the text in force (standalone; Appendix A defaults, E errata, F design revision 1)
-spec/design_revisions/                       accepted design revisions, verbatim (dr1: two pots, 1.1.0-rc.3)
-spec/history/                                v0.1 … v1.0.1 — superseded, kept for provenance only
+spec/agentic_economics_loop_spec_v1_2_0.md   the text in force (standalone; Appendix A defaults, E errata, F/G design revisions 1/2)
+spec/design_revisions/                       accepted design revisions, verbatim (dr1: two pots; dr2: the loop's own clock), and
+                                             the implementer's reviews of dr2's release candidates
+spec/history/                                v0.1 … v1.1.0 — superseded, kept for provenance only
 reviews/                                     R01–R10, one external review per version, with the reviewer's notes
-agentic_sim/                                 the engine, 19 invariants, 18 test files, runner, drivers, results
+agentic_sim/                                 the engine, 21 invariants, 19 test files, runner, drivers, results
 docs/line_map_economic_loop_v1_0_1.txt       text export of the _line map of the loop (the live map is the source)
 HANDOFF.md                                   status, history table, open questions, proposed next step
 ```
@@ -22,12 +25,14 @@ HANDOFF.md                                   status, history table, open questio
 
 ```
 cd agentic_sim
-python3 run_tests.py        # expected: 182 passed, 0 failed, 25 expected failures
+python3 run_tests.py        # expected: 197 passed, 0 failed, 26 expected failures
 python3 -S run_tests.py     # same, with no site-packages
-python3 -m pytest tests -q  # expected: 182 passed, 25 xfailed, 0 xpassed (conftest mirrors the runner)
+python3 run_tests.py --record   # same, every World in record mode
+python3 -m pytest tests -q  # expected: 197 passed, 26 xfailed, 0 xpassed (conftest mirrors the runner; pytest is not installed here)
 python3 -m drivers.load_run --actors 200 --ticks 10000 --on-duty 40 --tasks 30 --record-dir /path  # throughput run
-python3 -m drivers.stamping --actors 20 --ticks 1000 --stampers 0.5 --seed 1   # §18.1 q1, careful vs stamping
-python3 -m drivers.stamping --on-duty 8 --fee 4 --seed 1                       # the 1.1.0 rerun's other cells
+python3 -m drivers.stamping --actors 20 --ticks 1000 --stampers 0.5 --seed 1   # §18.1 q1 under 1.2.0: plants, record, dial
+python3 -m drivers.stamping --rules 1.1.0 --seed 1                             # the 1.1.0 control: no plants, dial off
+python3 -m drivers.stamping --camouflage 0.1 --stampers 0.9 --seed 1           # the red team of the revision's §8
 ```
 
 Drivers hold a `drivers.view.Public`, not the `World`: that class lists the operations a driver may
@@ -40,11 +45,12 @@ Results are kept (`drivers/results.py`): the runner writes what it printed to `r
 study folder, `results/studies/<study>/<sweep>/runs/`, so a study is one directory. Commit the ones that matter. Results are written by the code and
 read by people; the suite and the engine stay the authority — never edit a result to match.
 
-Any other result is a regression — including an XPASS. The 25 expected failures each have a stated
+Any other result is a regression — including an XPASS. The 26 expected failures each have a stated
 reason in `run_tests.py` (`EXPECTED_FAIL`, with `EXPECTED_FAIL_PARAMS` naming the parameter runs inside a
 mixed test): one original (a single-answer ⊥ appeal), four superseded by the reviewer-view contract,
 nineteen on the withdrawn audit-reopening path, one superseded by design revision 1 (it pinned the
-1.0.1 deposit through the human's budget; its principle is re-asserted in `test_v11`). They are strict in both entry points: an expected
+1.0.1 deposit through the human's budget; its principle is re-asserted in `test_v11`), one superseded by
+design revision 2 (it pinned Ω's cold-start float at 20; Appendix A now says 300). They are strict in both entry points: an expected
 failure that passes means a withdrawn path is admitted again, and the run fails.
 
 ## Change discipline — spec §19, and the one rule that matters most
@@ -75,13 +81,14 @@ consolidated into one standalone spec with the accepted revision kept verbatim i
 
 - Every action is validated whole before anything is recorded or moved. A refused action changes
   nothing — tests assert this against full world snapshots. Keep it that way for any new operation.
-- Nineteen invariants run after every tick (`sim/invariants.py`). A failing invariant is an engine
+- Twenty-one invariants run after every tick (`sim/invariants.py`). A failing invariant is an engine
   bug or a spec contradiction, never a property of a strategy. Two entry points, one set of
   predicates: `check_all` is the full audit from genesis (what tests call; scheduled in a run by
   `Params.full_check_every`); `check_tick` is what `advance` runs, the same predicates over the
   working set — cases and reviews that can still change, plus anything touched since the last tick.
   `tests/test_perf_equivalence.py` holds the proof that they agree and pins the engine's History head
-  (re-pinned once for 1.1.0, since settlement changed). Keep new invariants in that shape: a predicate
+  (re-pinned once for 1.1.0, since settlement changed, and once for 1.2.0, since the reserve and the
+  scenario — which now plants work — changed). Keep new invariants in that shape: a predicate
   over an explicit scope.
   The per-tick check is not configurable: `advance` always runs it. `full_check_every` only adds
   the full audit on a cadence (0 = not scheduled; runs call `check_all` at the end), and
@@ -122,6 +129,21 @@ consolidated into one standalone spec with the accepted revision kept verbatim i
   pool; the cross-pot step and the refund happen only at tree closure (`_maybe_close_tree`), and I10
   admits exactly those post-vesting movements by the event's note (`"nested …"`, `"tree closure…"`).
   I19 checks the pots per tick. A root with open pots stays in the working set until its tree closes.
+- The loop's own clock (1.2.0 §7.6, §11.2, §12.2): `create_plant(truth, B)` builds a case in the submitted
+  state from two system wallets (`PLANT_REQ`, `PLANT_ACT`) funded by Ω and swept back to Ω at closure, with
+  the sealed marker in the History; a plant's initial verdict is adjudicated against its truth at once
+  (`_adjudicate_plant`), every challenge operation refuses a plant, and its grade is `plant`. An actor's
+  plant record is two trailing windows (`plant_bad`, `plant_good`); `duty_eligible` / `panel_eligible` are
+  checked in `_eligible` for every assignment and in `_rotate`, which also readmits, removes the
+  ineligible when their review completes, fills to `X_t` or shrinks to it, and counts the eligibility
+  shortfall. The dial is read once per period in `_maybe_end_period` (before rotation) and sizes `pi_t`,
+  the applied audit odds (`Actor.p_eff`, what a driver rolls), `X_t` and ω; `plants_due()` is what the
+  rate calls for and the driver supplies. I20 and I21 are per tick; I9 is `min(X_t, eligible)`. The
+  reviewer's view carries no actor. **One implementer's reading** is in the engine: a still-failing
+  record at the end of a suspension readmits on probation until the next plant (`_rotate`, §11.2 of the
+  text, Appendix G) — to be confirmed or revised by the next design decision; the alternative is one
+  branch. `Params.dial=False, pi0=0, p_start=p_cap=0.5, Omega0=20` is the 1.1.0 engine's behaviour
+  (`drivers.stamping --rules 1.1.0`).
 - Money is checked by invariant I1 (conservation) — never silently create or lose credits.
 
 ## Vocabulary (spec Appendix C has the full notation)
@@ -132,6 +154,9 @@ Pending — approved or appeal admitted, window open, actor's capacity released.
 or audit holds the case. Vested — financial finality. Ω — the orchestrator's operating account, a
 revolving float. ρ reliability, κ duty credit. G guarantee, G^V reviewer bond, D court fee,
 K reasonable-cost cap, φ = φ^E + φ^F verification deposit (expense allowance + fee pot), f the ordinary-review
-fee (appeal and audit 1.5 f), β price ceiling, v_t credit value = Res_t / M_t.
+fee (appeal and audit 1.5 f), β price ceiling, v_t credit value = Res_t / M_t. Plant — a case whose
+fulfillment the orchestrator knows by construction (bad / good); π_t plant rate, β_P bad share, F̂_t the
+reserve's bad-plant approval rate against F*, m_t the effort multiplier, X_t the sized reserve, â / r̂ an
+actor's bad-plant approval and good-plant rejection rates against θ_panel / θ_duty, T_susp the suspension.
 "Ruling" has two senses: the orchestrator rules on splits inside the procedure; only a human
 *overrides* it (spec §15.2).

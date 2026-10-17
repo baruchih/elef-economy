@@ -42,10 +42,11 @@ KEYS = ["careful_wealth", "stamper_wealth", "careful_fees", "stamper_fees", "car
         "false_rejections_appealed", "false_rejections_overturned", "true_rejections_appealed", "true_rejections_overturned",
         "disputes_filed", "disputes_refused", "disputes_won", "disputes_lost", "false_approvals_disputed",
         "false_approvals_overturned", "true_approvals_disputed", "true_approvals_overturned", "grade_human-explicit_n",
-        "grade_human-explicit_acc",
+        "grade_human-explicit_acc", "duty_short_of_bond_ticks",
         "grade_procedural_n", "grade_procedural_acc", "grade_protocol-default_n", "grade_protocol-default_acc", "omega"]
 SHORT = {"stampers": "s", "fee": "f", "on-duty": "X", "gv": "gv", "p-floor": "pf", "p-start": "p", "band": "band",
-         "fail-rate": "b", "accuracy": "a", "ruling-accuracy": "r", "appeal-policy": "appeal", "dispute-policy": "dispute"}
+         "fail-rate": "b", "accuracy": "a", "ruling-accuracy": "r", "appeal-policy": "appeal", "dispute-policy": "dispute",
+         "dispute-rate": "dr", "assignment": "assign"}
 
 
 def _num(x: str):

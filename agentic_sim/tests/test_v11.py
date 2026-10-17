@@ -386,3 +386,49 @@ def test_record_mode_keeps_a_root_with_open_pots_resident_until_closure():
         assert not w.cases.is_resident(q) and q not in w._live_cases
         check_all(w)
         w.close()
+
+
+def test_tree_whose_expenses_exceed_the_allowance_pays_its_claims_from_the_pot_at_closure():
+    """The reviewer's item 5 after the 1.1.0 study: a tree (root + nested case) whose expenses exceed
+    φ^E, with Ω unable to advance, so claims arise in both cases; at closure the fee pot's remainder
+    pays them in Ω's queue order and the rest of the claim stays with Ω. (The random scenario of
+    test_perf_equivalence repays advances at closure; this is the claim path in a tree.)"""
+    w = make_world(E0=0.0, Omega0=0.0, phi_E_root=5.0, phi_F_root=10.0)
+    q = w.post_root("H", 45)
+    w.award(q, "A", 40, 20)
+    w.advance(1)
+    qn = w.post_nested(q, 6)
+    w.award(qn, "B", 5, 3)
+    w.advance(3)
+    w.submit(qn)
+    w.judge_nested(qn, N)
+    w.advance(4)
+    w.respond(qn, "appeal")                # B pays D = 2 -> Ω; Ω then advances it
+    rE, rF = w.assign_appeal(qn, "E"), w.assign_appeal(qn, "F")
+    w.advance(6)
+    w.complete_review(rE, F, 5)            # allowance 5 -> 0
+    w.complete_review(rF, F, 5)            # Ω advances the 2 it holds (B's court fee); the rest is deferred
+    assert w.ledger.pool(q).deposit == pytest.approx(0)
+    f_deferred = w.reviews[rF].deferred
+    assert f_deferred > 2 and w.cases[qn].omega_advance == pytest.approx(2)
+    w.submit(q)
+    r1 = w.assign_initial(q, "C")
+    w.advance(7)
+    w.complete_review(r1, F, 5)            # nothing left anywhere: deferred whole
+    c_deferred = w.reviews[r1].deferred
+    assert c_deferred == pytest.approx(w.reviews[r1].cost)
+    w.advance(14)
+    cn = w.cases[qn]
+    assert cn.state == "VESTED"                                   # E and F owed 3 each from the pot of 10
+    assert w.omega_claims == [("F", pytest.approx(f_deferred))]   # the nested case's debt became a claim
+    assert not w.cases[q].tree_closed
+    w.advance(18)
+    c = w.cases[q]
+    assert c.state == "VESTED" and c.tree_closed
+    # fees took 6 + 2 = 8 of the pot; the remainder 2 settles the tree's claims in queue order: F's first
+    assert c.fees_from_pot == pytest.approx(8) and c.expenses_from_pot == pytest.approx(2)
+    assert w.reviews[rF].reimbursed_pending == pytest.approx(f_deferred - 2)
+    assert w.omega_claims == [("F", pytest.approx(f_deferred - 2)), ("C", pytest.approx(c_deferred))]
+    assert cn.omega_advance == pytest.approx(2)                   # no pot left for the advance: borne by Ω
+    assert c.pot_refunded == 0 and c.allowance_refunded == 0
+    check_all(w)

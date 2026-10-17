@@ -58,7 +58,9 @@ CAREFUL, STAMPER = "careful", "stamper"
 GRADES = ("human-explicit", "delegate-explicit", "procedural", "protocol-default")
 
 PERMITTED = ["post_root (human H, β fixed)", "award (every free actor offers B = β, τ = work_ticks; S_θ argmax ρ, κ tie band)",
-             "submit (after work_ticks, no spend)", "assign_initial (eligible on-duty reviewer, seeded choice)",
+             "submit (after work_ticks, no spend)",
+             "assign_initial / assign_audit / assign_appeal (among eligible on-duty actors, by --assignment: round-robin as "
+             "§7.5 states — the default; or seeded, a seeded random choice, the policy of the October 16–17 sweeps)",
              "complete_review F/N (verdict by disposition and the hidden truth; cost by disposition)",
              "respond accept / appeal (by --appeal-policy: none = accept every N; truthful = appeal an N on work that is "
              "truly fulfilled, accept otherwise; always = appeal every N; an actor that cannot fund the court fee accepts)",
@@ -121,6 +123,7 @@ class Stamping:
         self.active: dict[str, bool] = {}        # ordered: creation order, never a set (determinism)
         self.tally = {aid: Tally() for aid in self.actors}
         self.review_owner: dict[str, str] = {}          # rid -> reviewer, for overturn counting
+        self.rr_last = -1                                # round-robin pointer (§7.5)
         self.n_events = 0
         self.rec = rec
         # economy counters
@@ -130,6 +133,7 @@ class Stamping:
                   "appeals_filed": 0, "appeals_unfunded": 0, "appeals_won": 0, "appeals_lost": 0,
                   "false_rejections_total": 0, "false_rejections_appealed": 0, "false_rejections_overturned": 0,
                   "true_rejections_appealed": 0, "true_rejections_overturned": 0,
+                  "duty_short_of_bond_ticks": 0,   # Σ over ticks of on-duty actors that cannot fund G^V (q6 solvency)
                   "disputes_filed": 0, "disputes_refused": 0, "disputes_won": 0, "disputes_lost": 0,
                   "false_approvals_disputed": 0, "false_approvals_overturned": 0,
                   "true_approvals_disputed": 0, "true_approvals_overturned": 0,
@@ -175,6 +179,27 @@ class Stamping:
                     and aid not in c.excluded and self.w.unlocked(aid) + 1e-9 >= c.G_V:
                 out.append(aid)
         return out
+
+    def pick_reviewer(self, el: list[str]) -> str:
+        """§7.5: volunteers first (none in this run); otherwise round-robin among the eligible duty
+        actors — the next eligible actor, in id order, after the one assigned last. `seeded` is the
+        policy the first sweeps declared: a seeded random choice among the eligible."""
+        if self.a.assignment == "seeded":
+            return self.rng.choice(el)
+        order = sorted(el, key=lambda s: int(s[1:]))
+        after = [aid for aid in order if int(aid[1:]) > self.rr_last]
+        chosen = (after or order)[0]
+        self.rr_last = int(chosen[1:])
+        return chosen
+
+    def duty_funding(self):
+        """Solvency (§18.1 q6): how many on-duty actors cannot fund the bond right now."""
+        short = 0
+        for aid in self.actors:
+            ac = self.w.actor(aid)
+            if ac.on_duty and self.w.unlocked(aid) + 1e-9 < self.a.gv:
+                short += 1
+        return short
 
     def select(self, offers: list[str]) -> str:
         """S_θ: score = ρ − λ·B/β with B = β; the κ tie band; then the lowest id."""
@@ -251,7 +276,7 @@ class Stamping:
             if c.state == "SUBMITTED" and not any(w.review(r).status == "open" for r in c.reviews):
                 el = self.eligible_reviewers(cid)
                 if el:
-                    rid = w.assign_initial(cid, self.rng.choice(el))
+                    rid = w.assign_initial(cid, self.pick_reviewer(el))
                     self.review_owner[rid] = w.review(rid).reviewer
                 else:
                     self.c["reviews_unassignable_ticks"] += 1
@@ -259,7 +284,9 @@ class Stamping:
                     and a.dispute_policy != "none":
                 task.dispute_rolled = True             # the requester acts once, before the audit roll
                 pol = a.dispute_policy
-                want = pol == "always" or (not task.fulfilled and (pol == "truthful" or (pol == "half" and self.rng.random() < 0.5)))
+                rate = 0.5 if pol == "half" else a.dispute_rate
+                want = pol == "always" or (not task.fulfilled and pol in ("truthful", "half")
+                                           and (rate >= 1.0 or self.rng.random() < rate))
                 if want:
                     try:
                         w.dispute(cid, "H", "the result does not meet the request")
@@ -283,7 +310,7 @@ class Stamping:
                     else:
                         el = self.eligible_reviewers(cid)
                         if el:
-                            rid = w.assign_audit(cid, self.rng.choice(el))
+                            rid = w.assign_audit(cid, self.pick_reviewer(el))
                             self.review_owner[rid] = w.review(rid).reviewer
                             task.audit_wanted = False
                             self.c["audits_assigned"] += 1
@@ -298,7 +325,7 @@ class Stamping:
                 if len(ch["reviews"]) < 2:
                     el = self.eligible_reviewers(cid)
                     if el:
-                        rid = w.assign_appeal(cid, self.rng.choice(el))
+                        rid = w.assign_appeal(cid, self.pick_reviewer(el))
                         self.review_owner[rid] = w.review(rid).reviewer
                     else:
                         self.c["appeals_unassignable_ticks"] += 1
@@ -310,6 +337,7 @@ class Stamping:
                     self.c["rulings"] += 1
                     if not by_truth:
                         self.c["rulings_wrong"] += 1
+        self.c["duty_short_of_bond_ticks"] += self.duty_funding()
         w.advance(t)
         self.harvest()
 
@@ -430,6 +458,10 @@ def main(argv=None):
     ap.add_argument("--ruling-accuracy", type=float, default=0.8, help="r: P(orchestrator rules by the truth)")
     ap.add_argument("--p-start", type=float, default=0.5)
     ap.add_argument("--p-floor", type=float, default=0.2, help="the audit rate's floor (§8.3)")
+    ap.add_argument("--assignment", choices=["round-robin", "seeded"], default="round-robin",
+                    help="choice among eligible duty actors: round-robin (§7.5) or seeded random (the first sweeps' declared policy)")
+    ap.add_argument("--dispute-rate", type=float, default=1.0,
+                    help="with --dispute-policy truthful: the probability H disputes a given false approval (1 = every one)")
     ap.add_argument("--dispute-policy", choices=["none", "truthful", "half", "always"], default="none",
                     help="H's response to a pending F: none; truthful = dispute when the work truly failed; half = the same "
                          "with probability 0.5; always = dispute every pending F (H pays D)")
@@ -466,15 +498,18 @@ def main(argv=None):
                                 "fee_rule": {"spec": "1.1.0 design revision 1 — the verification deposit is two pots",
                                              "f": a.fee, "phi_E": a.phi_e, "phi_F": a.phi_f, "K": run.p.K, "G_V": a.gv},
                                 "orchestrator": {"selection": "argmax ρ − λB/β at B = β; κ tie band; lowest id",
+                                                 "assignment": {"round-robin": "round-robin among eligible duty actors (§7.5)",
+                                                                "seeded": "seeded random choice among eligible duty actors"}[a.assignment],
                                                  "audit": "p_audit of the initial reviewer rolled once per F verdict; "
-                                                          "auditor: seeded choice among eligible on-duty actors",
+                                                          "auditor: " + ("next eligible duty actor in round-robin" if a.assignment == "round-robin"
+                                                                         else "seeded choice among eligible on-duty actors"),
                                                  "ruling": f"by the truth with probability {a.ruling_accuracy}"},
                                 "actors": {"offer": "B = β, τ = work_ticks",
                                            "respond_to_N": {"none": "accept", "truthful": "appeal iff truly fulfilled, else accept",
                                                             "always": "appeal every N"}[a.appeal_policy] + " (accept when D cannot be funded)",
                                            "spend": "none"},
                                 "requester": {"H": "posts tasks_per_tick per tick at β; " + {
-                                    "none": "silent", "truthful": "disputes every pending F on work that truly failed",
+                                    "none": "silent", "truthful": f"disputes a pending F on work that truly failed with probability {a.dispute_rate}",
                                     "half": "disputes a pending F on work that truly failed with probability 0.5",
                                     "always": "disputes every pending F"}[a.dispute_policy], "budget": a.human_budget},
                                 "permitted_operations": PERMITTED, "not_in_run": NOT_IN_RUN,

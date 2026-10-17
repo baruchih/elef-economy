@@ -52,7 +52,7 @@ tests/test_v101.py                  withdrawing an unawarded request (§16), the
 tests/test_v11.py                   design revision 1 (1.1.0): the §20 example re-settled, the K = 3 default under
                                     consideration, the appeal variant's scaled fees, the refund waiting for tree
                                     closure, the r4_07 shape, the fee pot's remainder paying a claim and an advance,
-                                    nested-first draws, the pay-in, the superseded r5_a principle, I19, record mode — 13
+                                    nested-first draws, the pay-in, the superseded r5_a principle, I19, record mode, a tree whose expenses exceed the allowance — 14
 tests/test_perf_equivalence.py      the per-tick check equals the full audit; the working-set engine reproduces the
                                     pinned History head on a seeded random scenario (re-pinned once for 1.1.0); the
                                     working set stays bounded — 5
@@ -63,9 +63,9 @@ tests/test_record_mode.py           the record on disk (`Params.record_dir`): th
 run_tests.py        every suite with plain python; pytest reports the same (conftest marks the XFAIL)
 ```
 
-Run: `python3 run_tests.py` — 181 pass, 0 fail, 25 expected failures, each with a stated reason (one original,
+Run: `python3 run_tests.py` — 182 pass, 0 fail, 25 expected failures, each with a stated reason (one original,
 four superseded by the view contract, nineteen on the withdrawn reopening path, one superseded by design
-revision 1). With pytest: `python3 -m pytest tests -q` reports 181 passed, 25 xfailed; the runner expands pytest
+revision 1). With pytest: `python3 -m pytest tests -q` reports 182 passed, 25 xfailed; the runner expands pytest
 parametrization as pytest does, including multi-argument and stacked marks. (Spec Appendix D records the count at
 the v1.0.1 freeze, 156, and at 1.1.0, 181.)
 

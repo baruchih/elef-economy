@@ -36,7 +36,8 @@ call. A driver that needs something not on it has found a conformance bug or a d
 Results are kept (`drivers/results.py`): the runner writes what it printed to `results/tests/<commit>.txt`
 (one file per commit, `-dirty` when the tree differs from it); every run writes
 `results/runs/<run-id>/` with `manifest.json` (engine commit, params, declared operations, outcome),
-`metrics.csv` and `fingerprint.json`. Commit the ones that matter. Results are written by the code and
+`metrics.csv` and `fingerprint.json`. A sweep (`drivers/sweep.py`) puts every run and its summary under one
+study folder, `results/studies/<study>/<sweep>/runs/`, so a study is one directory. Commit the ones that matter. Results are written by the code and
 read by people; the suite and the engine stay the authority — never edit a result to match.
 
 Any other result is a regression — including an XPASS. The 25 expected failures each have a stated

@@ -31,6 +31,8 @@ drivers/view.py     the public surface of World as a driver sees it — the oper
                     the orchestrator may take, and the reads the rules allow
 drivers/stamping.py scoped run, §18.1 q1: careful vs stamping reviewers, declared populations and
                     orchestrator policy; every run writes its manifest, metrics and fingerprint
+drivers/sweep.py    cells × seeds over the stamping run (full grid or one factor at a time), every run and
+                    the summary under one study folder: results/studies/<study>/<sweep>/runs/
 tests/test_spec.py                  §16 worked example and variants; R1/R2 exceptional paths — 23
 tests/test_review_regressions.py    the third review's 20 regressions, verbatim — 19 + 1 expected failure
 tests/test_v05.py                   the v0.5 rules in explicit form — 15

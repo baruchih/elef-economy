@@ -255,9 +255,11 @@ X = 8 cells.
 per tick at β = 20, b = 0.2, careful accuracy 0.95 and cost 2–3, p_start 0.5, G^V 5, ruling accuracy 0.8
 — run 1's declaration unchanged — at X ∈ {4, 8} on duty, f ∈ {2, 4} with φ^F = 2.5 f, splits 50/50 and
 10/90. Every run passed its final audit; Ω advanced nothing it did not recover, no claim was left
-outstanding, and one careful review in five runs was underfunded. Results: the 160 run directories
-`results/runs/*rerun110-*` and the summary `results/runs/20261017-095929-stamping-rerun-1.1.0/`
-(`summary.md`, `metrics.csv` with every run's final row, per-cell means and spreads in the manifest).
+outstanding, and one careful review in five runs was underfunded. Results: one study folder,
+`agentic_sim/results/studies/1.1.0-stamping/rerun/` — the 160 run directories and the summary
+`runs/20261017-095929-stamping-rerun-1.1.0/` (`summary.md`, `metrics.csv` with every run's final row,
+per-cell means and spreads in the manifest). The default sweep that follows sits beside it in
+`results/studies/1.1.0-stamping/default-sweep/`.
 Per actor, means ± sd over 20 seeds; "richer" counts seeds:
 
 | cell | careful wealth | stamper wealth | stamper − careful (se) | stampers richer | false approvals / 3,000 | reviews unassignable ticks |
@@ -296,10 +298,60 @@ are almost all careless; it stops charging the ones who are not.
 pots at f = 2; at f = 4 (pots of 10) 13,970 of 30,000. Haircuts were small (2–4 per careful actor over
 a run); Ω's unrecovered advances were 0 in every run.
 
-Under §19 this is an evaluation of 1.1.0's rule, not a further rule finding. What it leaves open is the
-revision's own list: the default sweep (tie band, audit floor, bond), the appeals run — which measures
-the a of §7.3, the term stampers never pay — and the requester-dispute run, in that order; and the
-10/90 result says the audit floor and the reserve's composition are the next knobs that matter.
+Under §19 this is an evaluation of 1.1.0's rule, not a further rule finding.
+
+## Default sweep — tie band, audit floor, bond, one at a time (October 17, 2026)
+
+`drivers/sweep.py`, 14 cells × 20 seeds = 280 runs, same declaration, X = 4, f = 2: the κ tie band
+∈ {0, 0.05, 0.2}, the audit floor p_floor ∈ {0.05, 0.2, 0.5}, the bond G^V ∈ {5, 10, 20}, each varied
+alone around the defaults (band 0.05, floor 0.2, G^V 5), at both splits. Results in
+`agentic_sim/results/studies/1.1.0-stamping/default-sweep/` (summary `runs/20261017-105513-default-sweep/`).
+Per actor, means over 20 seeds; the first row of each split is the rerun's default cell:
+
+| cell (50/50) | careful | stamper | stamper − careful (se) | richer | audits assigned | reviews unassignable ticks | vested |
+|---|---|---|---|---|---|---|---|
+| defaults | 3,275 | 3,102 | −173 (73) | 6 of 20 | 661 | 1,046 | 2,596 |
+| **band 0** | 3,457 | 2,926 | **−530 (104)** | 2 of 20 | 661 | 1,029 | 2,597 |
+| band 0.2 | 3,187 | 3,181 | −7 (79) | 11 of 20 | 665 | 1,147 | 2,593 |
+| floor 0.05 | 3,253 | 3,085 | −168 (83) | 5 of 20 | 257 | 366 | 2,614 |
+| floor 0.5 | 2,960 | 2,852 | −108 (63) | 8 of 20 | 1,197 | 7,811 | 2,288 |
+| G^V 10 | 3,260 | 3,026 | −234 (91) | 6 of 20 | 660 | 1,796 | 2,581 |
+| G^V 20 | 3,146 | 2,825 | −320 (62) | 2 of 20 | 613 | 4,639 | 2,510 |
+
+| cell (10/90) | careful | stamper | stamper − careful (se) | richer | false approvals | audits assigned | reviews unassignable ticks |
+|---|---|---|---|---|---|---|---|
+| defaults | 3,687 | 3,626 | −61 (89) | 8 of 20 | 522 | 688 | 946 |
+| band 0 | 4,053 | 3,585 | −469 (215) | 7 of 20 | 518 | 681 | 916 |
+| band 0.2 | 3,627 | 3,629 | +3 (90) | 9 of 20 | 521 | 683 | 933 |
+| floor 0.05 | 3,556 | 3,598 | +41 (134) | 9 of 20 | 533 | 265 | 312 |
+| floor 0.5 | 3,394 | 3,338 | −57 (81) | 12 of 20 | 456 | 1,307 | 7,956 |
+| G^V 10 | 3,553 | 3,625 | +72 (118) | 10 of 20 | 522 | 678 | 1,614 |
+| G^V 20 | 3,633 | 3,537 | −96 (91) | 7 of 20 | 499 | 661 | 4,803 |
+
+**The tie band is the knob that carries the reliability channel.** With no band, selection is argmax ρ
+and careful actors win 165 awards to the stampers' 135 at 50/50: a gap of 530 per actor, three times the
+default's. At band 0.2 the κ tiebreak hands most awards to whoever has duty credit and the gap vanishes.
+The ρ separation itself is only 0.02 (0.93 against 0.91), so a band of 0.05 already lets most stampers
+through; the deterrent the rulebook relies on (§7.3, §11) works exactly as far as selection is allowed
+to see ρ. At 10/90 the same holds in direction (−469) with two careful actors' worth of variance.
+
+**The audit floor trades correctness for capacity, and capacity wins.** Raising the floor to 0.5 nearly
+doubles the audits assigned and halves the stampers' lead in false approvals (284 → 206 at 50/50;
+522 → 456 at 10/90), but the reserve of four cannot carry it: a submitted case waits for a reviewer in
+7,800 review-ticks, awards go unfilled in 980 ticks, vesting falls by 12%, and both populations end
+poorer. Lowering the floor to 0.05 costs 20 more false approvals and changes the wealth gap not at all —
+at these catch rates the audit is not what separates the two; selection is.
+
+**A larger bond punishes stampers and starves the reserve.** G^V 20 widens the gap to −320 (2 of 20)
+and cuts false approvals (284 → 211), but reviews unassignable rise to 4,600 ticks because fewer actors
+can fund the bond, stampers review 25% less (143 against 223) and careful actors forfeit five times the
+default's bonds on their own 5% errors. At 10/90 the same bond lowers false approvals only to 499.
+
+**What this says for the next runs.** Within the declared regime no default rescues the 10/90 economy:
+the reserve is stamper-on-stamper and no knob changes who audits whom. The band is the cheap lever and
+has no capacity cost; the floor and the bond both spend reviewer capacity, which at X = 4 is the binding
+constraint — the X = 8 cells of the rerun are the control for that. Next, per the revision's §8: the
+appeals run (which measures the a of §7.3, the term stampers never pay), then the requester-dispute run.
 
 The engine and its tests stay as they are; a driver that needs an engine change has found either a
 conformance bug (fix + regression) or a design question (write it up, do not patch around it).

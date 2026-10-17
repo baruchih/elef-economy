@@ -60,10 +60,12 @@ GRADES = ("human-explicit", "delegate-explicit", "procedural", "protocol-default
 PERMITTED = ["post_root (human H, β fixed)", "award (every free actor offers B = β, τ = work_ticks; S_θ argmax ρ, κ tie band)",
              "submit (after work_ticks, no spend)", "assign_initial (eligible on-duty reviewer, seeded choice)",
              "complete_review F/N (verdict by disposition and the hidden truth; cost by disposition)",
-             "respond accept (every N)", "assign_audit (p_audit of the initial reviewer rolled once per F verdict)",
+             "respond accept / appeal (by --appeal-policy: none = accept every N; truthful = appeal an N on work that is "
+             "truly fulfilled, accept otherwise; always = appeal every N; an actor that cannot fund the court fee accepts)",
+             "assign_audit (p_audit of the initial reviewer rolled once per F verdict)",
              "assign_appeal (the second review of an audit challenge)", "rule (split ruled by the truth w.p. r)",
              "advance"]
-NOT_IN_RUN = ["appeals by actors", "disputes", "human overrides", "P/⊥", "revision/evidence", "delegation (nested cases)",
+NOT_IN_RUN = ["appeals by actors (unless --appeal-policy is set)", "disputes", "human overrides", "P/⊥", "revision/evidence", "delegation (nested cases)",
               "cancellation", "resource spend by actors", "volunteering for duty", "actor competence (truth is actor-independent)",
               "price competition (every offer is at the ceiling)", "requester budget pressure (H is funded beyond the run)"]
 
@@ -76,6 +78,7 @@ class Task:
     audit_rolled: bool = False
     audit_wanted: bool = False   # rolled yes, not yet assigned
     appeal_wanted: bool = False
+    appealed: bool = False       # the actor appealed its N (the appeals run)
 
 
 @dataclass
@@ -120,6 +123,9 @@ class Stamping:
         self.c = {"posted": 0, "awarded": 0, "vested": 0, "final_n": 0, "false_approvals": 0, "false_rejections": 0,
                   "audits_rolled": 0, "audits_assigned": 0, "audit_unassignable_ticks": 0, "audits_lapsed": 0,
                   "challenges": 0, "rulings": 0, "rulings_wrong": 0, "reviews_unassignable_ticks": 0,
+                  "appeals_filed": 0, "appeals_unfunded": 0, "appeals_won": 0, "appeals_lost": 0,
+                  "false_rejections_total": 0, "false_rejections_appealed": 0, "false_rejections_overturned": 0,
+                  "true_rejections_appealed": 0, "true_rejections_overturned": 0,
                   "awards_unfilled_ticks": 0, "appeals_unassignable_ticks": 0, "underfunded_careful_reviews": 0,
                   "omega_unrecovered_advances": 0.0, "allowance_refunded": 0.0, "pot_refunded": 0.0,
                   "trees_closed": 0}
@@ -212,9 +218,24 @@ class Stamping:
                     self.tally[r.reviewer].reviews += 1
                     if r.role == "audit":
                         self.tally[r.reviewer].audits_done += 1
-        # actors respond to N: accept
+        # actors respond to N: accept, or appeal by the declared policy
         for cid in list(self.active):
-            if w.case(cid).state == "AWAITING_RESPONSE":
+            c = w.case(cid)
+            if c.state != "AWAITING_RESPONSE":
+                continue
+            task = self.tasks[cid]
+            if task.fulfilled:
+                self.c["false_rejections_total"] += 1
+            want = a.appeal_policy == "always" or (a.appeal_policy == "truthful" and task.fulfilled)
+            if want and w.unlocked(c.actor) + 1e-9 < c.D:
+                self.c["appeals_unfunded"] += 1
+                want = False
+            if want:
+                w.respond(cid, "appeal", "the work meets the request")
+                task.appealed = True
+                self.c["appeals_filed"] += 1
+                self.c["false_rejections_appealed" if task.fulfilled else "true_rejections_appealed"] += 1
+            else:
                 w.respond(cid, "accept")
         # orchestrator: initial reviews, audits, appeal reviews, rulings
         for cid in sorted(self.active, key=lambda s: int(s[1:])):
@@ -304,10 +325,15 @@ class Stamping:
                     self.c["vested"] += 1
                     if not task.fulfilled:
                         self.c["false_approvals"] += 1
+                    if task.appealed:
+                        self.c["appeals_won"] += 1
+                        self.c["false_rejections_overturned" if task.fulfilled else "true_rejections_overturned"] += 1
                 else:
                     self.c["final_n"] += 1
                     if task.fulfilled:
                         self.c["false_rejections"] += 1
+                    if task.appealed:
+                        self.c["appeals_lost"] += 1
                 if c.grade in self.by_grade:
                     self.by_grade[c.grade][0] += 1
                     self.by_grade[c.grade][1] += int(correct)
@@ -377,6 +403,9 @@ def main(argv=None):
     ap.add_argument("--ruling-accuracy", type=float, default=0.8, help="r: P(orchestrator rules by the truth)")
     ap.add_argument("--p-start", type=float, default=0.5)
     ap.add_argument("--p-floor", type=float, default=0.2, help="the audit rate's floor (§8.3)")
+    ap.add_argument("--appeal-policy", choices=["none", "truthful", "always"], default="none",
+                    help="the actor's response to an N: none = accept; truthful = appeal when the work is truly fulfilled; "
+                         "always = appeal every N (the court fee D is paid when the actor can fund it)")
     ap.add_argument("--band", type=float, default=0.05, help="the κ tie band of selection (§5.2)")
     ap.add_argument("--gv", type=float, default=5.0, help="G^V, the reviewer bond")
     ap.add_argument("--fee", type=float, default=2.0, help="f, the ordinary-review fee (1.1.0 §4.3); appeal/audit pay 1.5 f")
@@ -410,7 +439,10 @@ def main(argv=None):
                                                  "audit": "p_audit of the initial reviewer rolled once per F verdict; "
                                                           "auditor: seeded choice among eligible on-duty actors",
                                                  "ruling": f"by the truth with probability {a.ruling_accuracy}"},
-                                "actors": {"offer": "B = β, τ = work_ticks", "respond_to_N": "accept", "spend": "none"},
+                                "actors": {"offer": "B = β, τ = work_ticks",
+                                           "respond_to_N": {"none": "accept", "truthful": "appeal iff truly fulfilled, else accept",
+                                                            "always": "appeal every N"}[a.appeal_policy] + " (accept when D cannot be funded)",
+                                           "spend": "none"},
                                 "requester": {"H": "silent; posts tasks_per_tick per tick at β", "budget": a.human_budget},
                                 "permitted_operations": PERMITTED, "not_in_run": NOT_IN_RUN,
                                 "record_dir": a.record_dir,
@@ -453,6 +485,8 @@ def main(argv=None):
     print(f"  posted={final['posted']} vested={final['vested']} final_N={final['final_n']} false_approvals={final['false_approvals']} "
           f"false_rejections={final['false_rejections']} audits rolled/assigned/lapsed={final['audits_rolled']}/{final['audits_assigned']}/"
           f"{final['audits_lapsed']} challenges={final['challenges']} rulings={final['rulings']} "
+          f"appeals filed/won/lost/unfunded={final['appeals_filed']}/{final['appeals_won']}/{final['appeals_lost']}/{final['appeals_unfunded']} "
+          f"false rejections total/appealed/overturned={final['false_rejections_total']}/{final['false_rejections_appealed']}/{final['false_rejections_overturned']} "
           f"reviews_unassignable_ticks={final['reviews_unassignable_ticks']} awards_unfilled_ticks={final['awards_unfilled_ticks']} "
           f"underfunded_careful_reviews={final['underfunded_careful_reviews']}")
     print(f"  Ω unrecovered advances={final['omega_unrecovered_advances']} claims outstanding={final['claims_outstanding']} "

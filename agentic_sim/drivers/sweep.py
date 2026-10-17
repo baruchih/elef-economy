@@ -38,13 +38,18 @@ KEYS = ["careful_wealth", "stamper_wealth", "careful_fees", "stamper_fees", "car
         "audits_rolled", "audits_assigned", "audit_unassignable_ticks", "challenges", "rulings",
         "reviews_unassignable_ticks", "awards_unfilled_ticks", "underfunded_careful_reviews",
         "omega_unrecovered_advances", "claims_outstanding", "allowance_refunded", "pot_refunded",
+        "appeals_filed", "appeals_unfunded", "appeals_won", "appeals_lost", "false_rejections_total",
+        "false_rejections_appealed", "false_rejections_overturned", "true_rejections_appealed", "true_rejections_overturned",
         "grade_procedural_n", "grade_procedural_acc", "grade_protocol-default_n", "grade_protocol-default_acc", "omega"]
 SHORT = {"stampers": "s", "fee": "f", "on-duty": "X", "gv": "gv", "p-floor": "pf", "p-start": "p", "band": "band",
-         "fail-rate": "b", "accuracy": "a", "ruling-accuracy": "r"}
+         "fail-rate": "b", "accuracy": "a", "ruling-accuracy": "r", "appeal-policy": "appeal"}
 
 
 def _num(x: str):
-    return int(x) if x.lstrip("-").isdigit() else float(x)
+    try:
+        return int(x) if x.lstrip("-").isdigit() else float(x)
+    except ValueError:
+        return x                      # a categorical factor, e.g. appeal-policy=none,truthful,always
 
 
 def parse_factors(specs, ofat: bool):
@@ -75,7 +80,7 @@ def cells_of(grid, ofat):
 
 
 def cell_name(cell):
-    return "-".join(f"{SHORT.get(k, k)}{v:g}" for k, v in cell.items())
+    return "-".join(f"{SHORT.get(k, k)}{v:g}" if isinstance(v, (int, float)) else f"{SHORT.get(k, k)}-{v}" for k, v in cell.items())
 
 
 def main(argv=None):

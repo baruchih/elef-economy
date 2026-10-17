@@ -1255,13 +1255,129 @@ deliveries 1,102 summoned and 827 vested (1.5.0: 719), reviews unassigned 7,557 
 seat is still short because the reserve can only seat eligible actors and after the stampers' suspensions there are
 few, and because one idle member at the seating blocks every award summons however long the queue. Read with the sweeps.
 
-**Run 8 — the revision's §8 (next).** One factor at a time at 60/40 against `--rules 1.5.0` (each flag on alone, and the
-literal plant-reserve horizon); reproduce §6 at 60/40 and 80/20 at both Ω₀; the tipping point under 1.6.0 against run 7
-read from the second period on — reviews waiting, the open-case queue, vesting against the ceiling, the state's share,
-the on-time share and lateness (Q15), rebates, Ω's minimum and the plant reserve (Q16), plants unfunded (must be zero),
-members' awards, false approvals by route and kind (Q14); the cap ⌈E_t/2⌉ / ⌈2E_t/3⌉ / E_t at 60/40 and 80/20; Ω₀ ×
-T_s; the windows; drift with θ_panel / window; adaptive; the ramp by period; the red team (the below-market poster, a
-flood, a withdrawer, the decliner, the reformer, camouflage). Results to `agentic_sim/results/studies/1.6.0-autoscale/`.
+## Run 8 — the revision's §8 under 1.6.0 (October 17, 2026)
+
+`agentic_sim/results/studies/1.6.0-autoscale/` (and `1.6.0-autoscale.zip`): `ofat/` (140: the 1.5.0 control, each
+rule alone, all five with the text's literal plant-reserve horizon, at 60/40), `tipping/` (80, logged every 20 ticks
+for the ramp), `cap/` (80), `float/` (240: Ω₀ {300, 1,000} × T_s {5, 8, 12} at 60/40 and 80/20), `windows/` (40),
+`drift/` (120: m_max {2, 4} × default / θ_panel 0.15 / window 12), `adaptive/` (20), `redteam/` (120) — 840 runs, 20
+seeds per cell, 20 actors, every final audit passed, engine 195896a. Appeals truthful, no disputes. The 1.5.0 control
+on this engine reproduces run 7's 60/40 cell to the unit. Every comparison is read from the second period on where it
+matters (§2.4); the first period is the same in every cell: on time, panels the state's, Ω above 700.
+
+**One factor at a time, 60/40, against the 1.5.0 control** (the cells the reviewer asked to read first):
+
+| cell | vested | open cases | reviews unassigned (case-ticks) | troop deliveries | award summonses refused | FA (probationers') | members' awards | Ω at the end | Ω's liability | plants unfunded |
+|---|---|---|---|---|---|---|---|---|---|---|
+| 1.5.0 control | 2,186 | 298 | 11,423 | 545 | 11,211 | 47 (8.2) | 153 | 1,004 | — | 34 |
+| clock alone | 2,151 | 320 | 6,777 | 514 | 8,184 | 46 (7.8) | 151 | 57 | 13,810 | 136 |
+| Ω's backing alone | 2,284 | 152 | 8,874 | 691 | 4,054 | 47 (7.3) | 141 | 1,134 | — | 9 |
+| seat the queue alone | 2,058 | 455 | 6,843 | 637 | 36,373 | 71 (6.4) | 161 | 971 | — | 0 |
+| panel rule alone | 2,016 | 433 | 17,251 | 631 | 19,642 | **14 (5.0)** | 176 | 1,150 | — | 80 |
+| two-period reserve alone | 2,189 | 288 | 11,082 | 550 | 9,082 | 51 (8.2) | 151 | 1,064 | — | 28 |
+| all five, literal horizon | 2,259 | 92 | 7,760 | 1,010 | 12,330 | 12 (3.4) | 141 | 754 | 24,839 | 22 |
+| all five (tipping 60/40) | 2,269 | 94 | 7,746 | 999 | 13,049 | 13 (3.6) | 151 | 94 | 19,778 | 81 |
+
+*The panel rule is the honesty gain:* alone it cuts false approvals by 70% and the probationers' by 40%, with the queue
+longer because undetermined members cannot fill panel seats and the fund-limited troops are slow to. *Ω's backing alone
+is the capacity gain:* the queue halves, refusals fall by two thirds, troop deliveries rise a quarter, Ω stays above
+1,000. *The clock alone bankrupts Ω:* liabilities 13,800 against a balance of 57, plants unfunded quadrupled. *Seat the
+queue alone hurts:* more actors on duty, fewer free to deliver, three times the refusals, false approvals up by half.
+*The two-period reserve alone is a wash.* Together, the five give the honesty of the panel rule and the queue of the
+backing, and the clock's liability on top.
+
+**The tipping point under 1.6.0** (1.5.0 in brackets):
+
+| stampers | vested | open cases | reviews unassigned | on-time share | mean lateness | Ω's liability | Ω at the end (min) | plants unfunded | troop deliveries | FA (probationers') | lagging-auditor kind | members' awards | stamper wealth |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| 50% | 2,178 (2,175) | 208 (313) | 6,238 (11,431) | 0.40 | 48 | 26,100 | 87 (41) | 151 | 671 (305) | 12 (3.5) [42 (6.4)] | 0 [3.6] | 162 (163) | 714 (1,417) |
+| 60% | 2,269 (2,186) | 94 (298) | 7,746 (11,423) | 0.60 | 38 | 19,778 | 94 (48) | 81 | 999 (545) | 13 (3.6) [47 (8.2)] | 0 [4.3] | 151 (153) | 770 (1,389) |
+| 70% | 2,293 (2,347) | 44 (55) | 5,976 (7,581) | 0.80 | 21 | 5,587 | 413 (347) | 14 | 1,302 (1,031) | 16 (3.5) [66 (9.8)] | 0 [6.7] | 118 (121) | 863 (1,347) |
+| 80% | 2,282 (2,375) | 40 (41) | 5,875 (7,322) | 0.90 | 21 | 5,422 | 590 (550) | 13 | 1,590 (1,331) | 17 (6.5) [96 (11.8)] | 0 [7.7] | 52 (74) | 911 (1,394) |
+
+*Hypothesis 4 holds in full:* the lagging-auditor kind is zero at every split (run 7: 3.6–9.1 of 6–12 upheld), and
+false approvals fall by 72–82%. The stampers end 45% poorer than under 1.5.0. *Hypothesis 1 holds in part:* the queue
+falls by a third to two thirds at 50–60% and reviews unassigned by 30–45% — not to a few hundred; vesting is at the
+ceiling as predicted. *Hypothesis 2 is inverted:* the on-time share is 0.9 at 80/20 and 0.4–0.6 at 50–60%, with mean
+lateness 38–48 ticks and Ω insolvent — liabilities 20,000–26,000 against a balance near 90, plants unfunded 80–150 a
+run (the must-be-zero reading fails). At 80/20 the four members are all on duty by the cap's floor, the state delivers
+everything, and from the fourth period on every request is on time; at 50–60% the half cap leaves members delivering
+slowly and audits waiting. *The ramp (Hypothesis 5) is every run's first period:* on-time 1.00, 480–550 panel seats the
+state's, no troop deliveries, Ω above 700, queue 35; the collapse comes in periods 2–3 as the stampers' records
+determine and the market shrinks to its honest core; at 80/20 it recovers to on-time 1.00 by period 4, at 50–60% it
+does not.
+
+**The cap** (60/40 and 80/20; the half cap is the tipping cell):
+
+| cell | open cases | reviews unassigned | on-time | lateness | Ω's liability | Ω at the end | troop deliveries | members' awards / delivery income / fees | careful wealth | FA |
+|---|---|---|---|---|---|---|---|---|---|---|
+| 60/40 half | 94 | 7,746 | 0.60 | 38 | 19,778 | 94 | 999 | 151 / 1,755 / 2,919 | 4,956 | 13 |
+| 60/40 two thirds | 44 | 3,424 | 0.90 | 8 | 3,512 | 47 | 1,282 | 111 / 1,755 / 3,336 | 4,808 | 13 |
+| 60/40 all | 50 | 3,335 | 0.80 | 13 | 6,809 | 30 | 1,382 | 94 / 1,498 / 3,356 | 4,614 | 13 |
+| 80/20 half | 40 | 5,875 | 0.90 | 21 | 5,422 | 590 | 1,590 | 52 / 683 / 6,323 | 6,945 | 17 |
+| 80/20 two thirds | 40 | 5,360 | 0.90 | 7 | 1,409 | 1,135 | 1,551 | 43 / 684 / 6,392 | 6,881 | 17 |
+| 80/20 all | 39 | 5,520 | 0.90 | 8 | 1,335 | 957 | 1,768 | 40 / 640 / 6,675 | 7,128 | 17 |
+
+*Hypothesis 6 holds, and the two-thirds cap is the answer to run 7's seat:* at 60/40 it halves the queue and reviews
+unassigned, lifts the on-time share from 0.6 to 0.9, cuts mean lateness from 38 to 8 ticks and Ω's liability by four
+fifths, with honesty unchanged and the careful members' wealth within 3% — their income moves from awards to fees, as
+1.5.0's restated hypothesis said. At E_t the state delivers everything and the honest inspect only; the numbers are
+beside each other for Baruchi's decision.
+
+**Float and target.** At 60/40, Ω₀ = 1,000 does not help: liabilities 18,000–19,400 against 19,800–22,400 at 300, Ω
+ends near 100–190 at both, plants unfunded 72–97 at both; T_s moves nothing. At 80/20, Ω₀ = 1,000 ends at 850–1,120 and
+liabilities 3,700–5,300 (300: 350–740 and 4,800–6,500); on-time 0.8–0.9 at every T_s. *The float is not the limit at
+50–60%:* Ω's income (ω₀B a member award, about 2 a tick) against plant costs and rebates is, and no float changes a
+flow. **Windows:** w_A = 1 / 2 / 5 → on-time 0.40 / 0.60 / 0.50, liabilities 25,500 / 19,800 / 23,600; *Hypothesis 3
+fails again* — the window is not a knob while Ω is insolvent.
+
+**Drift** (50% → 90%; 1.5.0 in brackets):
+
+| cell | vested | open cases | on-time | FA (probationers', troops') | upheld / overturned | upheld by: troop / standing / **lag** | Ω's liability | plants unfunded |
+|---|---|---|---|---|---|---|---|---|
+| m_max 2 | 3,512 (3,566) | 38 (108) | 0.80 | 64 (37, 3.5) [154 (58, 6)] | 31 / 5.9 | 6.0 / 5.8 / **18.9** [3.9 / 3.4 / 44.0] | 13,104 | 20 |
+| m_max 4 | 3,458 (3,495) | 41 (69) | 0.80 | 34 (19, 3.4) [81 (24, 7)] | 15 / 3.8 | 4.0 / 1.2 / **9.8** [4.6 / 1.1 / 14.6] | 7,915 | 67 |
+| m_max 2, window 12 | 3,509 | 39 | 0.80 | 60 (33, 3.0) | 27 / 5.6 | 6.6 / 6.2 / **14.3** | 13,087 | 20 |
+| m_max 4, window 12 | 3,430 | 44 | 0.90 | 28 (15, 2.6) | 12 / 2.9 | 4.7 / 1.9 / **5.7** | 7,080 | 68 |
+| m_max 2, θ_panel 0.15 | 3,513 | 38 | 0.80 | 65 (37, 3.3) | 31 / 6.5 | 6.3 / 3.5 / **21.0** | 12,909 | 23 |
+| m_max 4, θ_panel 0.15 | 3,448 | 44 | 0.80 | 32 (17, 3.5) | 14 / 3.2 | 5.5 / 0.9 / **7.3** | 9,155 | 84 |
+
+False approvals fall by more than half; the lagging auditor still carries about 60% of the upheld route under drift, as
+the text predicted; the shorter record window cuts it by a quarter to 40%, the lower threshold does little at m_max 2.
+
+**Adaptive** (3,000 ticks): ≤ 10% stampers at tick 735 (1.5.0: 890), troops zero from tick 500 at the latest, R_T zero
+from 2,000, false approvals 48 (74), open late requests zero from 2,000 — *Hypothesis 7 holds* for everything that is a
+flow. The one stock does not clear: Ω's liabilities, accrued at 22,000 in the stressed early periods, stand at 26,000 at
+the end, paid down at about 1.4 a tick from Ω's income.
+
+**Red team** (60/40). *The below-market poster* (a fifth of requests at β = 10): its clocks do not run and it is owed
+nothing, as expected; its unserved requests clog the queue to 482 and cost everyone 13% of vesting. *The flood* (six
+tasks a tick): not served (queue 1,380, on-time 0.2), not an exploit (rebates paid 740; liability 75,600 is the
+reading). *The late withdrawer* (H withdraws unawarded requests after 12 ticks): gains nothing, as expected — and Ω's
+liability falls from 19,800 to **830**, mean lateness from 38 to 3.5 ticks, the queue from 94 to 43, at the cost of 11%
+of vesting (362 requests withdrawn). *The decliner* ends 209 poorer than the careful who offer (1.5.0: 901); *the
+reformer* 3,146 poorer than careful; *camouflage* buys nothing.
+
+**What run 8 leaves — for the next decision, in order.**
+
+1. **The clock's liability is a stock the orchestrator cannot pay down, and it lives in the stale unawarded request.**
+   Ω's income is about 2 a tick; a late request accrues 1 a tick up to 20; at 50–60% the liability reaches 20,000–26,000
+   and no float, target or window changes it, while the withdrawer's cell shows what bounds it: a request that waits
+   unawarded past 12 ticks is the lateness. The rc rejected expiry for turning customers away; the data say the queue
+   that never expires is also what the clock prices. A rule that re-queues or withdraws an unawarded request after some
+   T, with the clock's stop at that point, is the candidate — the design reviewer's and Baruchi's "re-queue with
+   priority" read literally.
+2. **The members' duty cap at two thirds** fixes the seat at 60/40 with honesty unchanged and careful wealth within 3%;
+   a default, and Baruchi's product decision with the numbers beside it. The reserve-sizing rule alone made things worse.
+3. **The plant reserve's horizon** — the implementer's reading (a plant's life) is in force; the text's literal horizon
+   leaves Ω nothing to advance at Ω₀ = 300 (the `ofat/` literal cell shows the same honesty, a shorter queue, and the
+   fund carrying the troops on its own earnings). The reviewer should rule.
+4. **Plants unfunded for want of Ω are not zero** at 50–60% (80–150 a run) and under drift (20–84): the honesty clock
+   is being starved by Ω's poverty, not by the advances — the reserve cannot hold back money Ω does not have. Ω's
+   income rule (ω₀B per award) is upstream of every 1.6.0 rule.
+
+The reviewer notes are `agentic_sim/results/studies/1.6.0-autoscale-notes-for-reviewer.md`. Untouched: §18.1
+questions 2, 4, 5, 7, 10.
 
 ## Maps
 

@@ -809,11 +809,82 @@ the fund paid 4,542 to reviewers; awards went unfilled for want of members in 85
 never readmitted (they do not reform); reformers were readmitted 17 times (mean 162 ticks) and still ended at
 2,214 against 4,009.
 
-**Run 5 — the revision's §8 (next).** Tipping point 50/60/70/80 under 1.3.0 against run 4's table (the sign and
-the channel; vesting against the control; probation safety — probationers' false approvals and the audit load);
-adaptive dispositions, 1.3.0 against 1.2.0, fund on and off, 3,000 ticks; drift under 1.3.0 with m_max ∈ {2, 4}
-and Ω₀ ∈ {100, 300}; the red team — camouflage under the gate, and the reformer. Results to
-`agentic_sim/results/studies/1.3.0-membership/`.
+## Run 5 — the revision's §8 under 1.3.0 (October 17, 2026)
+
+`agentic_sim/results/studies/1.3.0-membership/` (and `1.3.0-membership.zip` beside it): `tipping/` (80 runs),
+`adaptive/` (60), `drift/` (80), `redteam/` (140: camouflage 80, reformer 60) — 360 runs, 20 seeds per cell,
+20 actors, every final audit passed, engine 91a49e5. Appeals truthful and no disputes throughout. The §6
+reproduction is `test_v13`. 1.2.0 figures below are run 4's (same seeds, same driver, `--rules 1.2.0`).
+
+**The tipping point (run 2 of the revision's §8) — the sign flips at every split.**
+
+| stampers | 1.3.0: stamper − careful (se), richer | 1.2.0 | 1.3.0 false approvals (of them by probationers) | 1.2.0 FA | vested 1.3.0 / 1.2.0 / 1.1.0 | awards unfilled for want of members (ticks of 1,000) | fund paid to reviewers |
+|---|---|---|---|---|---|---|---|
+| 50% | −2,132 (100), 0 of 20 | −2 (51) | 53 (7) | 53 | 1,924 / 2,399 / — | 816 | 4,099 |
+| 60% | −2,397 (63), 0 of 20 | +215 (34), 19 of 20 | 69 (15) | 67 | 1,727 / 2,412 / 2,675 | 869 | 4,027 |
+| 70% | −2,486 (37), 0 of 20 | −10 (25) | 90 (14) | 89 | 1,439 / 2,396 / 2,739 | 878 | 3,040 |
+| 80% | −2,428 (36), 0 of 20 | −902 (25) | 113 (16) | 121 | 1,176 / 2,024 / 2,813 | 899 | 2,003 |
+
+Hypothesis 1 holds, decisively: a stamper earns award income only until its first handful of plants and then
+nothing, so the honest end richer by 2,100–2,500 per actor at every split, in 20 of 20 seeds. The channel is the
+award — stampers' delivery income falls from 3,311 (1.2.0, 60/40) to 1,221, their awards from 207 to 74 — and
+the fund adds 340–380 per careful actor. Honesty is unchanged (false approvals within a few of 1.2.0's);
+probationers account for 7–16 of them per run (Hypothesis 5: their approvals are all audited, and what reaches a
+customer is what an audit missed or no member was free to take). Plain stampers were never readmitted: they do
+not reform. **The cost is the throughput Hypothesis 3 named and did not treat**: vesting falls 20–42% below 1.2.0
+and 36–58% below 1.1.0, because awards go unfilled in 800–900 of 1,000 ticks for want of free members — at 60/40
+eight members with half of them on duty cannot deliver three tasks a tick (Q11).
+
+**Adaptive dispositions (run 3): an honest equilibrium, faster.** Actors start 50/50 and every 100 ticks take
+the richer disposition with probability 0.2; 3,000 ticks.
+
+| cell | stamper share at 500 / 1,000 / 2,000 / 3,000 ticks | reached ≤ 10% stampers | mean tick | vested | FA |
+|---|---|---|---|---|---|
+| 1.3.0, fund on | 0.21 / 0.15 / 0.04 / 0.01 | 20 of 20 | 865 | 7,148 | 91 |
+| 1.3.0, fund off | 0.20 / 0.12 / 0.01 / 0.00 | 20 of 20 | 770 | 7,216 | 90 |
+| 1.2.0 | 0.36 / 0.29 / 0.15 / 0.07 | 19 of 20 | 1,468 | 6,796 | 92 |
+
+Hypothesis 2 holds: an actor whose income is zero switches faster than one whose income is merely lower; the
+population reaches an honest state in about 800 ticks against about 1,500 under 1.2.0, and vesting recovers with
+it (7,100–7,200 over 3,000 ticks, above 1.2.0's 6,796). Hypothesis 4 does not: the fund does not speed the
+convergence (770 ticks without it, 865 with), because the gate decides the switch and the fund's uplift is small
+beside the award. The fund's effect is distributional — 8,048 paid to reviewers over 3,000 ticks instead of
+banked by Ω (Ω net 2,889 with the fund, 9,588 without).
+
+**Drift (run 4): honest at both m_max, slower still.** Stampers 50% → 90% over 1,500 ticks.
+
+| cell | FA (of them by probationers) | vested (1.2.0: 2,518; 1.1.0: 4,209) | stamper − careful | plants unfunded | fund paid |
+|---|---|---|---|---|---|
+| m_max 4, Ω₀ 300 | 97 (24) | 1,506 | −3,038 (120) | 49 | 3,087 |
+| m_max 4, Ω₀ 100 | 91 (23) | 1,529 | −3,181 (156) | 119 | 3,215 |
+| m_max 2, Ω₀ 300 | 158 (67) | 1,820 | −2,945 (203) | 0 | 1,627 |
+| m_max 2, Ω₀ 100 | 152 (65) | 1,856 | −3,151 (213) | 34 | 1,676 |
+
+Both settings keep the loop honest (1.1.0 control: 650) and both end with two members on duty, two
+probationers, and member seats sized below one. m_max 2 costs about 60 more false approvals and gains about
+300 vested cases; **two thirds of its false approvals are probationers'** (65 against 23 at m_max 4), because
+the pinned audits need a panel-eligible member free to take them and at m_max 2 fewer are seated — the
+probation safety of Hypothesis 5 binds on member availability before it binds on the cap. Ω₀ 100 against 300
+changes only the unfunded plants (119 against 49 at m_max 4); on the 1.3.0 count of 15 per plant the smaller
+float is nearly enough.
+
+**Red team (run 6).** Camouflage (10% random rejections) under the gate: at 50/50 −1,997 (91) against
+−2,132, false approvals 37 against 53, false rejections 25 against 16 — an edge of about 130 per actor, no
+safety; at 90/10 −1,096 (173) against −1,321. The reformer — a stamper that reviews carefully on probation and
+stamps again once readmitted — is readmitted about 20 times a run (mean cycle 150–170 ticks), reaches one or two
+probationer false approvals per run, and ends 1,700–1,970 per actor poorer than the careful at 50/50, 60/40 and
+90/10 (0 of 20 richer): the cycle's yield is the fee and uplift of about 40 probation reviews a run against the
+awards lost in between.
+
+**What run 5 leaves.** The gate does what it was for: the contest is decided at every split and the population
+converges to honesty in under a thousand ticks. Three things for the next design decision, in order: (1) **the
+slowness** — awards unfilled 80–90% of ticks at 60/40 and worse above; the shrinking of the market to its honest
+core is now the cost, and the one Baruchi has reserved a direction for; (2) **probation safety binds on member
+availability** — at m_max 2 two thirds of false approvals are probationers' whose pinned audits found no free
+member; member seats are sized on demand but the members are busy delivering; (3) the two implementer's
+readings above (the cap's floor; the outgoing probationer stays) need confirming or replacing. The reviewer
+notes are `agentic_sim/results/studies/1.3.0-membership-notes-for-reviewer.md`. Untouched: §18.1 questions 2,
+4, 5, 7, 10.
 
 ## Maps
 

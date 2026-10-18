@@ -30,6 +30,7 @@ DUTY = ["C", "D", "E", "F"]
 def make_world(budget=100.0, **over):
     kw = dict(E0=5.0, H=1e9, omega_rate=0.0)
     kw.update(over)
+    kw.setdefault("floating", False)   # 2.0.0: these are 1.x behaviours and figures — the backing, the reserves, the pay-in at award
     return World(Params(**kw), ACTORS, humans={"H": budget}, on_duty=DUTY)
 
 
@@ -302,7 +303,7 @@ def test_pay_in_requires_both_pots_and_is_refused_whole():
 
 def test_unfunded_dispute_keeps_the_vacated_audit_obligation_at_the_1_1_0_pay_in():
     """The fifth review's r5_a, at a budget of exactly B + φ^E + φ^F: a refused filing waives nothing."""
-    w = World(Params(E0=0.0, omega_rate=0.0), ACTORS, humans={"H": 25.0}, on_duty=DUTY)
+    w = World(Params(E0=0.0, omega_rate=0.0, floating=False), ACTORS, humans={"H": 25.0}, on_duty=DUTY)
     q = w.post_root("H", 10)
     w.award(q, "A", 10, 20)                # 10 + 10 + 5: H has zero left
     assert w.W("H") == 0

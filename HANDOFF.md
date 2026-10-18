@@ -1623,6 +1623,59 @@ If that is "something breaks", it is the cannot-serve protocol's case exactly, w
 for funds, a request past its window with nobody coming); if not, the protocol stays a product question and nothing in
 these 460 runs asks for a rule.
 
+## Design revision 8 — the price of work (2.0.0, October 18, 2026)
+
+**What it is.** The first major version: a change of approach to money, on Baruchi's frame ("the servers needs to be decoupled from the
+economy, otherwise we contaminate it"; "maybe it is time we introduce floating prices"; "if I print more money then money is worth less";
+"the actors have nothing to buy"). Through eleven runs the price was fixed by fiat at β = 20 from a bottomless wallet and the credit was a
+score — the backing stood at 10^7 and v_t moved 0.05% in a thousand ticks. 2.0.0 lets the price float: requesters with finite wallets
+(issuance 10 a tick each, wallets 200) choose a ceiling and lock the all-in maximum at posting (a root's first lock; the nominals and the
+fee rate freeze there; I29); members bid; the price level P_t — the trailing mean of every awarded price, P_0 = 20 before the first — indexes
+every nominal the rules fix (f, G^V, D, φ, K, r_s, c_T, the plant pots) in place of v_0/v_t, frozen per case; effort costs stay nominal as the
+anchor; there is no backing (sources: issuance, emission, creation; sinks: the burns, retirement, departure); Ω is never broke — it creates
+for a payment the rules require and retires the deficit from every inflow, both public (I28) — and A_T, R_T, the plant reserve, Ω's order,
+the troop account and the liability stock are retired; the state delivers at cost (c^D_T = B̄) under a capacity N_T = 40 outside the ledger
+(a delivery holds two places until its inspection is seated; a refusal for capacity is recorded and told); B̄ counts members' awards only;
+a request below B̄ is flagged and its requester may raise the ceiling; delegation waits for 2.1.0 (it needs costs that differ across actors).
+
+**Reviews.** rc.1 (`spec/design_revisions/dr8_2.0.0-rc.1-review.md`): seven points — the demand defaults did not clear at P_0 (the deposit's
+net cost ~8 a task left ~10 for the price; the ceiling policy against the deposit's float starved posting), delegation cannot pay with one
+cost, the pay-in at posting, indexing frozen at the first lock (§4.5 kept; the care cost), c^D_T a 50% margin on an unbounded riot, the
+hard spike creates thousands not hundreds, retirement undefined — all adopted in rc.2, which added effort costs nominal as the anchor, the
+state at cost and N_T finite. rc.2 review: three points — the riot cannot be posted by six requesters (a crowd), N_T 30 bound at rest at
+80/20 (40), issuance 15 clears near 16 against §6's 11 (10) — adopted in rc.3. rc.3 review: implementable as it stands, one reading
+("two of N_T" reserved, released on seating). **Accepted** with two rulings for Appendix M: the two places are reserved and released when
+the initial review is seated; a leaving requester's wallet leaves M as `departure`. Consolidated as `spec/agentic_economics_loop_spec_v2_0_0.md`
+(Appendix M); 1.7.1 to history; rc.3 verbatim as `dr8_the_price_of_work_2.0.0.md`.
+
+**Engine** (`Params.floating`, on): the ledger's `index()` is P_t/P_0 and `v` the reading P_0/P_t, `purchase` a plain burn of the credits
+given (the cost API is nominal), the kinds `issuance` / `creation` / `retirement` / `departure`; `post_root` locks and freezes, `award` and the
+summons release and draw, `raise_ceiling`, `add_requester` / `remove_requester`, `scenario_create`; `_omega_ensure` / `_omega_retire` with the
+deficit counters; Ω the troops' wallet, the funds check moot, R_T and the plant reserve 0, the liability list never fed; N_T with places per
+troop; the readings in `view.market()` and the period record. I27–I29 new, I1/I3/I15/I23/I24/I26 amended. `test_v20` (16); goldens re-pinned
+once; the 1.x behaviour tests pin `floating=False`. **Five reviewer tests are expected failures** with their reasons: one pinned the backing's
+v_t (anticipated), one the pay-in's refusal at the award (now at posting), three pinned 1.x figures through the index — the reviewer tests
+award at 10 and 40, so the price level moves after their first award. *A reading for the reviewer:* P_t on B̄'s window moves within a period;
+at the period boundary instead, the index would be constant within a period and those three would pass — one line, the text's call.
+Suite 259 + 31 in all three modes.
+
+**Driver** (`--rules 2.0.0`, default; `1.7.1` the fixed-price control): six requesters with wallets, issuance, the ceiling policy
+min(40, ⅓ unlocked) and K_open 5, raising a flagged request to the market price when the wallet allows; members bid c_D (1 + m), m from 0.3,
++0.3 on an award, −0.25 per three idle ticks continuously (`--bid ceiling` the control; `--c-d-adaptive`); effort burned at submission;
+the state at cost (`--c-d-t-mode`) under `--n-t`; the crowd (`--spike-requesters`) and the shock (`--create-at/--create-amount`); real-wealth,
+price, deficit, capacity and demand columns.
+
+**The first smoke (60/40, seed 1, 400 ticks)** before run 12: P_t ran from 11 to 35 and the margins to 3 — six of the eight members are on
+duty, the two free members are awarded every tick they are free, so their margins ratchet to the ceiling and the state follows them at B̄; the
+deficit stayed at zero, the field slack (2–7 places of 40), posting K_open- and lock-bound (~2 a tick), M growing in hoards. The worked
+example's P_t ≈ 9 assumes members plentiful. Rules and the declared policies stand; run 12 reads which it is.
+
+**Run 12 (next).** The revision's §8 in order, in real terms from the second period on, against runs 10–11 as the fixed-price controls:
+reproduce §6; price discovery at 50–80% against `--bid ceiling`; the deficit shock at 60/40 (1,000 / 2,000 / 5,000 at tick 600, N_T 40 and 0);
+the riot under prices (the crowd of thirty for 100 ticks, the flood of twelve, N_T 40 and 0); the knobs (λ 0.5, c^D_T half, issuance 15, the
+adaptive reservation); adaptive and drift in real terms; the red team (collusion at the ceiling = the control, a member bidding below cost, a
+requester that underbids to wait for a troop, troop awards counted in B̄).
+
 ## Maps
 
 Two `_line` artifacts in project Agentic-OS (`c54120a6-aaff-40f7-8a9f-3667da542879`):

@@ -22,7 +22,7 @@ DUTY = ["C", "D", "E", "F"]
 def world(**over):
     kw = dict(E0=0.0, omega_rate=0.0)
     kw.update(over)
-    return World(Params(**kw), ACTORS, humans={"H": 1000.0}, on_duty=DUTY, enforce_reserve=True)
+    return World(Params(**{"floating": False, **kw}), ACTORS, humans={"H": 1000.0}, on_duty=DUTY, enforce_reserve=True)
 
 
 def root(w, actor="A", B=10, tau=100):
@@ -127,7 +127,7 @@ def test_kill_fee_counts_completed_subcontract_payments_and_resource_spend():
 
 # ------------------------------------------------------------------- atomicity
 def test_unfundable_award_and_unpaid_filing_change_nothing():
-    w = World(Params(E0=0, omega_rate=0), ACTORS, humans={"H": 42}, on_duty=DUTY)
+    w = World(Params(E0=0, omega_rate=0, floating=False), ACTORS, humans={"H": 42}, on_duty=DUTY)
     q = w.post_root("H", 40)
     snap = (w.W("H"), w.wallet("A").U, w.wallet("A").L, w.ledger.M, len(w.ledger.events))
     with pytest.raises(LedgerError):

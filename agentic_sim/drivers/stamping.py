@@ -52,6 +52,20 @@ allowance, so the money term is −p·b·(1−ε)·(f̄ + G^V) per review, about
 effective catch rate and −0.7 at the nominal p = 0.5, b = 0.2. The rerun of §8 of the revision
 is this driver with only the rule changed, at X ∈ {4, 8} and f ∈ {2, 4}, 20 seeds or more.
 A finding here is an evaluation under the fixed rules (§19).
+
+The price of work (2.0.0, design revision 8; `--rules 2.0.0`, the default). Demand is six requesters (`--requesters`)
+with wallets of 200 (`--wallet`) issued 10 a tick each (`--issuance`); each posts at most one request a tick while fewer
+than K_open (`--k-open`) of its requests are open, at a ceiling β = min(β_max, a third of its unlocked wallet)
+(`--beta-max`, `--ceiling-share`) when the all-in maximum fits — the engine locks it at posting and refuses what does not
+fit; a request flagged below market is raised to the market price when the wallet allows. Supply: a free member bids
+c_D (1 + m) — its nominal effort cost 8 (`--c-d`) with a margin raised 0.3 on each award and lowered 0.25 per three idle
+ticks (continuously, a twelfth a tick), floored at 0 (`--bid margin`); `--bid ceiling` is the 1.x behaviour, every offer at the ceiling; `--c-d-adaptive`
+makes the cost follow the price level with a one-period lag (the spiral, swept). Selection is S_θ = ρ − λ B/β with the
+bid live (`--lam`). At submission the actor burns its effort (`spend`). The state delivers at cost (`--c-d-t-mode cost`;
+`half` is the 1.x margin) and fields at most N_T troops (`--n-t`, 0 unbounded). A riot is a crowd: `--spike-requesters n`
+requesters arrive at `--spike-from` with the default wallet and issuance, post for `--spike-ticks`, and leave once their
+requests are served out (their wallets depart M). The deficit shock is `--create-at t --create-amount X`, the declared
+scenario operation. Readings: P_t, the deficit by peak and age, real wealth (W · P_0/P_t), the flags, the capacity case.
 """
 from __future__ import annotations
 import argparse
@@ -85,6 +99,14 @@ PERMITTED = ["post_root (human H, β fixed)", "award (every free actor offers B 
              "create_plant (1.2.0: the orchestrator supplies the plants the engine's rate calls for, bad w.p. β_P, "
              "at B = β; no audit roll, no dispute on a plant)",
              "advance"]
+PERMITTED_200 = ["post_root (six requesters, β = min(β_max, a third of the unlocked wallet), one a tick while K_open and the all-in fit; "
+                 "the engine locks the all-in maximum at posting and refuses what does not fit — 2.0.0 §2.1)",
+                 "raise_ceiling (a requester flagged below market raises to the market price when its wallet allows)",
+                 "award at the bid (a member bids c_D (1 + m), m up on award and down after idle ticks; S_θ = ρ − λ B/β live; "
+                 "or every offer at the ceiling under --bid ceiling)",
+                 "spend (the actor burns its nominal effort c_D at submission — §4.6, used for the first time)",
+                 "add_requester / remove_requester (a crowd arrives with wallets and leaves when served out — 2.0.0 §2.1, Appendix M)",
+                 "scenario_create (the deficit shock, declared — 2.0.0 §8.3)"]
 NOT_IN_RUN = ["appeals by actors (unless --appeal-policy is set)", "disputes (unless --dispute-policy is set)", "human overrides", "P/⊥", "revision/evidence", "delegation (nested cases)",
               "cancellation", "resource spend by actors", "volunteering for duty", "actor competence (truth is actor-independent)",
               "price competition (every offer is at the ceiling)", "requester budget pressure (H is funded beyond the run)",
@@ -139,11 +161,13 @@ class Stamping:
         self.kind = {aid: (STAMPER if i < n_st else CAREFUL) for i, aid in enumerate(ids)}
         if a.rules == "1.1.0":                   # the control: the 1.1.0 engine's behaviour, declared
             a.pi0, a.dial, a.p_start, a.p_cap, a.omega0 = 0.0, "off", 0.5, 0.5, 20.0
-        rev3 = a.rules in ("1.3.0", "1.4.0", "1.5.0", "1.6.0", "1.7.0")     # 1.2.0 and 1.1.0: membership, the fund and netted capital off
-        rev4 = a.rules in ("1.4.0", "1.5.0", "1.6.0", "1.7.0") and a.troops == "on"
-        rev5 = a.rules in ("1.5.0", "1.6.0", "1.7.0")    # 1.4.0: the reserve is the peak capital carried, over two periods
-        rev6 = a.rules in ("1.6.0", "1.7.0")     # 1.6.0: the five rules, each behind its flag; `--rules 1.5.0` turns them off
-        rev7 = a.rules == "1.7.0"                # 1.7.0: the troop account behind its flag and the cap at two thirds; `--rules 1.6.0` is the control
+        rev3 = a.rules in ("1.3.0", "1.4.0", "1.5.0", "1.6.0", "1.7.0", "1.7.1", "2.0.0")     # 1.2.0 and 1.1.0: membership, the fund and netted capital off
+        rev4 = a.rules in ("1.4.0", "1.5.0", "1.6.0", "1.7.0", "1.7.1", "2.0.0") and a.troops == "on"
+        rev5 = a.rules in ("1.5.0", "1.6.0", "1.7.0", "1.7.1", "2.0.0")    # 1.4.0: the reserve is the peak capital carried, over two periods
+        rev6 = a.rules in ("1.6.0", "1.7.0", "1.7.1", "2.0.0")     # 1.6.0: the five rules, each behind its flag; `--rules 1.5.0` turns them off
+        rev7 = a.rules in ("1.7.0", "1.7.1", "2.0.0")  # 1.7.0: the troop account behind its flag and the cap at two thirds; `--rules 1.6.0` is the control
+        rev8 = a.rules == "2.0.0"                # 2.0.0: the price of work — floating prices, the deficit, N_T; `--rules 1.7.1` is the fixed-price control
+        self.floating = rev8
         on = lambda flag: rev6 and flag == "on"
         if a.duty_cap is None:
             a.duty_cap = "twothirds" if rev7 else "half"
@@ -158,9 +182,26 @@ class Stamping:
                    duty_cap_frac={"half": 0.5, "twothirds": 2.0 / 3.0, "all": 1.0}[a.duty_cap],
                    plant_reserve_life=(0 if a.plant_reserve == "period" else 15),
                    troop_account=(rev7 and a.accounts == "on"), omega_rate=a.omega_rate, r_s=a.r_s, T_susp=a.t_susp,
-                   theta_panel=a.theta_panel, n_P=a.record_window)
+                   theta_panel=a.theta_panel, n_P=a.record_window,
+                   floating=rev8, P0=20.0, issuance=(a.issuance if rev8 else 0.0), N_T=(a.n_t if rev8 else 0),
+                   troop_cost_at_price=(rev8 and a.c_d_t_mode == "cost"), lam=a.lam, bbar_counts_troops=(rev8 and a.bbar_troops == "on"))
         self.p = p
-        world = World(p, self.actors, humans={"H": a.human_budget}, on_duty=sorted(self.actors)[: a.on_duty])
+        if rev8:
+            humans = {f"R{i:02d}": a.wallet for i in range(1, a.requesters + 1)}
+        else:
+            humans = {"H": a.human_budget}
+        self.requesters = sorted(humans)                 # the standing requesters, in order
+        self.crowd: list[str] = []                       # the crowd's members while present
+        self.crowd_posting = False
+        self.owner: dict[str, str] = {}                  # root case -> its requester
+        self.margin = {aid: a.margin0 for aid in self.actors}   # 2.0.0 §2.2: each member's bid margin m
+        self.idle = {aid: 0 for aid in self.actors}
+        self.c_d_now = a.c_d                              # the effort cost in force (the adaptive variant moves it by period)
+        # 2.0.0 §8.8 red team: lowballers bid half their cost to win reputation; stingy requesters post below the market and never raise
+        ids_l = list(self.actors); self.rng.shuffle(ids_l)
+        self.lowballers = set(ids_l[: round(len(ids_l) * a.lowball_share)])
+        self.stingy = set(self.requesters[: a.stingy_requesters])
+        world = World(p, self.actors, humans=humans, on_duty=sorted(self.actors)[: a.on_duty])
         self.w = Public(world)
         self._world = world            # for the final check_all and the fingerprint only
         self.tasks: dict[str, Task] = {}
@@ -193,7 +234,11 @@ class Stamping:
                   "audit_obligations": 0, "troop_reviews": 0, "troop_audits": 0, "troop_deliveries": 0,
                   "troop_delivered_vested": 0, "troop_delivered_final_n": 0, "troop_false_approvals": 0,
                   # 1.6.0: panels held by troops; the red team's withdrawals
-                  "troop_panel_seats": 0, "withdrawn_unawarded": 0}
+                  "troop_panel_seats": 0, "withdrawn_unawarded": 0,
+                  # 2.0.0: the demand side and the effort burned
+                  "posts_unaffordable": 0, "posts_k_open": 0, "effort_burned": 0.0, "effort_unpaid": 0.0,
+                  "crowd_arrived": 0, "crowd_departed": 0, "shock_created": 0.0,
+                  "member_price_sum": 0.0, "member_price_n": 0, "troop_price_sum": 0.0, "troop_price_n": 0}
         self.omega0_total = self.w.money()["omega_total"]
         self.by_grade = {g: [0, 0] for g in GRADES}       # grade -> [cases, correct]
         # 1.5.0 §2.3: the route-and-kind reading
@@ -225,7 +270,7 @@ class Stamping:
         right = self.rng.random() < self.a.accuracy
         v = F if (truth == right) else N
         want = float(self.rng.randint(2, 3))
-        affordable = self.w.unlocked(reviewer) * self.w.money()["v"] - 1e-6     # real units purchasable
+        affordable = (self.w.unlocked(reviewer) if self.floating else self.w.unlocked(reviewer) * self.w.money()["v"]) - 1e-6   # 2.0.0: credits
         if affordable >= want:
             return v, want
         self.c["underfunded_careful_reviews"] += 1
@@ -288,6 +333,109 @@ class Stamping:
         tied = [aid for s, aid in scored if s >= best - band]
         return max(tied, key=lambda aid: (self.w.actor(aid).kappa, -int(aid[1:])))
 
+    # -- 2.0.0: bids, the requester model, the crowd ----------------------------------
+    def bid_of(self, aid: str, beta: float) -> float:
+        """2.0.0 §2.2: c_D (1 + m), or the ceiling under --bid ceiling (the 1.x behaviour)."""
+        if self.a.bid == "ceiling":
+            return beta
+        if aid in self.lowballers:
+            return round(0.5 * self.c_d_now, 6)         # below cost, to win awards and ρ (2.0.0 §8.8)
+        return round(self.c_d_now * (1.0 + self.margin[aid]), 6)
+
+    def offers_for(self, cid: str) -> list[tuple[str, float]]:
+        """Free members whose bid is at or under the ceiling and who can fund the guarantee at it."""
+        beta = self.w.case(cid).beta
+        out = []
+        for aid in self.free_members():
+            bid = self.bid_of(aid, beta)
+            if bid <= beta + 1e-9 and self.w.unlocked(aid) + 1e-9 >= max(1.0, math.ceil(self.p.G_frac * bid)):
+                out.append((aid, bid))
+        return out
+
+    def free_members(self) -> list[str]:
+        out = []
+        for aid in self.actors:
+            if aid in self.decliners:
+                continue
+            ac = self.w.actor(aid)
+            if not ac.on_duty and ac.committed is None and ac.open_review is None and (not self.p.membership or ac.is_member):
+                out.append(aid)
+        return out
+
+    def select_bid(self, offers: list[tuple[str, float]], beta: float) -> tuple[str, float]:
+        """S_θ = ρ − λ B/β with the bid live; the κ tie band; then the lowest id."""
+        lam, band = self.p.lam, self.p.band
+        scored = [(self.w.actor(aid).rho - lam * bid / beta, aid, bid) for aid, bid in offers]
+        best = max(sc for sc, _, _ in scored)
+        tied = [(aid, bid) for sc, aid, bid in scored if sc >= best - band]
+        return max(tied, key=lambda ab: (self.w.actor(ab[0]).kappa, -int(ab[0][1:])))
+
+    def requester_posts(self, r: str, t: int):
+        """2.0.0 §2.1 (the driver's declared policy): one request a tick while fewer than K_open are open and the all-in
+        maximum fits the unlocked wallet, at β = min(β_max, share × unlocked)."""
+        a, w = self.a, self.w
+        open_n = sum(1 for cid in self.active if self.owner.get(cid) == r)
+        if open_n >= a.k_open:
+            self.c["posts_k_open"] += 1
+            return
+        U = w.unlocked(r)
+        beta = math.floor(min(a.beta_max, a.ceiling_share * U) * 100) / 100
+        mk = w.market()
+        if r in self.stingy:                              # 2.0.0 §8.8: underbids the market and waits for a troop (expected: flagged, waits)
+            beta = min(beta, math.floor(0.6 * mk["B_bar"] * 100) / 100)
+        m = w.dial()["m"]
+        all_in = beta + self.p.phi_root * mk["index"] + self.p.omega_rate * m * beta
+        if beta < 1.0 or all_in > U + 1e-9:
+            self.c["posts_unaffordable"] += 1
+            return
+        cid = w.post_root(r, beta)
+        self.owner[cid] = r
+        self.title_n += 1
+        self.tasks[cid] = Task(cid, f"task #{self.title_n}", fulfilled=self.rng.random() >= a.fail_rate)
+        self.active[cid] = True
+        self.c["posted"] += 1
+
+    def raise_below_market(self):
+        """2.0.0 §2.8: a requester whose request is flagged below market raises it to the market price when it can."""
+        w = self.w
+        B_bar = w.market()["B_bar"]
+        for cid in sorted(self.active, key=lambda s: int(s[1:])):
+            c = w.case(cid)
+            if c.state != "AVAILABLE" or not c.below_market or self.owner.get(cid) in self.stingy:
+                continue
+            target = min(self.a.beta_max, math.ceil(B_bar * 100) / 100)
+            if target <= c.beta + 1e-9:
+                continue
+            try:
+                w.raise_ceiling(cid, target)
+            except (RuleError, LedgerError):
+                pass                                         # the wallet does not allow it yet; the flag stands
+
+    def crowd_step(self, t: int):
+        """A riot is a crowd (2.0.0 §2.1): n requesters arrive at --spike-from with the default wallet, post for
+        --spike-ticks, and leave once their requests are served out — their wallets depart M (Appendix M)."""
+        a, w = self.a, self.w
+        if a.spike_requesters <= 0:
+            return
+        if t == a.spike_from:
+            for i in range(1, a.spike_requesters + 1):
+                name = f"C{i:02d}"
+                w.add_requester(name, a.wallet)
+                self.crowd.append(name)
+                self.c["crowd_arrived"] += 1
+            self.crowd_posting = True
+        if t >= a.spike_from + a.spike_ticks:
+            self.crowd_posting = False
+            for name in list(self.crowd):
+                if any(self.owner.get(cid) == name for cid in self.active):
+                    continue
+                try:
+                    w.remove_requester(name)
+                    self.crowd.remove(name)
+                    self.c["crowd_departed"] += 1
+                except RuleError:
+                    pass                                     # a tree still open: next tick
+
     # -- one tick ----------------------------------------------------------------
     def stamper_share(self) -> float:
         return sum(1 for aid in self.actors if self.kind[aid] == STAMPER) / max(1, len(self.actors))
@@ -321,13 +469,33 @@ class Stamping:
     def tick(self, t: int):
         a, w = self.a, self.w
         self.move_dispositions(t)
+        if self.floating:
+            # 2.0.0: the margins decay while idle; the adaptive reservation follows the last period's price level
+            if a.c_d_adaptive == "on":
+                per = w.dial()["periods"]
+                self.c_d_now = round(a.c_d * (per[-1]["P_level"] / self.p.P0 if per else 1.0), 6)
+            for aid in self.free_members():
+                # the margin falls by margin_down per idle_k idle ticks — continuously, margin_down / idle_k a tick, so a wait
+                # of four ticks counts four (a threshold would lose the fraction and ratchet the margin up)
+                self.idle[aid] += 1
+                self.margin[aid] = max(0.0, round(self.margin[aid] - a.margin_down / a.idle_k, 6))
+            # the deficit shock, once
+            if a.create_amount > 0 and t == a.create_at:
+                w.scenario_create(a.create_amount)
+                self.c["shock_created"] += a.create_amount
+            # the crowd arrives, posts, leaves
+            self.crowd_step(t)
+            for r in self.requesters + (self.crowd if self.crowd_posting else []):
+                self.requester_posts(r, t)
+            self.raise_below_market()
         # requester posts — the spike cell (run 11 §1): --spike-tasks a tick from --spike-from for --spike-ticks, then back
-        tasks_now = a.spike_tasks if a.spike_tasks > 0 and a.spike_from <= t < a.spike_from + a.spike_ticks else a.tasks
+        tasks_now = 0 if self.floating else (a.spike_tasks if a.spike_tasks > 0 and a.spike_from <= t < a.spike_from + a.spike_ticks else a.tasks)
         for _ in range(tasks_now):
             if w.unlocked("H") < a.beta + self.p.phi_root + self.p.omega_rate * a.beta:
                 break
             low = a.beta_low > 0 and self.rng.random() < a.beta_low_share       # 1.6.0 §8 red team: the below-market poster
             cid = w.post_root("H", a.beta_low if low else a.beta)
+            self.owner[cid] = "H"
             self.title_n += 1
             self.tasks[cid] = Task(cid, f"task #{self.title_n}", fulfilled=self.rng.random() >= a.fail_rate)
             self.active[cid] = True
@@ -344,6 +512,24 @@ class Stamping:
         for cid in sorted(self.active, key=lambda s: int(s[1:])):
             if w.case(cid).state != "AVAILABLE":
                 continue
+            if self.floating:
+                # 2.0.0 §2.2: members bid; the award is at the bid; a request nobody bids under waits (the state's after w_A)
+                if not self.free_members():
+                    self.c["awards_unfilled_ticks"] += 1
+                    break
+                bids = self.offers_for(cid)
+                if not bids:
+                    continue
+                beta = w.case(cid).beta
+                actor, bid = self.select_bid(bids, beta)
+                w.award(cid, actor, bid, a.work_ticks)
+                self.margin[actor] = round(self.margin[actor] + a.margin_up, 6)
+                self.idle[actor] = 0
+                self.tally[actor].awards += 1
+                self.c["awarded"] += 1
+                self.c["member_price_sum"] += bid
+                self.c["member_price_n"] += 1
+                continue
             offers = self.free_workers()
             if not offers:
                 self.c["awards_unfilled_ticks"] += 1
@@ -359,9 +545,21 @@ class Stamping:
         for cid in list(self.active):
             c = w.case(cid)
             if c.state == "COMMITTED" and t >= c.t_award + min(a.work_ticks, c.tau):
+                if self.floating and not w.is_troop(c.actor):
+                    # 2.0.0 §2.2: the actor's effort, burned at submission (§4.6) — what its unlocked credit can pay of it
+                    want = self.c_d_now
+                    have = max(0.0, math.floor((w.unlocked(c.actor) - 1e-6) * 100) / 100)
+                    pay = min(want, have)
+                    if pay > 0:
+                        w.spend(c.actor, pay, cid)
+                        self.c["effort_burned"] = round(self.c["effort_burned"] + pay, 6)
+                    if want - pay > 1e-9:
+                        self.c["effort_unpaid"] = round(self.c["effort_unpaid"] + (want - pay), 6)
                 w.submit(cid)
                 if w.is_troop(c.actor):
                     self.c["troop_deliveries"] += 1
+                    self.c["troop_price_sum"] += c.B
+                    self.c["troop_price_n"] += 1
         # reviewers complete reviews assigned at an earlier tick
         for cid in list(self.active):
             c = w.case(cid)
@@ -416,7 +614,7 @@ class Stamping:
         for _ in range(w.plants_due()):
             truth = self.rng.random() >= a.beta_p            # bad with probability β_P
             try:
-                cid = w.create_plant(truth, a.beta)
+                cid = w.create_plant(truth, (w.market()["P_t"] if self.floating else a.beta))   # 2.0.0: a plant at the price level
             except LedgerError:
                 self.c["plants_unfunded"] += 1               # Ω's working capital is the cap; the engine counts the shortfall
                 break
@@ -448,7 +646,7 @@ class Stamping:
                                            and (rate >= 1.0 or self.rng.random() < rate))
                 if want:
                     try:
-                        w.dispute(cid, "H", "the result does not meet the request")
+                        w.dispute(cid, self.owner.get(cid, "H"), "the result does not meet the request")
                         task.disputed = True
                         task.audit_wanted = False
                         self.c["disputes_filed"] += 1
@@ -682,7 +880,7 @@ class Stamping:
                     "omega_total": round(m["omega_total"], 3), "omega_in_plants": round(m["omega_in_plants"], 3),
                     "omega_net": round(m["omega_total"] - self.omega0_total, 3),
                     "claims_outstanding": round(m["claims_outstanding"], 3),
-                    "H_unlocked": round(w.unlocked("H"), 3), "active_cases": len(self.active),
+                    "H_unlocked": round(sum(w.unlocked(r) for r in self.requesters) / max(1, len(self.requesters)), 3), "active_cases": len(self.active),
                     "m": round(d["m"], 4), "pi": round(d["pi"], 4), "X_t": d["X_t"], "on_duty": sum(1 for aid in self.actors if w.actor(aid).on_duty),
                     "F_hat": last.get("F_hat", ""), "periods": len(d["periods"]), "suspensions": d["suspensions"],
                     "alarms": d["alarms"], "eligibility_shortfall": d["eligibility_shortfall"],
@@ -745,6 +943,35 @@ class Stamping:
                     "waiting_initial": tr["waiting_initial"], "waiting_panel": tr["waiting_panel"],
                     "troop_panel_summons_period": tr["troop_panel_summons_period"],
                     "first_plant_adjudicated_at": tr["first_plant_adjudicated_at"] if tr["first_plant_adjudicated_at"] is not None else ""})
+        # 2.0.0: the price level and the market price, the deficit, issuance and departures, the flags, the capacity case,
+        # real wealth (W · P_0/P_t) and the demand side
+        mk = w.market()
+        real = mk["P0"] / mk["P_t"] if mk["P_t"] > 0 else 1.0
+        reqs = [r for r in self.requesters]
+        row.update({"P_t": round(mk["P_t"], 4), "price_index": round(mk["index"], 4), "credit_value": round(mk["v"], 4),
+                    "deficit": round(mk["deficit"], 3), "deficit_created": round(mk["created"], 3), "deficit_retired": round(mk["retired"], 3),
+                    "deficit_peak": round(mk["deficit_peak"], 3), "deficit_age": (t - mk["deficit_since"]) if mk["deficit_since"] is not None else 0,
+                    "omega_net_position": round(mk["omega_net"], 3), "issued": round(mk["issued"], 3), "departed": round(mk["departed"], 3),
+                    "below_market_flagged": mk["below_market_flagged"], "below_market_waiting": mk["below_market_waiting"],
+                    "ceilings_raised": mk["ceilings_raised"], "places_held": mk["places_held"],
+                    "refused_capacity_seats": mk["refused_capacity_seats"], "refused_capacity_awards": mk["refused_capacity_awards"],
+                    "refused_capacity_waiting": mk["refused_capacity_waiting"], "capacity_wait_max": mk["capacity_wait_max"],
+                    "careful_wealth_real": round(row["careful_wealth"] * real, 3), "stamper_wealth_real": round(row["stamper_wealth"] * real, 3),
+                    "requester_wallet_mean": round(sum(w.wealth(r) for r in reqs) / max(1, len(reqs)), 3),
+                    "requester_unlocked_mean": round(sum(w.unlocked(r) for r in reqs) / max(1, len(reqs)), 3),
+                    "crowd_present": len(self.crowd),
+                    "crowd_wallet_mean": round(sum(w.wealth(r) for r in self.crowd) / max(1, len(self.crowd)), 3) if self.crowd else 0.0,
+                    "member_price_mean": round(self.c["member_price_sum"] / self.c["member_price_n"], 4) if self.c["member_price_n"] else "",
+                    "troop_price_mean": round(self.c["troop_price_sum"] / self.c["troop_price_n"], 4) if self.c["troop_price_n"] else "",
+                    "c_d_now": self.c_d_now,
+                    "lowballer_n": len(self.lowballers),
+                    "lowballer_wealth_real": round(sum(w.wealth(x) for x in self.lowballers) / max(1, len(self.lowballers)) * real, 3) if self.lowballers else "",
+                    "lowballer_awards": round(sum(self.tally[x].awards for x in self.lowballers) / max(1, len(self.lowballers)), 3) if self.lowballers else "",
+                    "lowballer_rho": round(sum(w.actor(x).rho for x in self.lowballers) / max(1, len(self.lowballers)), 4) if self.lowballers else "",
+                    "stingy_n": len(self.stingy),
+                    "stingy_open": sum(1 for cid in self.active if self.owner.get(cid) in self.stingy and w.case(cid).state == "AVAILABLE"),
+                    "stingy_wallet_mean": round(sum(w.wealth(x) for x in self.stingy) / max(1, len(self.stingy)), 3) if self.stingy else "",
+                    "margin_mean": round(sum(self.margin.values()) / max(1, len(self.margin)), 4)})
         row.update({"pfa_route_upheld": len(self.pfa_upheld_by), "pfa_route_overturned": self.pfa_overturned,
                     "pfa_route_other": self.pfa_other, "pfa_kind_troop": kinds["troop"], "pfa_kind_standing": kinds["standing"],
                     "pfa_kind_lag": kinds["lag"], "pfa_kind_readmitted": kinds["readmitted"]})
@@ -766,8 +993,9 @@ def main(argv=None):
     ap.add_argument("--p-start", type=float, default=1.0, help="a newcomer's audit odds (1.2.0 §2.4: 1.0; 1.1.0: 0.5)")
     ap.add_argument("--p-cap", type=float, default=1.0, help="the audit odds' cap on doubling (1.2.0 §2.4: 1.0; 1.1.0: 0.5)")
     ap.add_argument("--p-floor", type=float, default=0.2, help="the audit rate's floor (§8.3)")
-    ap.add_argument("--rules", choices=["1.7.0", "1.6.0", "1.5.0", "1.4.0", "1.3.0", "1.2.0", "1.1.0"], default="1.7.0",
-                    help="1.6.0: the merged fund (uplift from troop earnings) and the half cap; 1.5.0: also the five 1.6.0 rules off; "
+    ap.add_argument("--rules", choices=["2.0.0", "1.7.1", "1.7.0", "1.6.0", "1.5.0", "1.4.0", "1.3.0", "1.2.0", "1.1.0"], default="2.0.0",
+                    help="2.0.0: the price of work (floating prices, the deficit, N_T, the requester model); 1.7.1 (= 1.7.0): the fixed-price control — "
+                         "one bottomless requester at β, the backing, the reserves; 1.6.0: the merged fund (uplift from troop earnings) and the half cap; 1.5.0: also the five 1.6.0 rules off; "
                          "1.3.0: troops off; 1.2.0: also membership, the duty fund and netted plant capital off; 1.1.0: also no "
                          "plants, dial off, p_start = p_cap = 0.5, Ω float 20 — declared controls. The audit obligation holds in all")
     ap.add_argument("--troops", choices=["on", "off"], default="on", help="the orchestrator's troops (1.4.0)")
@@ -838,6 +1066,29 @@ def main(argv=None):
     ap.add_argument("--fee", type=float, default=2.0, help="f, the ordinary-review fee (1.1.0 §4.3); appeal/audit pay 1.5 f")
     ap.add_argument("--phi-e", type=float, default=10.0, help="φ^E, the expense allowance of a root request")
     ap.add_argument("--phi-f", type=float, default=5.0, help="φ^F, the fee pot of a root request")
+    # 2.0.0: the demand side, the bids, the state at cost, the capacity, the shock, the crowd
+    ap.add_argument("--requesters", type=int, default=6, help="2.0.0 §2.9: the standing requesters")
+    ap.add_argument("--wallet", type=float, default=200.0, help="a requester's initial wallet (the crowd's too)")
+    ap.add_argument("--issuance", type=float, default=10.0, help="credits a tick issued to each requester (swept 15)")
+    ap.add_argument("--beta-max", type=float, default=40.0, help="β_max, the ceiling policy's cap")
+    ap.add_argument("--ceiling-share", type=float, default=1.0 / 3.0, help="s: β = min(β_max, s × unlocked wallet)")
+    ap.add_argument("--k-open", type=int, default=5, help="K_open: a requester posts while fewer than this many of its requests are open")
+    ap.add_argument("--bid", choices=["margin", "ceiling"], default="margin", help="members' bid policy: c_D (1 + m), or at the ceiling (the 1.x behaviour, the control)")
+    ap.add_argument("--c-d", type=float, default=8.0, help="c_D, a member's nominal effort cost per task (burned at submission)")
+    ap.add_argument("--c-d-adaptive", choices=["on", "off"], default="off", help="the adaptive reservation: c_D follows P_t with a one-period lag (the spiral, swept)")
+    ap.add_argument("--margin0", type=float, default=0.3, help="each member's starting margin m")
+    ap.add_argument("--margin-up", type=float, default=0.3, help="m rises by this on each award")
+    ap.add_argument("--margin-down", type=float, default=0.25, help="m falls by this per --idle-k idle ticks (margin_down / idle_k a tick), floored at 0")
+    ap.add_argument("--idle-k", type=int, default=3, help="k: idle ticks before the margin falls")
+    ap.add_argument("--lam", type=float, default=0.2, help="λ, price against reputation in selection (swept 0.5)")
+    ap.add_argument("--c-d-t-mode", choices=["cost", "half"], default="cost", help="c^D_T = B̄ (the state at cost) or 0.5 P_t (the 1.x margin, the control)")
+    ap.add_argument("--n-t", type=int, default=40, help="N_T, the most troops ELEF can field at once (0 = unbounded, the control)")
+    ap.add_argument("--create-at", type=int, default=0, help="the deficit shock's tick (with --create-amount)")
+    ap.add_argument("--create-amount", type=float, default=0.0, help="the deficit shock: Ω creates this and pays it to the requesters (0: none)")
+    ap.add_argument("--spike-requesters", type=int, default=0, help="a riot as a crowd: this many requesters arrive at --spike-from for --spike-ticks (0: none)")
+    ap.add_argument("--lowball-share", type=float, default=0.0, help="2.0.0 §8.8 red team: the share of actors that bid half their cost to win reputation")
+    ap.add_argument("--stingy-requesters", type=int, default=0, help="2.0.0 §8.8 red team: this many requesters post at 0.6 B̄ and never raise (expected: flagged, wait)")
+    ap.add_argument("--bbar-troops", choices=["on", "off"], default="off", help="2.0.0 §8.8 control: count troop awards in B̄ (the rule excludes them)")
     ap.add_argument("--seed", type=int, default=1)
     ap.add_argument("--res0", type=float, default=1e7)
     ap.add_argument("--human-budget", type=float, default=1e6)
@@ -918,7 +1169,24 @@ def main(argv=None):
                                     "none": "silent", "truthful": f"disputes a pending F on work that truly failed with probability {a.dispute_rate}",
                                     "half": "disputes a pending F on work that truly failed with probability 0.5",
                                     "always": "disputes every pending F"}[a.dispute_policy], "budget": a.human_budget},
-                                "permitted_operations": PERMITTED, "not_in_run": NOT_IN_RUN,
+                                "price_of_work": None if a.rules != "2.0.0" else {
+                                    "spec": "2.0.0 design revision 8 — the price of work",
+                                    "requesters": {"n": a.requesters, "wallet": a.wallet, "issuance_per_tick": a.issuance,
+                                                   "ceiling": f"min({a.beta_max:g}, {a.ceiling_share:.4g} × unlocked wallet)", "K_open": a.k_open,
+                                                   "posting": "one a tick while K_open and the all-in maximum fit; the engine locks the all-in at posting",
+                                                   "below_market": "raised to the market price when the wallet allows"},
+                                    "bids": {"policy": a.bid, "c_D": a.c_d, "adaptive_reservation": a.c_d_adaptive, "margin0": a.margin0,
+                                             "margin_up": a.margin_up, "margin_down": a.margin_down, "idle_k": a.idle_k, "lambda": a.lam,
+                                             "selection": "argmax ρ − λ B/β with the bid live; κ tie band; lowest id"},
+                                    "effort": "c_D burned at submission (spend), or what unlocked credit can pay (counted unpaid)",
+                                    "state": {"c_D_T": a.c_d_t_mode, "N_T": a.n_t, "places": "a delivery holds two until its inspection is seated"},
+                                    "shock": None if a.create_amount == 0 else {"at": a.create_at, "amount": a.create_amount},
+                                    "crowd": None if a.spike_requesters == 0 else {"n": a.spike_requesters, "from": a.spike_from, "ticks": a.spike_ticks,
+                                                                                  "wallet": a.wallet, "issuance": a.issuance},
+                                    "plants": "at B = P_t", "P0": 20.0,
+                                    "red_team": {"lowball_share": a.lowball_share, "lowballers": sorted(run.lowballers),
+                                                 "stingy_requesters": sorted(run.stingy), "bbar_counts_troops": a.bbar_troops}},
+                                "permitted_operations": PERMITTED + (PERMITTED_200 if a.rules == "2.0.0" else []), "not_in_run": NOT_IN_RUN,
                                 "record_dir": a.record_dir,
                                 "checks": {"per_tick": "check_tick after every tick — always; not configurable",
                                            "full_audit_every_n_ticks": "not scheduled",

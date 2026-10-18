@@ -85,7 +85,9 @@ SHORT = {"stampers": "s", "fee": "f", "on-duty": "X", "gv": "gv", "p-floor": "pf
          "decline-awards": "dec", "tasks": "k", "clock": "clk", "backing": "bak", "seat-queue": "sq", "panel-determined": "pd",
          "reserve-periods": "rp", "duty-cap": "cap", "t-s": "Ts", "beta-low": "bl", "beta-low-share": "bls", "accounts": "acc", "omega-rate": "rate", "r-s": "rs", "t-susp": "tsusp",
          "plant-reserve": "pr", "theta-panel": "thp", "record-window": "nP", "withdraw-after": "wd",
-         "spike-tasks": "spk", "spike-ticks": "spkT", "spike-from": "spkF", "drift-from": "dfrom", "drift-every": "devery", "drift-step": "dstep"}
+         "spike-tasks": "spk", "spike-ticks": "spkT", "spike-from": "spkF", "drift-from": "dfrom", "drift-every": "devery", "drift-step": "dstep",
+         "spike-requesters": "crowd", "n-t": "NT", "c-d": "cd", "c-d-t-mode": "cdt", "lam": "lam", "issuance": "iss", "wallet": "wal", "beta-max": "bmax",
+         "k-open": "kopen", "bid": "bid", "c-d-adaptive": "cda", "create-at": "crAt", "create-amount": "cr", "requesters": "nreq", "lowball-share": "low", "stingy-requesters": "stingy", "bbar-troops": "bbt"}
 
 
 def _num(x: str):

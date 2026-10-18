@@ -171,17 +171,21 @@ def fingerprint(w: World) -> dict:
 # (195896a) a49c2c9e… / 8154 and 1d052569… / 6159; at 1.7.0 the troop account pays its surplus to Ω instead of the reviewers'
 # uplift and the members' cap is two thirds, so the scenario's seating and settlement change; 1.7.0 (003a238) cb1ea471… / 7817
 # and 1a568fcd… / 4309; at 1.7.1 the award summons is read per request — the requests past w_A beyond the free fundable
-# members are the state's — a conformance correction, so the scenario summons where one free member used to block). Each
+# members are the state's — a conformance correction, so the scenario summons where one free member used to block; 1.7.1
+# (8d9b866) 51a3ac39… / 7164 and 2f47e98b… / 4027; at 2.0.0 the price of work — no backing (M is the floats, Ω and the
+# requesters' wallets, Res 0), every nominal indexed by the price level the scenario's awards set, the pay-in locked at
+# posting, Ω creating for its summonses and rebates and retiring from its inflows, the state at cost, N_T — so the whole
+# path changes). Each
 # changed with the rule, as a change to settlement, the reserve or membership must, and was re-pinned once, at the
 # implementing commit.
 GOLDEN = {
-    1: {"head": "51a3ac39edff1b5541e6d623a3b32d6ae6f2f15f83c472317d7b3d477d869d3f", "entries": 7164,
-        "M": 199110.34483, "Res": 198744.713107,
-        "states": {"FINAL_N": 142, "VESTED": 54, "WITHDRAWN": 10, "CANCELLED": 2, "PENDING": 5, "AVAILABLE": 47,
-                   "AWAITING_RESPONSE": 1}},
-    2: {"head": "2f47e98bbe801919acd33cf318c7196a62138431dcfaf5d545715bf177cac83c", "entries": 4027,
-        "M": 199503.054723, "Res": 199324.080337,
-        "states": {"FINAL_N": 84, "VESTED": 28, "AVAILABLE": 119, "PENDING": 3, "WITHDRAWN": 2}},
+    1: {"head": "35f97d9f3ab77aa7cfa1977d749bbf608121366c35f0595ab55db310caac387e", "entries": 9542,
+        "M": 120050.539036, "Res": 0.0,
+        "states": {"FINAL_N": 202, "VESTED": 59, "CANCELLED": 1, "WITHDRAWN": 6, "PENDING": 5, "AVAILABLE": 5,
+                   "SUBMITTED": 3, "COMMITTED": 1}},
+    2: {"head": "69db2575ec172b05b53b09779c319b34e73023257790343ea2e70a24de1d59e5", "entries": 9750,
+        "M": 120039.207657, "Res": 0.0,
+        "states": {"FINAL_N": 205, "VESTED": 68, "WITHDRAWN": 9, "AVAILABLE": 3, "COMMITTED": 1}},
 }
 
 
@@ -209,10 +213,11 @@ def test_full_audit_agrees_with_tick_check_and_behaviour_is_unchanged(seed):
     # and, since 1.2.0, the paths of design revision 2
     outcomes = {c.plant_outcome for c in w.cases.values() if c.plant is not None}
     assert outcomes >= {"stood", "failure", "spent"}
-    assert w.suspensions > 0 and len(w.periods) == 4 and w.m_t >= 3.0        # the dial rose (both seeds end at 4.0 under 1.7.1)
+    assert w.suspensions > 0 and len(w.periods) == 4 and w.m_t >= 3.0        # the dial rose (both seeds end at 4.0 under 2.0.0)
     # 1.3.0/1.4.0: the troops' wallet's flows reconcile (I23); 1.7.0: that wallet is the troop account, and the uplift fund
     # is the raised tax received less the uplift paid
-    assert w.fund_in > 0 and abs(w.ledger.wallet(w.troop_wallet).W - w.fund_flow) < 1e-6
+    # 2.0.0: the troops' wallet is Ω itself and the reserves are retired; Ω created for its summonses and rebates (I28)
+    assert w.fund_in > 0 and w.p.floating and w.troop_wallet == w.ledger.OMEGA and w.deficit_created > 0 and w.R_T == 0
     assert abs(w.ledger.wallet("DUTY-FUND").W - (w.fund_in - w.fund_out)) < 1e-6
     assert w.ledger.wallet(w.troop_wallet).W + w.troop_surplus_paid > 0          # the troops earned, and it is the state's
 

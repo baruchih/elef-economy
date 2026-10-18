@@ -1,8 +1,15 @@
 # Agentic-OS — the economic loop
 
 A rulebook for a task → verification → dispute → settlement loop among autonomous actors, and a
-reference implementation of it with no strategies. Ten external reviews. The rulebook is at **1.7.1**:
-the frozen 1.0.1 baseline plus seven design revisions made under §19 — the verification deposit is two
+reference implementation of it with no strategies. Ten external reviews. The rulebook is at **2.0.0** — the first major
+version, design revision 8, *the price of work*: the price of a task floats (requesters with finite wallets choose a ceiling, members
+bid, the price level P_t is what clears and indexes every nominal the rules fix in place of the backing's v_0/v_t, frozen per case at
+its first lock — a root's posting, which locks the all-in maximum), there is no backing (a credit is worth the work it buys, P_0/P_t;
+sources are issuance, emission and the state's creation, sinks the burns, retirement and a leaving requester's departure), the state is
+never broke (Ω creates for a payment the rules require and retires the deficit from every inflow, both public; A_T, R_T, the plant
+reserve, Ω's order, the troop account and the liability stock retired), the state delivers at cost under a capacity N_T outside the
+ledger (a delivery holds two places until its inspection is seated; a refusal for capacity is recorded), effort costs stay nominal as
+the anchor, and delegation waits for 2.1.0 — on top of the frozen 1.0.1 baseline plus seven design revisions made under §19 — the verification deposit is two
 pots (1.1.0, §4.3; after the first scoped run showed careful review paid for its own care), the loop's
 own clock (1.2.0, §7.6, §11.2, §12.2: planted work, the plant record, the effort dial; after runs 2–3
 showed the loop fair only with both challengers present and blind under capture), and inspection is
@@ -35,13 +42,13 @@ and what is proposed next.
 ## Layout
 
 ```
-spec/agentic_economics_loop_spec_v1_7_1.md   the text in force (standalone; Appendix A defaults, E errata, F–L design revisions 1–7 and the 1.7.1 ruling)
+spec/agentic_economics_loop_spec_v2_0_0.md   the text in force (standalone; Appendix A defaults, E errata, F–M design revisions 1–8 and the rulings)
 spec/design_revisions/                       accepted design revisions, verbatim (dr1: two pots; dr2: the loop's own clock; dr3:
                                              inspection is membership; dr4: the orchestrator's troops; dr5: the reserve is sized to
-                                             the need; dr6: auto-scale; dr7: the state's earnings), and the implementer's reviews of dr2–dr7's candidates
-spec/history/                                v0.1 … v1.7.0 — superseded, kept for provenance only
+                                             the need; dr6: auto-scale; dr7: the state's earnings; dr8: the price of work), and the implementer's reviews of dr2–dr8's candidates
+spec/history/                                v0.1 … v1.7.1 — superseded, kept for provenance only
 reviews/                                     R01–R10, one external review per version, with the reviewer's notes
-agentic_sim/                                 the engine, 26 invariants, 25 test files, runner, drivers, results
+agentic_sim/                                 the engine, 29 invariants, 26 test files, runner, drivers, results
 docs/line_map_economic_loop_v1_0_1.txt       text export of the _line map of the loop (the live map is the source)
 HANDOFF.md                                   status, history table, open questions, proposed next step
 ```
@@ -50,12 +57,16 @@ HANDOFF.md                                   status, history table, open questio
 
 ```
 cd agentic_sim
-python3 run_tests.py        # expected: 248 passed, 0 failed, 26 expected failures
+python3 run_tests.py        # expected: 259 passed, 0 failed, 31 expected failures
 python3 -S run_tests.py     # same, with no site-packages
 python3 run_tests.py --record   # same, every World in record mode
-python3 -m pytest tests -q  # expected: 248 passed, 26 xfailed, 0 xpassed (conftest mirrors the runner; pytest is not installed here)
+python3 -m pytest tests -q  # expected: 259 passed, 31 xfailed, 0 xpassed (conftest mirrors the runner; pytest is not installed here)
 python3 -m drivers.load_run --actors 200 --ticks 10000 --on-duty 40 --tasks 30 --record-dir /path  # throughput run
-python3 -m drivers.stamping --actors 20 --ticks 1000 --stampers 0.6 --seed 1 --appeal-policy truthful   # §18.1 q1 under 1.7.0
+python3 -m drivers.stamping --actors 20 --ticks 1000 --stampers 0.6 --seed 1   # §18.1 q1 under 2.0.0: six requesters with wallets, members bidding, the state at cost under N_T 40
+python3 -m drivers.stamping --rules 1.7.1 --seed 1   # the fixed-price control: one bottomless requester at β = 20, the backing, the reserves
+python3 -m drivers.stamping --bid ceiling --seed 1   # every offer at the ceiling (the 1.x behaviour as a strategy); --c-d-t-mode half and --n-t 0 are the other 2.0.0 controls
+python3 -m drivers.stamping --create-at 600 --create-amount 2000 --seed 1   # the deficit shock (2.0.0 §8.3); --spike-requesters 30 --spike-from 400 --spike-ticks 100 is the crowd (run 11's hard spike)
+python3 -m drivers.stamping --issuance 15 --lam 0.5 --c-d-adaptive on --seed 1   # the 2.0.0 knobs
 python3 -m drivers.stamping --rules 1.6.0 --seed 1   # the 1.6.0 control: the merged fund (uplift from troop earnings), the half cap, the demand reserve
 python3 -m drivers.stamping --accounts off --seed 1   # the troop account off alone (the cap stays two thirds); --duty-cap half alone is the other OFAT cell
 python3 -m drivers.stamping --omega-rate 0.10 --r-s 1 --seed 1   # the 1.7.0 §8 take sweep: ω₀ 5/10/15% with the rebate pinned at 1 a tick
@@ -81,12 +92,15 @@ Results are kept (`drivers/results.py`): the runner writes what it printed to `r
 study folder, `results/studies/<study>/<sweep>/runs/`, so a study is one directory. Commit the ones that matter. Results are written by the code and
 read by people; the suite and the engine stay the authority — never edit a result to match.
 
-Any other result is a regression — including an XPASS. The 26 expected failures each have a stated
+Any other result is a regression — including an XPASS. The 31 expected failures each have a stated
 reason in `run_tests.py` (`EXPECTED_FAIL`, with `EXPECTED_FAIL_PARAMS` naming the parameter runs inside a
 mixed test): one original (a single-answer ⊥ appeal), four superseded by the reviewer-view contract,
 nineteen on the withdrawn audit-reopening path, one superseded by design revision 1 (it pinned the
 1.0.1 deposit through the human's budget; its principle is re-asserted in `test_v11`), one superseded by
-design revision 2 (it pinned Ω's cold-start float at 20; Appendix A now says 300). They are strict in both entry points: an expected
+design revision 2 (it pinned Ω's cold-start float at 20; Appendix A now says 300), five superseded by design revision 8 (one pinned
+the backing's v_t halving under emission; one pinned the pay-in's refusal at the award, now refused whole at posting; three pinned 1.x
+figures through the index — the reviewer tests award at 10 and 40, so the price level moves after their first award and the nested
+nominals, the court fee and the cap move with it; their principles are re-asserted in `test_v20`). They are strict in both entry points: an expected
 failure that passes means a withdrawn path is admitted again, and the run fails.
 
 ## Change discipline — spec §19, and the one rule that matters most
@@ -117,7 +131,7 @@ consolidated into one standalone spec with the accepted revision kept verbatim i
 
 - Every action is validated whole before anything is recorded or moved. A refused action changes
   nothing — tests assert this against full world snapshots. Keep it that way for any new operation.
-- Twenty-five invariants run after every tick (`sim/invariants.py`). A failing invariant is an engine
+- Twenty-nine invariants run after every tick (`sim/invariants.py`). A failing invariant is an engine
   bug or a spec contradiction, never a property of a strategy. Two entry points, one set of
   predicates: `check_all` is the full audit from genesis (what tests call; scheduled in a run by
   `Params.full_check_every`); `check_tick` is what `advance` runs, the same predicates over the
@@ -265,6 +279,21 @@ consolidated into one standalone spec with the accepted revision kept verbatim i
   read the rule per tick (one free member blocked every award summons that tick — run 9's 50/50 collapse). `test_v171` pins
   it; goldens re-pinned once at the correcting commit; the `--rules` controls carry the correction too (as the 1.4.0 audit
   obligation did), so run 8's and run 9's controls are no longer reproduced to the unit.
+- The price of work (2.0.0; `Params.floating`, on; `--rules 1.7.1` is the control). `ledger.index()` is P_t/P_0 (`price_level`: this period's
+  mean of every awarded price, members' and troops', else the last period's, else P0 = 20), `ledger.v` the reading P_0/P_t, `Res` 0,
+  `purchase` a plain burn of the credits given (effort and care costs are nominal). `post_root` locks the all-in maximum at the posting
+  index and dial (`c.posting_lock`, `c.m_post`, `c.index_at_lock`; I29) and freezes the nominals there; `award` / `_summon_delivery`
+  release it and draw the pay-in; `raise_ceiling` locks the difference; `c.below_market` is set only once a member has been awarded
+  (`market_price_known`). Ω is the troops' wallet (`troop_wallet`); `_omega_ensure(amount, case, why)` creates the shortfall for
+  `REQUIRED_PAYMENTS` (summons, plant, rebate, the declared scenario) and `_omega_retire()` burns every inflow while the deficit stands,
+  at the tick's end and before any creation (I28; `deficit_created/retired/peak/since`); `_fund_can_carry` creates and returns True,
+  `R_T` and `_plant_reserve` are 0, the liability list is never fed, `_stop_clock` pays through `_omega_pay`. `N_T`: a troop's
+  `places` (2 for a delivery until `_seat_delivery_inspection`, 1 for a seat); `_capacity_refuses(need)`; the counters
+  `troop_refused_capacity_*`, `c.refused_capacity`, `c.capacity_told`, `c.capacity_wait_max` (seating steps). `add_requester` /
+  `remove_requester` (the `departure` kind, refused while a request is open), `scenario_create`. The genesis is one `issuance` mint to
+  SPONSOR paid out as before; `Params.issuance` (0) is minted to each requester at the tick's start. I27–I29; I15 expects the posting
+  lock; I23 and I24 amended under the flag. The 1.x behaviour tests pin `floating=False`; the driver's `--rules 1.7.1` does the same
+  with the old demand model (one bottomless H at β).
 - Money is checked by invariant I1 (conservation) — never silently create or lose credits.
 
 ## Vocabulary (spec Appendix C has the full notation)
@@ -289,6 +318,11 @@ the network rating (on-time share, lateness, rebates, Ω's liability); the plant
 determined record (≥ n_min bad plants adjudicated) — 1.6.0.
 Uplift fund and troop account — the duty fund restored to 1.3.0's shape, and the troops' separate wallet whose surplus above
 R_T (since 1.7.0 the two-period peak of capital held) is Ω's; Ω's income by source — base fee, troop surplus, beside its own
-money's flows and its outflows — 1.7.0.
+money's flows and its outflows — 1.7.0 (the troop account retired 2.0.0: the troops' wallet is Ω).
+The price of work (2.0.0): P_t the price level, P_0 = 20 its base; real wealth W·P_0/P_t; issuance, creation, retirement, departure
+the new sources and sinks; the deficit (created − retired), its peak and age, Ω's net position; the posting lock (the all-in maximum
+β(1 + ω₀m) + φ^E + φ^F); below market (the flag) and raising the ceiling; c_D a member's nominal effort cost, the reservation price,
+the adaptive reservation; N_T the capacity, places (one for a seat, two for a delivery until its inspection is seated), refused for
+capacity and told; a crowd (a riot as arriving requesters) and the deficit shock (a created sum paid to the requesters).
 "Ruling" has two senses: the orchestrator rules on splits inside the procedure; only a human
 *overrides* it (spec §15.2).

@@ -183,11 +183,16 @@ class History:
 
 class Ledger:
     OMEGA = "OMEGA"
-    MINTS = {"mint_backed", "mint_emission"}
-    BURNS = {"burn_bond", "purchase"}
+    MINTS = {"mint_backed", "mint_emission", "issuance", "creation"}
+    BURNS = {"burn_bond", "purchase", "retirement", "departure"}
 
     def __init__(self, Res0: float, v0: float, history: Optional[History] = None,
-                 events_path: Optional[str] = None, tail: int = 4096):
+                 events_path: Optional[str] = None, tail: int = 4096, floating: bool = False, P0: float = 20.0):
+        # 2.0.0: under `floating` there is no backing — Res stays 0, the credit's value is P0/P_t in tasks, the index
+        # P_t/P0, and `purchase` burns the credits it is given (the cost API is nominal); the World sets P_t
+        self.floating = floating
+        self.P0 = amount(P0, "P0")
+        self.P_t = self.P0
         self.Res: float = 0.0
         self.M: float = 0.0
         self.halted: bool = False
@@ -218,13 +223,16 @@ class Ledger:
             raise LedgerError("v0 must be positive")
         self.wallets[self.OMEGA] = Wallet(self.OMEGA)
         self.wallets["SPONSOR"] = Wallet("SPONSOR")
-        self.mint_backed("SPONSOR", amount(Res0, "Res0"), rate=self._v0)
+        if not floating:
+            self.mint_backed("SPONSOR", amount(Res0, "Res0"), rate=self._v0)
 
     # ---- money ------------------------------------------------------------
     @property
     def v(self) -> float:
         """Value of one credit in real units. Res = 0 is the halt state: v = 0 by definition,
-        never 0/0 (§4.4)."""
+        never 0/0 (§4.4). 2.0.0: P0/P_t, the credit's value in tasks — a reading."""
+        if self.floating:
+            return self.P0 / self.P_t
         if self.Res <= 1e-12:
             self.halted = True
             return 0.0
@@ -235,7 +243,9 @@ class Ledger:
         return self._v0
 
     def index(self) -> float:
-        """Indexing factor v0/v_t for nominal thresholds (§4.5)."""
+        """Indexing factor v0/v_t for nominal thresholds (§4.5); 2.0.0: P_t/P0."""
+        if self.floating:
+            return self.P_t / self.P0
         v = self.v
         if v == 0:
             raise LedgerError("halt state: credit has no value")
@@ -361,6 +371,17 @@ class Ledger:
         """Resource purchase: burns real_cost / v credits, pays real_cost from the reserve.
         Value-neutral: v' = v (§4.4). Returns the credits burned."""
         real_cost = amount(real_cost, "real_cost")
+        if self.floating:                               # 2.0.0 §2.4: a plain burn of the credits given
+            credits = real_cost
+            w = self.wallet(wid)
+            if w.U + 1e-9 < credits:
+                raise LedgerError(f"{wid} cannot afford {credits:.3f} credits of resources")
+            w.U -= credits
+            self.M -= credits
+            if abs(self.M) < 1e-9:
+                self.M = 0.0
+            self._log("purchase", credits, wid, None, case, note)
+            return credits
         if self.halted:
             raise LedgerError("halt state: no purchases")
         v = self.v
@@ -380,6 +401,34 @@ class Ledger:
             self.M = 0.0
         self._log("purchase", credits, wid, None, case, note)
         return credits
+
+    # ---- 2.0.0: unbacked sources and sinks (§2.4) ---------------------------
+    def mint(self, kind: str, wid: str, credits: float, case=None, note=""):
+        """issuance (a requester's wallet, the genesis floats) or creation (Ω's shortfall on a required payment)."""
+        if kind not in ("issuance", "creation"):
+            raise LedgerError(f"mint: unknown source kind {kind}")
+        credits = amount(credits, kind)
+        if credits <= 1e-12:
+            return
+        self.M += credits
+        self.wallet(wid).U += credits
+        self._log(kind, credits, None, wid, case, note)
+
+    def burn_unlocked(self, kind: str, wid: str, credits: float, case=None, note=""):
+        """retirement (Ω burns against its deficit) or departure (a leaving requester's wallet)."""
+        if kind not in ("retirement", "departure"):
+            raise LedgerError(f"burn: unknown sink kind {kind}")
+        credits = amount(credits, kind)
+        if credits <= 1e-12:
+            return
+        w = self.wallet(wid)
+        if w.U + 1e-9 < credits:
+            raise LedgerError(f"{wid} cannot burn {credits}: unlocked {w.U}")
+        w.U -= credits
+        self.M -= credits
+        if abs(self.M) < 1e-9:
+            self.M = 0.0
+        self._log(kind, credits, wid, None, case, note)
 
     # ---- mints ------------------------------------------------------------
     def mint_backed(self, wid: str, real: float, rate: Optional[float] = None, case=None) -> float:

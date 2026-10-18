@@ -4,7 +4,7 @@ Built up through v0.4–v0.10, unchanged by the v1.0 consolidation and the v1.0.
 since, all on October 17, 2026: for design revision 1 (1.1.0: the verification deposit is two pots), design revision 2
 (1.2.0: the loop's own clock — planted work, the plant record, the effort dial), design revision 3 (1.3.0: inspection
 is membership), design revision 4 (1.4.0: the orchestrator's troops), design revision 5 (1.5.0: the reserve is sized to the need), design revision 6 (1.6.0: auto-scale) and, on October 18, design revision 7 (1.7.0: the state's earnings — see the seven sections below). Section numbers in code comments refer to the
-working-spec versions they were written against; `spec/agentic_economics_loop_spec_v1_7_1.md` is the text in force,
+working-spec versions they were written against; `spec/agentic_economics_loop_spec_v2_0_0.md` is the text in force,
 and its Appendix A holds the defaults that `sim/params.py` encodes.
 
 The loop's rules as code, with no strategies. Every bid, verdict, appeal, audit
@@ -94,6 +94,10 @@ tests/test_v171.py                  patch 1.7.1: the award summons is per reques
                                     fundable members are summoned for, oldest first, the oldest left to the members; enough
                                     free members mean no summons; a long queue with two free is served two short of its
                                     length; the period record carries the market's share — 4
+tests/test_v20.py                   design revision 8 (2.0.0): the price of work — issuance and conservation over every kind; the posting lock,
+                                    its release and raise_ceiling; P_t indexing frozen at the first lock; B̄ members only, P_t troops too; the state at
+                                    cost, creation and retirement; the rebate at the stop; N_T and two places; the flag; a crowd's arrival and
+                                    departure; the scenario operation and I28; the cost API in credits; the period record; floating off = 1.7.1
 tests/test_perf_equivalence.py      the per-tick check equals the full audit; the working-set engine reproduces the
                                     pinned History head on a seeded random scenario that now plants work (re-pinned once for
                                     1.1.0 and once for 1.2.0); the working set stays bounded — 5
@@ -104,11 +108,11 @@ tests/test_record_mode.py           the record on disk (`Params.record_dir`): th
 run_tests.py        every suite with plain python; pytest reports the same (conftest marks the XFAIL)
 ```
 
-Run: `python3 run_tests.py` — 248 pass, 0 fail, 26 expected failures, each with a stated reason (one original,
+Run: `python3 run_tests.py` — 259 pass, 0 fail, 31 expected failures, each with a stated reason (one original,
 four superseded by the view contract, nineteen on the withdrawn reopening path, one superseded by design
-revision 1, one by design revision 2). With pytest: `python3 -m pytest tests -q` reports 248 passed, 26 xfailed; the
+revision 1, one by design revision 2, five by design revision 8 — the backing's v_t, the pay-in refused at posting, and three 1.x figures the price level now indexes). With pytest: `python3 -m pytest tests -q` reports 259 passed, 31 xfailed; the
 runner expands pytest parametrization as pytest does, including multi-argument and stacked marks. (Spec Appendix D
-records the count at the v1.0.1 freeze, 156; at 1.1.0, 181; at 1.2.0, 197; at 1.3.0, 208; at 1.4.0, 218; at 1.5.0, 225; at 1.6.0, 236; at 1.7.0, 244; at 1.7.1, 248.)
+records the count at the v1.0.1 freeze, 156; at 1.1.0, 181; at 1.2.0, 197; at 1.3.0, 208; at 1.4.0, 218; at 1.5.0, 225; at 1.6.0, 236; at 1.7.0, 244; at 1.7.1, 248; at 2.0.0, 259.)
 
 Expected failures are **strict and parameter-exact** in both entry points: `EXPECTED_FAIL_PARAMS` names the
 parameter runs that are expected to fail inside a mixed test (the P/⊥ runs of the eighth review's first case;
@@ -502,6 +506,33 @@ sweeps the take with the rebate pinned. In the engine:
   `advances_made/repaid`, `liabilities_paid`; `drivers/sweep.py` carries them.
 - **Tests.** `test_v17.py` (8); goldens re-pinned once; `test_v13`–`test_v16` pinned to the merged fund and the half cap.
   Reviewer tests untouched and passing.
+
+## Design revision 8 — the price of work (2.0.0, October 18, 2026)
+
+`Params.floating` (on) is the revision: the price level P_t (`price_level`, the trailing mean of every awarded price on B̄'s
+window, P0 = 20 before the first award) is what `ledger.index()` returns over P0, frozen per case at its first lock — a root's
+posting, which locks the all-in maximum β(1 + ω₀ m) + φ^E + φ^F (`post_root`, released at `award` / `_summon_delivery` /
+`withdraw_unawarded`; `raise_ceiling` locks the difference; I29). No backing: `Res` is 0, `ledger.v` is P0/P_t as a reading,
+`purchase` burns the credits it is given (the cost API is nominal — effort costs are the anchor), the kinds `issuance`,
+`creation`, `retirement`, `departure` join I1 and I3. Ω is the troops' wallet; `_omega_ensure` creates the shortfall on a
+required payment (a summons, a plant, a rebate, the declared scenario), `_omega_retire` burns every inflow while the deficit
+stands (I28); A_T, R_T, the plant reserve, Ω's order, the troop account and the liability list are retired behind the flag
+(`--rules 1.7.1` is the fixed-price control). `N_T` bounds the field: a seat holds one place, a delivery two until its initial
+review is seated (`_seat_delivery_inspection`); a refusal for capacity is counted, told once and dated. `add_requester` /
+`remove_requester` are the crowd; `scenario_create` the deficit shock. Readings: `view.market()`, the period record's
+P_level / created / retired / deficit / deficit_peak / omega_net / issued / departed / below_market / refused_capacity /
+places_held / M. `test_v20.py` (16). Goldens re-pinned once; five reviewer tests are expected failures with their reasons;
+the 1.x behaviour tests pin `floating=False`.
+
+Driver (`drivers/stamping.py`, `--rules 2.0.0` default): six requesters (`--requesters`, `--wallet` 200, `--issuance` 10) post
+one request a tick while fewer than `--k-open` are open at β = min(`--beta-max`, a third of the unlocked wallet), raising a
+flagged request to the market price when the wallet allows; members bid c_D (1 + m) (`--c-d` 8, `--margin0/--margin-up/
+--margin-down/--idle-k`, `--bid ceiling` the control, `--c-d-adaptive`) and burn their effort at submission (`spend`);
+`--lam`; the state at cost (`--c-d-t-mode cost|half`) under `--n-t` 40; the crowd `--spike-requesters n` with `--spike-from/
+--spike-ticks`; the shock `--create-at/--create-amount`. Columns: P_t, price_index, credit_value, deficit*, omega_net_position,
+issued, departed, below_market_*, ceilings_raised, places_held, refused_capacity_*, capacity_wait_max, *_wealth_real,
+requester_wallet_mean, crowd_*, member_price_mean, troop_price_mean, c_d_now, margin_mean, posts_unaffordable, posts_k_open,
+effort_burned, effort_unpaid.
 
 ## Patch 1.7.1 — the award summons is per request (October 18, 2026)
 

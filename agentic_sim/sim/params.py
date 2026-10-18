@@ -116,6 +116,19 @@ class Params:
     # out as uplift every batch, no reserve); R_T is then the two-period peak of the capital troops held (1.4.0's
     # reading; the 1.5.0 refused component withdrawn). False: the 1.4.0–1.6.0 merged fund (`--rules 1.6.0`).
     troop_account: bool = True
+    # Design revision 8 (2.0.0): the price of work. True: the price level P_t (the trailing mean awarded price, P_0 = 20 before
+    # the first award) indexes every nominal the rules fix in place of v_0/v_t, frozen at a case's first lock — a root's
+    # posting, which locks the all-in maximum (I29); no backing (Res held at 0, purchase a plain burn, the cost API in
+    # credits); Ω creates for a required payment it cannot meet and retires the deficit from every inflow (I28); the
+    # troops' wallet is Ω and the state delivers at cost; N_T bounds the field; issuance funds requesters. False is the
+    # 1.7.1 engine (the backing, A_T/R_T, the plant reserve, Ω's order, the troop account, the liability stock).
+    floating: bool = True
+    P0: float = 20.0           # the former fixed price; the indexing base
+    issuance: float = 0.0      # credits a tick minted to each requester (the driver declares it; 0 so reviewer tests see none)
+    N_T: int = 40              # the most troops ELEF can field at once, deliveries and review seats together (0 = unbounded);
+    #                            a delivery holds two places until its initial review is seated (Appendix M)
+    troop_cost_at_price: bool = True   # c^D_T = B̄, the state at cost; False: the 1.x c_D_T × P_t/P_0 (the control, half of P_t)
+    bbar_counts_troops: bool = False   # 2.0.0 §8.8's control: troop awards counted in B̄ (the rule excludes them, §2.2)
 
     # Reliability and duty credit windows (§11)
     rho_window: int = 100      # settled outcomes

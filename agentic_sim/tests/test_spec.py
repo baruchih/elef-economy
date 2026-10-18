@@ -25,7 +25,7 @@ DUTY = ["C", "D", "E", "F"]
 
 
 def make_world(**over):
-    kw = dict(E0=5.0, H=1e9, omega_rate=0.0)
+    kw = dict(E0=5.0, H=1e9, omega_rate=0.0, floating=False)   # 2.0.0: the 1.0.1 money — the backing and index 1
     kw.update(over)
     p = Params(**kw)
     return World(p, ACTORS, humans={"H": 100.0}, on_duty=DUTY)

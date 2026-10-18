@@ -34,6 +34,7 @@ def make_world(budget=1000.0, actors=ACTORS, duty=DUTY, **over):
               service_clock=False, omega_backs_fund=False, seat_the_queue=False, panel_determined=False, reserve_periods=1,
               troop_account=False, duty_cap_frac=0.5)      # 1.7.0: the merged fund and the half cap of this revision
     kw.update(over)
+    kw.setdefault("floating", False)   # 2.0.0: these are 1.x behaviours and figures — the backing, the reserves, the pay-in at award
     return World(Params(**kw), actors, humans={"H": budget}, on_duty=duty)
 
 

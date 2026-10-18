@@ -21,7 +21,7 @@ DUTY = ["C", "D", "E", "F"]
 def world(**over):
     kw = dict(E0=0.0, omega_rate=0.0)
     kw.update(over)
-    return World(Params(**kw), ACTORS, humans={"H": 1000.0}, on_duty=DUTY)
+    return World(Params(**{"floating": False, **kw}), ACTORS, humans={"H": 1000.0}, on_duty=DUTY)
 
 
 def root(w, actor="A", B=10, tau=100):

@@ -293,6 +293,15 @@ class Case:
     plant_outcome: Optional[str] = None    # stood | failure | spent
     plant_reveal_hseq: Optional[int] = None
     member_at_award: bool = True           # 1.3.0 §2.1 / I22: the actor was a member when awarded
+    # 2.0.0: the posting lock and its index (a root's first lock is its posting), the fee rate frozen with it, the
+    # below-market flag, and the capacity case's record
+    m_post: float = 0.0                    # m_t at posting: the case's fee rate ω_0 m_post B
+    index_at_lock: Optional[float] = None  # P_t/P_0 at the first lock (None: priced before 2.0.0 or not yet locked)
+    posting_lock: float = 0.0              # the all-in maximum locked at posting, raised with the ceiling (I29)
+    below_market: bool = False             # flagged at posting (or at a raise): β < B̄
+    refused_capacity: int = 0              # summonses N_T refused for this request
+    capacity_told: bool = False            # the requester was told at the first refusal
+    capacity_wait_max: int = 0             # the longest wait at a refusal for capacity
     # 1.4.0: the audit obligation, the seats' clocks, and troops
     audit_obligation: bool = False         # a rolled audit not yet seated holds the case (I25)
     audit_rolled_at: Optional[int] = None
@@ -348,22 +357,29 @@ class World:
             rd = params.record_dir
             os.makedirs(rd, exist_ok=True)
             self.history = History(path=os.path.join(rd, "history.jsonl"))
-            self.ledger = Ledger(params.Res0, params.v0, history=self.history,
+            self.ledger = Ledger(params.Res0, params.v0, history=self.history, floating=params.floating, P0=params.P0,
                                  events_path=os.path.join(rd, "events.jsonl"))
         else:
             self.history = History()
-            self.ledger = Ledger(params.Res0, params.v0, history=self.history)
+            self.ledger = Ledger(params.Res0, params.v0, history=self.history, floating=params.floating, P0=params.P0)
         self.actors: dict[str, Actor] = {}
+        self.issued = 0.0                               # 2.0.0: issuance minted so far (the genesis floats are issuance)
+        if params.floating:
+            # 2.0.0 §2.4: the genesis balances are issuance — minted once to SPONSOR and paid out as before
+            genesis = params.float_per_actor * len(actors) + params.Omega0 + sum((humans or {}).values())
+            if genesis > 1e-12:
+                self.ledger.mint("issuance", "SPONSOR", genesis, note="genesis issuance")
+                self.issued += genesis
         for a in actors:
             self.actors[a] = Actor(a, p_audit=params.p_start, _world=self)
-            self.ledger.transfer("SPONSOR", a, params.float_per_actor, note="cold-start float")
-        self.ledger.transfer("SPONSOR", Ledger.OMEGA, params.Omega0, note="Ω float")
+            self._genesis(a, params.float_per_actor, "cold-start float")
+        self._genesis(Ledger.OMEGA, params.Omega0, "Ω float")
         # root requesters: humans, and delegates (systems holding a human's budget). A delegate
         # may post, pay, accept and dispute; it holds no ruling authority (§15.2).
         self.requesters: set[str] = set()
         for h, credits in (humans or {}).items():
             self.ledger.wallet(h)
-            self.ledger.transfer("SPONSOR", h, credits, note="requester budget")
+            self._genesis(h, credits, "requester budget")
             self.requesters.add(h)
         self.delegates: set[str] = set(delegates or [])
         if not self.delegates <= self.requesters:
@@ -468,6 +484,19 @@ class World:
         self.omega_fee_income = 0.0                     # the base service fee ω₀B per award, Ω's own income
         self.advances_made = 0.0
         self.advances_repaid = 0.0
+        # 2.0.0: the deficit (created − retired), issuance and departures, the flags and the capacity case
+        self.deficit_created = 0.0
+        self.deficit_retired = 0.0
+        self.deficit_peak = 0.0
+        self.deficit_since: Optional[int] = None
+        self.scenario_created = 0.0
+        self.departed = 0.0
+        self.below_market_flagged = 0
+        self.ceilings_raised = 0
+        self.troop_refused_capacity_seats = 0
+        self.troop_refused_capacity_awards = 0
+        self.places_held_now = 0
+        self._creation_violation: Optional[str] = None
         self._uplift_violation = None
         self.troop_summons_reviews = 0
         self.troop_summons_deliveries = 0
@@ -486,6 +515,166 @@ class World:
         self.ledger.on_event = self._on_ledger_event
         for e in self.ledger.events:                    # the floats and budgets paid in above
             self._on_ledger_event(e)
+
+    # ------------------------------------------------------- 2.0.0: money
+    def _genesis(self, wid: str, credits: float, note: str):
+        """A genesis balance: issuance under 2.0.0 (§2.4), a transfer from the backed SPONSOR before it."""
+        if credits <= 1e-12:
+            return
+        if self.p.floating and self.ledger.wallet("SPONSOR").U + 1e-9 < credits:   # a requester arriving later (a crowd)
+            self.ledger.mint("issuance", wid, credits, note=note)
+            self.issued += credits
+            return
+        self.ledger.transfer("SPONSOR", wid, credits, note=note)
+
+    def price_level(self) -> float:
+        """P_t (2.0.0 §2.3): the trailing mean of every awarded price, members' and troops', on B̄'s window — this
+        period's if it has awards, else the last period's — and P_0 before the first award."""
+        if self.period["price_n"]:
+            return self.period["price_sum"] / self.period["price_n"]
+        if self.periods and self.periods[-1].get("P_level"):
+            return self.periods[-1]["P_level"]
+        return self.p.P0
+
+    def market_price_known(self) -> bool:
+        """B̄ exists once a member has been awarded (this period or the last); before that nothing is 'below market'."""
+        return bool(self.period["award_n"]) or bool(self.periods and self.periods[-1].get("B_bar"))
+
+    def _record_price(self, B: float):
+        self.period["price_sum"] += B
+        self.period["price_n"] += 1
+        self.ledger.P_t = self.price_level()
+
+    @property
+    def deficit(self) -> float:
+        return max(0.0, self.deficit_created - self.deficit_retired)
+
+    REQUIRED_PAYMENTS = ("summons", "plant", "rebate", "scenario: deficit shock")
+
+    def _omega_ensure(self, amount: float, case: Optional[str], why: str):
+        """2.0.0 §2.5: Ω creates the shortfall on a payment the rules require — a summons, a plant, a rebate — and the
+        declared scenario operation; never a discretionary spend (I28). Retires first, so it never creates while holding."""
+        if not self.p.floating:
+            return
+        if why not in self.REQUIRED_PAYMENTS:
+            self._creation_violation = f"creation for '{why}', not a payment the rules require"
+        self._omega_retire()
+        short = amount - self.ledger.wallet(Ledger.OMEGA).U
+        if short > 1e-9:
+            self.ledger.mint("creation", Ledger.OMEGA, short, case=case, note=f"creation: {why}")
+            self.deficit_created += short
+            self.period["created"] += short
+            if self.deficit_since is None:
+                self.deficit_since = self.t
+            d = self.deficit
+            self.deficit_peak = max(self.deficit_peak, d)
+            self.period["deficit_peak"] = max(self.period["deficit_peak"], d)
+
+    def _omega_pay(self, dst: str, amount: float, case: Optional[str], why: str, note: Optional[str] = None):
+        if amount <= 1e-12:
+            return
+        self._omega_ensure(amount, case, why)
+        self.ledger.transfer(Ledger.OMEGA, dst, amount, case=case, note=note or why)
+
+    def _omega_retire(self):
+        """2.0.0 §2.5: while the deficit stands, every credit in Ω's unlocked balance is burned against it."""
+        if not self.p.floating:
+            return
+        d = self.deficit
+        if d <= 1e-9:
+            return
+        pay = min(self.ledger.wallet(Ledger.OMEGA).U, d)
+        if pay > 1e-9:
+            self.ledger.burn_unlocked("retirement", Ledger.OMEGA, pay, note="retirement")
+            self.deficit_retired += pay
+            self.period["retired"] += pay
+        if self.deficit <= 1e-9:
+            self.deficit_since = None
+
+    def _places_held(self) -> int:
+        """2.0.0 §2.6: the places of N_T held — a review seat one, a delivery two until its initial review is seated."""
+        return sum(t.get("places", 1) for t in self.troops.values() if t["t_release"] is None)
+
+    def _capacity_refuses(self, need: int) -> bool:
+        return self.p.floating and self.p.N_T > 0 and self._places_held() + need > self.p.N_T
+
+    # -- 2.0.0 requester operations (§2.1) and the declared scenario operation
+    def raise_ceiling(self, cid: str, beta: float):
+        """2.0.0 §2.1: a requester raises the ceiling of its own unawarded request, locking the difference at the
+        case's posting rate; the below-market flag is re-read."""
+        beta = amount(beta, "beta")
+        c = self._case(cid)
+        if not self.p.floating:
+            raise RuleError("raise_ceiling: a 2.0.0 operation")
+        if not c.is_root or c.plant is not None:
+            raise RuleError("raise_ceiling: a root request's ceiling only")
+        if c.state != "AVAILABLE":
+            raise RuleError(f"raise_ceiling: case {cid} is {c.state}")
+        if beta <= c.beta + 1e-9:
+            raise RuleError(f"raise_ceiling: {beta} does not raise the ceiling {c.beta}")
+        extra = (beta - c.beta) * (1.0 + self.p.omega_rate * c.m_post)
+        if self.ledger.wallet(c.requester).U + 1e-9 < extra:
+            raise LedgerError(f"raise_ceiling: {c.requester} cannot lock the difference {extra}")
+        self.ledger.lock(c.requester, extra, key=f"post:{cid}", case=cid, note="posting lock raised")
+        c.posting_lock += extra
+        old = c.beta
+        c.beta = beta
+        self.ceilings_raised += 1
+        self.period["ceilings_raised"] += 1
+        c.below_market = self.market_price_known() and c.beta + 1e-9 < self.mean_awarded_price()
+        self._log(c, f"ceiling raised {old:g} -> {beta:g}" + (" (still below market)" if c.below_market else ""))
+
+    def add_requester(self, name: str, wallet: float):
+        """2.0.0 §2.1: a requester arrives (a crowd's member) with a wallet, issued."""
+        if not self.p.floating:
+            raise RuleError("add_requester: a 2.0.0 operation")
+        if name in self.requesters or name in self.actors or name in (Ledger.OMEGA, "SPONSOR", PLANT_REQ, PLANT_ACT, DUTY_FUND, TROOP_ACCT):
+            raise RuleError(f"add_requester: {name} exists")
+        wallet = amount(wallet, "wallet")
+        self.ledger.wallet(name)
+        self._genesis(name, wallet, "requester budget (arrived)")
+        self.requesters.add(name)
+        self.humans.add(name)
+        self.history.append("requester", {"t": self.t, "requester": name, "wallet": wallet, "msg": "arrived"})
+
+    def remove_requester(self, name: str):
+        """2.0.0 (Appendix M): a requester leaves once its requests are served out; its wallet leaves M as `departure`."""
+        if not self.p.floating:
+            raise RuleError("remove_requester: a 2.0.0 operation")
+        if name not in self.requesters:
+            raise RuleError(f"remove_requester: {name} is not a requester")
+        open_cases = [c.id for c in self._live_cases.values() if c.requester == name and c.is_root
+                      and (not c.final or (c.id in self.ledger.pools and self.ledger.pools[c.id].total > 1e-9))]
+        if open_cases:
+            raise RuleError(f"remove_requester: {name} has open requests {open_cases[:3]}")
+        w = self.ledger.wallet(name)
+        if w.L > 1e-9:
+            raise RuleError(f"remove_requester: {name} holds a lock {w.L}")
+        gone = w.U
+        if gone > 1e-12:
+            self.ledger.burn_unlocked("departure", name, gone, note="departure")
+            self.departed += gone
+            self.period["departed"] += gone
+        self.requesters.discard(name)
+        self.humans.discard(name)
+        self.history.append("requester", {"t": self.t, "requester": name, "wallet": gone, "msg": "departed"})
+
+    def scenario_create(self, amount_total: float):
+        """2.0.0 §8.3, the declared scenario operation (I28's exemption by its note): Ω creates a sum and pays it to the
+        requesters in equal shares — a money event, not a rebate; retired like any created credit."""
+        if not self.p.floating:
+            raise RuleError("scenario_create: a 2.0.0 operation")
+        amount_total = amount(amount_total, "amount")
+        rec = sorted(self.humans)
+        if not rec or amount_total <= 1e-12:
+            raise RuleError("scenario_create: nobody to pay or nothing to create")
+        om = self.ledger.wallet(Ledger.OMEGA).U
+        self._omega_ensure(om + amount_total, None, "scenario: deficit shock")
+        self.scenario_created += amount_total
+        share = amount_total / len(rec)
+        for h in rec:
+            self.ledger.transfer(Ledger.OMEGA, h, share, note="scenario: deficit shock")
+        self.history.append("scenario", {"t": self.t, "created": amount_total, "to": rec, "msg": "deficit shock"})
 
     # ------------------------------------------------------------------ util
     def _case(self, cid) -> Case:
@@ -562,16 +751,44 @@ class World:
     def _freeze(self, c: Case):
         c.nominals = (c.D, c.K, c.G_V, c.phi_E, c.phi_F)
 
+    def _release_posting_lock(self, c: Case, note: str):
+        """2.0.0 §2.1: the posting lock is released whole — at award the pay-in is then drawn from the unlocked balance it
+        returns to, so β − B and the unspent fee are what stays with the requester (I29)."""
+        held = self.ledger.lock_record(c.requester, f"post:{c.id}")
+        if held > 1e-12:
+            self.ledger.release(c.requester, held, key=f"post:{c.id}", case=c.id, note=note)
+
     # --------------------------------------------------------------- requests
     def post_root(self, requester: str, beta: float) -> str:
         beta = amount(beta, "beta")
         if requester not in self.requesters:
             raise RuleError("a root requester must be a human or a delegate (§2.1)")
+        if self.p.floating:
+            # 2.0.0 §2.1 / I29: the posting locks the all-in maximum at this tick's index and fee rate — a root's first lock
+            idx = self.ledger.index()
+            D, K, GV = self.p.D * idx, self.p.K * idx, self.p.G_V * idx
+            phi_E, phi_F = self.p.phi_E_root * idx, self.p.phi_F_root * idx
+            m_post = self.m_t
+            all_in = beta + phi_E + phi_F + self.p.omega_rate * m_post * beta
+            if self.ledger.wallet(requester).U + 1e-9 < all_in:
+                raise LedgerError(f"post_root: {requester} cannot lock the all-in maximum {all_in:.3f} (β + φ^E + φ^F + ω(β)) — refused at posting (2.0.0 §2.1)")
         self._n_case += 1
         cid = f"q{self._n_case}"
         c = Case(cid, root=cid, requester=requester, is_root=True, beta=beta, t_post=self.t)
         self.cases[cid] = c
         self._live_cases[cid] = c
+        if self.p.floating:
+            c.D, c.K, c.G_V, c.phi_E, c.phi_F = D, K, GV, phi_E, phi_F
+            c.m_post, c.index_at_lock, c.posting_lock = m_post, idx, all_in
+            self._freeze(c)
+            self.ledger.lock(requester, all_in, key=f"post:{cid}", case=cid, note="posting lock (all-in maximum)")
+            c.below_market = self.market_price_known() and beta + 1e-9 < self.mean_awarded_price()
+            if c.below_market:
+                self.below_market_flagged += 1
+                self.period["below_market"] += 1
+            self._log(c, f"posted root beta={beta}; all-in {all_in:g} locked at index {idx:g}, m {m_post:g}"
+                      + (f"; flagged below market (B̄ {self.mean_awarded_price():g})" if c.below_market else ""))
+            return cid
         self._log(c, f"posted root beta={beta}")
         return cid
 
@@ -611,6 +828,8 @@ class World:
             self.ledger.release(A, self.ledger.lock_record(A, f"beta:{cid}"), key=f"beta:{cid}", case=cid)
             self.ledger.release(A, self.ledger.lock_record(A, f"rej:{cid}"), key=f"rej:{cid}", case=cid)
             c.rejection_bond = 0.0
+        elif self.p.floating and c.plant is None:
+            self._release_posting_lock(c, "posting lock released at withdrawal")
         c.state, c.final = "WITHDRAWN", True
         self._log(c, "withdrawn before award")
         if c.is_nested():
@@ -644,7 +863,12 @@ class World:
         # --- pre-checks: no mutation until every leg is known to be fundable (atomicity)
         if self.ledger.wallet(actor_id).U + 1e-9 < G:
             raise LedgerError(f"award: {actor_id} cannot fund the guarantee {G}")
-        if c.is_root:
+        if c.is_root and self.p.floating:
+            # 2.0.0 §2.1: the nominals and the fee rate froze at the posting; the posting lock covers the pay-in (I29)
+            D, K, GV, phi_E, phi_F = c.D, c.K, c.G_V, c.phi_E, c.phi_F
+            omega = omega_base * c.m_post
+            omega_fund = (omega - omega_base) if self.p.duty_fund else 0.0
+        elif c.is_root:
             idx = self.ledger.index()
             D, K, GV = self.p.D * idx, self.p.K * idx, self.p.G_V * idx
             phi_E, phi_F = self.p.phi_E_root * idx, self.p.phi_F_root * idx
@@ -662,6 +886,8 @@ class World:
         c.t_award, c.deadline = self.t, self.t + tau
         self.ledger.lock(actor_id, G, key=f"G:{cid}", case=cid, note="guarantee")
         if c.is_root:
+            if self.p.floating:
+                self._release_posting_lock(c, "posting lock released at award")
             self.ledger.fund_escrow(c.requester, cid, B, note="delivery price")
             self.ledger.fund_deposit(c.requester, cid, phi_E, note="expense allowance")
             if phi_F > 0:
@@ -694,6 +920,7 @@ class World:
         if c.is_root:
             self.period["award_price_sum"] += B
             self.period["award_n"] += 1
+            self._record_price(B)
         a.committed = cid
         self._log(c, f"awarded to {actor_id} B={B} tau={tau} G={G}; deadline {c.deadline}")
 
@@ -832,6 +1059,7 @@ class World:
                for r in c.reviews):
             raise RuleError("initial review already assigned")
         r = self._new_review(c, reviewer, "initial")
+        self._seat_delivery_inspection(c)
         if c.plant is None:
             self.plant_credit += self.pi_t              # the plant rate: π_t plants per real initial review
             self.period["initial"] += 1
@@ -1693,6 +1921,12 @@ class World:
                 check_all(self)
 
     def _process_tick(self, tick: int):
+        # 2.0.0 §2.1: issuance — each requester's wallet is credited on the declared schedule, at the tick's start
+        if self.p.floating and self.p.issuance > 0:
+            for h in sorted(self.humans):
+                self.ledger.mint("issuance", h, self.p.issuance, note="issuance")
+                self.issued += self.p.issuance
+                self.period["issued"] += self.p.issuance
         # step 2: deadlines (inclusive)
         for c in list(self._live_cases.values()):
             if c.state == "COMMITTED" and tick >= c.deadline:
@@ -1742,6 +1976,8 @@ class World:
         self._maybe_end_period(tick)
         self._rotate(tick)
         self._summon_troops(tick)                              # 1.4.0 §2.2–2.3: after the market has had its chance
+        self._omega_retire()                                   # 2.0.0 §2.5: every inflow burned while the deficit stands
+        self.places_held_now = self._places_held()
 
     def _withdraw_review(self, r: Review, burn: bool = True):
         """Timeout (burn=True): half the bond burns, the reviewer is at fault, and the position
@@ -1892,7 +2128,7 @@ class World:
         """1.6.0 §2.2: the capital the honesty clock will need for the rest of the period — the period's plant rate so far
         (π_t × the initial-review rate, floored at the previous period's) × (φ^E + φ^F) × the ticks remaining — held back
         from Ω's advances and from rebate liabilities."""
-        if not (self.p.omega_backs_fund or self.p.service_clock) or not self.p.dial or self.pi_t <= 0:
+        if self.p.floating or not (self.p.omega_backs_fund or self.p.service_clock) or not self.p.dial or self.pi_t <= 0:
             return 0.0
         elapsed = max(1, self.t - self.period["start"])
         rate = max(self.period["initial"] / elapsed, self._last_initial_rate)
@@ -1910,8 +2146,8 @@ class World:
 
     def _service_omega_liabilities(self, min_age: int):
         """1.6.0 §2.2: Ω pays its rebate liabilities of at least `min_age` ticks, oldest first, from its balance above the
-        plant reserve."""
-        if not self.omega_liabilities:
+        plant reserve. 2.0.0: no liability is ever made."""
+        if self.p.floating or not self.omega_liabilities:
             return
         keep = []
         for l in self.omega_liabilities:
@@ -1963,10 +2199,15 @@ class World:
             self._log(c, f"clock stopped at {reason}: {c.clock_ticks} ticks, on time" if not c.late_ticks
                       else f"clock stopped at {reason}: {c.clock_ticks} ticks, {c.late_ticks} late, nothing owed")
             return
-        avail = max(0.0, self.ledger.wallet(Ledger.OMEGA).U - self._plant_reserve())
-        pay = min(owed, avail)
-        if pay > 1e-12:
+        if self.p.floating:                             # 2.0.0 §2.5: paid at the stop, Ω creating the shortfall
+            self._omega_pay(c.requester, owed, c.id, "rebate")
+            pay = owed
+        else:
+            avail = max(0.0, self.ledger.wallet(Ledger.OMEGA).U - self._plant_reserve())
+            pay = min(owed, avail)
+        if pay > 1e-12 and not self.p.floating:
             self.ledger.transfer(Ledger.OMEGA, c.requester, pay, case=c.id, note="rebate")
+        if pay > 1e-12:
             c.rebate_paid += pay
             self.rebates_paid += pay
             self.period["rebates_paid"] += pay
@@ -2118,7 +2359,9 @@ class World:
         G = max(1.0, math.ceil(self.p.G_frac * B))
         netted = self.p.net_plant_capital                   # 1.3.0 §2.5: award and guarantee are Ω paying itself
         need = (phi_E + phi_F) if netted else (B + phi_E + phi_F + G)
-        if self.ledger.wallet(Ledger.OMEGA).U + 1e-9 < need:
+        if self.p.floating:
+            self._omega_ensure(need, None, "plant")             # 2.0.0 §2.5: a plant the dial calls for is a required payment
+        elif self.ledger.wallet(Ledger.OMEGA).U + 1e-9 < need:
             what = "φ^E + φ^F" if netted else "B + φ^E + φ^F + G"
             raise LedgerError(f"create_plant: Ω cannot fund {need} ({what}) from its unlocked balance")
         self._n_case += 1
@@ -2261,7 +2504,11 @@ class World:
                 "omega_min": None, "troop_panel_summons": 0,
                 # 1.7.0 §2.1: Ω's record by source — its two incomes, its own money's flows, its outflows
                 "omega_fee": 0.0, "troop_surplus": 0.0, "advances_made": 0.0, "advances_repaid": 0.0,
-                "liabilities_paid": 0.0, "plant_out": 0.0, "plant_back": 0.0}
+                "liabilities_paid": 0.0, "plant_out": 0.0, "plant_back": 0.0,
+               # 2.0.0: the price level, the deficit's flows, issuance, the flags and the capacity case
+               "price_sum": 0.0, "price_n": 0, "created": 0.0, "retired": 0.0, "deficit_peak": 0.0, "issued": 0.0,
+               "departed": 0.0, "below_market": 0, "ceilings_raised": 0, "refused_capacity_seats": 0,
+               "refused_capacity_awards": 0}
 
     def _maybe_end_period(self, tick: int):
         """Once per period — period_plants adjudicated plants or period_ticks ticks, whichever first —
@@ -2334,7 +2581,16 @@ class World:
                "rebates_paid": round(per["rebates_paid"], 6), "liabilities_accrued": round(per["liabilities_accrued"], 6),
                "liabilities_outstanding": round(sum(l["amount"] for l in self.omega_liabilities), 6),
                "open_late": self.open_late(), "omega_min": per["omega_min"], "plant_reserve": round(self._plant_reserve(), 6),
-               "troop_panel_summons": per["troop_panel_summons"]}
+               "troop_panel_summons": per["troop_panel_summons"],
+               # 2.0.0: P_t, the deficit by peak and end, issuance and departures, the flags, the capacity case
+               "P_level": round(self.price_level(), 6), "price_n": per["price_n"],
+               "created": round(per["created"], 6), "retired": round(per["retired"], 6), "deficit": round(self.deficit, 6),
+               "deficit_peak": round(per["deficit_peak"], 6), "deficit_since": self.deficit_since,
+               "omega_net": round(self.ledger.wallet(Ledger.OMEGA).U - self.deficit, 6),
+               "issued": round(per["issued"], 6), "departed": round(per["departed"], 6), "below_market": per["below_market"],
+               "ceilings_raised": per["ceilings_raised"],
+               "refused_capacity": [per["refused_capacity_seats"], per["refused_capacity_awards"]],
+               "places_held": self._places_held(), "M": round(self.ledger.M, 6)}
         self.periods.append(rec)
         self.history.append("period", rec)
         self.troop_capital_peak_prev, self.troop_capital_peak = self.troop_capital_peak, self._troop_capital_now()
@@ -2422,12 +2678,16 @@ class World:
             return self.period["award_price_sum"] / self.period["award_n"]
         if self.periods and self.periods[-1].get("B_bar"):
             return self.periods[-1]["B_bar"]
+        if self.p.floating:
+            return self.price_level()                   # 2.0.0: P_0 before the first award — the ceiling is the requester's choice now
         return 0.0
 
     @property
     def R_T(self) -> float:
         """The fund's troop reserve. 1.5.0 §2.1: the peak troop demand of the current period; 1.4.0: the peak capital
-        carried over this period and the previous one (`reserve_demand=False`)."""
+        carried over this period and the previous one (`reserve_demand=False`). 2.0.0: retired, 0."""
+        if self.p.floating:
+            return 0.0
         if self.p.reserve_demand and not self.p.troop_account:   # 1.7.0 §2.1: the troop account's reserve is capital held
             if self.p.reserve_periods >= 2:            # 1.6.0 §2.5: over this and the previous period
                 return max(self.troop_demand_peak, self.troop_demand_peak_prev)
@@ -2445,6 +2705,9 @@ class World:
     def _fund_can_carry(self, need: float, cid: str) -> bool:
         """The fund carries a summons from its unlocked balance; Ω advances the difference, up to A_T
         outstanding, repaid first from the fund's inflows (1.4.0 §2.4)."""
+        if self.p.floating:                             # 2.0.0 §2.5: the funds check is moot — Ω creates what a summons needs
+            self._omega_ensure(need, cid, "summons")
+            return True
         if not self.p.duty_fund:
             return False
         fund = self.ledger.wallet(self.troop_wallet)
@@ -2463,7 +2726,10 @@ class World:
 
     @property
     def troop_wallet(self) -> str:
-        """The troops' wallet: the troop account (1.7.0 §2.1) or, under the merged fund of 1.4.0–1.6.0, the duty fund."""
+        """The troops' wallet: Ω itself under 2.0.0 (§2.5), the troop account (1.7.0 §2.1) or, under the merged fund of
+        1.4.0–1.6.0, the duty fund."""
+        if self.p.floating:
+            return Ledger.OMEGA
         return TROOP_ACCT if self.p.troop_account else DUTY_FUND
 
     def _fee_income(self, amount: float):
@@ -2475,7 +2741,7 @@ class World:
         R_T — the two-period peak of the capital troops held — flows to Ω: a troop is an actor of the state and what it
         earns is the state's. R_T already counts the locks held, so under stress the account keeps more than R_T in
         total and nothing flows until it has refilled (the implementer's reading, Appendix L)."""
-        if not (self.p.duty_fund and self.p.troop_account):
+        if self.p.floating or not (self.p.duty_fund and self.p.troop_account):
             return
         acct = self.ledger.wallet(TROOP_ACCT)
         surplus = acct.U - self.R_T
@@ -2503,8 +2769,16 @@ class World:
         tid = f"{TROOP_PREFIX}{self._n_troop}"
         self.ledger.aliases[tid] = self.troop_wallet
         self.troops[tid] = {"kind": kind, "case": cid, "review": None, "t_summons": self.t, "t_release": None,
-                            "cost": cost, "lock": lock}
+                            "cost": cost, "lock": lock, "places": 2 if kind == "delivery" else 1}
         return tid
+
+    def _seat_delivery_inspection(self, c: Case):
+        """2.0.0 §2.6 (Appendix M): a troop delivery holds two places until its initial review is assigned — to a market
+        reviewer, after which it holds one; to a troop, after which the seat holds its own."""
+        if c.troop_award and self.is_troop(c.actor):
+            t = self.troops[c.actor]
+            if t["t_release"] is None and t.get("places", 1) == 2:
+                t["places"] = 1
 
     def _release_troop(self, tid: str):
         t = self.troops.get(tid)
@@ -2540,9 +2814,16 @@ class World:
     def _summon_review(self, c: Case, role: str, tick: int) -> Optional[str]:
         if self._positions(c) + 1 > self.p.V_max:
             return None                                 # no seat to take: the path is full (I8)
-        cost_credits = self.p.c_T                      # declared in credits at v ≈ 1; purchased as real cost c_T · v
+        cost_credits = self.p.c_T * (self.ledger.index() if self.p.floating else 1.0)   # 2.0.0: c_T indexed; before, credits at v ≈ 1
         need = cost_credits + c.G_V
         self._last_refusal_funds = False
+        if self._capacity_refuses(1):                   # 2.0.0 §2.6: the capacity case — recorded, the clock runs
+            self.troop_refused_capacity_seats += 1
+            self.period["refused_capacity_seats"] += 1
+            c.refused_capacity += 1
+            if self._pass_refused_review_tpost is None or (c.t_post is not None and c.t_post < self._pass_refused_review_tpost):
+                self._pass_refused_review_tpost = c.t_post
+            return None
         if not self._fund_can_carry(need, c.id):
             self.troop_shortfall_seats += 1
             self.period["troop_shortfall_seats"] += 1
@@ -2552,7 +2833,9 @@ class World:
                 self._pass_refused_review_tpost = c.t_post
             return None
         tid = self._new_troop("review", c.id, cost_credits, c.G_V)
-        credits = self.ledger.purchase(tid, cost_credits * self.ledger.v, case=c.id, note="troop cost (review)")
+        credits = self.ledger.purchase(tid, cost_credits if self.p.floating else cost_credits * self.ledger.v, case=c.id, note="troop cost (review)")
+        if role == "initial":
+            self._seat_delivery_inspection(c)
         self.ledger.lock(tid, c.G_V, key=None or f"bond:r{self._n_review + 1}", case=c.id, note=f"bond ({role}, troop)")
         self._n_review += 1
         rid = f"r{self._n_review}"
@@ -2592,18 +2875,37 @@ class World:
             return None                                 # priced below the market: not a shortage; waits
         G = max(1.0, math.ceil(self.p.G_frac * B))
         omega_base = self.p.omega_rate * B
-        omega = omega_base * self.m_t
-        omega_fund = (omega - omega_base) if self.p.duty_fund else 0.0
-        idx = self.ledger.index()
-        D, K, GV = self.p.D * idx, self.p.K * idx, self.p.G_V * idx
-        phi_E, phi_F = self.p.phi_E_root * idx, self.p.phi_F_root * idx
-        if self.ledger.wallet(c.requester).U + 1e-9 < B + phi_E + phi_F + omega:
-            return None                                 # the requester cannot pay in: no award, troop or not
-        cost_credits = self.p.c_D_T
+        if self.p.floating:
+            # 2.0.0: the nominals and the fee rate froze at the posting, the posting lock covers the pay-in; the state at cost
+            omega = omega_base * c.m_post
+            omega_fund = (omega - omega_base) if self.p.duty_fund else 0.0
+            idx = c.index_at_lock if c.index_at_lock is not None else self.ledger.index()
+            D, K, GV, phi_E, phi_F = c.D, c.K, c.G_V, c.phi_E, c.phi_F
+            cost_credits = B if self.p.troop_cost_at_price else self.p.c_D_T * self.ledger.index()
+            if self._capacity_refuses(2):               # §2.6: a delivery needs two places — its own and its inspection seat's
+                self.troop_refused_capacity_awards += 1
+                self.period["refused_capacity_awards"] += 1
+                c.refused_capacity += 1
+                c.capacity_wait_max = max(c.capacity_wait_max, tick - c.t_post + 1)     # seating steps, as w_A counts
+                if not c.capacity_told:
+                    c.capacity_told = True
+                    self._log(c, f"refused for capacity: {self._places_held()} of N_T = {self.p.N_T} places held; told; waited {tick - c.t_post + 1} seating steps")
+                if self._pass_refused_delivery_tpost is None or c.t_post < self._pass_refused_delivery_tpost:
+                    self._pass_refused_delivery_tpost = c.t_post
+                return None
+        else:
+            omega = omega_base * self.m_t
+            omega_fund = (omega - omega_base) if self.p.duty_fund else 0.0
+            idx = self.ledger.index()
+            D, K, GV = self.p.D * idx, self.p.K * idx, self.p.G_V * idx
+            phi_E, phi_F = self.p.phi_E_root * idx, self.p.phi_F_root * idx
+            if self.ledger.wallet(c.requester).U + 1e-9 < B + phi_E + phi_F + omega:
+                return None                                 # the requester cannot pay in: no award, troop or not
+            cost_credits = self.p.c_D_T
         # 1.6.0 §2.2: a delivery carries its inspection — a check against the fund plus Ω's available advance for its
         # own capital and two review seats; the advance drawn is the delivery's own shortfall
         carries = True
-        if self.p.omega_backs_fund:
+        if self.p.omega_backs_fund and not self.p.floating:
             need_all = cost_credits + G + 2 * (self.p.c_T + GV)
             carries = self.ledger.wallet(self.troop_wallet).U + self._omega_available() + 1e-9 >= need_all
         if not carries or not self._fund_can_carry(cost_credits + G, c.id):
@@ -2620,8 +2922,10 @@ class World:
         c.G_award = G
         c.B, c.tau, c.actor = B, self.p.tau_T, tid
         c.t_award, c.deadline = tick, tick + self.p.tau_T
-        self.ledger.purchase(tid, cost_credits * self.ledger.v, case=c.id, note="troop cost (delivery)")
+        self.ledger.purchase(tid, cost_credits if self.p.floating else cost_credits * self.ledger.v, case=c.id, note="troop cost (delivery)")
         self.ledger.lock(tid, G, key=f"G:{c.id}", case=c.id, note="guarantee (troop)")
+        if self.p.floating:
+            self._release_posting_lock(c, "posting lock released at the summons")
         self.ledger.fund_escrow(c.requester, c.id, B, note="delivery price")
         self.ledger.fund_deposit(c.requester, c.id, phi_E, note="expense allowance")
         if phi_F > 0:
@@ -2637,6 +2941,10 @@ class World:
         c.troop_award, c.member_at_award = True, True
         self.troop_summons_deliveries += 1
         self.period["troop_summons_deliveries"] += 1
+        self._record_price(B)
+        if self.p.bbar_counts_troops:                   # the declared control of 2.0.0 §8.8: the state's price counted in B̄
+            self.period["award_price_sum"] += B
+            self.period["award_n"] += 1
         self.troop_capital_peak = max(self.troop_capital_peak, self._troop_capital_now())
         self.history.append("troop", {"t": tick, "troop": tid, "kind": "delivery", "case": c.id, "B": B, "msg": "summoned"})
         self._log(c, f"troop {tid} awarded at the market price B={B:g} after the request waited {self.p.w_A} ticks unawarded")

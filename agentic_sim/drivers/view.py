@@ -38,6 +38,22 @@ class Public:
     def withdraw_unawarded(self, cid: str):
         self._w.withdraw_unawarded(cid)
 
+    def raise_ceiling(self, cid: str, beta: float):
+        """2.0.0 §2.1: a requester raises its own unawarded request's ceiling, locking the difference."""
+        self._w.raise_ceiling(cid, beta)
+
+    def add_requester(self, name: str, wallet: float):
+        """2.0.0 §2.1: a requester arrives with a wallet (a crowd's member)."""
+        self._w.add_requester(name, wallet)
+
+    def remove_requester(self, name: str):
+        """2.0.0 (Appendix M): a requester leaves once its requests are served out; its wallet departs M."""
+        self._w.remove_requester(name)
+
+    def scenario_create(self, amount: float):
+        """2.0.0 §8.3: the declared scenario operation — Ω creates a sum and pays the requesters (a money event)."""
+        self._w.scenario_create(amount)
+
     def accept_explicit(self, cid: str, requester: str):
         self._w.accept_explicit(cid, requester)
 
@@ -95,6 +111,25 @@ class Public:
                 "x_target": w._x_target, "waiting_initial": w._waiting_initial, "waiting_panel": w._waiting_panel,
                 "omega_unlocked": w.ledger.wallet(w.ledger.OMEGA).U, "omega_min_period": w.period["omega_min"],
                 "plant_reserve": w._plant_reserve(), "first_plant_adjudicated_at": w.first_plant_adjudicated_at}
+
+    def market(self) -> dict:
+        """2.0.0 readings: the price level and the market price, the deficit, issuance and departures, the flags, the capacity case."""
+        w = self._w
+        L = w.ledger
+        avail = [c for c in w._live_cases.values() if c.is_root and c.plant is None and c.state == "AVAILABLE"]
+        B_bar = w.mean_awarded_price()
+        return {"P_t": w.price_level(), "P0": w.p.P0, "B_bar": B_bar, "index": L.index(), "v": L.v, "M": L.M,
+                "created": w.deficit_created, "retired": w.deficit_retired, "deficit": w.deficit, "deficit_peak": w.deficit_peak,
+                "deficit_since": w.deficit_since, "scenario_created": w.scenario_created,
+                "omega_unlocked": L.wallet(L.OMEGA).U, "omega_net": L.wallet(L.OMEGA).U - w.deficit,
+                "issued": w.issued, "departed": w.departed,
+                "below_market_flagged": w.below_market_flagged, "below_market_waiting": sum(1 for c in avail if c.beta + 1e-9 < B_bar),
+                "ceilings_raised": w.ceilings_raised,
+                "places_held": w._places_held(), "N_T": w.p.N_T,
+                "refused_capacity_seats": w.troop_refused_capacity_seats, "refused_capacity_awards": w.troop_refused_capacity_awards,
+                "refused_capacity_waiting": sum(1 for c in avail if c.refused_capacity > 0),
+                "capacity_wait_max": max([c.capacity_wait_max for c in w._live_cases.values()] + [0]),
+                "price_n_period": w.period["price_n"], "award_n_period": w.period["award_n"]}
 
     def service(self) -> dict:
         """1.6.0 §2.1 readings: the network rating and Ω's liabilities."""
@@ -203,7 +238,10 @@ class Public:
                 "troop_account": L.wallet(TROOP_ACCT).U, "troop_surplus_paid": self._w.troop_surplus_paid,
                 "omega_fee_income": self._w.omega_fee_income, "advances_made": self._w.advances_made,
                 "advances_repaid": self._w.advances_repaid,
-                "claims_outstanding": sum(cl.amount for cl in self._w.omega_claims)}
+                "claims_outstanding": sum(cl.amount for cl in self._w.omega_claims),
+                # 2.0.0: the price level and the deficit
+                "P_t": self._w.price_level(), "deficit": self._w.deficit, "created": self._w.deficit_created,
+                "retired": self._w.deficit_retired}
 
     def events_since(self, n: int) -> list:
         """The ledger's event copy from position n on — the public record of money movements."""

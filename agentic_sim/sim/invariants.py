@@ -26,7 +26,7 @@ EPS = 1e-6
 
 ALLOWED_EVENT_KINDS = {
     "lock", "release", "transfer", "forfeit_to", "burn_bond", "purchase",
-    "mint_backed", "mint_emission", "escrow_in", "deposit_in", "feepot_in", "escrow_out",
+    "mint_backed", "mint_emission", "issuance", "creation", "retirement", "departure", "escrow_in", "deposit_in", "feepot_in", "escrow_out",
     "deposit_out", "feepot_out", "fee_out",
 }
 GRADES = {"human-explicit", "delegate-explicit", "protocol-default", "procedural", "plant"}
@@ -339,6 +339,8 @@ def _I15_expected_cases(cases, expected, netted_plants: bool = True, resolve=lam
             expected[(resolve(c.actor), f"G:{c.id}")] = c.G          # a troop's lock sits on the fund (1.4.0)
         if c.is_nested() and c.state == "AVAILABLE":
             expected[(c.requester, f"beta:{c.id}")] = c.beta
+        if c.is_root and c.state == "AVAILABLE" and c.plant is None and c.index_at_lock is not None:
+            expected[(c.requester, f"post:{c.id}")] = c.posting_lock    # 2.0.0 §2.1 / I29: the posting lock
         if c.is_nested() and c.rejection_bond > EPS:
             expected[(c.requester, f"rej:{c.id}")] = c.rejection_bond
 
@@ -689,7 +691,17 @@ def I23_load_and_fund(w):
         # 1.6.0 §2.3: member seats at least the panel seats waiting, within the cap, while members were free to seat
         if p.seat_the_queue and len(on_m) < min(cap, w._waiting_panel) and not w._member_pool_exhausted and not w._reserve_dirty:
             _fail(f"I23 {len(on_m)} members on duty with {w._waiting_panel} panel seats waiting under the cap {cap}")
-    if p.duty_fund:
+    if p.duty_fund and p.floating:
+        # 2.0.0: the uplift fund is 1.3.0's (the raised tax in, uplift out, no lock); the troops' wallet is Ω and the
+        # reserves, the advance and the order are retired (I28 holds the deficit)
+        u = w.ledger.wallet(DUTY_FUND)
+        if abs(u.W - (w.fund_in - w.fund_out)) > _tol(w.ledger.M):
+            _fail(f"I23 uplift fund {u.W} ≠ the raised tax received {w.fund_in} less the uplift paid {w.fund_out}")
+        if u.L > EPS:
+            _fail(f"I23 the uplift fund holds a lock {u.L}")
+        if w._uplift_violation:
+            _fail(f"I23 {w._uplift_violation}")
+    elif p.duty_fund:
         f = w.ledger.wallet(w.troop_wallet)       # 1.7.0 §2.1: the troop account; before it, the merged duty fund
         if p.troop_account:
             # the uplift fund is 1.3.0's again: the raised tax in, uplift out, no reserve, no lock, no other flow
@@ -792,6 +804,24 @@ def I24_troops(w, cases=None):
                 _fail(f"I24 troop {tid} delivered {c.id} above its ceiling")
             if (c.final) != (t["t_release"] is not None):
                 _fail(f"I24 troop {tid}: case {c.state} but release {t['t_release']}")
+    if w.p.floating:
+        # 2.0.0 §2.6 (Appendix M): a seat holds one place, a delivery two until its initial review is assigned, then one;
+        # the places held never exceed N_T
+        held = 0
+        for tid, t in w.troops.items():
+            if t["t_release"] is not None:
+                continue
+            pl = t.get("places", 1)
+            held += pl
+            if t["kind"] == "review" and pl != 1:
+                _fail(f"I24 troop seat {tid} holds {pl} places")
+            if t["kind"] == "delivery":
+                c = _peek(w.cases, t["case"])
+                seated = any(_peek(w.reviews, r).role == "initial" for r in c.reviews)
+                if pl not in (1, 2) or (seated and pl != 1):
+                    _fail(f"I24 troop delivery {tid} holds {pl} places with its inspection {'seated' if seated else 'unseated'}")
+        if w.p.N_T > 0 and held > w.p.N_T:
+            _fail(f"I24 {held} places held above N_T = {w.p.N_T}")
     seats = {}
     for tid, t in w.troops.items():
         key = ("r", t["review"]) if t["kind"] == "review" else ("c", t["case"])
@@ -822,6 +852,66 @@ def I25_the_obligation(w, cases=None):
                 _fail(f"I25 {c.id}: a troop audited the state's own work")
 
 
+def I27_price_and_indexing(w, cases=None):
+    """2.0.0 §2.3: P_t is the trailing mean awarded price on B̄'s window (P_0 before the first award) and the ledger
+    indexes by it; every nominal of a case priced under 2.0.0 equals its base times the index at the case's first lock
+    (§4.5, frozen); B̄ counts members' awards only (the summons never passes through `award`, so the period's award
+    count is at most its price count)."""
+    if not w.p.floating:
+        return
+    if abs(w.ledger.P_t - w.price_level()) > EPS:
+        _fail(f"I27 the ledger's P_t {w.ledger.P_t} ≠ the price level {w.price_level()}")
+    if abs(w.ledger.index() - w.price_level() / w.p.P0) > EPS:
+        _fail(f"I27 index {w.ledger.index()} ≠ P_t/P_0")
+    if w.period["award_n"] > w.period["price_n"]:
+        _fail(f"I27 B̄ counts {w.period['award_n']} awards against {w.period['price_n']} prices")
+    p = w.p
+    for c in _cases(w, cases):
+        if c.index_at_lock is None or c.plant is not None or not c.is_root:
+            continue
+        idx = c.index_at_lock
+        for name, have, base in (("D", c.D, p.D), ("K", c.K, p.K), ("G_V", c.G_V, p.G_V),
+                                 ("phi_E", c.phi_E, p.phi_E_root), ("phi_F", c.phi_F, p.phi_F_root)):
+            if abs(have - base * idx) > EPS:
+                _fail(f"I27 {c.id} {name} = {have} ≠ {base} × {idx} frozen at its first lock")
+
+
+def I28_the_deficit(w):
+    """2.0.0 §2.5: Ω creates only for a payment the rules require (or the declared scenario operation) and only when its
+    unlocked balance cannot meet it; while the deficit stands Ω's unlocked balance is zero at the tick's end; deficit
+    outstanding = created − retired ≥ 0."""
+    if not w.p.floating:
+        return
+    if w._creation_violation:
+        _fail(f"I28 {w._creation_violation}")
+    if w.deficit_created + EPS < w.deficit_retired:
+        _fail(f"I28 retired {w.deficit_retired} more than created {w.deficit_created}")
+    if w.deficit > EPS and w.ledger.wallet(w.ledger.OMEGA).U > EPS:
+        _fail(f"I28 Ω holds {w.ledger.wallet(w.ledger.OMEGA).U} unlocked while its deficit is {w.deficit}")
+    if w.deficit > EPS and w.deficit_since is None:
+        _fail("I28 the deficit's age is not recorded")
+
+
+_CREATION_NOTES = {"creation: summons", "creation: plant", "creation: rebate", "creation: scenario: deficit shock"}
+
+
+def I29_the_posting_lock(w, cases=None):
+    """2.0.0 §2.1: a root request holds, from posting to award, a lock of its all-in maximum at its posting index
+    (raised with its ceiling); after the award or withdrawal nothing of it remains."""
+    if not w.p.floating:
+        return
+    for c in _cases(w, cases):
+        if not c.is_root or c.plant is not None or c.index_at_lock is None:
+            continue
+        held = w.ledger.lock_record(c.requester, f"post:{c.id}")
+        if c.state == "AVAILABLE":
+            want = c.beta * (1.0 + w.p.omega_rate * c.m_post) + c.phi_E + c.phi_F
+            if abs(held - want) > EPS or abs(c.posting_lock - want) > EPS:
+                _fail(f"I29 {c.id} holds {held} against its all-in maximum {want} (recorded {c.posting_lock})")
+        elif held > EPS:
+            _fail(f"I29 {c.id} is {c.state} and still holds a posting lock {held}")
+
+
 CHUNK = 2048
 
 
@@ -832,6 +922,8 @@ def _audit_events(w) -> dict:
     reimb: dict[str, int] = {}
     for e in w.ledger.events:
         _I3_one(e)
+        if e.kind == "creation" and e.note not in _CREATION_NOTES:
+            _fail(f"I28 creation '{e.note}' is not a payment the rules require")
         if not _i19_event_ok(e):
             _fail(f"I19 {e.case}: {e.kind} {e.amount} '{e.note}' crosses the pots")
         cid = e.case
@@ -944,6 +1036,9 @@ def check_tick(w):
     I24_troops(w)
     I25_the_obligation(w, cases)
     I26_service(w, cases)
+    I27_price_and_indexing(w, cases)
+    I28_the_deficit(w)
+    I29_the_posting_lock(w, cases)
 
     w._events_checked = len(w.ledger.events)
     w._prune_working_set()

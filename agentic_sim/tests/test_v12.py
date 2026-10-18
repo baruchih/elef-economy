@@ -39,6 +39,7 @@ def make_world(budget=1000.0, **over):
               membership=False, duty_fund=False, net_plant_capital=False,
               service_clock=False, omega_backs_fund=False, seat_the_queue=False, panel_determined=False, reserve_periods=1)
     kw.update(over)
+    kw.setdefault("floating", False)   # 2.0.0: these are 1.x behaviours and figures — the backing, the reserves, the pay-in at award
     return World(Params(**kw), ACTORS, humans={"H": budget}, on_duty=DUTY)
 
 

@@ -76,7 +76,17 @@ KEYS = ["careful_wealth", "stamper_wealth", "careful_fees", "stamper_fees", "car
         "careful_delivery", "stamper_delivery", "members_on_duty", "probationers_on_duty", "plants_unfunded", "withdrawn_unawarded",
         # 1.7.0: the accounts and Ω's record by source
         "troop_account", "troop_surplus", "omega_fee_income", "advances_made", "advances_repaid", "liabilities_paid",
-        "liabilities_old", "members_total", "members_free", "members_committed", "suspended_waiting", "probationers", "awards_waiting"]
+        "liabilities_old", "members_total", "members_free", "members_committed", "suspended_waiting", "probationers", "awards_waiting",
+        # 1.7.1: the per-request summons
+        "awards_waiting_w_a", "members_free_at_seating", "awards_left_to_members",
+        # 2.0.0: the price level, the deficit, issuance and departures, the flags, the capacity case, real wealth, the demand side
+        "P_t", "price_index", "credit_value", "deficit", "deficit_created", "deficit_retired", "deficit_peak", "deficit_age",
+        "omega_net_position", "issued", "departed", "below_market_flagged", "below_market_waiting", "ceilings_raised", "places_held",
+        "refused_capacity_seats", "refused_capacity_awards", "refused_capacity_waiting", "capacity_wait_max",
+        "careful_wealth_real", "stamper_wealth_real", "requester_wallet_mean", "requester_unlocked_mean", "crowd_present",
+        "crowd_wallet_mean", "member_price_mean", "troop_price_mean", "c_d_now", "margin_mean", "posts_unaffordable", "posts_k_open",
+        "effort_burned", "effort_unpaid", "crowd_arrived", "crowd_departed", "shock_created", "M",
+        "lowballer_n", "lowballer_wealth_real", "lowballer_awards", "lowballer_rho", "stingy_n", "stingy_open", "stingy_wallet_mean"]
 SHORT = {"stampers": "s", "fee": "f", "on-duty": "X", "gv": "gv", "p-floor": "pf", "p-start": "p", "p-cap": "pc", "band": "band",
          "fail-rate": "b", "accuracy": "a", "ruling-accuracy": "r", "appeal-policy": "appeal", "dispute-policy": "dispute",
          "dispute-rate": "dr", "assignment": "assign", "rules": "rules", "pi0": "pi", "dial": "dial", "beta-p": "bp",

@@ -1513,6 +1513,33 @@ on everything, better than 100 at 50/50 and worse at 60/40. No value is right at
 the lever is the same one the stall reads the other way. **The item for the decision is the summons test**, before the
 working capital or the protocol.
 
+## Patch 1.7.1 — the award summons is per request (October 18, 2026)
+
+The design reviewer's ruling on run 9's addendum, relayed by Baruchi: *"The rule's meaning is per request, not per tick.
+1.4.0 §2.3: a root request that no eligible member has been awarded within w_A ticks is awarded to a troop. A free member
+takes the oldest request it can; the others, unawarded past their window with nobody offering for them, are the state's.
+So: at the seating step, requests that have waited w_A and exceed the free fundable members are summoned for, oldest
+first, after the members have taken theirs. 'Members first' is unchanged — a troop never takes an award a member offered
+for. Classification: a conformance correction, with the wording made unambiguous — 1.7.1. The text admitted both
+readings; the per-tick one contradicts the rule's stated purpose (the state fills what the market leaves). Not a
+revision; no other rule moves. T_susp stays at 100."*
+
+**Done** (`spec/agentic_economics_loop_spec_v1_7_1.md`; 1.7.0 to history; §12.3's two summons rules reworded, the ruling
+and the trace that earned it in Appendix L). Engine: `_summon_troops`'s award pass gathers the root requests past `w_A` in
+creation order, counts the free fundable members at the market price (`_free_fundable_members`), leaves that many of the
+oldest to the market and summons for the rest, oldest first, each through the unchanged delivery check (β ≥ B̄, the
+requester's pay-in, the inspection carried, the troop account plus Ω's room above the plant reserve); readings
+`awards_left_to_members` (summed over seatings, in the period record), `awards_waiting_now`, `members_free_now`; driver
+columns `awards_waiting_w_a`, `members_free_at_seating`, `awards_left_to_members`. No flag: a conformance correction
+holds in every mode, as the 1.4.0 audit obligation did, so the `--rules` controls carry it and run 8's and run 9's
+control cells are no longer reproduced to the unit. `test_v171` (4); suite 248 + 26 in all three modes; the equivalence
+scenario's goldens re-pinned once at the correcting commit (the scenario summons where one free member used to block;
+both seeds' dial now ends at 4.0); reviewer tests untouched and passing.
+
+**A smoke before the sweep, 50/50 seed 1, 1,000 ticks, for orientation only:** Ω's liability 0 and rebates paid 0 (run 9's
+seed: liability 20,643 across seeds), plants unfunded 0, troop deliveries 1,388 against 500, vested 2,284 against 1,863,
+Ω net +3,712, troop surplus to Ω 4,379, R_T 440 at the end, award summonses refused for funds 0. Read with run 10.
+
 ## Maps
 
 Two `_line` artifacts in project Agentic-OS (`c54120a6-aaff-40f7-8a9f-3667da542879`):

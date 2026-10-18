@@ -473,6 +473,9 @@ class World:
         self.troop_summons_deliveries = 0
         self.troop_shortfall_seats = 0
         self.troop_shortfall_awards = 0
+        self.awards_left_to_members = 0                 # 1.7.1: w_A-old requests left to the free fundable members, summed over seatings
+        self.awards_waiting_now = 0                     # 1.7.1: w_A-old requests at the last seating, and the members free for them
+        self.members_free_now = None
         self.troop_held_ticks = 0                       # case-ticks held for want of a seat no troop could take
         self.troop_ticks_reviews = 0
         self.troop_ticks_deliveries = 0
@@ -2252,7 +2255,7 @@ class World:
                 "award_price_sum": 0.0, "award_n": 0,
                 "troop_ticks_reviews": 0, "troop_ticks_deliveries": 0, "troop_summons_reviews": 0,
                 "troop_summons_deliveries": 0, "troop_shortfall_seats": 0, "troop_shortfall_awards": 0,
-                "troop_held_ticks": 0, "held_market_audit_max": 0,
+                "awards_left_to_members": 0, "troop_held_ticks": 0, "held_market_audit_max": 0,
                 # 1.6.0: the network rating and Ω's readings
                 "on_time": 0, "late": 0, "lateness_sum": 0, "rebates_paid": 0.0, "liabilities_accrued": 0.0,
                 "omega_min": None, "troop_panel_summons": 0,
@@ -2313,6 +2316,7 @@ class World:
                "troop_summons": [per["troop_summons_reviews"], per["troop_summons_deliveries"]],
                "troop_shortfall": [per["troop_shortfall_seats"], per["troop_shortfall_awards"], per["troop_held_ticks"]],
                "held_market_audit_max": per["held_market_audit_max"],
+               "awards_left_to_members": per["awards_left_to_members"],       # 1.7.1: the market's share of the w_A-old queue
                "fund": round(self.ledger.wallet(self.troop_wallet).U, 6), "fund_reserve": round(self.R_T, 6),
                # 1.7.0 §2.1: the uplift fund and Ω's record by source
                "uplift_fund": round(self.ledger.wallet(DUTY_FUND).U, 6),
@@ -2523,12 +2527,15 @@ class World:
             return True
         return False
 
+    def _free_fundable_members(self, G: float) -> int:
+        """The members free to commit and able to fund the guarantee at the market price: off duty, not committed,
+        no open review, a member, unlocked balance ≥ G (1.4.0 §2.3; counted, not tested, since 1.7.1)."""
+        return sum(1 for a in self.actors.values()
+                   if not a.on_duty and a.committed is None and a.open_review is None and a.is_member
+                   and self.ledger.wallet(a.id).U + 1e-9 >= G)
+
     def _free_fundable_member(self, G: float) -> bool:
-        for a in self.actors.values():
-            if not a.on_duty and a.committed is None and a.open_review is None and a.is_member \
-                    and self.ledger.wallet(a.id).U + 1e-9 >= G:
-                return True
-        return False
+        return self._free_fundable_members(G) > 0
 
     def _summon_review(self, c: Case, role: str, tick: int) -> Optional[str]:
         if self._positions(c) + 1 > self.p.V_max:
@@ -2638,8 +2645,9 @@ class World:
 
     def _summon_troops(self, tick: int):
         """1.4.0 §2.2–2.3, after the tick's seating: a required seat unfilled for w_R with no free eligible
-        on-duty reviewer, or a root request unawarded for w_A with no free fundable member, is taken by a
-        troop when the fund can carry it. The audit of a troop reviewer's approval of a troop's delivery is
+        on-duty reviewer, or a root request unawarded for w_A beyond the free fundable members (1.7.1: per
+        request — the oldest are the market's, the rest the state's, oldest first), is taken by a troop when the
+        fund can carry it. The audit of a troop reviewer's approval of a troop's delivery is
         never summoned for: it waits for a member and is counted. A seat's wait is the number of seating
         steps since it was required — required at t, it has waited 1 at t's seating and w_R at the seating
         of t + w_R − 1. Also the tick's readings."""
@@ -2690,16 +2698,26 @@ class World:
                         if self._last_refusal_funds:    # 1.5.0 §2.1: a case's demand is its unfilled seats — both
                             self._pass_refused += (remaining - i - 1) * (self.p.c_T + c.G_V)
                         break
-        # second pass: the awards, oldest request first
-        for c in list(self._live_cases.values()):
-            if c.plant is not None or any(a[3] == "override" for a in c.assessments):
-                continue
-            if c.state == "AVAILABLE" and c.is_root and self.p.troops and c.requester in self.requesters \
-                    and tick - c.t_post + 1 >= self.p.w_A:
-                B = self.mean_awarded_price() or c.beta
-                G = max(1.0, math.ceil(self.p.G_frac * B))
-                if not self._free_fundable_member(G):
-                    self._summon_delivery(c, tick)
+        # second pass: the awards, oldest request first. 1.4.0 §2.3 read per request (patch 1.7.1): a free member takes
+        # the oldest request it can, so the oldest w_A-old requests, as many as there are free fundable members, are the
+        # market's and the rest are the state's — summoned for, oldest first. (1.4.0–1.7.0 read the rule per tick: one
+        # free member blocked every award summons that tick, however long the queue — run 9's 50/50 collapse.)
+        waiting = [c for c in self._live_cases.values()
+                   if c.plant is None and not any(a[3] == "override" for a in c.assessments)
+                   and c.state == "AVAILABLE" and c.is_root and self.p.troops and c.requester in self.requesters
+                   and tick - c.t_post + 1 >= self.p.w_A]
+        if waiting:
+            B = self.mean_awarded_price() or waiting[0].beta
+            G = max(1.0, math.ceil(self.p.G_frac * B))
+            free = self._free_fundable_members(G)
+            left = min(free, len(waiting))
+            self.awards_left_to_members += left
+            self.period["awards_left_to_members"] += left
+            self.awards_waiting_now, self.members_free_now = len(waiting), free
+            for c in waiting[left:]:
+                self._summon_delivery(c, tick)
+        else:
+            self.awards_waiting_now, self.members_free_now = 0, None
         # 1.6.0 §2.2: younger liabilities after the pass; Ω's minimum balance is the period's solvency reading
         self._service_omega_liabilities(0)
         om = self.ledger.wallet(Ledger.OMEGA).U

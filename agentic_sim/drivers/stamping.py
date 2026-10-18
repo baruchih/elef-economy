@@ -708,6 +708,8 @@ class Stamping:
                     "troop_summons_reviews": tr["summons_reviews"], "troop_summons_deliveries": tr["summons_deliveries"],
                     "troop_shortfall_seats": tr["shortfall_seats"], "troop_shortfall_awards": tr["shortfall_awards"],
                     "troop_held_ticks": tr["held_ticks"], "troop_ticks_reviews": tr["troop_ticks_reviews"],
+                    "awards_waiting_w_a": tr["awards_waiting_now"], "members_free_at_seating": tr["members_free_now"],
+                    "awards_left_to_members": tr["awards_left_to_members"],
                     "troop_ticks_deliveries": tr["troop_ticks_deliveries"], "held_market_audit_now": tr["held_market_audit_now"],
                     "held_market_audit_max_age": tr["held_market_audit_max_age"], "fund_reserve": round(tr["fund_reserve"], 3),
                     "advance_outstanding": round(tr["advance_outstanding"], 3), "B_bar": round(tr["B_bar"], 3),

@@ -4,7 +4,7 @@ Built up through v0.4–v0.10, unchanged by the v1.0 consolidation and the v1.0.
 since, all on October 17, 2026: for design revision 1 (1.1.0: the verification deposit is two pots), design revision 2
 (1.2.0: the loop's own clock — planted work, the plant record, the effort dial), design revision 3 (1.3.0: inspection
 is membership), design revision 4 (1.4.0: the orchestrator's troops), design revision 5 (1.5.0: the reserve is sized to the need), design revision 6 (1.6.0: auto-scale) and, on October 18, design revision 7 (1.7.0: the state's earnings — see the seven sections below). Section numbers in code comments refer to the
-working-spec versions they were written against; `spec/agentic_economics_loop_spec_v1_7_0.md` is the text in force,
+working-spec versions they were written against; `spec/agentic_economics_loop_spec_v1_7_1.md` is the text in force,
 and its Appendix A holds the defaults that `sim/params.py` encodes.
 
 The loop's rules as code, with no strategies. Every bid, verdict, appeal, audit
@@ -90,6 +90,10 @@ tests/test_v17.py                   design revision 7 (1.7.0): a troop delivery'
                                     uplift fund pays its whole balance while the troop account keeps its reserve; a troop review
                                     seat nets its fee (its cost reimbursed from the allowance); Ω's record by source; I23 catching an
                                     uplift fund that does not reconcile or holds a lock; the cap at two thirds with its floor — 8
+tests/test_v171.py                  patch 1.7.1: the award summons is per request — the requests past w_A beyond the free
+                                    fundable members are summoned for, oldest first, the oldest left to the members; enough
+                                    free members mean no summons; a long queue with two free is served two short of its
+                                    length; the period record carries the market's share — 4
 tests/test_perf_equivalence.py      the per-tick check equals the full audit; the working-set engine reproduces the
                                     pinned History head on a seeded random scenario that now plants work (re-pinned once for
                                     1.1.0 and once for 1.2.0); the working set stays bounded — 5
@@ -100,11 +104,11 @@ tests/test_record_mode.py           the record on disk (`Params.record_dir`): th
 run_tests.py        every suite with plain python; pytest reports the same (conftest marks the XFAIL)
 ```
 
-Run: `python3 run_tests.py` — 244 pass, 0 fail, 26 expected failures, each with a stated reason (one original,
+Run: `python3 run_tests.py` — 248 pass, 0 fail, 26 expected failures, each with a stated reason (one original,
 four superseded by the view contract, nineteen on the withdrawn reopening path, one superseded by design
-revision 1, one by design revision 2). With pytest: `python3 -m pytest tests -q` reports 244 passed, 26 xfailed; the
+revision 1, one by design revision 2). With pytest: `python3 -m pytest tests -q` reports 248 passed, 26 xfailed; the
 runner expands pytest parametrization as pytest does, including multi-argument and stacked marks. (Spec Appendix D
-records the count at the v1.0.1 freeze, 156; at 1.1.0, 181; at 1.2.0, 197; at 1.3.0, 208; at 1.4.0, 218; at 1.5.0, 225; at 1.6.0, 236; at 1.7.0, 244.)
+records the count at the v1.0.1 freeze, 156; at 1.1.0, 181; at 1.2.0, 197; at 1.3.0, 208; at 1.4.0, 218; at 1.5.0, 225; at 1.6.0, 236; at 1.7.0, 244; at 1.7.1, 248.)
 
 Expected failures are **strict and parameter-exact** in both entry points: `EXPECTED_FAIL_PARAMS` names the
 parameter runs that are expected to fail inside a mixed test (the P/⊥ runs of the eighth review's first case;
@@ -498,6 +502,25 @@ sweeps the take with the rebate pinned. In the engine:
   `advances_made/repaid`, `liabilities_paid`; `drivers/sweep.py` carries them.
 - **Tests.** `test_v17.py` (8); goldens re-pinned once; `test_v13`–`test_v16` pinned to the merged fund and the half cap.
   Reviewer tests untouched and passing.
+
+## Patch 1.7.1 — the award summons is per request (October 18, 2026)
+
+Run 9's addendum (`results/studies/1.7.0-earnings/trace/`) traced the 50/50 collapse to the engine's reading of 1.4.0 §2.3:
+any one free fundable member blocked every award summons that tick, however long the queue — 79% of ticks stalled with 289
+requests waiting and two members free, the summonses in bursts when none was free. The design reviewer ruled the rule per
+request — a free member takes the oldest request it can; the others, unawarded past their window with nobody offering for
+them, are the state's — a conformance correction with the wording made unambiguous (spec §12.3, Appendix L), not a
+revision. In the engine: `_summon_troops`'s award pass gathers the root requests past `w_A` in creation order, counts the free
+fundable members at the market price (`_free_fundable_members`), leaves that many of the oldest to the market and summons
+for the rest, oldest first, each through the unchanged delivery check (β ≥ B̄, the requester's pay-in, inspection carried,
+the fund plus Ω's room); readings `awards_left_to_members` (summed over seatings; in the period record and `view.troops()`),
+`awards_waiting_now`, `members_free_now`; driver columns `awards_waiting_w_a`, `members_free_at_seating`,
+`awards_left_to_members`. No flag: the `--rules` controls carry the correction, as they carried the 1.4.0 audit obligation,
+so run 8's and run 9's control cells are no longer reproduced to the unit. `test_v171.py` (4): the requests beyond the free
+members are summoned for oldest first and the oldest are left to the members, who may still take them; free members enough
+for the queue mean no summons and the count accrues per seating; a long queue with two members free is served two short of
+its length; the period record carries the market's share. Goldens re-pinned once (the scenario summons where one free
+member used to block; both seeds' dial ends at 4.0). Reviewer tests untouched and passing.
 
 ## The expected failure
 

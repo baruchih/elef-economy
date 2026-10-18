@@ -83,6 +83,10 @@ class Public:
                 "troop_ticks_deliveries": w.troop_ticks_deliveries,
                 "held_market_audit_now": w.held_market_audit_now, "held_market_audit_max_age": w.held_market_audit_max_age,
                 "fund_reserve": w.R_T, "advance_outstanding": w.advance_outstanding, "B_bar": w.mean_awarded_price(),
+                # 1.7.1: the award summons per request — the w_A-old requests at the last seating, the members free for them,
+                # and the requests left to those members, summed
+                "awards_waiting_now": w.awards_waiting_now, "members_free_now": w.members_free_now,
+                "awards_left_to_members": w.awards_left_to_members,
                 # 1.5.0 §2.1: the troop demand at the last seating and its components
                 "demand": w.troop_demand_now, "demand_held": w.troop_demand_held, "demand_refused": w.troop_demand_refused,
                 "demand_peak_refused": w.troop_demand_peak_refused,

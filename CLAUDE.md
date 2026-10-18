@@ -1,7 +1,7 @@
 # Agentic-OS — the economic loop
 
 A rulebook for a task → verification → dispute → settlement loop among autonomous actors, and a
-reference implementation of it with no strategies. Ten external reviews. The rulebook is at **1.7.0**:
+reference implementation of it with no strategies. Ten external reviews. The rulebook is at **1.7.1**:
 the frozen 1.0.1 baseline plus seven design revisions made under §19 — the verification deposit is two
 pots (1.1.0, §4.3; after the first scoped run showed careful review paid for its own care), the loop's
 own clock (1.2.0, §7.6, §11.2, §12.2: planted work, the plant record, the effort dial; after runs 2–3
@@ -26,19 +26,22 @@ queue, and the probation leak as the plant record's lag on the auditor), and the
 is a separate troop account whose unlocked balance above R_T, now the two-period peak of the capital troops hold, flows to Ω at
 each batch; 1.4.0's "nothing a troop earns reaches Ω" withdrawn, the guards named, Ω's income by source a reading; the members'
 duty cap two thirds; ω₀ swept with the rebate pinned; after run 8 showed the troops' earnings paying the reviewers' uplift while Ω
-carried the clock's rebates on 2 a tick and went broke at 50–60%). Read `HANDOFF.md` first for where things stand
+carried the clock's rebates on 2 a tick and went broke at 50–60%) — and one patch, **1.7.1**: §12.3's summons for an award is
+read per request, not per tick — the root requests past w_A beyond the free fundable members are the state's, oldest first,
+after the members have taken theirs — a conformance correction ruled after run 9's addendum traced the 50/50 collapse to
+one free member blocking every award summons that tick; no rule moved. Read `HANDOFF.md` first for where things stand
 and what is proposed next.
 
 ## Layout
 
 ```
-spec/agentic_economics_loop_spec_v1_7_0.md   the text in force (standalone; Appendix A defaults, E errata, F–L design revisions 1–7)
+spec/agentic_economics_loop_spec_v1_7_1.md   the text in force (standalone; Appendix A defaults, E errata, F–L design revisions 1–7 and the 1.7.1 ruling)
 spec/design_revisions/                       accepted design revisions, verbatim (dr1: two pots; dr2: the loop's own clock; dr3:
                                              inspection is membership; dr4: the orchestrator's troops; dr5: the reserve is sized to
                                              the need; dr6: auto-scale; dr7: the state's earnings), and the implementer's reviews of dr2–dr7's candidates
-spec/history/                                v0.1 … v1.6.0 — superseded, kept for provenance only
+spec/history/                                v0.1 … v1.7.0 — superseded, kept for provenance only
 reviews/                                     R01–R10, one external review per version, with the reviewer's notes
-agentic_sim/                                 the engine, 26 invariants, 24 test files, runner, drivers, results
+agentic_sim/                                 the engine, 26 invariants, 25 test files, runner, drivers, results
 docs/line_map_economic_loop_v1_0_1.txt       text export of the _line map of the loop (the live map is the source)
 HANDOFF.md                                   status, history table, open questions, proposed next step
 ```
@@ -47,10 +50,10 @@ HANDOFF.md                                   status, history table, open questio
 
 ```
 cd agentic_sim
-python3 run_tests.py        # expected: 244 passed, 0 failed, 26 expected failures
+python3 run_tests.py        # expected: 248 passed, 0 failed, 26 expected failures
 python3 -S run_tests.py     # same, with no site-packages
 python3 run_tests.py --record   # same, every World in record mode
-python3 -m pytest tests -q  # expected: 244 passed, 26 xfailed, 0 xpassed (conftest mirrors the runner; pytest is not installed here)
+python3 -m pytest tests -q  # expected: 248 passed, 26 xfailed, 0 xpassed (conftest mirrors the runner; pytest is not installed here)
 python3 -m drivers.load_run --actors 200 --ticks 10000 --on-duty 40 --tasks 30 --record-dir /path  # throughput run
 python3 -m drivers.stamping --actors 20 --ticks 1000 --stampers 0.6 --seed 1 --appeal-policy truthful   # §18.1 q1 under 1.7.0
 python3 -m drivers.stamping --rules 1.6.0 --seed 1   # the 1.6.0 control: the merged fund (uplift from troop earnings), the half cap, the demand reserve
@@ -197,7 +200,8 @@ consolidated into one standalone spec with the accepted revision kept verbatim i
   obligation (the shape of the vacated-audit hold: `audit_obligation`, `open_items`); the driver rolls on
   `audit_odds(cid)` and never drops a roll; a human ruling ends the obligation. `_summon_troops` runs at
   step 5 after the seating: a required seat unfilled for `w_R` seating steps with no free eligible on-duty
-  reviewer (`_free_eligible_reviewer`), or a root request unawarded for `w_A` with no free fundable member
+  reviewer (`_free_eligible_reviewer`), or a root request unawarded for `w_A` with no free fundable member (since 1.7.1: the root requests past `w_A`
+  beyond the free fundable members, oldest first — the bullet below)
   and β ≥ B̄ (`mean_awarded_price`), gets a troop when the fund can carry cost plus bond (`_fund_can_carry`,
   with Ω's advance up to `A_T`); the audit of a troop reviewer's approval of a troop's delivery
   (`market_audit_only`, odds 1, recorded by the engine at the verdict) is never summoned for and is counted
@@ -252,6 +256,14 @@ consolidated into one standalone spec with the accepted revision kept verbatim i
   (the accepted text's "nets nothing" is corrected in Appendix L). `test_v13`–`test_v16` are pinned to the merged fund and
   the half cap. Driver: `--accounts`, `--omega-rate`, `--r-s`, `--duty-cap` defaulting by the rules; the account, surplus and
   income columns.
+- The award summons is per request (patch 1.7.1, §12.3; a conformance correction, no flag). `_summon_troops`'s award pass gathers
+  the root requests past `w_A` in creation order, counts the free fundable members at the market price (`_free_fundable_members`),
+  leaves that many of the oldest to the market and summons for the rest, oldest first, each through the unchanged delivery
+  check; readings `awards_left_to_members` (summed; in the period record and `view.troops()`), `awards_waiting_now`,
+  `members_free_now`; driver columns `awards_waiting_w_a`, `members_free_at_seating`, `awards_left_to_members`. 1.4.0–1.7.0
+  read the rule per tick (one free member blocked every award summons that tick — run 9's 50/50 collapse). `test_v171` pins
+  it; goldens re-pinned once at the correcting commit; the `--rules` controls carry the correction too (as the 1.4.0 audit
+  obligation did), so run 8's and run 9's controls are no longer reproduced to the unit.
 - Money is checked by invariant I1 (conservation) — never silently create or lose credits.
 
 ## Vocabulary (spec Appendix C has the full notation)

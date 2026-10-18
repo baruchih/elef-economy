@@ -139,11 +139,14 @@ class Stamping:
         self.kind = {aid: (STAMPER if i < n_st else CAREFUL) for i, aid in enumerate(ids)}
         if a.rules == "1.1.0":                   # the control: the 1.1.0 engine's behaviour, declared
             a.pi0, a.dial, a.p_start, a.p_cap, a.omega0 = 0.0, "off", 0.5, 0.5, 20.0
-        rev3 = a.rules in ("1.3.0", "1.4.0", "1.5.0", "1.6.0")     # 1.2.0 and 1.1.0: membership, the fund and netted capital off
-        rev4 = a.rules in ("1.4.0", "1.5.0", "1.6.0") and a.troops == "on"
-        rev5 = a.rules in ("1.5.0", "1.6.0")    # 1.4.0: the reserve is the peak capital carried, over two periods
-        rev6 = a.rules == "1.6.0"                # 1.6.0: the five rules, each behind its flag; `--rules 1.5.0` turns them off
+        rev3 = a.rules in ("1.3.0", "1.4.0", "1.5.0", "1.6.0", "1.7.0")     # 1.2.0 and 1.1.0: membership, the fund and netted capital off
+        rev4 = a.rules in ("1.4.0", "1.5.0", "1.6.0", "1.7.0") and a.troops == "on"
+        rev5 = a.rules in ("1.5.0", "1.6.0", "1.7.0")    # 1.4.0: the reserve is the peak capital carried, over two periods
+        rev6 = a.rules in ("1.6.0", "1.7.0")     # 1.6.0: the five rules, each behind its flag; `--rules 1.5.0` turns them off
+        rev7 = a.rules == "1.7.0"                # 1.7.0: the troop account behind its flag and the cap at two thirds; `--rules 1.6.0` is the control
         on = lambda flag: rev6 and flag == "on"
+        if a.duty_cap is None:
+            a.duty_cap = "twothirds" if rev7 else "half"
         p = Params(Res0=a.res0, X=a.on_duty, G_V=a.gv, p_start=a.p_start, p_cap=a.p_cap, p_floor=a.p_floor, band=a.band,
                    record_dir=a.record_dir, f_fee=a.fee, phi_E_root=a.phi_e, phi_F_root=a.phi_f,
                    pi0=a.pi0, dial=(a.dial == "on"), beta_P=a.beta_p, Omega0=a.omega0,
@@ -154,6 +157,7 @@ class Stamping:
                    panel_determined=on(a.panel_determined), reserve_periods=(a.reserve_periods if rev6 else 1),
                    duty_cap_frac={"half": 0.5, "twothirds": 2.0 / 3.0, "all": 1.0}[a.duty_cap],
                    plant_reserve_life=(0 if a.plant_reserve == "period" else 15),
+                   troop_account=(rev7 and a.accounts == "on"), omega_rate=a.omega_rate, r_s=a.r_s,
                    theta_panel=a.theta_panel, n_P=a.record_window)
         self.p = p
         world = World(p, self.actors, humans={"H": a.human_budget}, on_duty=sorted(self.actors)[: a.on_duty])
@@ -685,6 +689,10 @@ class Stamping:
                     "member_seats": d["member_seats"], "readmissions": d["readmissions"],
                     "readmission_ticks_mean": round(d["readmission_ticks_mean"], 1) if d["readmission_ticks_mean"] else "",
                     "duty_fund": round(m["duty_fund"], 3), "fund_in": round(m["fund_in"], 3), "fund_out": round(m["fund_out"], 3),
+                    # 1.7.0 §2.1: the troop account and Ω's record by source
+                    "troop_account": round(m["troop_account"], 3), "troop_surplus": round(m["troop_surplus_paid"], 3),
+                    "omega_fee_income": round(m["omega_fee_income"], 3), "advances_made": round(m["advances_made"], 3),
+                    "advances_repaid": round(m["advances_repaid"], 3),
                     "members_on_duty": sum(1 for aid in self.actors if w.actor(aid).on_duty and w.actor(aid).is_member),
                     "probationers_on_duty": sum(1 for aid in self.actors if w.actor(aid).on_duty and w.actor(aid).probation)})
         tr = w.troops()
@@ -719,6 +727,7 @@ class Stamping:
                     "mean_lateness": round(sv["lateness_sum"] / sv["late"], 3) if sv["late"] else 0.0,
                     "rebates_owed": round(sv["rebates_owed"], 3), "rebates_paid": round(sv["rebates_paid"], 3),
                     "omega_liability": round(sv["liabilities_outstanding"], 3), "liabilities_accrued": round(sv["liabilities_accrued"], 3),
+                    "liabilities_paid": round(sv["liabilities_paid"], 3),
                     "open_late": sv["open_late"],
                     "omega_unlocked": round(tr["omega_unlocked"], 3), "omega_min_period": round(tr["omega_min_period"], 3) if tr["omega_min_period"] is not None else "",
                     "plant_reserve": round(tr["plant_reserve"], 3), "x_target": tr["x_target"],
@@ -746,8 +755,9 @@ def main(argv=None):
     ap.add_argument("--p-start", type=float, default=1.0, help="a newcomer's audit odds (1.2.0 §2.4: 1.0; 1.1.0: 0.5)")
     ap.add_argument("--p-cap", type=float, default=1.0, help="the audit odds' cap on doubling (1.2.0 §2.4: 1.0; 1.1.0: 0.5)")
     ap.add_argument("--p-floor", type=float, default=0.2, help="the audit rate's floor (§8.3)")
-    ap.add_argument("--rules", choices=["1.6.0", "1.5.0", "1.4.0", "1.3.0", "1.2.0", "1.1.0"], default="1.6.0",
-                    help="1.3.0: troops off; 1.2.0: also membership, the duty fund and netted plant capital off; 1.1.0: also no "
+    ap.add_argument("--rules", choices=["1.7.0", "1.6.0", "1.5.0", "1.4.0", "1.3.0", "1.2.0", "1.1.0"], default="1.7.0",
+                    help="1.6.0: the merged fund (uplift from troop earnings) and the half cap; 1.5.0: also the five 1.6.0 rules off; "
+                         "1.3.0: troops off; 1.2.0: also membership, the duty fund and netted plant capital off; 1.1.0: also no "
                          "plants, dial off, p_start = p_cap = 0.5, Ω float 20 — declared controls. The audit obligation holds in all")
     ap.add_argument("--troops", choices=["on", "off"], default="on", help="the orchestrator's troops (1.4.0)")
     # 1.6.0: one flag per rule (all on under --rules 1.6.0; --rules 1.5.0 and earlier turn them off together)
@@ -757,7 +767,13 @@ def main(argv=None):
     ap.add_argument("--seat-queue", choices=["on", "off"], default="on", help="1.6.0 §2.3 the reserve at least the reviews waiting")
     ap.add_argument("--panel-determined", choices=["on", "off"], default="on", help="1.6.0 §2.4 a panel seat needs a determined record")
     ap.add_argument("--reserve-periods", type=int, choices=[1, 2], default=2, help="1.6.0 §2.5 R_T over this and the previous period")
-    ap.add_argument("--duty-cap", choices=["half", "twothirds", "all"], default="half", help="1.6.0 §2.6 the members' duty cap as a share of E_t")
+    ap.add_argument("--duty-cap", choices=["half", "twothirds", "all"], default=None,
+                    help="the members' duty cap as a share of E_t: two thirds under 1.7.0 (§2.3), half under --rules 1.6.0 and earlier; its own knob for the OFAT cells")
+    # 1.7.0: the troop account behind its flag; the take swept with the rebate pinned
+    ap.add_argument("--accounts", choices=["on", "off"], default="on",
+                    help="1.7.0 §2.1 the troop account beside the uplift fund (off: the 1.4.0–1.6.0 merged fund, uplift from troop earnings)")
+    ap.add_argument("--omega-rate", type=float, default=0.05, help="ω₀, the base service fee as a share of B (1.7.0 §2.4 sweeps 0.05, 0.10, 0.15)")
+    ap.add_argument("--r-s", type=float, default=0.0, help="r_s, the rebate a tick late (0 = ω₀B, the 1.6.0 default; 1.7.0 §2.4 pins 1 for the ω₀ sweep)")
     ap.add_argument("--theta-panel", type=float, default=0.20, help="θ_panel, the panel tier's bad-plant approval threshold (1.6.0 §8 sweeps 0.15)")
     ap.add_argument("--record-window", type=int, default=20, help="n_P, the plant record's trailing window (1.6.0 §8 sweeps 12)")
     ap.add_argument("--withdraw-after", type=int, default=0,
@@ -948,6 +964,9 @@ def main(argv=None):
           f"{final['plants_failed']}/{final['plants_spent']} unfunded={final['plants_unfunded']} shortfall={final['plant_shortfall']} "
           f"suspensions={final['suspensions']} alarms={final['alarms']} eligibility_shortfall={final['eligibility_shortfall']} "
           f"Ω plant spend={final['omega_plant_spend']} Ω net={final['omega_net']}")
+    print(f"  accounts (1.7.0): uplift fund={final['duty_fund']} troop account={final['troop_account']} troop surplus to Ω={final['troop_surplus']} "
+          f"Ω fee income={final['omega_fee_income']} advances made/repaid={final['advances_made']}/{final['advances_repaid']} "
+          f"rebates paid={final['rebates_paid']} liabilities paid={final['liabilities_paid']} liability={final['omega_liability']}")
     for kind in (CAREFUL, STAMPER):
         print(f"  {kind:8s} plant reviews={final[kind + '_plant_reviews']:6.2f} failures={final[kind + '_plant_failures']:5.2f} "
               f"a_hat={final[kind + '_a_hat']:.3f} suspended={final[kind + '_suspended']} duty-eligible={final[kind + '_duty_eligible']} "

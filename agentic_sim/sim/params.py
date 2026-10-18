@@ -104,11 +104,18 @@ class Params:
     seat_the_queue: bool = True
     panel_determined: bool = True
     reserve_periods: int = 2   # 1 = 1.5.0's one-period reset
-    duty_cap_frac: float = 0.5 # the members' duty cap as a fraction of E_t (§2.6 sweeps 1/2, 2/3, 1)
+    duty_cap_frac: float = 2.0 / 3.0   # the members' duty cap as a fraction of E_t — 1.7.0 §2.3 moved it from 1/2 (1.6.0 §2.6 swept
+    #                                   1/2, 2/3, 1; `--duty-cap half` is the 1.6.0 control)
     # The plant reserve's horizon (§2.2): the text says the ticks remaining in the period; a plant's pots return to Ω at
     # its closure, so the capital the clock needs at once is a plant's life of plants — the implementer's reading, W +
     # T_review ticks. 0 = the text's literal horizon (kept as a declared cell).
     plant_reserve_life: int = 15
+    # Design revision 7 (1.7.0): the state's earnings. True: the troops' wallet is a separate troop account — Ω's advances
+    # and every troop's earnings in; costs, locks, forfeits, burns, repayments out; at each settlement batch its unlocked
+    # balance above R_T flows to Ω — and the duty fund is 1.3.0's uplift fund again (the raised tax in, its whole balance
+    # out as uplift every batch, no reserve); R_T is then the two-period peak of the capital troops held (1.4.0's
+    # reading; the 1.5.0 refused component withdrawn). False: the 1.4.0–1.6.0 merged fund (`--rules 1.6.0`).
+    troop_account: bool = True
 
     # Reliability and duty credit windows (§11)
     rho_window: int = 100      # settled outcomes

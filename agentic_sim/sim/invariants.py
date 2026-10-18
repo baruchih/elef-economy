@@ -690,7 +690,14 @@ def I23_load_and_fund(w):
         if p.seat_the_queue and len(on_m) < min(cap, w._waiting_panel) and not w._member_pool_exhausted and not w._reserve_dirty:
             _fail(f"I23 {len(on_m)} members on duty with {w._waiting_panel} panel seats waiting under the cap {cap}")
     if p.duty_fund:
-        f = w.ledger.wallet(DUTY_FUND)
+        f = w.ledger.wallet(w.troop_wallet)       # 1.7.0 §2.1: the troop account; before it, the merged duty fund
+        if p.troop_account:
+            # the uplift fund is 1.3.0's again: the raised tax in, uplift out, no reserve, no lock, no other flow
+            u = w.ledger.wallet(DUTY_FUND)
+            if abs(u.W - (w.fund_in - w.fund_out)) > _tol(w.ledger.M):
+                _fail(f"I23 uplift fund {u.W} ≠ the raised tax received {w.fund_in} less the uplift paid {w.fund_out}")
+            if u.L > EPS:
+                _fail(f"I23 the uplift fund holds a lock {u.L}")
         # 1.4.0: the fund's locks are troops' bonds and guarantees and nothing else (I15 reconciles them)
         troop_locks = 0.0
         for t in w.troops.values():
@@ -712,10 +719,11 @@ def I23_load_and_fund(w):
             _fail(f"I23 Ω's advance outstanding {w.advance_outstanding} outside [0, A_T={p.A_T}]")
         if w.advance_outstanding < -EPS:
             _fail(f"I23 Ω's advance outstanding {w.advance_outstanding} negative")
-        if p.reserve_demand:                    # 1.5.0 §2.1: the reserve is at least the capital held and the last demand
+        if p.reserve_demand or p.troop_account:  # 1.5.0 §2.1 / 1.7.0 §2.1: the reserve is at least the capital held ...
             held = sum(t["cost"] + t["lock"] for t in w.troops.values() if t["t_release"] is None)
             if w.R_T + EPS < held:
                 _fail(f"I23 reserve {w.R_T} below the capital troops hold {held}")
+        if p.reserve_demand and not p.troop_account:   # ... and under the demand reserve the last demand too
             if w.R_T + EPS < w.troop_demand_now:
                 _fail(f"I23 reserve {w.R_T} below the demand at the last seating {w.troop_demand_now}")
         if w._uplift_violation:

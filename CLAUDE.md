@@ -1,8 +1,8 @@
 # Agentic-OS — the economic loop
 
 A rulebook for a task → verification → dispute → settlement loop among autonomous actors, and a
-reference implementation of it with no strategies. Ten external reviews. The rulebook is at **1.6.0**:
-the frozen 1.0.1 baseline plus six design revisions made under §19 — the verification deposit is two
+reference implementation of it with no strategies. Ten external reviews. The rulebook is at **1.7.0**:
+the frozen 1.0.1 baseline plus seven design revisions made under §19 — the verification deposit is two
 pots (1.1.0, §4.3; after the first scoped run showed careful review paid for its own care), the loop's
 own clock (1.2.0, §7.6, §11.2, §12.2: planted work, the plant record, the effort dial; after runs 2–3
 showed the loop fair only with both challengers present and blind under capture), and inspection is
@@ -21,19 +21,24 @@ liability; Ω backs the fund above a plant reserve with no advance cap, inspecti
 summoned only when its inspection can be carried too; the reserve is sized on the reviews waiting; a panel seat needs
 a determined record once the world's first plant is adjudicated; R_T over two periods — five rules, one flag each;
 after run 7 showed the reviewing seat, not the treasury, capping the market, the demand stock counting a never-expiring
-queue, and the probation leak as the plant record's lag on the auditor). Read `HANDOFF.md` first for where things stand
+queue, and the probation leak as the plant record's lag on the auditor), and the state's earnings (1.7.0, §4.1, §10.4, §12.1,
+§12.2, §12.3, I23: the duty fund is 1.3.0's uplift fund again — the raised tax in, its whole balance out — and the troops' wallet
+is a separate troop account whose unlocked balance above R_T, now the two-period peak of the capital troops hold, flows to Ω at
+each batch; 1.4.0's "nothing a troop earns reaches Ω" withdrawn, the guards named, Ω's income by source a reading; the members'
+duty cap two thirds; ω₀ swept with the rebate pinned; after run 8 showed the troops' earnings paying the reviewers' uplift while Ω
+carried the clock's rebates on 2 a tick and went broke at 50–60%). Read `HANDOFF.md` first for where things stand
 and what is proposed next.
 
 ## Layout
 
 ```
-spec/agentic_economics_loop_spec_v1_6_0.md   the text in force (standalone; Appendix A defaults, E errata, F–K design revisions 1–6)
+spec/agentic_economics_loop_spec_v1_7_0.md   the text in force (standalone; Appendix A defaults, E errata, F–L design revisions 1–7)
 spec/design_revisions/                       accepted design revisions, verbatim (dr1: two pots; dr2: the loop's own clock; dr3:
                                              inspection is membership; dr4: the orchestrator's troops; dr5: the reserve is sized to
-                                             the need; dr6: auto-scale), and the implementer's reviews of dr2–dr6's candidates
-spec/history/                                v0.1 … v1.5.0 — superseded, kept for provenance only
+                                             the need; dr6: auto-scale; dr7: the state's earnings), and the implementer's reviews of dr2–dr7's candidates
+spec/history/                                v0.1 … v1.6.0 — superseded, kept for provenance only
 reviews/                                     R01–R10, one external review per version, with the reviewer's notes
-agentic_sim/                                 the engine, 26 invariants, 23 test files, runner, drivers, results
+agentic_sim/                                 the engine, 26 invariants, 24 test files, runner, drivers, results
 docs/line_map_economic_loop_v1_0_1.txt       text export of the _line map of the loop (the live map is the source)
 HANDOFF.md                                   status, history table, open questions, proposed next step
 ```
@@ -42,13 +47,16 @@ HANDOFF.md                                   status, history table, open questio
 
 ```
 cd agentic_sim
-python3 run_tests.py        # expected: 236 passed, 0 failed, 26 expected failures
+python3 run_tests.py        # expected: 244 passed, 0 failed, 26 expected failures
 python3 -S run_tests.py     # same, with no site-packages
 python3 run_tests.py --record   # same, every World in record mode
-python3 -m pytest tests -q  # expected: 236 passed, 26 xfailed, 0 xpassed (conftest mirrors the runner; pytest is not installed here)
+python3 -m pytest tests -q  # expected: 244 passed, 26 xfailed, 0 xpassed (conftest mirrors the runner; pytest is not installed here)
 python3 -m drivers.load_run --actors 200 --ticks 10000 --on-duty 40 --tasks 30 --record-dir /path  # throughput run
-python3 -m drivers.stamping --actors 20 --ticks 1000 --stampers 0.6 --seed 1 --appeal-policy truthful   # §18.1 q1 under 1.6.0
-python3 -m drivers.stamping --rules 1.5.0 --seed 1   # the 1.5.0 control: the five 1.6.0 flags off, A_T binds, one-period reset
+python3 -m drivers.stamping --actors 20 --ticks 1000 --stampers 0.6 --seed 1 --appeal-policy truthful   # §18.1 q1 under 1.7.0
+python3 -m drivers.stamping --rules 1.6.0 --seed 1   # the 1.6.0 control: the merged fund (uplift from troop earnings), the half cap, the demand reserve
+python3 -m drivers.stamping --accounts off --seed 1   # the troop account off alone (the cap stays two thirds); --duty-cap half alone is the other OFAT cell
+python3 -m drivers.stamping --omega-rate 0.10 --r-s 1 --seed 1   # the 1.7.0 §8 take sweep: ω₀ 5/10/15% with the rebate pinned at 1 a tick
+python3 -m drivers.stamping --rules 1.5.0 --seed 1   # the 1.5.0 control: also the five 1.6.0 flags off, A_T binds, one-period reset
 python3 -m drivers.stamping --seat-queue off --seed 1   # one 1.6.0 rule off alone (also --clock, --backing, --panel-determined, --reserve-periods 1)
 python3 -m drivers.stamping --duty-cap all --omega0 1000 --t-s 5 --seed 1   # the 1.6.0 §8 sweeps' knobs; --plant-reserve period is the text's literal horizon
 python3 -m drivers.stamping --rules 1.4.0 --seed 1   # the 1.4.0 control: the reserve is the peak capital carried (two periods)
@@ -231,6 +239,19 @@ consolidated into one standalone spec with the accepted revision kept verbatim i
   (`troop_demand_peak_prev`). The period record carries on-time, late, lateness, rebates, liabilities, Ω's minimum, the
   plant reserve, troop panel summonses. I26 per tick; I9, I22, I23, I24 amended. The driver writes the rating, Ω and
   seat columns and offers `--duty-cap`, `--t-s`, `--plant-reserve`, `--beta-low/--beta-low-share`.
+- The state's earnings (1.7.0; `Params.troop_account`, on; `duty_cap_frac` 2/3; `--rules 1.6.0` turns the flag off and the cap
+  to half). The troops' wallet is `TROOP_ACCT` (`World.troop_wallet`; troop ids alias to it; the carry check, the advance, its
+  repayment, the delivery check, I23's lock reconciliation and `fund_flow` follow it); `DUTY_FUND` is the uplift fund — the
+  raised tax in and nothing else, its whole unlocked balance paid as uplift at the batch (I23: it equals `fund_in − fund_out`
+  and holds no lock). After the batch's second `_repay_advance`, `_pay_troop_surplus` sends the troop account's unlocked balance
+  above `R_T` to Ω (`troop_surplus_paid`, period `troop_surplus`); under the flag `R_T` is the 1.4.0 reading — the two-period
+  peak of `_troop_capital_now()` — and I23 keeps `R_T ≥ held`, retiring `R_T ≥ D_s` (the demand readings stay in the record).
+  Ω's record by source: `omega_fee_income` (`_fee_income` at every base-fee transfer), `advances_made/repaid`, the period's
+  `omega_income`, `omega_advances`, `omega_out` (rebates paid, liabilities paid, plant capital out and swept back),
+  `uplift_fund`. A troop reviewer's cost is reimbursed from the allowance like any reviewer's, so a review seat nets its fee
+  (the accepted text's "nets nothing" is corrected in Appendix L). `test_v13`–`test_v16` are pinned to the merged fund and
+  the half cap. Driver: `--accounts`, `--omega-rate`, `--r-s`, `--duty-cap` defaulting by the rules; the account, surplus and
+  income columns.
 - Money is checked by invariant I1 (conservation) — never silently create or lose credits.
 
 ## Vocabulary (spec Appendix C has the full notation)
@@ -253,5 +274,8 @@ refused for funds); since 1.5.0 R_T is its peak over the period, since 1.6.0 ove
 Service clock, T_s, r_s — a root request's ticks from posting to its first verdict, the target, the rebate a tick late;
 the network rating (on-time share, lateness, rebates, Ω's liability); the plant reserve; the reserve target; a
 determined record (≥ n_min bad plants adjudicated) — 1.6.0.
+Uplift fund and troop account — the duty fund restored to 1.3.0's shape, and the troops' separate wallet whose surplus above
+R_T (since 1.7.0 the two-period peak of capital held) is Ω's; Ω's income by source — base fee, troop surplus, beside its own
+money's flows and its outflows — 1.7.0.
 "Ruling" has two senses: the orchestrator rules on splits inside the procedure; only a human
 *overrides* it (spec §15.2).

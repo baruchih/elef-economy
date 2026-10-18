@@ -187,12 +187,16 @@ class Public:
 
     def money(self) -> dict:
         L = self._w.ledger
-        from sim.engine import PLANT_REQ, PLANT_ACT, DUTY_FUND
+        from sim.engine import PLANT_REQ, PLANT_ACT, DUTY_FUND, TROOP_ACCT
         plant_wallets = L.wallet(PLANT_REQ).W + L.wallet(PLANT_ACT).W
         return {"M": L.M, "Res": L.Res, "v": L.v, "omega": L.wallet(L.OMEGA).U,
                 "omega_total": L.wallet(L.OMEGA).W + plant_wallets,      # Ω's money, plants' working capital included
                 "omega_in_plants": plant_wallets,
                 "duty_fund": L.wallet(DUTY_FUND).U, "fund_in": self._w.fund_in, "fund_out": self._w.fund_out,
+                # 1.7.0 §2.1: the troop account and Ω's record by source
+                "troop_account": L.wallet(TROOP_ACCT).U, "troop_surplus_paid": self._w.troop_surplus_paid,
+                "omega_fee_income": self._w.omega_fee_income, "advances_made": self._w.advances_made,
+                "advances_repaid": self._w.advances_repaid,
                 "claims_outstanding": sum(cl.amount for cl in self._w.omega_claims)}
 
     def events_since(self, n: int) -> list:

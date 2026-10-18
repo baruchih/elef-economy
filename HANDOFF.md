@@ -1,4 +1,4 @@
-# Handoff — where the economic loop stands, October 17, 2026
+# Handoff — where the economic loop stands, October 18, 2026
 
 ## In one paragraph
 
@@ -1378,6 +1378,60 @@ reformer* 3,146 poorer than careful; *camouflage* buys nothing.
 
 The reviewer notes are `agentic_sim/results/studies/1.6.0-autoscale-notes-for-reviewer.md`. Untouched: §18.1
 questions 2, 4, 5, 7, 10.
+
+## Design revision 7 — the state's earnings (1.7.0, October 18, 2026)
+
+The seventh use of §19's path, and the one Baruchi named: *why should an inspector profit from something a troop did? from
+their perspective it's just like any other actor in the system.* Run 8's finding (above) was that the panel rule is the
+honesty gain and Ω's backing the capacity gain, and that the clock's liability is a stock the orchestrator cannot pay
+down — the troops' net at 60/40, 6,200–6,800 a run, went to the market's reviewers as uplift by 1.4.0's clause that
+nothing a troop earns reaches Ω, while the same Ω carried the rebates on about 2 a tick and ended near zero at 50–60%
+with liabilities of 20,000–26,000 and plants unfunded. The design reviewer's rc.1 was reviewed
+(`spec/design_revisions/dr7_1.7.0-rc.1-review.md`: one decision — the ω₀ sweep moved the rebate r_s = ω₀B and the
+surcharge with the fee; one piece of run-8 evidence the text lacked — the two-thirds cap at 60/40 triples plants unfunded,
+81 → 272, so Hypothesis 1's plants-zero edge is tight; four figures — R_T was 952–3,494 at 60/40, not 270, and its job had
+changed; a troop review seat's earnings; the surcharge about 7 a tick so uplift falls by two fifths), rc.2 adopted all
+five with the smaller points (`dr7_1.7.0-rc.2-review.md`: implementable; R_T redefined as the two-period peak of capital
+held with its purpose stated, r_s pinned at 1 for the sweep, Ω's record by source), and the design reviewer relayed
+acceptance: "accept rc.2, implement … the three OFAT cells first, plants unfunded read first, every comparison from the
+second period on, and the state's share read beside the refusals".
+
+**The rules (§4.1, §10.4, §12.1, §12.2, §12.3, I23).** *Two accounts again:* the duty fund is 1.3.0's uplift fund —
+the raised tax in and nothing else, its whole balance out as uplift at every batch, no reserve, no lock; the troops'
+wallet is a separate troop account — Ω's advances and every troop's earnings in; costs, locks, forfeits, burns,
+repayments out; at each batch the unlocked balance above R_T flows to Ω. *The clause withdrawn:* a troop is an actor of
+the state and its earnings are the state's; the guards that stand in its place (members first at every seat, the windows,
+cost at summons, no emission/uplift/ρ/κ to a troop, the state's share public) plus one reading, Ω's income by source.
+*R_T is capital held:* the two-period peak of costs purchased plus locks, every troop in the field; the 1.5.0 refused
+component withdrawn (its reason went with A_T); its purpose now the troops' in-flight capacity shielded from the liability
+queue. *Ω pays its debts from its income:* the 1.6.0 order unchanged and funded; the plant reserve's horizon ruled a
+plant's life. *The cap* ⌈2E_t/3⌉. *ω₀ swept {5, 10, 15}% with r_s pinned at 1.* Three 1.6.1 wording items folded in.
+Rejected and recorded: the fund paying rebates before uplift (the right money, the wrong pocket); the account as a
+pass-through; expiry or admission control now — the cannot-serve protocol held as 1.8.0's candidate if 50/50's liability
+does not clear.
+
+**Implemented** (`spec/agentic_economics_loop_spec_v1_7_0.md`; 1.6.0 to history; rc.2 verbatim as
+`spec/design_revisions/dr7_the_states_earnings_1.7.0.md`; Appendix L; §18.1 Q13 and Q16 continued, Q17 new). Engine:
+`Params.troop_account` (on) and `duty_cap_frac` 2/3; the wallet `TROOP_ACCT` with troop ids aliased to it and the carry
+check, the advance, its repayment, the delivery check, the lock reconciliation and `fund_flow` following it; the batch
+pays the duty fund's whole balance as uplift and then `_pay_troop_surplus` sends the troop account's unlocked balance
+above `R_T` to Ω; `R_T` the two-period peak of capital held under the flag; Ω's record by source in the period record;
+I23 amended (the uplift fund equals the raised tax received less the uplift paid and holds no lock; `R_T ≥ D_s` retired
+with the component). `test_v17` (8); suite 244 + 26 in all three modes; goldens re-pinned once (both factors move the
+scenario: the account and the cap); reviewer tests untouched and passing; `test_v13`–`test_v16` pinned to the merged
+fund and the half cap. Driver: `--rules 1.7.0` with `--accounts`, `--duty-cap` by the rules, `--omega-rate`, `--r-s`;
+the account, surplus and income columns; `--rules 1.6.0` is the control.
+
+**Found at implementation — a figure, not a rule, and my own error to report.** rc.2 §1.5, §2.1 and §6 say a troop
+*review seat* nets nothing (fee 2 or 3 against a cost of 3), adopting my rc.1 review's point 4. The engine has reimbursed
+a troop reviewer's cost from the requester's expense allowance like any reviewer's since 1.4.0 — 1.4.0 §6 and `test_v14`
+say so ("−3 cost, +3 reimbursed, +3 fee") — so a troop review seat nets its fee, +3 for an audit, and under 1.7.0 that is
+the state's too. The surplus is larger than the text says (about 1,950 troop review seats a run at 60/40 earned their
+fees beside the deliveries' net); no rule moves; the consolidated text states the seat's earnings correctly, the accepted
+text is kept verbatim with the note in Appendix L, `test_v17` pins the figure. A smoke at 60/40 seed 1, for orientation
+only: Ω's liability 0 (rebates 2,314 paid at the stop, 2,230 serviced), plants unfunded 0, Ω net +1,966, troop surplus to
+Ω 6,415, troop deliveries 1,729 against the control's 1,102 (award summonses refused 459 against 17,493), careful wealth
+4,284 against 5,088 (awards 116 against 158, the uplift gone), reviews unassigned 4,224 against 7,557. Read with run 9.
 
 ## Maps
 

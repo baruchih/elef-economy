@@ -167,16 +167,18 @@ def fingerprint(w: World) -> dict:
 # 1f5bf324… / 7876 (the 1.3.0 figures were re-pinned at 1.4.0 since the roll became an obligation and troops are
 # summoned; at 1.5.0 the reserve counts refused demand, so the uplift paid — and the period record — change; 1.5.0
 # (01b75e2) 89a9b62d… / 8172 and 9462aea8… / 7876; at 1.6.0 the clock pays rebates from Ω, Ω backs the fund above a
-# plant reserve, the reserve seats the queue and panels need a determined record, so the scenario's path changes). Each
+# plant reserve, the reserve seats the queue and panels need a determined record, so the scenario's path changes; 1.6.0
+# (195896a) a49c2c9e… / 8154 and 1d052569… / 6159; at 1.7.0 the troop account pays its surplus to Ω instead of the reviewers'
+# uplift and the members' cap is two thirds, so the scenario's seating and settlement change). Each
 # changed with the rule, as a change to settlement, the reserve or membership must, and was re-pinned once, at the
 # implementing commit.
 GOLDEN = {
-    1: {"head": "a49c2c9ed795042f5e84ecc8443db3c23e1077dae26ef2f4553ae1ba53373aee", "entries": 8154,
-        "M": 198838.377727, "Res": 198435.139843,
-        "states": {"FINAL_N": 180, "VESTED": 55, "WITHDRAWN": 10, "CANCELLED": 2, "PENDING": 10, "AVAILABLE": 2}},
-    2: {"head": "1d052569833c1e892921e58d7950831fa4e93662c77e9526806a651a58b56ad5", "entries": 6159,
-        "M": 199063.966655, "Res": 198873.319344,
-        "states": {"FINAL_N": 131, "VESTED": 48, "WITHDRAWN": 6, "AVAILABLE": 77}},
+    1: {"head": "cb1ea471a1c15248f44b2e9da1896e9c054d503e641aaa3086c4be82ccd326f7", "entries": 7817,
+        "M": 199034.656355, "Res": 198584.956388,
+        "states": {"FINAL_N": 157, "VESTED": 63, "WITHDRAWN": 16, "CANCELLED": 2, "PENDING": 7, "AVAILABLE": 17}},
+    2: {"head": "1a568fcd5dbdf72aacd48d279ccbc4481f192acef11e5560efa594afbdd4eb27", "entries": 4309,
+        "M": 199437.324815, "Res": 199295.126565,
+        "states": {"FINAL_N": 105, "VESTED": 23, "PENDING": 1, "WITHDRAWN": 2, "AVAILABLE": 103}},
 }
 
 
@@ -204,8 +206,12 @@ def test_full_audit_agrees_with_tick_check_and_behaviour_is_unchanged(seed):
     # and, since 1.2.0, the paths of design revision 2
     outcomes = {c.plant_outcome for c in w.cases.values() if c.plant is not None}
     assert outcomes >= {"stood", "failure", "spent"}
-    assert w.suspensions > 0 and len(w.periods) == 4 and w.m_t == w.p.m_max
-    assert w.fund_in > 0 and abs(w.ledger.wallet("DUTY-FUND").W - w.fund_flow) < 1e-6   # 1.3.0/1.4.0: the fund's flows reconcile (I23)
+    assert w.suspensions > 0 and len(w.periods) == 4 and w.m_t >= 3.0        # the dial rose (seed 2 ends at 3.6 under 1.7.0)
+    # 1.3.0/1.4.0: the troops' wallet's flows reconcile (I23); 1.7.0: that wallet is the troop account, and the uplift fund
+    # is the raised tax received less the uplift paid
+    assert w.fund_in > 0 and abs(w.ledger.wallet(w.troop_wallet).W - w.fund_flow) < 1e-6
+    assert abs(w.ledger.wallet("DUTY-FUND").W - (w.fund_in - w.fund_out)) < 1e-6
+    assert w.ledger.wallet(w.troop_wallet).W + w.troop_surplus_paid > 0          # the troops earned, and it is the state's
 
 
 def test_scheduled_full_audit_runs_inside_advance():

@@ -48,6 +48,7 @@ PLANT_REQ, PLANT_ACT = "OMEGA-REQ", "OMEGA-ACT"
 # The duty fund (1.3.0 §2.4): the dial's raised tax, (m_t − 1) ω_0 B of each award, paid out to the reviews
 # settling in each batch by role weight as an uplift on the fixed fee.
 DUTY_FUND = "DUTY-FUND"
+TROOP_ACCT = "TROOP-ACCT"     # 1.7.0 §2.1: the troop account, the troops' wallet when Params.troop_account
 TROOP_PREFIX = "T"                              # 1.4.0: a troop id, single-use, aliased to the fund's wallet
 
 
@@ -461,7 +462,12 @@ class World:
         self._waiting_initial = 0
         self._waiting_panel = 0
         self._priority_violation = None                 # I26: a younger case summoned after an older one was refused
-        self.fund_flow = 0.0                            # Σ of every event into/out of the fund's wallet (I23)
+        self.fund_flow = 0.0                            # Σ of every event into/out of the troops' wallet (I23)
+        # 1.7.0 §2.1: the troop surplus paid to Ω and Ω's record by source
+        self.troop_surplus_paid = 0.0
+        self.omega_fee_income = 0.0                     # the base service fee ω₀B per award, Ω's own income
+        self.advances_made = 0.0
+        self.advances_repaid = 0.0
         self._uplift_violation = None
         self.troop_summons_reviews = 0
         self.troop_summons_deliveries = 0
@@ -510,9 +516,10 @@ class World:
         vested case after its vesting (deferred reimbursements and Ω claims excepted, §6)."""
         L = self.ledger
         if e.kind not in ("lock", "release"):
-            if e.dst is not None and L.resolve(e.dst) == DUTY_FUND and not str(e.dst).startswith("pool:"):
+            tw = self.troop_wallet
+            if e.dst is not None and L.resolve(e.dst) == tw and not str(e.dst).startswith("pool:"):
                 self.fund_flow += e.amount
-            if e.src is not None and L.resolve(e.src) == DUTY_FUND:
+            if e.src is not None and L.resolve(e.src) == tw:
                 self.fund_flow -= e.amount
         cid = e.case
         if cid is None:
@@ -658,6 +665,7 @@ class World:
                 self.ledger.fund_fee_pot(c.requester, cid, phi_F, note="fee pot")
             if omega - omega_fund > 1e-12:
                 self.ledger.transfer(c.requester, Ledger.OMEGA, omega - omega_fund, case=cid, note="service fee")
+                self._fee_income(omega - omega_fund)
             if omega_fund > 1e-12:
                 self.ledger.transfer(c.requester, DUTY_FUND, omega_fund, case=cid, note="duty fund")
                 self.fund_in += omega_fund
@@ -672,6 +680,7 @@ class World:
                 self.ledger.release(A, unspent, key=f"beta:{cid}", case=cid, note="unspent beta'")
             if omega - omega_fund > 1e-12:
                 self.ledger.transfer(A, Ledger.OMEGA, omega - omega_fund, case=cid, note="service fee (nested)")
+                self._fee_income(omega - omega_fund)
             if omega_fund > 1e-12:
                 self.ledger.transfer(A, DUTY_FUND, omega_fund, case=cid, note="duty fund (nested)")
                 self.fund_in += omega_fund
@@ -1623,6 +1632,7 @@ class World:
                 u = self.ledger.wallet(wid).U
                 if u > 1e-12:
                     self.ledger.transfer(wid, Ledger.OMEGA, u, case=root.id, note="tree closure: plant funds swept to Ω")
+                    self.period["plant_back"] += u
         self._service_omega_claims()
 
     def _plant_notional(self, c: Case) -> bool:
@@ -1706,7 +1716,12 @@ class World:
             epw = (E / total_w) if total_w > 0 else 0.0
             self._repay_advance()                               # 1.4.0 §2.4: the advance is repaid before any uplift
             fund_u = self.ledger.wallet(DUTY_FUND).U
-            avail = max(0.0, fund_u - self.R_T) if self.p.duty_fund else 0.0   # uplift only above the troops' reserve
+            if not self.p.duty_fund:
+                avail = 0.0
+            elif self.p.troop_account:
+                avail = fund_u                                  # 1.7.0 §2.1: the uplift fund pays its whole balance (1.3.0)
+            else:
+                avail = max(0.0, fund_u - self.R_T)             # the merged fund: uplift only above the troops' reserve
             upw = (avail / total_w) if total_w > 0 else 0.0
             paid_before = self.fund_out
             for c in vesting:
@@ -1717,6 +1732,7 @@ class World:
             if self.fund_out - paid_before > avail + 1e-6:          # I23: uplift only from above the reserve
                 self._uplift_violation = f"uplift {self.fund_out - paid_before} paid from a fund of {fund_u} with reserve {self.R_T}"
             self._repay_advance()                               # the batch's inflows (fees, released locks) repay Ω first
+            self._pay_troop_surplus()                           # 1.7.0 §2.1: the troop account's unlocked balance above R_T is Ω's
         # step 4: Ω services claims
         self._service_omega_claims()
         # step 5: the dial, once per period (1.2.0 §2.3), then rotation under the reserve it sized
@@ -1901,6 +1917,7 @@ class World:
                 pay = min(l["amount"], avail)
                 self.ledger.transfer(Ledger.OMEGA, l["requester"], pay, case=l["case"], note="rebate (Ω liability serviced)")
                 self.liabilities_paid += pay
+                self.period["liabilities_paid"] += pay
                 c = self.cases[l["case"]]
                 c.rebate_paid += pay
                 if l["amount"] - pay > 1e-12:
@@ -2112,8 +2129,10 @@ class World:
         # Ω funds its two system wallets; the plant is then awarded and submitted at once
         self.ledger.transfer(Ledger.OMEGA, PLANT_REQ, need if netted else B + phi_E + phi_F, case=cid,
                              note="plant: requester funded by Ω")
+        self.period["plant_out"] += need if netted else B + phi_E + phi_F
         if not netted:
             self.ledger.transfer(Ledger.OMEGA, PLANT_ACT, G, case=cid, note="plant: actor funded by Ω")
+            self.period["plant_out"] += G
         c.D, c.K, c.G_V, c.phi_E, c.phi_F, c.omega, c.G = D, K, GV, phi_E, phi_F, 0.0, G
         c.G_award = G
         c.B, c.tau, c.actor = B, 1, PLANT_ACT
@@ -2236,7 +2255,10 @@ class World:
                 "troop_held_ticks": 0, "held_market_audit_max": 0,
                 # 1.6.0: the network rating and Ω's readings
                 "on_time": 0, "late": 0, "lateness_sum": 0, "rebates_paid": 0.0, "liabilities_accrued": 0.0,
-                "omega_min": None, "troop_panel_summons": 0}
+                "omega_min": None, "troop_panel_summons": 0,
+                # 1.7.0 §2.1: Ω's record by source — its two incomes, its own money's flows, its outflows
+                "omega_fee": 0.0, "troop_surplus": 0.0, "advances_made": 0.0, "advances_repaid": 0.0,
+                "liabilities_paid": 0.0, "plant_out": 0.0, "plant_back": 0.0}
 
     def _maybe_end_period(self, tick: int):
         """Once per period — period_plants adjudicated plants or period_ticks ticks, whichever first —
@@ -2291,7 +2313,13 @@ class World:
                "troop_summons": [per["troop_summons_reviews"], per["troop_summons_deliveries"]],
                "troop_shortfall": [per["troop_shortfall_seats"], per["troop_shortfall_awards"], per["troop_held_ticks"]],
                "held_market_audit_max": per["held_market_audit_max"],
-               "fund": round(self.ledger.wallet(DUTY_FUND).U, 6), "fund_reserve": round(self.R_T, 6),
+               "fund": round(self.ledger.wallet(self.troop_wallet).U, 6), "fund_reserve": round(self.R_T, 6),
+               # 1.7.0 §2.1: the uplift fund and Ω's record by source
+               "uplift_fund": round(self.ledger.wallet(DUTY_FUND).U, 6),
+               "omega_income": {"fee": round(per["omega_fee"], 6), "troop_surplus": round(per["troop_surplus"], 6)},
+               "omega_advances": {"made": round(per["advances_made"], 6), "repaid": round(per["advances_repaid"], 6)},
+               "omega_out": {"rebates_paid": round(per["rebates_paid"], 6), "liabilities_paid": round(per["liabilities_paid"], 6),
+                             "plant_out": round(per["plant_out"], 6), "plant_back": round(per["plant_back"], 6)},
                "advance": round(self.advance_outstanding, 6), "B_bar": round(self.mean_awarded_price(), 6),
                # 1.5.0 §2.1: the period's peak demand, how much of it was refused, and the demand at its last seating
                "demand_peak": round(self.troop_demand_peak, 6), "demand_peak_refused": round(self.troop_demand_peak_refused, 6),
@@ -2396,7 +2424,7 @@ class World:
     def R_T(self) -> float:
         """The fund's troop reserve. 1.5.0 §2.1: the peak troop demand of the current period; 1.4.0: the peak capital
         carried over this period and the previous one (`reserve_demand=False`)."""
-        if self.p.reserve_demand:
+        if self.p.reserve_demand and not self.p.troop_account:   # 1.7.0 §2.1: the troop account's reserve is capital held
             if self.p.reserve_periods >= 2:            # 1.6.0 §2.5: over this and the previous period
                 return max(self.troop_demand_peak, self.troop_demand_peak_prev)
             return self.troop_demand_peak
@@ -2415,32 +2443,61 @@ class World:
         outstanding, repaid first from the fund's inflows (1.4.0 §2.4)."""
         if not self.p.duty_fund:
             return False
-        fund = self.ledger.wallet(DUTY_FUND)
+        fund = self.ledger.wallet(self.troop_wallet)
         if fund.U + 1e-9 >= need:
             return True
         short = need - fund.U
         room = self._omega_available()                 # 1.6.0 §2.2: above the plant reserve; 1.5.0: under A_T
         adv = min(short, room)
         if adv > 1e-12:
-            self.ledger.transfer(Ledger.OMEGA, DUTY_FUND, adv, case=cid, note="Ω advance to the duty fund")
+            self.ledger.transfer(Ledger.OMEGA, self.troop_wallet, adv, case=cid,
+                                 note="Ω advance to the troop account" if self.p.troop_account else "Ω advance to the duty fund")
             self.advance_outstanding += adv
+            self.advances_made += adv
+            self.period["advances_made"] += adv
         return fund.U + 1e-9 >= need
+
+    @property
+    def troop_wallet(self) -> str:
+        """The troops' wallet: the troop account (1.7.0 §2.1) or, under the merged fund of 1.4.0–1.6.0, the duty fund."""
+        return TROOP_ACCT if self.p.troop_account else DUTY_FUND
+
+    def _fee_income(self, amount: float):
+        self.omega_fee_income += amount
+        self.period["omega_fee"] += amount
+
+    def _pay_troop_surplus(self):
+        """1.7.0 §2.1: at each settlement batch, after the advance is repaid, the troop account's unlocked balance above
+        R_T — the two-period peak of the capital troops held — flows to Ω: a troop is an actor of the state and what it
+        earns is the state's. R_T already counts the locks held, so under stress the account keeps more than R_T in
+        total and nothing flows until it has refilled (the implementer's reading, Appendix L)."""
+        if not (self.p.duty_fund and self.p.troop_account):
+            return
+        acct = self.ledger.wallet(TROOP_ACCT)
+        surplus = acct.U - self.R_T
+        if surplus > 1e-9:
+            self.ledger.transfer(TROOP_ACCT, Ledger.OMEGA, surplus, note="troop surplus to Ω")
+            self.troop_surplus_paid += surplus
+            self.period["troop_surplus"] += surplus
 
     def _repay_advance(self):
         if self.advance_outstanding <= 1e-12:
             return
-        fund = self.ledger.wallet(DUTY_FUND)
+        fund = self.ledger.wallet(self.troop_wallet)
         pay = min(fund.U, self.advance_outstanding)
         if pay > 1e-12:
-            self.ledger.transfer(DUTY_FUND, Ledger.OMEGA, pay, note="duty fund repays Ω's advance")
+            self.ledger.transfer(self.troop_wallet, Ledger.OMEGA, pay,
+                                 note="troop account repays Ω's advance" if self.p.troop_account else "duty fund repays Ω's advance")
             self.advance_outstanding -= pay
+            self.advances_repaid += pay
+            self.period["advances_repaid"] += pay
             if self.advance_outstanding < 1e-12:
                 self.advance_outstanding = 0.0
 
     def _new_troop(self, kind: str, cid: str, cost: float, lock: float) -> str:
         self._n_troop += 1
         tid = f"{TROOP_PREFIX}{self._n_troop}"
-        self.ledger.aliases[tid] = DUTY_FUND
+        self.ledger.aliases[tid] = self.troop_wallet
         self.troops[tid] = {"kind": kind, "case": cid, "review": None, "t_summons": self.t, "t_release": None,
                             "cost": cost, "lock": lock}
         return tid
@@ -2541,7 +2598,7 @@ class World:
         carries = True
         if self.p.omega_backs_fund:
             need_all = cost_credits + G + 2 * (self.p.c_T + GV)
-            carries = self.ledger.wallet(DUTY_FUND).U + self._omega_available() + 1e-9 >= need_all
+            carries = self.ledger.wallet(self.troop_wallet).U + self._omega_available() + 1e-9 >= need_all
         if not carries or not self._fund_can_carry(cost_credits + G, c.id):
             self.troop_shortfall_awards += 1
             self.period["troop_shortfall_awards"] += 1
@@ -2564,6 +2621,7 @@ class World:
             self.ledger.fund_fee_pot(c.requester, c.id, phi_F, note="fee pot")
         if omega - omega_fund > 1e-12:
             self.ledger.transfer(c.requester, Ledger.OMEGA, omega - omega_fund, case=c.id, note="service fee")
+            self._fee_income(omega - omega_fund)
         if omega_fund > 1e-12:
             self.ledger.transfer(c.requester, DUTY_FUND, omega_fund, case=c.id, note="duty fund")
             self.fund_in += omega_fund

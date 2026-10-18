@@ -1,10 +1,10 @@
-# agentic_sim — reference implementation of the 1.6.0 baseline
+# agentic_sim — reference implementation of the 1.7.0 baseline
 
 Built up through v0.4–v0.10, unchanged by the v1.0 consolidation and the v1.0.1 errata, and changed four times
 since, all on October 17, 2026: for design revision 1 (1.1.0: the verification deposit is two pots), design revision 2
 (1.2.0: the loop's own clock — planted work, the plant record, the effort dial), design revision 3 (1.3.0: inspection
-is membership), design revision 4 (1.4.0: the orchestrator's troops), design revision 5 (1.5.0: the reserve is sized to the need) and design revision 6 (1.6.0: auto-scale — see the six sections below). Section numbers in code comments refer to the
-working-spec versions they were written against; `spec/agentic_economics_loop_spec_v1_4_0.md` is the text in force,
+is membership), design revision 4 (1.4.0: the orchestrator's troops), design revision 5 (1.5.0: the reserve is sized to the need), design revision 6 (1.6.0: auto-scale) and, on October 18, design revision 7 (1.7.0: the state's earnings — see the seven sections below). Section numbers in code comments refer to the
+working-spec versions they were written against; `spec/agentic_economics_loop_spec_v1_7_0.md` is the text in force,
 and its Appendix A holds the defaults that `sim/params.py` encodes.
 
 The loop's rules as code, with no strategies. Every bid, verdict, appeal, audit
@@ -84,6 +84,12 @@ tests/test_v16.py                   design revision 6 (1.6.0): the service clock
                                     inspection check with the advance drawn on its own shortfall; the reserve seating the queue;
                                     a panel seat needing a determined record once the first plant is adjudicated; R_T over two
                                     periods; I26 catching — 11
+tests/test_v17.py                   design revision 7 (1.7.0): a troop delivery's earnings land in the troop account and the uplift
+                                    fund sees none of them (the 1.6.0 control pays them out as uplift); the surplus flows to Ω only
+                                    from above R_T, the two-period peak of capital held, and a refusal no longer raises it; the
+                                    uplift fund pays its whole balance while the troop account keeps its reserve; a troop review
+                                    seat nets its fee (its cost reimbursed from the allowance); Ω's record by source; I23 catching an
+                                    uplift fund that does not reconcile or holds a lock; the cap at two thirds with its floor — 8
 tests/test_perf_equivalence.py      the per-tick check equals the full audit; the working-set engine reproduces the
                                     pinned History head on a seeded random scenario that now plants work (re-pinned once for
                                     1.1.0 and once for 1.2.0); the working set stays bounded — 5
@@ -94,11 +100,11 @@ tests/test_record_mode.py           the record on disk (`Params.record_dir`): th
 run_tests.py        every suite with plain python; pytest reports the same (conftest marks the XFAIL)
 ```
 
-Run: `python3 run_tests.py` — 236 pass, 0 fail, 26 expected failures, each with a stated reason (one original,
+Run: `python3 run_tests.py` — 244 pass, 0 fail, 26 expected failures, each with a stated reason (one original,
 four superseded by the view contract, nineteen on the withdrawn reopening path, one superseded by design
-revision 1, one by design revision 2). With pytest: `python3 -m pytest tests -q` reports 236 passed, 26 xfailed; the
+revision 1, one by design revision 2). With pytest: `python3 -m pytest tests -q` reports 244 passed, 26 xfailed; the
 runner expands pytest parametrization as pytest does, including multi-argument and stacked marks. (Spec Appendix D
-records the count at the v1.0.1 freeze, 156; at 1.1.0, 181; at 1.2.0, 197; at 1.3.0, 208; at 1.4.0, 218; at 1.5.0, 225; at 1.6.0, 236.)
+records the count at the v1.0.1 freeze, 156; at 1.1.0, 181; at 1.2.0, 197; at 1.3.0, 208; at 1.4.0, 218; at 1.5.0, 225; at 1.6.0, 236; at 1.7.0, 244.)
 
 Expected failures are **strict and parameter-exact** in both entry points: `EXPECTED_FAIL_PARAMS` names the
 parameter runs that are expected to fail inside a mixed test (the P/⊥ runs of the eighth review's first case;
@@ -456,6 +462,42 @@ rules, each behind a `Params` flag so run 8 can attribute them; `--rules 1.5.0` 
   `--plant-reserve {life,period}`, `--beta-low`/`--beta-low-share` (the below-market poster; awards at the request's own
   ceiling). `drivers/sweep.py` carries the columns and the abbreviations.
 - **Tests.** `test_v16.py` (11); goldens re-pinned once. Reviewer tests untouched and passing.
+
+## Design revision 7 — the state's earnings (1.7.0, October 18, 2026)
+
+Run 8 under 1.6.0 (`results/studies/1.6.0-autoscale/`) showed the panel rule the honesty gain, Ω's backing the capacity
+gain, and the clock's liability a stock the orchestrator could not pay down: the troops' net at 60/40, 6,200–6,800 a run,
+went to the market's reviewers as uplift by 1.4.0's clause that nothing a troop earns reaches Ω, while Ω carried the
+rebates on about 2 a tick of base fee and ended near zero at 50–60% with plants unfunded. Design revision 7 (accepted as
+rc.2; `spec/design_revisions/dr7_the_states_earnings_1.7.0.md`, consolidated into `spec/agentic_economics_loop_spec_v1_7_0.md`
+§4.1, §10.4, §12.1, §12.2, §12.3, I23 and Appendix L) separates the two accounts again, moves the cap to two thirds and
+sweeps the take with the rebate pinned. In the engine:
+
+- **Two wallets, one flag** (`Params.troop_account`, on; `--rules 1.6.0` turns it off with the cap at half). `TROOP_ACCT` is
+  the troops' wallet (`World.troop_wallet`): troop ids alias to it in `_new_troop`; `_fund_can_carry`, `_repay_advance`,
+  `_summon_delivery`'s check, I23's lock reconciliation and `fund_flow` (the ledger hook) follow it; `advances_made/repaid`
+  count Ω's own money. `DUTY_FUND` is the uplift fund: the raised tax in at every award (`fund_in`) and nothing else; the
+  batch pays its whole unlocked balance as uplift (`avail = fund_u` under the flag; `fund_u − R_T` for the merged fund).
+- **The surplus to Ω.** After the batch's second `_repay_advance`, `_pay_troop_surplus` transfers the troop account's
+  unlocked balance above `R_T` to Ω (`troop_surplus_paid`; the period's `troop_surplus`). `R_T` under the flag is the 1.4.0
+  reading — `max(troop_capital_peak, troop_capital_peak_prev)`, the two-period peak of `_troop_capital_now()` — and the
+  1.5.0 demand readings stay in the record. I23: the uplift fund equals `fund_in − fund_out` and holds no lock; the troop
+  account reconciles against its flows; `R_T ≥ held` stands and `R_T ≥ D_s` is checked only for the demand reserve.
+- **Ω's record by source.** `_fee_income` at every base-fee transfer (`omega_fee_income`, the period's `omega_fee`); the
+  period record carries `uplift_fund`, `omega_income {fee, troop_surplus}`, `omega_advances {made, repaid}`, `omega_out
+  {rebates_paid, liabilities_paid, plant_out, plant_back}`; `view.money()` carries the account, the surplus and the counters.
+- **The cap** (`duty_cap_frac` 2/3): `_member_cap` unchanged, its fraction moved; the floor V_max + 1 still wins at
+  memberships of four to six.
+- **Found at implementation.** A troop reviewer's cost is reimbursed from the requester's allowance like any reviewer's
+  (since 1.4.0), so a troop review seat nets its fee — +3 for an audit — not nothing as the accepted text says on the
+  implementer's own rc.1 figure; Appendix L records it, `test_v17` pins it. The equivalence scenario's dial ends at 3.6 at
+  one seed under the two-thirds cap; the pin reads it risen, not at its cap.
+- **Drivers.** `drivers/stamping.py`: `--rules 1.7.0` (default) with `--accounts {on,off}`, `--duty-cap` defaulting by the
+  rules (two thirds under 1.7.0, half under `--rules 1.6.0` and earlier) and its own knob for the OFAT cells, `--omega-rate`
+  and `--r-s` for the take sweep with the rebate pinned; columns `troop_account`, `troop_surplus`, `omega_fee_income`,
+  `advances_made/repaid`, `liabilities_paid`; `drivers/sweep.py` carries them.
+- **Tests.** `test_v17.py` (8); goldens re-pinned once; `test_v13`–`test_v16` pinned to the merged fund and the half cap.
+  Reviewer tests untouched and passing.
 
 ## The expected failure
 

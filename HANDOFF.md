@@ -1540,6 +1540,37 @@ both seeds' dial now ends at 4.0); reviewer tests untouched and passing.
 seed: liability 20,643 across seeds), plants unfunded 0, troop deliveries 1,388 against 500, vested 2,284 against 1,863,
 Ω net +3,712, troop surplus to Ω 4,379, R_T 440 at the end, award summonses refused for funds 0. Read with run 10.
 
+## Run 10 — the tipping cells under 1.7.1 against run 9 (October 18, 2026)
+
+`agentic_sim/results/studies/1.7.1-summons/tipping/` (and `1.7.1-summons.zip`): 80 runs — 50–80% stampers × 20 seeds, 20
+actors, 1,000 ticks, logged every 20 ticks, every final audit passed, engine 8d9b866; read from the second period on against
+run 9's 1.7.0 cells. The notes for the reviewer are `agentic_sim/results/studies/1.7.1-summons-notes-for-reviewer.md`.
+
+**50/50 clears, by the summons alone** (run 9 in brackets): queue 38 (609), on time 1.00 from the second period on (0.25),
+lateness 0 (90), Ω's liability 0 (20,643), rebates paid 0 (1,782), plants unfunded 0 in every seed (138), troop deliveries
+1,400 (500), summonses refused for funds 0 (23,497), Ω at the end 4,306 (59), the surplus 4,639 beside the base fee 2,996
+(2,743 / 2,418). 60/40: liability 0 (317), on time 1.00 (0.89), deliveries 1,753 (1,719), refused 0 (607). 70/30: already
+clear, unchanged (1,831 against 1,859). 80/20: liability 0 (226), plants unfunded 0 (3.6), deliveries 2,054 (2,132) —
+unchanged in what was asked, as expected, since its four members were never free and the two readings coincided. **The
+summons is steady:** 34 / 43 / 45 / 50 deliveries summoned per 20-tick window at 50–80%, max within 20% of the mean,
+windows with none 3.8% / 1.5% / 0.9% / 0.2% (run 9's 50/50: 62% of windows, bursts to 60); requests past w_A at the seating
+never above 3. **R_T is no longer set by burst peaks:** 448 / 568 / 607 / 689 at the end with the run's maximum within 20% of
+the mean (run 9: maxima 1,129–1,587 against means 400–754) — the steady in-flight capital, about twenty deliveries. **False
+approvals unchanged** within noise, 11 / 14 / 15 / 18 (11 / 14 / 14 / 16), the lagging auditor zero everywhere; **careful
+wealth within 2%** at every split (4,111 / 4,302 / 4,638 / 5,226 against 4,056 / 4,250 / 4,659 / 5,190), stampers five to
+seven times poorer.
+
+**Two readings flagged, no rule moved.** *w_A now binds in fact:* a request the free members have not taken within two
+ticks is the state's that tick, so the members' awards fall (162 → 129 at 50/50, 43 → 40 at 80/20, 8.5 from the second
+period on there) and the state delivers 46% / 57% / 60% / 67% of what vests — the market's share is now the default w_A's
+choice, at the cost of the lateness a longer window admits; the state's share is visible in "Ω's income by source" (the
+surplus 1.5 to 2.7 times the base fee). *The clock is dormant:* lateness zero at every split (awarded or summoned by
+w_A = 2, the fastest troop path 5 against T_s = 8), so the rebate, the liability and its order were exercised in no run of
+this study; untested, not wrong. **For the decision:** the reviewer's condition is met — 50/50 clears with no rule
+changed — so by the reviewer's note 1.8.0 is the cannot-serve protocol alone and the growth buffer is dropped; its trigger
+(a summons refused for funds, a queue past the window) fired in none of the 80 runs, so its first test is below 50% or
+with a float too small to carry twenty deliveries in flight.
+
 ## Maps
 
 Two `_line` artifacts in project Agentic-OS (`c54120a6-aaff-40f7-8a9f-3667da542879`):

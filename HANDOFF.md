@@ -1433,6 +1433,59 @@ only: Ω's liability 0 (rebates 2,314 paid at the stop, 2,230 serviced), plants 
 Ω 6,415, troop deliveries 1,729 against the control's 1,102 (award summonses refused 459 against 17,493), careful wealth
 4,284 against 5,088 (awards 116 against 158, the uplift gone), reviews unassigned 4,224 against 7,557. Read with run 9.
 
+## Run 9 — the revision's §8 under 1.7.0 (October 18, 2026)
+
+`agentic_sim/results/studies/1.7.0-earnings/` (and `1.7.0-earnings.zip`): `ofat/` (80: the 1.6.0 control, the accounts
+alone, the cap alone, both, at 60/40, logged every 20 ticks), `tipping/` (160: 1.7.0 and the 1.6.0 two-thirds control at
+50–80%, logged every 20 ticks), `take/` (120: ω₀ {5, 10, 15}% × {50/50, 60/40}, r_s pinned at 1), `adaptive/` (20),
+`drift/` (40), `redteam/` (100) — 520 runs, 20 seeds per cell, 20 actors, every final audit passed, engine 003a238. The
+1.6.0 control reproduces run 8 to the unit. Read from the second period on. The notes for the reviewer are
+`agentic_sim/results/studies/1.7.0-earnings-notes-for-reviewer.md`; the figures below are the headline ones.
+
+**One factor at a time, 60/40** (plants unfunded / Ω's liability / Ω at the end / on-time from the second period on /
+queue / troop deliveries / award summonses refused): the 1.6.0 control 81 / 19,778 / 94 / 0.47 / 94 / 1,353 / 13,049;
+the accounts alone under the half cap **124 / 16,694 / 347 / 0.28 / 718 / 560 / 33,638**; the cap alone 272 / 3,512 / 47
+/ 0.83 / 44 / 1,723 / 1,979; **both 0.7 / 317 / 4,352 / 0.89 / 42 / 1,719 / 607**, troop surplus to Ω 6,029, careful
+wealth 4,250 (uplift 795 against 1,291). Both together do what Hypothesis 1 says: plants unfunded zero in 17 of 20
+seeds (2, 4 and 8 in three; one seed tipped), the liability a few hundred, Ω above 4,000 through the last period. **The
+accounts alone are worse than the control:** under the merged fund the troops were financed by the surcharge whatever
+Ω owed; under the two accounts every summons beyond the capital held is Ω's advance, and Ω pays debts older than a
+period first — once the half cap lets lateness accrue, the debts take Ω's income, the state cannot summon, and the next
+period is later still. R_T as capital held (461) shields the in-flight cohort and nothing more; the cap is what keeps
+the loop from closing.
+
+**Tipping** (1.7.0 against the 1.6.0 two-thirds control): at 60–80% solvent and on time — liability 317 / 0 / 226, Ω
+4,352 / 7,967 / 9,215, plants unfunded 0.7 / 0.1 / 3.6, on-time 0.89 / 0.97 / 0.95 — with the state's share unchanged
+within noise (1,719 vs 1,723; 1,859 vs 1,861; 2,132 vs 2,075) while refusals fall (Hypothesis 3 holds as the rc.2 review
+framed it); the honest 12 / 18 / 25% poorer (uplift down two fifths to a half) and five to six times richer than a
+stamper (Hypothesis 4); false approvals 11 / 14 / 14 / 16 against 13 / 13 / 14 / 17, the lag kind zero. **At 50/50 the
+market collapses** — queue 609 (control 129), the state delivering 500 against 1,169, on-time 0.25, liability 20,643 —
+by the same mechanism: Ω starts richer (1,852 against 708 at the end of the first period), the suspensions make the
+market late from the third period, and from the fifth the old debts are paid before any advance (Ω 1,032 → 73 over
+seven periods; troop deliveries per period 51 → 19 while the control's rise to 90–113). Hypothesis 2 is answered:
+50/50's liability does not clear, and the two accounts close 1.6.0 §1.4's loop harder than the merged fund did.
+Ω's income by source is a line, not a trend (surplus 5–9 a tick at 60/40 against a fee of 3; 10–11 at 80/20).
+
+**The take:** at 60/40, 10% clears everything — liability 0, plants unfunded 0, Ω 7,836, careful wealth 5,066 (above the
+control: the surcharge doubles too); at 50/50 fees do not carry the clock at any take swept (liability 20,643 / 13,169
+/ 7,637, queue 609 / 342 / 178 at 5 / 10 / 15%). **Adaptive:** honest at tick 575 (735); the liability stock halves
+(12,538 against 26,259) and clears in 5 seeds of 20, as before — no troops once honest, so no surplus (Hypothesis 5
+fails); plants unfunded 396 (493). **Drift:** solvent (liability 779 / 0 against 13,104 / 7,915; plants unfunded 3.7 /
+6.7 against 20 / 67); false approvals 32 (34) at m_max 4 and **80 (64) at m_max 2** — more state deliveries, more
+pinned approvals inside the auditor's lag (71% / 59% of the upheld route). **Red team:** the late withdrawer now costs
+and gains nothing (liability 0, on-time 0.95); the flood breaks Ω as before (liability 55,829 against 75,598) and the
+state's take grows with volume it cannot serve (fee income 4,568 against 2,993, surplus 8,280 against 6,029) — Q17's
+reading, not an exploit; the decliner loses 1,123 (209) and drags the market (queue 541); the reformer 2,881 poorer
+(3,146) with the market collapsing around the readmitted reformers (troop deliveries 421); camouflage buys nothing.
+
+**For the next decision, in order:** (1) the troops' working capital at 50/50 — advances before old debts under stress,
+or a working-capital target above R_T, or the cannot-serve protocol that bounds the debt at the source (the take does
+not do it: 15% at 50/50 leaves 7,600 owed); (2) the take at 60/40 as 10% if plants unfunded must be exactly zero in
+every seed; (3) the liability stock that never clears once honest; (4) the honest 12–25% poorer — Baruchi's call; (5)
+drift at m_max 2, false approvals 80 against 64, read with Q14 first. Also reported: my rc.1 review's point 4 (a troop
+review seat "nets nothing") was wrong — the seat nets its fee, its cost reimbursed from the allowance since 1.4.0; the
+accepted text carries the figure, Appendix L and `test_v17` correct it.
+
 ## Maps
 
 Two `_line` artifacts in project Agentic-OS (`c54120a6-aaff-40f7-8a9f-3667da542879`):

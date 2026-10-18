@@ -1486,6 +1486,33 @@ drift at m_max 2, false approvals 80 against 64, read with Q14 first. Also repor
 review seat "nets nothing") was wrong — the seat nets its fee, its cost reimbursed from the allowance since 1.4.0; the
 accepted text carries the figure, Appendix L and `test_v17` correct it.
 
+**Run 9 addendum — two evaluations the reviewer asked for, rules unchanged** (`trace/` 60 runs logged every 10 ticks,
+`tsusp/` 120; engine d804628 — the driver gained the readings and `--t-susp`). *(1) The 50/50 collapse by period.* The
+splits are identical through the second period and part at the third, when the stampers are suspended and ten members
+remain at 50/50 against eight at 60/40: about five on duty at both, so five deliver at 50/50 against three, and one or
+two are free at the seating step on most ticks. The engine reads 1.4.0 §12.3's "no member free to commit" per tick — one
+free member blocks every award summons that tick — so at 50/50 the state is blocked on 79% of ticks with 289 requests
+waiting and 2.0 members free (60/40: 54%, 14 waiting, 1.5 free, but the members are all committed often enough that the
+state summons 21 deliveries per 10 ticks); the summonses come in bursts when none is free (the first at tick 288, 38 at
+once; 70% of all troop deliveries in bursts of twenty or more), the queue grows a request a tick between them, and the
+queue's age is the lateness. The 1.6.0 control at 50/50 stalls the same way (74%); the service paths diverge at tick
+504 (range 320–690): a burst is bounded by what can be advanced that tick (Ω above the plant reserve under 1.7.0; the
+surcharge-fed fund plus Ω under 1.6.0, whose bursts are larger — p90 43 against 23), the stall's rebates are paid in
+cash by Ω under 1.7.0 and as a liability under 1.6.0, each burst sets R_T high so the account retains its earnings for
+two periods, and from tick 396 (period 5) Ω's balance above the plant reserve goes to liabilities older than a period
+before any advance — after which the control pulls ahead, 110–141 deliveries a period against 24–39. The collapse is the
+stall; the two accounts decide how the bursts are financed. For the record: the other reading of the rule — summon for
+the requests beyond the free fundable members — is the reviewer's to rule on; the same per-tick test is why 1.6.0's
+Hypothesis 2 came out inverted in run 8. *(2) T_susp ∈ {0, 50, 100}.* At 0 a suspended stamper is a probationer at the
+next rotation (460–570 suspensions a run); probationers carry the initial seats, fewer members sit on duty, more are
+free to deliver — at 50/50 that helps (queue 173 against 609, on-time 0.70, liability 5,963, plants unfunded 0) and at
+60/40 it breaks the market (queue 519 against 42, liability 13,497, troop deliveries 78), because the state is blocked
+nearly always; honesty pays at both (false approvals 26 / 23 against 11 / 14, the probationers' 17 / 15 against 3;
+stampers two and a half times richer on probation fees); audits by members up a third at 50/50. T_susp = 50 is between
+on everything, better than 100 at 50/50 and worse at 60/40. No value is right at both splits and none repairs 50/50;
+the lever is the same one the stall reads the other way. **The item for the decision is the summons test**, before the
+working capital or the protocol.
+
 ## Maps
 
 Two `_line` artifacts in project Agentic-OS (`c54120a6-aaff-40f7-8a9f-3667da542879`):

@@ -99,6 +99,8 @@ class Public:
                 "rebates_owed": w.rebates_owed, "rebates_paid": w.rebates_paid,
                 "liabilities_accrued": w.liabilities_accrued, "liabilities_paid": w.liabilities_paid,
                 "liabilities_outstanding": sum(l["amount"] for l in w.omega_liabilities),
+                # the part older than a period — what Ω pays before it advances (1.6.0 §2.2)
+                "liabilities_old": sum(l["amount"] for l in w.omega_liabilities if w.t - l["t"] >= w.p.period_ticks),
                 "open_late": w.open_late()}
 
     # -- the orchestrator's planted work and its clock (1.2.0 §2.1–§2.3) -----------

@@ -157,7 +157,7 @@ class Stamping:
                    panel_determined=on(a.panel_determined), reserve_periods=(a.reserve_periods if rev6 else 1),
                    duty_cap_frac={"half": 0.5, "twothirds": 2.0 / 3.0, "all": 1.0}[a.duty_cap],
                    plant_reserve_life=(0 if a.plant_reserve == "period" else 15),
-                   troop_account=(rev7 and a.accounts == "on"), omega_rate=a.omega_rate, r_s=a.r_s,
+                   troop_account=(rev7 and a.accounts == "on"), omega_rate=a.omega_rate, r_s=a.r_s, T_susp=a.t_susp,
                    theta_panel=a.theta_panel, n_P=a.record_window)
         self.p = p
         world = World(p, self.actors, humans={"H": a.human_budget}, on_duty=sorted(self.actors)[: a.on_duty])
@@ -694,7 +694,15 @@ class Stamping:
                     "omega_fee_income": round(m["omega_fee_income"], 3), "advances_made": round(m["advances_made"], 3),
                     "advances_repaid": round(m["advances_repaid"], 3),
                     "members_on_duty": sum(1 for aid in self.actors if w.actor(aid).on_duty and w.actor(aid).is_member),
-                    "probationers_on_duty": sum(1 for aid in self.actors if w.actor(aid).on_duty and w.actor(aid).probation)})
+                    "probationers_on_duty": sum(1 for aid in self.actors if w.actor(aid).on_duty and w.actor(aid).probation),
+                    # the trace of run 9's addendum: who is where, and what waits
+                    "members_total": sum(1 for aid in self.actors if w.actor(aid).is_member),
+                    "members_free": sum(1 for aid in self.actors if w.actor(aid).is_member and not w.actor(aid).on_duty
+                                        and w.actor(aid).committed is None),
+                    "members_committed": sum(1 for aid in self.actors if w.actor(aid).is_member and w.actor(aid).committed is not None),
+                    "suspended_waiting": sum(1 for aid in self.actors if w.actor(aid).suspended_until is not None),
+                    "probationers": sum(1 for aid in self.actors if w.actor(aid).probation),
+                    "awards_waiting": sum(1 for cid in self.active if w.case(cid).state == "AVAILABLE")})
         tr = w.troops()
         row.update({"troops_active_reviews": tr["active_reviews"], "troops_active_deliveries": tr["active_deliveries"],
                     "troop_summons_reviews": tr["summons_reviews"], "troop_summons_deliveries": tr["summons_deliveries"],
@@ -727,7 +735,7 @@ class Stamping:
                     "mean_lateness": round(sv["lateness_sum"] / sv["late"], 3) if sv["late"] else 0.0,
                     "rebates_owed": round(sv["rebates_owed"], 3), "rebates_paid": round(sv["rebates_paid"], 3),
                     "omega_liability": round(sv["liabilities_outstanding"], 3), "liabilities_accrued": round(sv["liabilities_accrued"], 3),
-                    "liabilities_paid": round(sv["liabilities_paid"], 3),
+                    "liabilities_paid": round(sv["liabilities_paid"], 3), "liabilities_old": round(sv["liabilities_old"], 3),
                     "open_late": sv["open_late"],
                     "omega_unlocked": round(tr["omega_unlocked"], 3), "omega_min_period": round(tr["omega_min_period"], 3) if tr["omega_min_period"] is not None else "",
                     "plant_reserve": round(tr["plant_reserve"], 3), "x_target": tr["x_target"],
@@ -774,6 +782,7 @@ def main(argv=None):
                     help="1.7.0 §2.1 the troop account beside the uplift fund (off: the 1.4.0–1.6.0 merged fund, uplift from troop earnings)")
     ap.add_argument("--omega-rate", type=float, default=0.05, help="ω₀, the base service fee as a share of B (1.7.0 §2.4 sweeps 0.05, 0.10, 0.15)")
     ap.add_argument("--r-s", type=float, default=0.0, help="r_s, the rebate a tick late (0 = ω₀B, the 1.6.0 default; 1.7.0 §2.4 pins 1 for the ω₀ sweep)")
+    ap.add_argument("--t-susp", type=int, default=100, help="T_susp, the suspension length before probation (1.3.0 Appendix A: 100; run 9's addendum sweeps 0, 50, 100)")
     ap.add_argument("--theta-panel", type=float, default=0.20, help="θ_panel, the panel tier's bad-plant approval threshold (1.6.0 §8 sweeps 0.15)")
     ap.add_argument("--record-window", type=int, default=20, help="n_P, the plant record's trailing window (1.6.0 §8 sweeps 12)")
     ap.add_argument("--withdraw-after", type=int, default=0,

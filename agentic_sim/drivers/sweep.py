@@ -75,14 +75,15 @@ KEYS = ["careful_wealth", "stamper_wealth", "careful_fees", "stamper_fees", "car
         "waiting_initial", "waiting_panel", "troop_panel_seats", "active_cases", "reviews_unassignable_ticks",
         "careful_delivery", "stamper_delivery", "members_on_duty", "probationers_on_duty", "plants_unfunded", "withdrawn_unawarded",
         # 1.7.0: the accounts and Ω's record by source
-        "troop_account", "troop_surplus", "omega_fee_income", "advances_made", "advances_repaid", "liabilities_paid"]
+        "troop_account", "troop_surplus", "omega_fee_income", "advances_made", "advances_repaid", "liabilities_paid",
+        "liabilities_old", "members_total", "members_free", "members_committed", "suspended_waiting", "probationers", "awards_waiting"]
 SHORT = {"stampers": "s", "fee": "f", "on-duty": "X", "gv": "gv", "p-floor": "pf", "p-start": "p", "p-cap": "pc", "band": "band",
          "fail-rate": "b", "accuracy": "a", "ruling-accuracy": "r", "appeal-policy": "appeal", "dispute-policy": "dispute",
          "dispute-rate": "dr", "assignment": "assign", "rules": "rules", "pi0": "pi", "dial": "dial", "beta-p": "bp",
          "camouflage": "cam", "omega0": "om", "drift-to": "drift", "adapt-rate": "adapt", "fund": "fund", "m-max": "mmax",
          "stamper-mode": "mode", "troops": "troops", "w-r": "wR", "w-a": "wA", "c-d-t": "cD", "eps-t": "eT", "a-t": "AT",
          "decline-awards": "dec", "tasks": "k", "clock": "clk", "backing": "bak", "seat-queue": "sq", "panel-determined": "pd",
-         "reserve-periods": "rp", "duty-cap": "cap", "t-s": "Ts", "beta-low": "bl", "beta-low-share": "bls", "accounts": "acc", "omega-rate": "rate", "r-s": "rs",
+         "reserve-periods": "rp", "duty-cap": "cap", "t-s": "Ts", "beta-low": "bl", "beta-low-share": "bls", "accounts": "acc", "omega-rate": "rate", "r-s": "rs", "t-susp": "tsusp",
          "plant-reserve": "pr", "theta-panel": "thp", "record-window": "nP", "withdraw-after": "wd", "omega0": "om"}
 
 

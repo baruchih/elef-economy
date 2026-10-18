@@ -1670,11 +1670,39 @@ duty, the two free members are awarded every tick they are free, so their margin
 deficit stayed at zero, the field slack (2–7 places of 40), posting K_open- and lock-bound (~2 a tick), M growing in hoards. The worked
 example's P_t ≈ 9 assumes members plentiful. Rules and the declared policies stand; run 12 reads which it is.
 
-**Run 12 (next).** The revision's §8 in order, in real terms from the second period on, against runs 10–11 as the fixed-price controls:
-reproduce §6; price discovery at 50–80% against `--bid ceiling`; the deficit shock at 60/40 (1,000 / 2,000 / 5,000 at tick 600, N_T 40 and 0);
-the riot under prices (the crowd of thirty for 100 ticks, the flood of twelve, N_T 40 and 0); the knobs (λ 0.5, c^D_T half, issuance 15, the
-adaptive reservation); adaptive and drift in real terms; the red team (collusion at the ceiling = the control, a member bidding below cost, a
-requester that underbids to wait for a troop, troop awards counted in B̄).
+**Run 12 — done** (`results/studies/2.0.0-price/`, 580 runs, all audits passed; `results/studies/2.0.0-price-notes-for-reviewer.md`; the
+section below). One driver change between its first launch and the run kept: the requester's raise policy reads the live condition β < B̄
+rather than the posting flag (the first wave's crowd never left — its requests, overtaken by the market after posting, carried no flag
+and waited forever); the first wave was discarded and everything rerun at `1231a40f`.
+
+## Run 12 — the price of work under 2.0.0 (October 18, 2026)
+
+**What ran.** §8 of design revision 8: price discovery at 50–80% with bidding members against the at-the-ceiling control (160); the
+deficit shock 1,000 / 2,000 / 5,000 at tick 600 × N_T 40 / unbounded (120); the crowd of thirty for 100 ticks and the flood of twelve
+sustained × N_T 40 / unbounded (80); the knobs one at a time — λ 0.5, c^D_T at the 1.x margin, issuance 15, the adaptive reservation (100);
+the red team — lowballers, a stingy requester, troop awards in B̄ (80); adaptive 3,000 ticks (20); drift m_max 2 / 4 (40). Read in real
+terms from the second period on, against runs 10–11.
+
+**Findings.** *The credit is worth less:* P_t 31.6 / 34.1 / 37.4 / 37.3 at 50–80% with bidding members (the ceiling control 21–24: every bid
+the customer's ceiling, a third of a wallet the bids drain to 55), the cap β_max = 40 under any pressure. *Set by the free members' margins,
+not by cost:* at 60/40 two of eight members deliver, awarded every free tick, margin 3.0 for eight hundred ticks, bid 29, the state at B̄
+behind them; the adaptive tail with twenty members free is the one place the price falls — to 23. *Inflation is real and lands on
+holders:* a 2,000 shock (9% of M) lifts P_t 15% in a window, the stampers' real wealth −13%, the honest's unchanged; it does not come back
+and Ω retires nothing of it. *The state at cost is below cost:* a fifth of its deliveries fail and lose B̄ + G, nothing offsets it, Ω's
+unlocked balance is zero from tick ~400 in every cell and the deficit grows 10–20 a tick without bound (3,700 at 50/50 to 59,700 in the
+flood); the 1.x-margin control runs the identical path with the deficit at zero — Hypothesis 7 fails, Hypothesis 6 inverts. *The capacity
+case:* under N_T 40 the crowd fills the field in a window (14,349 request-ticks refused, on time 0.84, rebates 16,000), the flood keeps it
+full (on time 0.33, rebates 6,300 a window all created, the deficit 59,700, the requesters hoarding 3,000 each, M 99,000); unbounded, 182
+troops at the peak and nobody waits. *Honesty is price-neutral:* FA 10.7 / 10.4 / 12.7 / 14.7 (run 10: 11 / 14 / 15 / 18), the lagging
+auditor 0 at every fixed split, stampers' real wealth a tenth of the honest's. *Demand is lock-bound:* K_open 5 and the posting lock hold the
+six requesters at 1.8–1.9 posts a tick with wallets of 70–90. *Red team:* lowballers win 51 awards each and end poor (141 real); a stingy
+requester waits all run and hoards 10,000; B̄ counting troops moves nothing. *Adaptive:* honest at a median tick 500 (745), the deficit
+retired in 20/20 once the state stops. *Drift:* FA 48 / 22 (76 / 32), solvent in the new sense, in debt without bound.
+
+**For the decision** (notes §8): (1) the state's cost rule — at cost loses the failure rate; candidates c^D_T = B̄(1 − b), the fee, or the
+margin as a reading; (2) the ceiling cap is the price level — the market has no anchor below the customers' maximum but the free members'
+margins and the state never undercuts; (3) the rebate under a refusal for capacity prints; (4) P_t at the period boundary would keep the
+three index-moved reviewer tests passing; (5) delegation (2.1.0) — the money is in the members' hoards.
 
 ## Maps
 

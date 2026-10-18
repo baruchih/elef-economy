@@ -396,12 +396,14 @@ class Stamping:
         self.c["posted"] += 1
 
     def raise_below_market(self):
-        """2.0.0 §2.8: a requester whose request is flagged below market raises it to the market price when it can."""
+        """2.0.0 §2.8: a requester whose request is below the market price raises it to the market price when it can. The
+        engine's flag is set at posting; a request the market overtakes afterwards is below market too and would otherwise
+        wait forever (no troop comes for β < B̄ and the members bid above it), so the policy reads the live condition."""
         w = self.w
         B_bar = w.market()["B_bar"]
         for cid in sorted(self.active, key=lambda s: int(s[1:])):
             c = w.case(cid)
-            if c.state != "AVAILABLE" or not c.below_market or self.owner.get(cid) in self.stingy:
+            if c.state != "AVAILABLE" or c.beta + 1e-9 >= B_bar or self.owner.get(cid) in self.stingy:
                 continue
             target = min(self.a.beta_max, math.ceil(B_bar * 100) / 100)
             if target <= c.beta + 1e-9:
@@ -1174,7 +1176,7 @@ def main(argv=None):
                                     "requesters": {"n": a.requesters, "wallet": a.wallet, "issuance_per_tick": a.issuance,
                                                    "ceiling": f"min({a.beta_max:g}, {a.ceiling_share:.4g} × unlocked wallet)", "K_open": a.k_open,
                                                    "posting": "one a tick while K_open and the all-in maximum fit; the engine locks the all-in at posting",
-                                                   "below_market": "raised to the market price when the wallet allows"},
+                                                   "below_market": "a request below the market price (flagged at posting, or overtaken by it) is raised to the market price when the wallet allows"},
                                     "bids": {"policy": a.bid, "c_D": a.c_d, "adaptive_reservation": a.c_d_adaptive, "margin0": a.margin0,
                                              "margin_up": a.margin_up, "margin_down": a.margin_down, "idle_k": a.idle_k, "lambda": a.lam,
                                              "selection": "argmax ρ − λ B/β with the bid live; κ tie band; lowest id"},

@@ -299,7 +299,7 @@ class Stamping:
         and, with probability `adapt_rate`, takes the richer one. Both are the driver's declared
         policies; the engine sees only verdicts."""
         a = self.a
-        if a.drift_to > 0 and t % a.drift_every == 0:
+        if a.drift_to > 0 and t >= a.drift_from and t % a.drift_every == 0:
             target = min(a.drift_to, self.stamper_share() + a.drift_step)
             want = round(target * len(self.actors))
             careful = [aid for aid in self.actors if self.kind[aid] == CAREFUL]
@@ -321,8 +321,9 @@ class Stamping:
     def tick(self, t: int):
         a, w = self.a, self.w
         self.move_dispositions(t)
-        # requester posts
-        for _ in range(a.tasks):
+        # requester posts — the spike cell (run 11 §1): --spike-tasks a tick from --spike-from for --spike-ticks, then back
+        tasks_now = a.spike_tasks if a.spike_tasks > 0 and a.spike_from <= t < a.spike_from + a.spike_ticks else a.tasks
+        for _ in range(tasks_now):
             if w.unlocked("H") < a.beta + self.p.phi_root + self.p.omega_rate * a.beta:
                 break
             low = a.beta_low > 0 and self.rng.random() < a.beta_low_share       # 1.6.0 §8 red team: the below-market poster
@@ -814,6 +815,10 @@ def main(argv=None):
     ap.add_argument("--drift-to", type=float, default=0.0,
                     help="1.2.0 §8 run 2: raise the stamper share toward this value (0: no drift)")
     ap.add_argument("--drift-every", type=int, default=100, help="ticks between drift steps")
+    ap.add_argument("--drift-from", type=int, default=0, help="the tick drift begins (run 11's capture wave: a quiet market first)")
+    ap.add_argument("--spike-tasks", type=int, default=0, help="run 11's demand spike: tasks a tick during the spike (0: none)")
+    ap.add_argument("--spike-from", type=int, default=400, help="the spike's first tick")
+    ap.add_argument("--spike-ticks", type=int, default=50, help="the spike's length in ticks")
     ap.add_argument("--drift-step", type=float, default=0.05, help="stamper share added per drift step")
     ap.add_argument("--adapt-rate", type=float, default=0.0,
                     help="1.2.0 §8 run 3: probability per adaptation step that an actor takes the richer disposition (0: fixed)")
@@ -848,6 +853,7 @@ def main(argv=None):
     rec = RunRecorder(name, kind="scoped run — §18.1 q1 careful vs careless review; policies fixed by disposition",
                       params=run.p, **({"root": a.results_root} if a.results_root else {}),
                       declared={"actors": a.actors, "on_duty": a.on_duty, "ticks": a.ticks, "tasks_per_tick": a.tasks,
+                                "spike": None if a.spike_tasks == 0 else {"tasks": a.spike_tasks, "from": a.spike_from, "ticks": a.spike_ticks},
                                 "beta": a.beta, "work_ticks": a.work_ticks, "seed": a.seed,
                                 "rules": a.rules, "fund": a.fund if a.rules in ("1.3.0", "1.4.0", "1.5.0", "1.6.0") else "n/a", "m_max": a.m_max,
                                 "troops": {"spec": "1.4.0 design revision 4 — the orchestrator's troops" if a.rules in ("1.4.0", "1.5.0", "1.6.0") and a.troops == "on" else "off",
@@ -884,7 +890,7 @@ def main(argv=None):
                                 "fee_rule": {"spec": "1.1.0 design revision 1 — the verification deposit is two pots",
                                              "f": a.fee, "phi_E": a.phi_e, "phi_F": a.phi_f, "K": run.p.K, "G_V": a.gv},
                                 "dispositions_move": {"drift": None if a.drift_to == 0 else
-                                                      {"to": a.drift_to, "every": a.drift_every, "step": a.drift_step,
+                                                      {"to": a.drift_to, "every": a.drift_every, "step": a.drift_step, "from": a.drift_from,
                                                        "how": "careful actors re-drawn as stampers at random"},
                                                       "adaptive": None if a.adapt_rate == 0 else
                                                       {"rate": a.adapt_rate, "every": a.adapt_every,

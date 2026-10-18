@@ -84,7 +84,8 @@ SHORT = {"stampers": "s", "fee": "f", "on-duty": "X", "gv": "gv", "p-floor": "pf
          "stamper-mode": "mode", "troops": "troops", "w-r": "wR", "w-a": "wA", "c-d-t": "cD", "eps-t": "eT", "a-t": "AT",
          "decline-awards": "dec", "tasks": "k", "clock": "clk", "backing": "bak", "seat-queue": "sq", "panel-determined": "pd",
          "reserve-periods": "rp", "duty-cap": "cap", "t-s": "Ts", "beta-low": "bl", "beta-low-share": "bls", "accounts": "acc", "omega-rate": "rate", "r-s": "rs", "t-susp": "tsusp",
-         "plant-reserve": "pr", "theta-panel": "thp", "record-window": "nP", "withdraw-after": "wd", "omega0": "om"}
+         "plant-reserve": "pr", "theta-panel": "thp", "record-window": "nP", "withdraw-after": "wd",
+         "spike-tasks": "spk", "spike-ticks": "spkT", "spike-from": "spkF", "drift-from": "dfrom", "drift-every": "devery", "drift-step": "dstep"}
 
 
 def _num(x: str):

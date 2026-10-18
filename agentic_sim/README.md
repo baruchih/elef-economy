@@ -522,6 +522,10 @@ for the queue mean no summons and the count accrues per seating; a long queue wi
 its length; the period record carries the market's share. Goldens re-pinned once (the scenario summons where one free
 member used to block; both seeds' dial ends at 4.0). Reviewer tests untouched and passing.
 
+Run 11 (riots, the w_A knob, adaptive and drift under 1.7.1; `results/studies/1.7.1-riots/`) added two driver knobs and no engine
+change: `--spike-tasks/--spike-from/--spike-ticks` (a demand spike, then back to `--tasks`) and `--drift-from` (drift begins at a
+tick, so a capture wave hits a quiet market); both declared in the manifest.
+
 ## The expected failure
 
 The third review's case 12 appeals a ⊥ and completes the appeal reviews with a plain `N`,

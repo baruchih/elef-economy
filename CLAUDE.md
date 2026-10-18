@@ -59,6 +59,7 @@ python3 -m drivers.stamping --actors 20 --ticks 1000 --stampers 0.6 --seed 1 --a
 python3 -m drivers.stamping --rules 1.6.0 --seed 1   # the 1.6.0 control: the merged fund (uplift from troop earnings), the half cap, the demand reserve
 python3 -m drivers.stamping --accounts off --seed 1   # the troop account off alone (the cap stays two thirds); --duty-cap half alone is the other OFAT cell
 python3 -m drivers.stamping --omega-rate 0.10 --r-s 1 --seed 1   # the 1.7.0 §8 take sweep: ω₀ 5/10/15% with the rebate pinned at 1 a tick
+python3 -m drivers.stamping --stampers 0.6 --spike-tasks 9 --spike-from 400 --spike-ticks 50 --seed 1   # run 11's demand spike; --drift-to 0.9 --drift-from 400 --drift-every 5 --drift-step 0.1 is the capture wave
 python3 -m drivers.stamping --rules 1.5.0 --seed 1   # the 1.5.0 control: also the five 1.6.0 flags off, A_T binds, one-period reset
 python3 -m drivers.stamping --seat-queue off --seed 1   # one 1.6.0 rule off alone (also --clock, --backing, --panel-determined, --reserve-periods 1)
 python3 -m drivers.stamping --duty-cap all --omega0 1000 --t-s 5 --seed 1   # the 1.6.0 §8 sweeps' knobs; --plant-reserve period is the text's literal horizon

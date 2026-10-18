@@ -1571,6 +1571,58 @@ changed — so by the reviewer's note 1.8.0 is the cannot-serve protocol alone a
 (a summons refused for funds, a queue past the window) fired in none of the 80 runs, so its first test is below 50% or
 with a float too small to carry twenty deliveries in flight.
 
+## Run 11 — riots, the w_A knob, adaptive and drift under 1.7.1 (October 18, 2026)
+
+The design reviewer accepted run 10 ("1.7.1 stands"; the state's share at w_A = 2 a reading to minimize later, w_A stays 2;
+the dormant clock "fine as long as it's there and works: spikes will happen and the auto-scale will have to answer them,
+so the next study is to make it run") and asked, before 1.8.0 and under 1.7.1: riots — cells where the clock, the rebate,
+Ω's order, the plant reserve and the troop reserve bind and the auto-scale has to rise and retract; w_A ∈ {2, 3, 5} as a
+measurement; adaptive and drift as before. "1.8.0 is decided on what binds in (1)." The driver gained a demand spike
+(`--spike-tasks/--spike-from/--spike-ticks`) and a delayed drift (`--drift-from`), commit 381b9ed; no engine change.
+`agentic_sim/results/studies/1.7.1-riots/` (and `1.7.1-riots.zip`): `riots/` (160), `wa/` (240), `adaptive/` (20),
+`drift/` (40) — 460 runs, every final audit passed. Notes: `agentic_sim/results/studies/1.7.1-riots-notes-for-reviewer.md`.
+
+**Riots.** *The asked spike (nine a tick for 50 or 100 ticks from tick 400, 60/40) binds nothing:* Ω's cash (about 2,200)
+plus the troop account carry every summons, advances of 9,400–10,300 in the spike window all repaid inside it, no request
+late, no rebate, no liability, no plant unfunded; the auto-scale alone rises and retracts — troops in the field 22 → 75–98
+→ 22, R_T 529 → 2,152–2,613 → 540 two periods after the spike — and **every seed is back at the quiet level 110 ticks after
+the spike ends, 1.8–1.9 periods: R_T's two-period memory is the recovery time.** *The capture wave* (60/40 → 90/10 in 25
+ticks from tick 400) is absorbed without a late request — the turned are suspended inside one period, members on duty 6 → 2,
+the state delivers everything — at the cost of one window of false approvals (14 against 0.8) and the probationers' 14 a run
+against 3. *Ω₀ = 100* refuses 67 seats and 10 awards in the first period and never again. *10/90 and 30/70* are quiet. *The
+flood at six a tick sustained* binds in the ramp — the first 100 ticks: on-time 0.03, lateness 17, 10,820 request-ticks
+refused, liabilities 6,510, Ω at 81 — then the dial at 4, X_t 16, the summons steady at 5.2 a tick, on-time 1.00, and **Ω's
+order pays the stock down oldest first from income above the plant reserve, 7,415 → 0 by tick ~750, seven periods after the
+ramp**; plants unfunded 0.45; R_T 2,385 → 1,343; Ω 81 → 14,927. *The hard spike (mine: fifteen a tick for 100 ticks, two and
+a half times the asked, added to find the edge)* is where it binds in a quiet market: the summons refused for funds from the
+first spike window (38,834 request-ticks in all), queue to 659, on-time 0.00 in the spike, lateness to 37, the liability
+accrued to 16,607 by tick 560, Ω at 77, plants unfunded 11, R_T 4,905 and back to 554 two periods after; **the flows are
+back 160 ticks after the spike ends (2.4 periods); the stock is not** — paid at Ω's whole income above the plant reserve,
+220–330 a window, it stands at 7,351 at tick 1,000 and would clear about 25 periods after the spike, Ω holding only the plant
+reserve the whole time; one seed in twenty cleared. **What binds is capital:** about 2,200 at 60/40 carries nine deliveries a
+tick in flight and not fifteen; past the edge the clock and Ω's order work exactly as written and nothing breaks, but a
+100-tick spike at 2.5× the quiet capacity leaves 25 periods of debt and requesters who waited 20–40 ticks with nothing said.
+
+**w_A ∈ {2, 3, 5} at 50–80%.** The window moves almost nothing: members' awards within 1–6% (129 / 130 / 130 at 50/50; 40 /
+40 / 41 at 80/20), the state's share within 2% (46% → 45%; 67% → 69% → 68%), on-time 1.00 everywhere (w_A = 5 plus three
+troop ticks is T_s = 8), Ω's surplus against its fee unchanged, the queue up by the waiting ticks (38 → 47). The members'
+share is their capacity, not the window's artefact — a longer window leaves a request waiting for a member who is not coming.
+
+**Adaptive and drift.** Adaptive: honest at tick 745 (575 — slower, since the stampers are no longer starved of awards
+while the state serves the queue), the last troop at 605, R_T zero from 770; **the liability is never made (on-time 1.00) and
+is 0 in every seed** (12,494, cleared in 5 of 20); plants unfunded 0 (400); FA 44 (46); Ω 4,341 (1,002). Drift (m_max 2 / 4):
+liability 0 / 0 (779 / 0), on-time 1.00 (0.88 / 0.95), plants unfunded 0 (3.7 / 6.7), refusals 0 (6,295 / 1,747), Ω 19,664 /
+18,388; honesty unchanged — FA 76 / 32 (80 / 32), the lagging auditor 25 / 8 of the upheld route (27 / 8), the drift lag the
+plant record's as before; careful wealth 6,724 / 9,191.
+
+**For the decision.** The riots the brief named were carried by the auto-scale alone and retracted in two periods; the clock
+and Ω's order ran where the capital bound — the flood's ramp and a spike at 2.5× the quiet capacity — and worked as written.
+The one thing to weigh: past the capital edge the liability is a stock paid at the market's income, about 6 a tick at 60/40,
+so a hard spike leaves tens of periods of debt with Ω at the plant reserve and nothing said to the requesters who waited.
+If that is "something breaks", it is the cannot-serve protocol's case exactly, with a measured trigger (a summons refused
+for funds, a request past its window with nobody coming); if not, the protocol stays a product question and nothing in
+these 460 runs asks for a rule.
+
 ## Maps
 
 Two `_line` artifacts in project Agentic-OS (`c54120a6-aaff-40f7-8a9f-3667da542879`):

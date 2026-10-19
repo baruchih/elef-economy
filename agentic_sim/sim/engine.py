@@ -302,6 +302,14 @@ class Case:
     refused_capacity: int = 0              # summonses N_T refused for this request
     capacity_told: bool = False            # the requester was told at the first refusal
     capacity_wait_max: int = 0             # the longest wait at a refusal for capacity
+    # 2.1.0 §2.6: every refusal is told — the mark's kind (capacity | credit | None while unmarked or once served), the tick of
+    # the first mark, the latest, and the summonses the bank refused for credit; §2.2 the state's burn and rate at the summons
+    refused: Optional[str] = None
+    refused_at: Optional[int] = None
+    refused_last: Optional[int] = None
+    refused_credit: int = 0
+    c_d_t: Optional[float] = None
+    b_t_at_summons: Optional[float] = None
     # 1.4.0: the audit obligation, the seats' clocks, and troops
     audit_obligation: bool = False         # a rolled audit not yet seated holds the case (I25)
     audit_rolled_at: Optional[int] = None
@@ -512,6 +520,30 @@ class World:
         self.held_market_audit_max_age = 0
         self._pool_exhausted = False                    # at the last rotation, no eligible free actor was left
         self._reserve_dirty = False                     # an actor left duty since the last rotation (mid-tick)
+        # 2.1.0: the bank — minted and destroyed by kind, the loans by summons (troop id), the debt, the refusals for credit,
+        # the index as published, and the state's own record of its deliveries
+        self.bank_minted = {"issuance": 0.0, "mint_emission": 0.0, "mint_plant": 0.0, "mint_scenario": 0.0, "loan": 0.0}
+        self.bank_destroyed = {"repayment": 0.0, "retire_plant": 0.0}
+        self.loans: dict[str, dict] = {}                # troop id -> {amount, kind, case, t} while the summons is open
+        self.loans_peak = 0.0
+        self.debt = 0.0                                 # settled summonses' unrepaid loans
+        self.debt_created = 0.0
+        self.debt_repaid = 0.0
+        self.debt_peak = 0.0
+        self.debt_since: Optional[int] = None
+        self.troop_refused_credit_awards = 0
+        self.troop_refused_credit_seats = 0             # zero by construction (a seat is always lent for)
+        self.omega_review_fee_income = 0.0              # the troops' review fees, Ω's second income (the wall counts both)
+        self._P_published = params.P0                   # P_t as published at the last period boundary
+        self._P_published_at: Optional[int] = None
+        self._last_loan = 0.0
+        self._last_refusal_credit = False
+        self._wall_violation: Optional[str] = None
+        self._order_violation: Optional[str] = None
+        self._ordering = False
+        self.state_delivery_history: list = []          # per closed period: (the state's deliveries closed, those final N)
+        self.last_b_t: Optional[float] = None
+        self.last_c_d_t: Optional[float] = None
         self.ledger.on_event = self._on_ledger_event
         for e in self.ledger.events:                    # the floats and budgets paid in above
             self._on_ledger_event(e)
@@ -530,11 +562,125 @@ class World:
     def price_level(self) -> float:
         """P_t (2.0.0 §2.3): the trailing mean of every awarded price, members' and troops', on B̄'s window — this
         period's if it has awards, else the last period's — and P_0 before the first award."""
+        if self.bank_on:                                # 2.1.0 §2.5: published once a period; constant within it (I31)
+            return self._P_published
         if self.period["price_n"]:
             return self.period["price_sum"] / self.period["price_n"]
         if self.periods and self.periods[-1].get("P_level"):
             return self.periods[-1]["P_level"]
         return self.p.P0
+
+    @property
+    def bank_on(self) -> bool:
+        """2.1.0: the bank is a rule of the floating economy only."""
+        return self.p.floating and self.p.bank
+
+    @property
+    def loans_outstanding(self) -> float:
+        return sum(l["amount"] for l in self.loans.values())
+
+    def _debt_bound(self) -> float:
+        """Δ_max (2.1.0 §2.4): the last `debt_bound_periods` closed periods' Ω fee income — the base fees and the troops' review
+        fees; unbounded in the first period and when the knob is 0."""
+        n = self.p.debt_bound_periods
+        if not self.bank_on or n <= 0 or not self.periods:
+            return float("inf")
+        return sum(p.get("omega_fee_total", 0.0) for p in self.periods[-n:])
+
+    def _state_fail_rate(self) -> float:
+        """b_T (2.1.0 §2.2): the final-N share of the state's deliveries over the last closed period if it closed b_t_min_n of
+        them, else over the trailing closed periods back until it does, else the prior."""
+        n, f = 0, 0
+        for closed, failed in reversed(self.state_delivery_history):
+            n += closed
+            f += failed
+            if n >= self.p.b_t_min_n:
+                return f / n
+        return self.p.b_t_prior
+
+    def _omega_income(self):
+        """2.1.0 §2.4 (Appendix N's ruling): every inflow to Ω's unlocked balance is ordered the moment it arrives — the debt first,
+        then the liabilities oldest first, then Ω keeps. Also run at the start of the summons pass and at the tick's end (I30)."""
+        if not self.bank_on:
+            return
+        om = self.ledger.wallet(Ledger.OMEGA)
+        if self.debt > 1e-9 and om.U > 1e-9:
+            pay = min(self.debt, om.U)
+            self.ledger.burn_unlocked("repayment", Ledger.OMEGA, pay, note="repayment: debt")
+            self.debt -= pay
+            self.debt_repaid += pay
+            self.period["debt_repaid"] += pay
+            if self.debt <= 1e-9:
+                self.debt, self.debt_since = 0.0, None
+        if self.debt <= 1e-9 and self.omega_liabilities and om.U > 1e-9:
+            keep = []
+            for l in self.omega_liabilities:
+                if om.U > 1e-9:
+                    pay = min(l["amount"], om.U)
+                    self.ledger.transfer(Ledger.OMEGA, l["requester"], pay, case=l["case"], note="rebate (Ω liability serviced)")
+                    self.liabilities_paid += pay
+                    self.period["liabilities_paid"] += pay
+                    c = self.cases[l["case"]]
+                    c.rebate_paid += pay
+                    if l["amount"] - pay > 1e-9:
+                        keep.append({**l, "amount": l["amount"] - pay})
+                else:
+                    keep.append(l)
+            self.omega_liabilities = keep
+
+    def _check_order_point(self, where: str):
+        om = self.ledger.wallet(Ledger.OMEGA).U
+        if (self.debt > 1e-6 or self.omega_liabilities) and om > 1e-6:
+            self._order_violation = f"Ω holds {om} unlocked at the {where} with debt {self.debt} and {len(self.omega_liabilities)} liabilities"
+
+    def _bank_repay(self, tid: str, case: Optional[str]):
+        """A summons's own return repays its loan first (2.1.0 §2.4)."""
+        ln = self.loans.get(tid)
+        if not ln:
+            return
+        pay = min(ln["amount"], self.ledger.wallet(Ledger.OMEGA).U)
+        if pay > 1e-9:
+            self.ledger.burn_unlocked("repayment", Ledger.OMEGA, pay, case=ln["case"], note=f"repayment: {ln['kind']} {tid}")
+            ln["amount"] -= pay
+            self.period["repaid"] += pay
+        if ln["amount"] <= 1e-9:
+            del self.loans[tid]
+
+    def _close_loan(self, tid: str):
+        """The summons has settled: what its return did not repay is the state's debt (2.1.0 §2.4)."""
+        ln = self.loans.pop(tid, None)
+        if ln is None or ln["amount"] <= 1e-9:
+            return
+        self.debt += ln["amount"]
+        self.debt_created += ln["amount"]
+        self.period["debt_added"] += ln["amount"]
+        self.debt_peak = max(self.debt_peak, self.debt)
+        self.period["debt_peak"] = max(self.period["debt_peak"], self.debt)
+        if self.debt_since is None:
+            self.debt_since = self.t
+        self.history.append("debt", {"t": self.t, "troop": tid, "kind": ln["kind"], "case": ln["case"], "unrepaid": round(ln["amount"], 6)})
+
+    def _bank_on_inflow(self, e):
+        """The ledger hook's half of the order: an event that credited Ω's unlocked balance repays the summons's own loan when
+        it is a troop's return, then runs the order."""
+        if self._ordering:
+            return
+        L = self.ledger
+        if e.kind == "release":
+            inflow = e.dst is not None and L.resolve(e.dst) == L.OMEGA
+        elif e.kind in ("transfer", "forfeit_to", "escrow_out", "deposit_out", "feepot_out", "fee_out"):
+            inflow = e.dst is not None and L.resolve(e.dst) == L.OMEGA
+        else:
+            inflow = False                                # a mint to Ω is the loan itself; burns and locks take nothing in
+        if not inflow:
+            return
+        self._ordering = True
+        try:
+            if e.dst in self.loans:
+                self._bank_repay(e.dst, e.case)
+            self._omega_income()
+        finally:
+            self._ordering = False
 
     def market_price_known(self) -> bool:
         """B̄ exists once a member has been awarded (this period or the last); before that nothing is 'below market'."""
@@ -543,7 +689,8 @@ class World:
     def _record_price(self, B: float):
         self.period["price_sum"] += B
         self.period["price_n"] += 1
-        self.ledger.P_t = self.price_level()
+        if not self.bank_on:                            # 2.1.0 §2.5: under the bank the index moves at the boundary only
+            self.ledger.P_t = self.price_level()
 
     @property
     def deficit(self) -> float:
@@ -555,6 +702,9 @@ class World:
         """2.0.0 §2.5: Ω creates the shortfall on a payment the rules require — a summons, a plant, a rebate — and the
         declared scenario operation; never a discretionary spend (I28). Retires first, so it never creates while holding."""
         if not self.p.floating:
+            return
+        if self.bank_on:                                # 2.1.0: Ω never creates — a summons is the bank's loan, a plant its mint
+            self._creation_violation = f"Ω asked to create for '{why}' under the bank"
             return
         if why not in self.REQUIRED_PAYMENTS:
             self._creation_violation = f"creation for '{why}', not a payment the rules require"
@@ -668,12 +818,16 @@ class World:
         rec = sorted(self.humans)
         if not rec or amount_total <= 1e-12:
             raise RuleError("scenario_create: nobody to pay or nothing to create")
-        om = self.ledger.wallet(Ledger.OMEGA).U
-        self._omega_ensure(om + amount_total, None, "scenario: deficit shock")
-        self.scenario_created += amount_total
         share = amount_total / len(rec)
-        for h in rec:
-            self.ledger.transfer(Ledger.OMEGA, h, share, note="scenario: deficit shock")
+        if self.bank_on:                                # 2.1.0 §7: the shock is the bank's declared operation, minted to the requesters
+            for h in rec:
+                self.ledger.mint("mint_scenario", h, share, note="mint_scenario: deficit shock")
+        else:
+            om = self.ledger.wallet(Ledger.OMEGA).U
+            self._omega_ensure(om + amount_total, None, "scenario: deficit shock")
+            for h in rec:
+                self.ledger.transfer(Ledger.OMEGA, h, share, note="scenario: deficit shock")
+        self.scenario_created += amount_total
         self.history.append("scenario", {"t": self.t, "created": amount_total, "to": rec, "msg": "deficit shock"})
 
     # ------------------------------------------------------------------ util
@@ -713,6 +867,12 @@ class World:
                 self.fund_flow += e.amount
             if e.src is not None and L.resolve(e.src) == tw:
                 self.fund_flow -= e.amount
+        if self.bank_on:                                # 2.1.0: the bank's books, and the order on every inflow to Ω
+            if e.kind in self.bank_minted:
+                self.bank_minted[e.kind] += e.amount
+            elif e.kind in self.bank_destroyed:
+                self.bank_destroyed[e.kind] += e.amount
+            self._bank_on_inflow(e)
         cid = e.case
         if cid is None:
             return
@@ -868,6 +1028,7 @@ class World:
             D, K, GV, phi_E, phi_F = c.D, c.K, c.G_V, c.phi_E, c.phi_F
             omega = omega_base * c.m_post
             omega_fund = (omega - omega_base) if self.p.duty_fund else 0.0
+            c.refused = None                            # 2.1.0 §2.6: served; the mark comes off
         elif c.is_root:
             idx = self.ledger.index()
             D, K, GV = self.p.D * idx, self.p.K * idx, self.p.G_V * idx
@@ -1472,6 +1633,8 @@ class World:
             c.court_fee_reimbursed = c.D
             bond -= c.D
         self.ledger.burn_locked(r.reviewer, bond, key=f"bond:{r.id}", case=c.id, note="bond burned")
+        if a is None and self.bank_on:
+            self._close_loan(r.reviewer)                # 2.1.0 §2.4: the seat settled against the state — its loan is debt
         self._log(c, f"review {r.id} overturned; {r.reviewer} forfeits bond")
 
     def _overturn_requester_verdict(self, c: Case, pay_fee_to: Optional[str]):
@@ -1782,6 +1945,10 @@ class World:
                 self.ledger.release(r.reviewer, r.bond, key=f"bond:{r.id}", case=c.id, note="bond released")
                 r.status = "vested"
                 if self.is_troop(r.reviewer):
+                    if self.bank_on:                    # 2.1.0 §2.4: the seat's return has come in; its loan settles here
+                        self.omega_review_fee_income += fixed
+                        self.period["troop_review_fee"] += fixed
+                        self._close_loan(r.reviewer)
                     continue                            # no reliability, duty credit or odds for a troop
                 a = self.actors[r.reviewer]
                 self._record_outcome(r.reviewer, True)
@@ -1862,7 +2029,10 @@ class World:
             for wid in (PLANT_REQ, PLANT_ACT):
                 u = self.ledger.wallet(wid).U
                 if u > 1e-12:
-                    self.ledger.transfer(wid, Ledger.OMEGA, u, case=root.id, note="tree closure: plant funds swept to Ω")
+                    if self.bank_on:                    # 2.1.0 §2.3: whatever the plant's wallets hold returns to the bank, destroyed
+                        self.ledger.burn_unlocked("retire_plant", wid, u, case=root.id, note="retire_plant: plant funds destroyed")
+                    else:
+                        self.ledger.transfer(wid, Ledger.OMEGA, u, case=root.id, note="tree closure: plant funds swept to Ω")
                     self.period["plant_back"] += u
         self._service_omega_claims()
 
@@ -1976,7 +2146,13 @@ class World:
         self._maybe_end_period(tick)
         self._rotate(tick)
         self._summon_troops(tick)                              # 1.4.0 §2.2–2.3: after the market has had its chance
-        self._omega_retire()                                   # 2.0.0 §2.5: every inflow burned while the deficit stands
+        if self.bank_on:                                       # 2.1.0 §2.4: the order at the tick's end (I30's second point)
+            self._omega_income()
+            self._check_order_point("tick's end")
+            self.loans_peak = max(self.loans_peak, self.loans_outstanding)
+            self.period["loans_peak"] = max(self.period["loans_peak"], self.loans_outstanding)
+        else:
+            self._omega_retire()                               # 2.0.0 §2.5: every inflow burned while the deficit stands
         self.places_held_now = self._places_held()
 
     def _withdraw_review(self, r: Review, burn: bool = True):
@@ -1999,6 +2175,8 @@ class World:
             a.open_review = None
         if a is None:
             self._release_troop(r.reviewer)
+            if self.bank_on:
+                self._close_loan(r.reviewer)            # 2.1.0 §2.4: the seat settled (withdrawn or voided)
         if r.role == "initial":
             c.seat_since = self.t                        # the initial seat is required again (1.4.0 §2.2)
         if c.challenge and r.id in c.challenge["reviews"]:
@@ -2199,13 +2377,13 @@ class World:
             self._log(c, f"clock stopped at {reason}: {c.clock_ticks} ticks, on time" if not c.late_ticks
                       else f"clock stopped at {reason}: {c.clock_ticks} ticks, {c.late_ticks} late, nothing owed")
             return
-        if self.p.floating:                             # 2.0.0 §2.5: paid at the stop, Ω creating the shortfall
+        if self.p.floating and not self.bank_on:        # 2.0.0 §2.5: paid at the stop, Ω creating the shortfall
             self._omega_pay(c.requester, owed, c.id, "rebate")
             pay = owed
-        else:
+        else:                                           # 1.6.0 §2.1 / 2.1.0 §2.4: from Ω's balance, else a liability — never created
             avail = max(0.0, self.ledger.wallet(Ledger.OMEGA).U - self._plant_reserve())
             pay = min(owed, avail)
-        if pay > 1e-12 and not self.p.floating:
+        if pay > 1e-12 and not (self.p.floating and not self.bank_on):
             self.ledger.transfer(Ledger.OMEGA, c.requester, pay, case=c.id, note="rebate")
         if pay > 1e-12:
             c.rebate_paid += pay
@@ -2359,7 +2537,9 @@ class World:
         G = max(1.0, math.ceil(self.p.G_frac * B))
         netted = self.p.net_plant_capital                   # 1.3.0 §2.5: award and guarantee are Ω paying itself
         need = (phi_E + phi_F) if netted else (B + phi_E + phi_F + G)
-        if self.p.floating:
+        if self.bank_on:
+            pass                                                # 2.1.0 §2.3: minted by the bank below; Ω is never asked
+        elif self.p.floating:
             self._omega_ensure(need, None, "plant")             # 2.0.0 §2.5: a plant the dial calls for is a required payment
         elif self.ledger.wallet(Ledger.OMEGA).U + 1e-9 < need:
             what = "φ^E + φ^F" if netted else "B + φ^E + φ^F + G"
@@ -2373,11 +2553,17 @@ class World:
         self.cases[cid] = c
         self._live_cases[cid] = c
         # Ω funds its two system wallets; the plant is then awarded and submitted at once
-        self.ledger.transfer(Ledger.OMEGA, PLANT_REQ, need if netted else B + phi_E + phi_F, case=cid,
-                             note="plant: requester funded by Ω")
+        if self.bank_on:                                    # 2.1.0 §2.3: the plant's pots are minted (the cost of truth)
+            self.ledger.mint("mint_plant", PLANT_REQ, need if netted else B + phi_E + phi_F, case=cid, note="mint_plant: the pots")
+        else:
+            self.ledger.transfer(Ledger.OMEGA, PLANT_REQ, need if netted else B + phi_E + phi_F, case=cid,
+                                 note="plant: requester funded by Ω")
         self.period["plant_out"] += need if netted else B + phi_E + phi_F
         if not netted:
-            self.ledger.transfer(Ledger.OMEGA, PLANT_ACT, G, case=cid, note="plant: actor funded by Ω")
+            if self.bank_on:
+                self.ledger.mint("mint_plant", PLANT_ACT, G, case=cid, note="mint_plant: the guarantee")
+            else:
+                self.ledger.transfer(Ledger.OMEGA, PLANT_ACT, G, case=cid, note="plant: actor funded by Ω")
             self.period["plant_out"] += G
         c.D, c.K, c.G_V, c.phi_E, c.phi_F, c.omega, c.G = D, K, GV, phi_E, phi_F, 0.0, G
         c.G_award = G
@@ -2508,7 +2694,10 @@ class World:
                # 2.0.0: the price level, the deficit's flows, issuance, the flags and the capacity case
                "price_sum": 0.0, "price_n": 0, "created": 0.0, "retired": 0.0, "deficit_peak": 0.0, "issued": 0.0,
                "departed": 0.0, "below_market": 0, "ceilings_raised": 0, "refused_capacity_seats": 0,
-               "refused_capacity_awards": 0}
+               "refused_capacity_awards": 0,
+               # 2.1.0: the bank's lines this period, the troops' review fees, the state's deliveries, the refusals for credit
+               "loans": 0.0, "repaid": 0.0, "debt_added": 0.0, "debt_repaid": 0.0, "debt_peak": 0.0, "loans_peak": 0.0,
+               "troop_review_fee": 0.0, "state_closed": 0, "state_failed": 0, "refused_credit_awards": 0, "refused_credit_seats": 0}
 
     def _maybe_end_period(self, tick: int):
         """Once per period — period_plants adjudicated plants or period_ticks ticks, whichever first —
@@ -2551,6 +2740,12 @@ class World:
         shortfall = self.plants_due()
         self.plant_shortfall += shortfall
         self.plant_credit -= shortfall
+        if self.bank_on:                                # 2.1.0 §2.5: the bank publishes P_t — the closed period's mean, carried if none
+            if per["price_n"]:
+                self._P_published = per["price_sum"] / per["price_n"]
+            self._P_published_at = tick
+            self.ledger.P_t = self._P_published
+            self.state_delivery_history.append((per["state_closed"], per["state_failed"]))
         rec = {"t": tick, "start": per["start"], "plants": per["plants"], "bad": per["bad"],
                "bad_approved": per["bad_approved"], "F_hat": None if F_hat is None else round(F_hat, 6),
                "m_before": round(m_old, 6), "m": round(self.m_t, 6), "pi": round(self.pi_t, 6), "X": self.X_t,
@@ -2590,7 +2785,26 @@ class World:
                "issued": round(per["issued"], 6), "departed": round(per["departed"], 6), "below_market": per["below_market"],
                "ceilings_raised": per["ceilings_raised"],
                "refused_capacity": [per["refused_capacity_seats"], per["refused_capacity_awards"]],
-               "places_held": self._places_held(), "M": round(self.ledger.M, 6)}
+               "places_held": self._places_held(), "M": round(self.ledger.M, 6),
+               # 2.1.0: the bank's books — minted by kind (cumulative), this period's loans and repayments, the three lines, the
+               # wall, Ω's retained income, the state's record and the refusals for credit
+               "omega_fee_total": round(per["omega_fee"] + per["troop_review_fee"], 6),
+               "troop_review_fee": round(per["troop_review_fee"], 6),
+               "bank": None if not self.bank_on else {
+                   "minted": {k: round(v, 6) for k, v in self.bank_minted.items()},
+                   "destroyed": {k: round(v, 6) for k, v in self.bank_destroyed.items()},
+                   "loans_period": round(per["loans"], 6), "repaid_period": round(per["repaid"], 6),
+                   "loans_outstanding": round(self.loans_outstanding, 6), "loans_peak": round(per["loans_peak"], 6),
+                   "debt": round(self.debt, 6), "debt_added": round(per["debt_added"], 6), "debt_repaid": round(per["debt_repaid"], 6),
+                   "debt_peak": round(per["debt_peak"], 6), "debt_since": self.debt_since,
+                   "liabilities": round(sum(l["amount"] for l in self.omega_liabilities), 6),
+                   "liabilities_oldest": (tick - min(l["t"] for l in self.omega_liabilities)) if self.omega_liabilities else 0,
+                   "wall": (None if self._debt_bound() == float("inf") else round(self._debt_bound(), 6)),
+                   "omega_retained": round(self.ledger.wallet(Ledger.OMEGA).U, 6),
+                   "omega_net": round(self.ledger.wallet(Ledger.OMEGA).U - self.debt - sum(l["amount"] for l in self.omega_liabilities), 6),
+                   "cost_of_truth": round(self.bank_minted["mint_plant"] - self.bank_destroyed["retire_plant"], 6),
+                   "state_closed": per["state_closed"], "state_failed": per["state_failed"], "b_T": round(self._state_fail_rate(), 6),
+                   "refused_credit": [per["refused_credit_seats"], per["refused_credit_awards"]]}}
         self.periods.append(rec)
         self.history.append("period", rec)
         self.troop_capital_peak_prev, self.troop_capital_peak = self.troop_capital_peak, self._troop_capital_now()
@@ -2702,9 +2916,24 @@ class World:
     def _troop_capital_now(self) -> float:
         return sum(t["cost"] + t["lock"] for t in self.troops.values() if t["t_release"] is None)
 
-    def _fund_can_carry(self, need: float, cid: str) -> bool:
+    def _fund_can_carry(self, need: float, cid: str, kind: str = "delivery") -> bool:
         """The fund carries a summons from its unlocked balance; Ω advances the difference, up to A_T
-        outstanding, repaid first from the fund's inflows (1.4.0 §2.4)."""
+        outstanding, repaid first from the fund's inflows (1.4.0 §2.4). 2.1.0 §2.4: Ω's balance first, then the bank's loan
+        of the shortfall tied to the summons — for a seat always, for a delivery while the debt is within the wall."""
+        if self.bank_on:
+            self._last_loan, self._last_refusal_credit = 0.0, False
+            short = need - self.ledger.wallet(Ledger.OMEGA).U
+            if short <= 1e-9:
+                return True
+            if kind == "delivery" and self.debt > self._debt_bound() + 1e-9:
+                self._last_refusal_credit = True
+                return False
+            self.ledger.mint("loan", Ledger.OMEGA, short, case=cid, note=f"loan: {kind}")
+            self._last_loan = short
+            self.period["loans"] += short
+            if kind == "delivery" and self.debt > self._debt_bound() + 1e-9:
+                self._wall_violation = f"a delivery loan of {short} made with debt {self.debt} above the wall {self._debt_bound()}"
+            return True
         if self.p.floating:                             # 2.0.0 §2.5: the funds check is moot — Ω creates what a summons needs
             self._omega_ensure(need, cid, "summons")
             return True
@@ -2769,7 +2998,13 @@ class World:
         tid = f"{TROOP_PREFIX}{self._n_troop}"
         self.ledger.aliases[tid] = self.troop_wallet
         self.troops[tid] = {"kind": kind, "case": cid, "review": None, "t_summons": self.t, "t_release": None,
-                            "cost": cost, "lock": lock, "places": 2 if kind == "delivery" else 1}
+                            "cost": cost, "lock": lock, "places": 2 if kind == "delivery" else 1,
+                            "loan": self._last_loan if self.bank_on else 0.0}
+        if self.bank_on and self._last_loan > 1e-9:    # 2.1.0 §2.4: the loan is tied to the summons
+            self.loans[tid] = {"amount": self._last_loan, "kind": kind, "case": cid, "t": self.t}
+            self.loans_peak = max(self.loans_peak, self.loans_outstanding)
+            self.period["loans_peak"] = max(self.period["loans_peak"], self.loans_outstanding)
+        self._last_loan = 0.0
         return tid
 
     def _seat_delivery_inspection(self, c: Case):
@@ -2785,6 +3020,13 @@ class World:
         if t is not None and t["t_release"] is None:
             t["t_release"] = self.t
             self.history.append("troop", {"t": self.t, "troop": tid, "kind": t["kind"], "case": t["case"], "msg": "released"})
+            if self.bank_on and t["kind"] == "delivery":
+                # 2.1.0 §2.2: the state's own record — a delivery released is closed, vested or final N; §2.4: its loan settles
+                c = self.cases[t["case"]]
+                self.period["state_closed"] += 1
+                if c.state == "FINAL_N":
+                    self.period["state_failed"] += 1
+                self._close_loan(tid)
 
     def _free_eligible_reviewer(self, c: Case, role: str) -> bool:
         """Is any on-duty reviewer eligible for this seat free to take it? (1.4.0 §2.2's test for 'unfilled'.)"""
@@ -2821,10 +3063,14 @@ class World:
             self.troop_refused_capacity_seats += 1
             self.period["refused_capacity_seats"] += 1
             c.refused_capacity += 1
+            self._mark_refused(c, "capacity", tick)
             if self._pass_refused_review_tpost is None or (c.t_post is not None and c.t_post < self._pass_refused_review_tpost):
                 self._pass_refused_review_tpost = c.t_post
             return None
-        if not self._fund_can_carry(need, c.id):
+        if not self._fund_can_carry(need, c.id, "review"):
+            if self._last_refusal_credit:               # never, by construction (2.1.0 §2.4): read as a check
+                self.troop_refused_credit_seats += 1
+                self.period["refused_credit_seats"] += 1
             self.troop_shortfall_seats += 1
             self.period["troop_shortfall_seats"] += 1
             self._pass_refused += need                  # 1.5.0 §2.1: the amount the carry check refused is demand
@@ -2875,17 +3121,30 @@ class World:
             return None                                 # priced below the market: not a shortage; waits
         G = max(1.0, math.ceil(self.p.G_frac * B))
         omega_base = self.p.omega_rate * B
+        b = None                                        # 2.1.0: the state's trailing fail rate at the summons (the bank only)
         if self.p.floating:
             # 2.0.0: the nominals and the fee rate froze at the posting, the posting lock covers the pay-in; the state at cost
             omega = omega_base * c.m_post
             omega_fund = (omega - omega_base) if self.p.duty_fund else 0.0
             idx = c.index_at_lock if c.index_at_lock is not None else self.ledger.index()
             D, K, GV, phi_E, phi_F = c.D, c.K, c.G_V, c.phi_E, c.phi_F
-            cost_credits = B if self.p.troop_cost_at_price else self.p.c_D_T * self.ledger.index()
+            if self.bank_on:
+                # 2.1.0 §2.2: the state burns its expected cost — neutral at the trailing fail rate — and still delivers at B̄
+                b = self._state_fail_rate()
+                if self.p.c_d_t_mode == "expected":
+                    cost_credits = max(0.0, (1.0 - b) * B - b * G)
+                elif self.p.c_d_t_mode == "half":
+                    cost_credits = self.p.c_D_T * self.ledger.index()
+                else:
+                    cost_credits = B
+                self.last_b_t, self.last_c_d_t = b, cost_credits
+            else:
+                cost_credits = B if self.p.troop_cost_at_price else self.p.c_D_T * self.ledger.index()
             if self._capacity_refuses(2):               # §2.6: a delivery needs two places — its own and its inspection seat's
                 self.troop_refused_capacity_awards += 1
                 self.period["refused_capacity_awards"] += 1
                 c.refused_capacity += 1
+                self._mark_refused(c, "capacity", tick)
                 c.capacity_wait_max = max(c.capacity_wait_max, tick - c.t_post + 1)     # seating steps, as w_A counts
                 if not c.capacity_told:
                     c.capacity_told = True
@@ -2908,7 +3167,14 @@ class World:
         if self.p.omega_backs_fund and not self.p.floating:
             need_all = cost_credits + G + 2 * (self.p.c_T + GV)
             carries = self.ledger.wallet(self.troop_wallet).U + self._omega_available() + 1e-9 >= need_all
-        if not carries or not self._fund_can_carry(cost_credits + G, c.id):
+        if not carries or not self._fund_can_carry(cost_credits + G, c.id, "delivery"):
+            if self._last_refusal_credit:               # 2.1.0 §2.4: refused for credit — the state has retracted; marked, told
+                self.troop_refused_credit_awards += 1
+                self.period["refused_credit_awards"] += 1
+                c.refused_credit += 1
+                if c.refused != "credit":
+                    self._log(c, f"refused for credit: the state's debt {self.debt:g} is above the wall {self._debt_bound():g}; told")
+                self._mark_refused(c, "credit", tick)
             self.troop_shortfall_awards += 1
             self.period["troop_shortfall_awards"] += 1
             self._pass_refused += cost_credits + G       # 1.5.0 §2.1: the amount the carry check refused is demand
@@ -2919,6 +3185,7 @@ class World:
             self._priority_violation = f"delivery of {c.id} (posted {c.t_post}) summoned after an older request was refused"
         tid = self._new_troop("delivery", c.id, cost_credits, G)
         c.D, c.K, c.G_V, c.phi_E, c.phi_F, c.omega, c.G = D, K, GV, phi_E, phi_F, omega, G
+        c.c_d_t, c.b_t_at_summons, c.refused = cost_credits, b, None     # 2.1.0: the burn and the rate; served, the mark comes off
         c.G_award = G
         c.B, c.tau, c.actor = B, self.p.tau_T, tid
         c.t_award, c.deadline = tick, tick + self.p.tau_T
@@ -2951,6 +3218,15 @@ class World:
         self._service_omega_claims()
         return tid
 
+    def _mark_refused(self, c: Case, kind: str, tick: int):
+        """2.1.0 §2.6: every refusal is told — the request carries the mark's kind and ticks, readable in the public view."""
+        c.refused = kind
+        if c.refused_at is None:
+            c.refused_at = tick
+        c.refused_last = tick
+        if not c.capacity_told:
+            c.capacity_told = True
+
     def _summon_troops(self, tick: int):
         """1.4.0 §2.2–2.3, after the tick's seating: a required seat unfilled for w_R with no free eligible
         on-duty reviewer, or a root request unawarded for w_A beyond the free fundable members (1.7.1: per
@@ -2964,6 +3240,9 @@ class World:
         self._pass_refused_review_tpost = None
         self._pass_refused_delivery_tpost = None
         self._priority_violation = None
+        if self.bank_on:                                # 2.1.0 §2.4: the order at the start of the pass (I30's first point)
+            self._omega_income()
+            self._check_order_point("summons pass's start")
         # 1.6.0 §2.1: the clocks run — one tick for every open root request whose ceiling admits the market price
         for c in self._live_cases.values():
             if self._clock_runs(c):

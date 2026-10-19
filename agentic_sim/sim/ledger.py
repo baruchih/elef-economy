@@ -183,8 +183,8 @@ class History:
 
 class Ledger:
     OMEGA = "OMEGA"
-    MINTS = {"mint_backed", "mint_emission", "issuance", "creation"}
-    BURNS = {"burn_bond", "purchase", "retirement", "departure"}
+    MINTS = {"mint_backed", "mint_emission", "issuance", "creation", "mint_plant", "loan", "mint_scenario"}
+    BURNS = {"burn_bond", "purchase", "retirement", "departure", "repayment", "retire_plant"}
 
     def __init__(self, Res0: float, v0: float, history: Optional[History] = None,
                  events_path: Optional[str] = None, tail: int = 4096, floating: bool = False, P0: float = 20.0):
@@ -404,8 +404,9 @@ class Ledger:
 
     # ---- 2.0.0: unbacked sources and sinks (§2.4) ---------------------------
     def mint(self, kind: str, wid: str, credits: float, case=None, note=""):
-        """issuance (a requester's wallet, the genesis floats) or creation (Ω's shortfall on a required payment)."""
-        if kind not in ("issuance", "creation"):
+        """issuance (a requester's wallet, the genesis floats) or creation (Ω's shortfall on a required payment); 2.1.0: the
+        bank's mint_plant (a plant's pots), loan (a summons's shortfall, tied to it) and mint_scenario (the declared shock)."""
+        if kind not in ("issuance", "creation", "mint_plant", "loan", "mint_scenario"):
             raise LedgerError(f"mint: unknown source kind {kind}")
         credits = amount(credits, kind)
         if credits <= 1e-12:
@@ -415,8 +416,9 @@ class Ledger:
         self._log(kind, credits, None, wid, case, note)
 
     def burn_unlocked(self, kind: str, wid: str, credits: float, case=None, note=""):
-        """retirement (Ω burns against its deficit) or departure (a leaving requester's wallet)."""
-        if kind not in ("retirement", "departure"):
+        """retirement (Ω burns against its deficit) or departure (a leaving requester's wallet); 2.1.0: repayment (a loan or the
+        debt, from Ω) and retire_plant (what a closed plant's wallets held)."""
+        if kind not in ("retirement", "departure", "repayment", "retire_plant"):
             raise LedgerError(f"burn: unknown sink kind {kind}")
         credits = amount(credits, kind)
         if credits <= 1e-12:

@@ -1741,6 +1741,57 @@ w_A — the draft should say whether such a request goes to the state at its exp
 set two of run 12's readings ("lock-bound" was K_open 5; "the cap at 40" was the wallet rule) — the declared requester for 2.1.0's §8
 should be named; P_t at period boundaries does not touch the ratchet; a refusal told would show in the K_open-lifted 60/40 cells.
 
+## Design revision 9 — the bank (2.1.0, October 19, 2026)
+
+**The candidate.** `agentic_economics_loop_spec_2.1.0-rc.1.md` arrived the morning after run 13 — a sketch of what the reviewer had
+announced: split the orchestrator's one pocket into two. The implementer's review (`dr9_2.1.0-rc.1-review.md`): implementable with one
+correction (a plant has been netted since 1.3.0 — mint the pots, not the all-in; the closure sweep must go to the bank and be destroyed,
+never to Ω) and nine readings (the burn's floor at b_T = 2/3; b_T's window in a quiet period; a seat's loan repaid at its review's
+settlement; the order applied before the summons pass; seats under the wall stall the members' work; the first period at base; Hypothesis
+1 arithmetic where b_T equals the driver's rate; `test_review_14` stays, the told flag was the engine's; §6's scale). rc.2 adopted all of
+it and ruled the seat question (a binding wall refuses deliveries, never seats); the rc.2 review: implementable as it stands, one note for
+the record — a base fee paid inside the summons pass could fund part of the next summons before the end-of-tick ordering. **Accepted with
+one ruling (Appendix N):** every inflow to Ω is ordered at once — debt → liabilities → Ω — the moment it arrives, inside the pass included;
+the pass-start and tick-end points stand as I30's checks, not as the rule.
+
+**What 2.1.0 is.** A second account, the bank, that alone creates and destroys credits. It mints by rule — the requesters' issuance,
+emission, a plant's two pots (the cost of truth), a run's declared shock — publishes the price level once a period (the closed period's
+mean awarded price, carried if none; the index constant within a period, I31), and lends the state the shortfall of a summons tied to it,
+repaid from the summons's own return before Ω keeps anything. What a settled summons did not repay is the state's debt, repaid by every
+inflow to Ω the moment it arrives, before the rebate liabilities (1.6.0's stock again, never created) and before Ω keeps. The bank lends
+for a delivery only while the debt is within the wall — one closed period of Ω's fee income, base fees plus the troops' review fees — and
+for a seat always; a delivery refused for credit is marked and told, the state has retracted. The state burns its expected cost c^D_T =
+max(0, (1 − b_T) B̄ − b_T G) with b_T its own trailing fail rate (the last closed period if it closed ten, else back until ten, else 0.2)
+and still delivers at B̄, so it never undercuts a member; neutral in expectation up to b_T = 2/3. Every refusal — for capacity or for
+credit — marks the request with its kind and tick, readable in the public view; the requester may hold or withdraw. Creation, retirement
+and the deficit are retired as rules (the control, `Params.bank` off); Ω's net position = Ω_U − debt − liabilities.
+
+**Implemented** (`Params.bank`, on with `floating`; the engine commit named below): the ledger's five source kinds and two sink kinds; the
+World's bank counters, `loans` by troop, `debt` with peak and age; `_fund_can_carry(need, cid, kind)` lending or refusing; the ledger hook
+repaying the troop's own loan and running the order on every inflow (`_bank_on_inflow`, `_omega_income`), again at the pass's start and
+the tick's end; `_close_loan` at a delivery's release or a seat's settlement; the expected cost at the summons with `_state_fail_rate()`;
+`_stop_clock` to the liability stock; plants minted and the sweep destroyed; the scenario minted; `price_level()` as published at the
+boundary; `_mark_refused`; `view.bank()` and the marks; the period record's `bank` block. I28 rewritten (lent = repaid + outstanding +
+debt), I30, I31; I27–I31 in the full audit too. `test_v21` (13); `test_v20` pins `bank=False`; the goldens re-pinned once — in the seeded
+random drive the state's deliveries fail far above a fifth, so the wall binds there and the state retracts (393 refusals, 24 waiting at
+the end of seed 1), the rule as written on a drive that is not an economy; three reviewer tests out of `EXPECTED_FAIL` (28 remain). Suite
+275 passed, 0 failed, 28 expected failures in all three modes. Driver: `--rules 2.1.0` default, `2.0.0` the control; `--c-d-t-mode`,
+`--b-t-prior`, `--b-t-min-n`, `--debt-bound-periods`, `--requester-on-refusal`, the red team's `--troop-fail-rate` and `--state-rejecters`
+(the rejecter reads the case's actor through the public view — the reviewer's view carries none; declared); the bank's books as columns.
+Spec consolidated as `v2_1_0` (§2.4, §3.1, §4.1–4.5, §7.6, §7.7, §10.4, §12.2, §12.3, §16–18, §20, Appendices A, C, N), 2.0.0 to history,
+rc.2 verbatim as `dr9_the_bank_2.1.0.md`.
+
+**Two things the smoke showed before run 14, for the record.** In the honest market the state's retained fees fund most of its own
+summonses, so the loans line is small and the losses on Ω-funded deliveries are Ω's own income lost, not debt — debt arises only where a
+loan went unrepaid, as the text says; and at 60/40 the state closes fewer than ten deliveries a period for several periods, so b_T reads
+the prior for a while. Run 14 reads both.
+
+**Next:** run 14 — the revision's §8 in its order: §6 reproduced; the state neutral at 50–80% against `at_cost` on the identical path,
+read with the knobs (§8.8) and the red team (§8.9), where b_T and the driver's rate differ; the pump (the flood and the crowd at N_T 40,
+60/40 with K_open lifted under both ceiling policies); the index per period against run 12; the inflation test (issuance 5 / 10 / 20 at 20
+honest, β_max 60, both ceiling policies); told (the withdrawing requester); the books in every cell. Then 2.2.0 — the supply side: entry
+and delegation — which the reviewer is sketching meanwhile.
+
 ## Maps
 
 Two `_line` artifacts in project Agentic-OS (`c54120a6-aaff-40f7-8a9f-3667da542879`):

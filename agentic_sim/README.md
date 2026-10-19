@@ -4,7 +4,7 @@ Built up through v0.4–v0.10, unchanged by the v1.0 consolidation and the v1.0.
 since, all on October 17, 2026: for design revision 1 (1.1.0: the verification deposit is two pots), design revision 2
 (1.2.0: the loop's own clock — planted work, the plant record, the effort dial), design revision 3 (1.3.0: inspection
 is membership), design revision 4 (1.4.0: the orchestrator's troops), design revision 5 (1.5.0: the reserve is sized to the need), design revision 6 (1.6.0: auto-scale) and, on October 18, design revision 7 (1.7.0: the state's earnings — see the seven sections below). Section numbers in code comments refer to the
-working-spec versions they were written against; `spec/agentic_economics_loop_spec_v2_0_0.md` is the text in force,
+working-spec versions they were written against; `spec/agentic_economics_loop_spec_v2_1_0.md` is the text in force,
 and its Appendix A holds the defaults that `sim/params.py` encodes.
 
 The loop's rules as code, with no strategies. Every bid, verdict, appeal, audit
@@ -98,6 +98,12 @@ tests/test_v20.py                   design revision 8 (2.0.0): the price of work
                                     its release and raise_ceiling; P_t indexing frozen at the first lock; B̄ members only, P_t troops too; the state at
                                     cost, creation and retirement; the rebate at the stop; N_T and two places; the flag; a crowd's arrival and
                                     departure; the scenario operation and I28; the cost API in credits; the period record; floating off = 1.7.1
+tests/test_v21.py                   design revision 9 (2.1.0): the bank — a summons lent for its shortfall at the expected cost and repaid from its
+                                    own return before Ω keeps; a failed delivery's loan as debt and the next inflow repaying it at once; the order
+                                    debt → liabilities → Ω; the wall refusing a delivery, marked and told, and never a seat; unbounded the control;
+                                    the burn floored and the state's own record; at_cost and half; P_t published at the boundary; a plant's pots
+                                    minted and the sweep destroyed with Ω untouched; the scenario; the capacity mark; the period record; bank off
+                                    = 2.0.0 — 13
 tests/test_perf_equivalence.py      the per-tick check equals the full audit; the working-set engine reproduces the
                                     pinned History head on a seeded random scenario that now plants work (re-pinned once for
                                     1.1.0 and once for 1.2.0); the working set stays bounded — 5
@@ -108,11 +114,11 @@ tests/test_record_mode.py           the record on disk (`Params.record_dir`): th
 run_tests.py        every suite with plain python; pytest reports the same (conftest marks the XFAIL)
 ```
 
-Run: `python3 run_tests.py` — 259 pass, 0 fail, 31 expected failures, each with a stated reason (one original,
+Run: `python3 run_tests.py` — 275 pass, 0 fail, 28 expected failures, each with a stated reason (one original,
 four superseded by the view contract, nineteen on the withdrawn reopening path, one superseded by design
-revision 1, one by design revision 2, five by design revision 8 — the backing's v_t, the pay-in refused at posting, and three 1.x figures the price level now indexes). With pytest: `python3 -m pytest tests -q` reports 259 passed, 31 xfailed; the
+revision 1, one by design revision 2, two by design revision 8 — the backing's v_t and the pay-in refused at posting; the three 1.x figures 2.0.0's moving index broke pass again under 2.1.0's index per period). With pytest: `python3 -m pytest tests -q` reports 259 passed, 31 xfailed; the
 runner expands pytest parametrization as pytest does, including multi-argument and stacked marks. (Spec Appendix D
-records the count at the v1.0.1 freeze, 156; at 1.1.0, 181; at 1.2.0, 197; at 1.3.0, 208; at 1.4.0, 218; at 1.5.0, 225; at 1.6.0, 236; at 1.7.0, 244; at 1.7.1, 248; at 2.0.0, 259.)
+records the count at the v1.0.1 freeze, 156; at 1.1.0, 181; at 1.2.0, 197; at 1.3.0, 208; at 1.4.0, 218; at 1.5.0, 225; at 1.6.0, 236; at 1.7.0, 244; at 1.7.1, 248; at 2.0.0, 259; at 2.1.0, 275.)
 
 Expected failures are **strict and parameter-exact** in both entry points: `EXPECTED_FAIL_PARAMS` names the
 parameter runs that are expected to fail inside a mixed test (the P/⊥ runs of the eighth review's first case;
@@ -506,6 +512,31 @@ sweeps the take with the rebate pinned. In the engine:
   `advances_made/repaid`, `liabilities_paid`; `drivers/sweep.py` carries them.
 - **Tests.** `test_v17.py` (8); goldens re-pinned once; `test_v13`–`test_v16` pinned to the merged fund and the half cap.
   Reviewer tests untouched and passing.
+
+## Design revision 9 — the bank (2.1.0, October 19, 2026)
+
+`Params.bank` (on, with `floating`) is the revision: the bank is the only creator and destroyer of credits — counters and kinds, not a
+wallet (`bank_minted` / `bank_destroyed`: `issuance`, `mint_emission`, `mint_plant`, `mint_scenario`, `loan` in; `repayment`,
+`retire_plant` out). A summons short of Ω's balance is lent the shortfall (`_fund_can_carry(need, cid, kind)` → `loan`, tied to the
+troop in `loans`); the troop's own return repays it first (the ledger hook `_bank_on_inflow` → `_bank_repay`) and every inflow to Ω is
+then ordered at once — `_omega_income`: debt → `omega_liabilities` oldest first → Ω — and again at the summons pass's start and the
+tick's end (I30's checks). What a settled summons did not repay is `debt` (`_close_loan` at a delivery's release or a seat's
+settlement); a delivery is refused for credit while `debt > _debt_bound()` (the last `debt_bound_periods` closed periods' base fees plus
+the troops' review fees; seats never refused). The state burns its expected cost (`c_d_t_mode expected`: max(0, (1 − b_T) B̄ − b_T G),
+`_state_fail_rate()` over the closed periods' `state_delivery_history` with `b_t_min_n` and `b_t_prior`; `at_cost` and `half` the
+controls) and delivers at B̄. `_stop_clock` pays a rebate from Ω's balance else makes it a liability — never created. `create_plant`
+mints the pots and the tree closure destroys whatever the plant wallets hold; `scenario_create` mints to the requesters. `price_level()`
+is what `_maybe_end_period` published (the closed period's mean, carried if none; I31). Every refusal marks the request (`_mark_refused`:
+`c.refused` capacity | credit, `refused_at`, `refused_last`), cleared when served. I28 rewritten, I30, I31; `view.bank()`; the period
+record's `bank` block. `test_v21.py` (13); `test_v20` pins `bank=False`; goldens re-pinned once; three reviewer tests out of the expected
+failures (the index no longer moves within a period).
+
+Driver (`--rules 2.1.0` default; `2.0.0` the control): `--c-d-t-mode expected|at_cost|half`, `--b-t-prior`, `--b-t-min-n`,
+`--debt-bound-periods` (0 unbounded), `--requester-on-refusal hold|withdraw` (the marks read through the public view; withdrawn and
+reposted), `--troop-fail-rate` and `--state-rejecters` (the §8.9 red team; the rejecter reads the case's actor — declared). Columns:
+bank_on, loans_outstanding, loans_peak, loans_open, debt*, debt_age, liabilities*, wall, wall_slack, omega_retained, omega_net_bank,
+omega_review_fee_income, minted_*, destroyed_*, cost_of_truth, b_T, c_d_t_last, refused_credit_*, refused_waiting_*, marked_*,
+withdrawn_at_mark, reposted_after_mark, state_rejections, troop_truth_redrawn.
 
 ## Design revision 8 — the price of work (2.0.0, October 18, 2026)
 

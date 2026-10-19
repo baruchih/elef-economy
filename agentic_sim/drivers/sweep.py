@@ -86,8 +86,15 @@ KEYS = ["careful_wealth", "stamper_wealth", "careful_fees", "stamper_fees", "car
         "careful_wealth_real", "stamper_wealth_real", "requester_wallet_mean", "requester_unlocked_mean", "crowd_present",
         "crowd_wallet_mean", "member_price_mean", "troop_price_mean", "c_d_now", "margin_mean", "posts_unaffordable", "posts_k_open", "awarded",
         "effort_burned", "effort_unpaid", "crowd_arrived", "crowd_departed", "shock_created", "M",
-        "lowballer_n", "lowballer_wealth_real", "lowballer_awards", "lowballer_rho", "stingy_n", "stingy_open", "stingy_wallet_mean"]
-SHORT = {"stampers": "s", "fee": "f", "on-duty": "X", "gv": "gv", "p-floor": "pf", "p-start": "p", "p-cap": "pc", "band": "band",
+        "lowballer_n", "lowballer_wealth_real", "lowballer_awards", "lowballer_rho", "stingy_n", "stingy_open", "stingy_wallet_mean",
+        # 2.1.0: the bank's books, the marks, the red team
+        "bank_on", "loans_outstanding", "loans_peak", "loans_open", "debt", "debt_created", "debt_repaid", "debt_peak", "debt_age",
+        "liabilities", "liabilities_n", "liabilities_oldest", "wall", "wall_slack", "omega_retained", "omega_net_bank", "omega_review_fee_income",
+        "minted_issuance", "minted_emission", "minted_plant", "minted_scenario", "minted_loan", "destroyed_repayment", "destroyed_plant",
+        "cost_of_truth", "b_T", "c_d_t_last", "refused_credit_awards", "refused_credit_seats", "refused_waiting_capacity", "refused_waiting_credit",
+        "marked_capacity", "marked_credit", "withdrawn_at_mark", "reposted_after_mark", "state_rejections", "troop_truth_redrawn"]
+SHORT = {"debt-bound-periods": "wall", "b-t-prior": "bprior", "b-t-min-n": "bn", "requester-on-refusal": "onref", "troop-fail-rate": "tfail",
+         "state-rejecters": "srej", "c-d-t-mode": "cdt", "stampers": "s", "fee": "f", "on-duty": "X", "gv": "gv", "p-floor": "pf", "p-start": "p", "p-cap": "pc", "band": "band",
          "fail-rate": "b", "accuracy": "a", "ruling-accuracy": "r", "appeal-policy": "appeal", "dispute-policy": "dispute",
          "dispute-rate": "dr", "assignment": "assign", "rules": "rules", "pi0": "pi", "dial": "dial", "beta-p": "bp",
          "camouflage": "cam", "omega0": "om", "drift-to": "drift", "adapt-rate": "adapt", "fund": "fund", "m-max": "mmax",

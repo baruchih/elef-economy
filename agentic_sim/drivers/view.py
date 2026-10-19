@@ -113,7 +113,8 @@ class Public:
                 "plant_reserve": w._plant_reserve(), "first_plant_adjudicated_at": w.first_plant_adjudicated_at}
 
     def market(self) -> dict:
-        """2.0.0 readings: the price level and the market price, the deficit, issuance and departures, the flags, the capacity case."""
+        """2.0.0 readings: the price level and the market price, the deficit, issuance and departures, the flags, the capacity case;
+        2.1.0: the refusals told by kind (the bank's books are `bank()`)."""
         w = self._w
         L = w.ledger
         avail = [c for c in w._live_cases.values() if c.is_root and c.plant is None and c.state == "AVAILABLE"]
@@ -129,7 +130,31 @@ class Public:
                 "refused_capacity_seats": w.troop_refused_capacity_seats, "refused_capacity_awards": w.troop_refused_capacity_awards,
                 "refused_capacity_waiting": sum(1 for c in avail if c.refused_capacity > 0),
                 "capacity_wait_max": max([c.capacity_wait_max for c in w._live_cases.values()] + [0]),
-                "price_n_period": w.period["price_n"], "award_n_period": w.period["award_n"]}
+                "price_n_period": w.period["price_n"], "award_n_period": w.period["award_n"],
+                # 2.1.0 §2.6: the marks — requests waiting with a refusal told, by kind
+                "refused_waiting": {"capacity": sum(1 for c in avail if c.refused == "capacity"),
+                                    "credit": sum(1 for c in avail if c.refused == "credit")},
+                "refused_credit_awards": w.troop_refused_credit_awards, "refused_credit_seats": w.troop_refused_credit_seats}
+
+    def bank(self) -> dict:
+        """2.1.0 readings: the bank's books — minted and destroyed by kind, loans outstanding, the debt, the liabilities, the wall,
+        Ω's retained income and net position, the cost of truth, the state's rate and burn."""
+        w = self._w
+        L = w.ledger
+        liab = sum(l["amount"] for l in w.omega_liabilities)
+        wall = w._debt_bound()
+        return {"on": w.bank_on, "minted": dict(w.bank_minted), "destroyed": dict(w.bank_destroyed),
+                "loans_outstanding": w.loans_outstanding, "loans_peak": w.loans_peak, "loans_open": len(w.loans),
+                "debt": w.debt, "debt_created": w.debt_created, "debt_repaid": w.debt_repaid, "debt_peak": w.debt_peak,
+                "debt_since": w.debt_since, "liabilities": liab, "liabilities_n": len(w.omega_liabilities),
+                "liabilities_oldest": (w.t - min(l["t"] for l in w.omega_liabilities)) if w.omega_liabilities else 0,
+                "wall": None if wall == float("inf") else wall, "wall_slack": None if wall == float("inf") else wall - w.debt,
+                "omega_retained": L.wallet(L.OMEGA).U, "omega_net": L.wallet(L.OMEGA).U - w.debt - liab,
+                "omega_fee_income": w.omega_fee_income, "omega_review_fee_income": w.omega_review_fee_income,
+                "cost_of_truth": w.bank_minted["mint_plant"] - w.bank_destroyed["retire_plant"],
+                "b_T": w._state_fail_rate(), "last_b_t": w.last_b_t, "last_c_d_t": w.last_c_d_t,
+                "state_closed_period": w.period["state_closed"], "state_failed_period": w.period["state_failed"],
+                "P_published": w._P_published, "P_published_at": w._P_published_at}
 
     def service(self) -> dict:
         """1.6.0 §2.1 readings: the network rating and Ω's liabilities."""

@@ -12,7 +12,10 @@ checked, never what the engine does. This file is that claim in test form:
      with its adjudication, suspensions and the dial's period — the full audit passes after
      every tick while the per-tick check runs, and the final world's fingerprint (History head,
      supply, reserve, every wallet, every case's state and grade) equals the one the v1.0.1
-     engine produced for the same scenario (GOLDEN, recorded from commit 6a746a1).
+     engine produced for the same scenario (GOLDEN, recorded from commit 6a746a1; re-pinned once at each design
+     revision's implementing commit — last for 2.1.0, the bank: the summons is a loan repaid from its return, the index is
+     published once a period, a plant's pots are minted and destroyed, and the wall binds in this random drive, whose state
+     deliveries fail far above a fifth, so the state retracts and 24 requests wait at the end of seed 1).
   2. An engine-caused violation is caught by the per-tick check exactly where the full audit
      catches it.
   3. The working set stays bounded while the record grows.
@@ -179,13 +182,13 @@ def fingerprint(w: World) -> dict:
 # changed with the rule, as a change to settlement, the reserve or membership must, and was re-pinned once, at the
 # implementing commit.
 GOLDEN = {
-    1: {"head": "35f97d9f3ab77aa7cfa1977d749bbf608121366c35f0595ab55db310caac387e", "entries": 9542,
-        "M": 120050.539036, "Res": 0.0,
-        "states": {"FINAL_N": 202, "VESTED": 59, "CANCELLED": 1, "WITHDRAWN": 6, "PENDING": 5, "AVAILABLE": 5,
-                   "SUBMITTED": 3, "COMMITTED": 1}},
-    2: {"head": "69db2575ec172b05b53b09779c319b34e73023257790343ea2e70a24de1d59e5", "entries": 9750,
-        "M": 120039.207657, "Res": 0.0,
-        "states": {"FINAL_N": 205, "VESTED": 68, "WITHDRAWN": 9, "AVAILABLE": 3, "COMMITTED": 1}},
+    1: {"head": "148932dcf5f32644b8ba8e5a14dac44ff0b946d468583e1b0491140e52f7efb5", "entries": 8501,
+        "M": 120273.313569, "Res": 0.0,
+        "states": {"FINAL_N": 177, "VESTED": 61, "CANCELLED": 3, "WITHDRAWN": 15, "PENDING": 3, "AVAILABLE": 24,
+                   "SUBMITTED": 1}},
+    2: {"head": "539329867138c81b21c1112a2b77ae80ff8606ae1d964e4197365fcb73ec7e95", "entries": 8211,
+        "M": 120325.597355, "Res": 0.0,
+        "states": {"FINAL_N": 184, "VESTED": 57, "WITHDRAWN": 8, "PENDING": 5, "AVAILABLE": 7, "COMMITTED": 1}},
 }
 
 
@@ -217,7 +220,12 @@ def test_full_audit_agrees_with_tick_check_and_behaviour_is_unchanged(seed):
     # 1.3.0/1.4.0: the troops' wallet's flows reconcile (I23); 1.7.0: that wallet is the troop account, and the uplift fund
     # is the raised tax received less the uplift paid
     # 2.0.0: the troops' wallet is Ω itself and the reserves are retired; Ω created for its summonses and rebates (I28)
-    assert w.fund_in > 0 and w.p.floating and w.troop_wallet == w.ledger.OMEGA and w.deficit_created > 0 and w.R_T == 0
+    assert w.fund_in > 0 and w.p.floating and w.troop_wallet == w.ledger.OMEGA and w.R_T == 0
+    # and, since 2.1.0, the bank's: loans made and repaid, debt from the drive's failed state deliveries, the wall reached in this
+    # random drive (its state deliveries fail far above a fifth), the index published at the boundaries, a plant's pots minted
+    assert w.bank_on and w.deficit_created == 0 and w.bank_minted["loan"] > 0 and w.bank_destroyed["repayment"] > 0
+    assert w.debt_created > 0 and (w.troop_refused_credit_awards > 0) == (seed == 1) and w.troop_refused_credit_seats == 0
+    assert w.bank_minted["mint_plant"] > 0 and w.bank_destroyed["retire_plant"] > 0 and w._P_published_at is not None
     assert abs(w.ledger.wallet("DUTY-FUND").W - (w.fund_in - w.fund_out)) < 1e-6
     assert w.ledger.wallet(w.troop_wallet).W + w.troop_surplus_paid > 0          # the troops earned, and it is the state's
 

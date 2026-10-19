@@ -23,8 +23,9 @@ DUTY = ["C", "D", "E", "F"]
 
 def make_world(budget=1000.0, actors=ACTORS, duty=DUTY, **over):
     # 2.0.0 defaults; no emission, the service fee on, no plants, the service target far off, long turns
+    # 2.1.0 (design revision 9) replaced Ω's creation and retirement with the bank; these tests pin the 2.0.0 engine (bank=False)
     kw = dict(E0=0.0, H=1e9, omega_rate=0.05, Omega0=100.0, duty_turn_reviews=10_000, duty_turn_ticks=100_000,
-              r_s=1.0, T_s=10_000, pi0=0.0)
+              r_s=1.0, T_s=10_000, pi0=0.0, bank=False)
     kw.update(over)
     return World(Params(**kw), actors, humans={"H": budget}, on_duty=duty)
 

@@ -28,6 +28,7 @@ ALLOWED_EVENT_KINDS = {
     "lock", "release", "transfer", "forfeit_to", "burn_bond", "purchase",
     "mint_backed", "mint_emission", "issuance", "creation", "retirement", "departure", "escrow_in", "deposit_in", "feepot_in", "escrow_out",
     "deposit_out", "feepot_out", "fee_out",
+    "mint_plant", "loan", "mint_scenario", "repayment", "retire_plant",     # 2.1.0: the bank's kinds
 }
 GRADES = {"human-explicit", "delegate-explicit", "protocol-default", "procedural", "plant"}
 
@@ -879,11 +880,30 @@ def I27_price_and_indexing(w, cases=None):
 def I28_the_deficit(w):
     """2.0.0 §2.5: Ω creates only for a payment the rules require (or the declared scenario operation) and only when its
     unlocked balance cannot meet it; while the deficit stands Ω's unlocked balance is zero at the tick's end; deficit
-    outstanding = created − retired ≥ 0."""
+    outstanding = created − retired ≥ 0. 2.1.0 (rewritten) — the bank: Ω never creates; the bank creates only by the three
+    mintings and the loans; a loan is tied to a summons and repaid from its own return; what is lent is outstanding, repaid
+    or debt, and nothing else; nothing is created for a rebate; nothing minted for a plant reaches Ω."""
     if not w.p.floating:
         return
     if w._creation_violation:
         _fail(f"I28 {w._creation_violation}")
+    if w.bank_on:
+        if w.deficit_created > EPS or w.deficit_retired > EPS:
+            _fail(f"I28 Ω created {w.deficit_created} under the bank")
+        lent, repaid = w.bank_minted["loan"], w.bank_destroyed["repayment"]
+        if abs(lent - repaid - w.loans_outstanding - w.debt) > _tol(w.ledger.M):
+            _fail(f"I28 lent {lent} ≠ repaid {repaid} + outstanding {w.loans_outstanding} + debt {w.debt}")
+        if w.debt < -EPS or (w.debt > EPS and w.debt_since is None):
+            _fail(f"I28 debt {w.debt} with age {w.debt_since}")
+        for tid, ln in w.loans.items():
+            t = w.troops.get(tid)
+            if t is None or ln["amount"] < -EPS:
+                _fail(f"I28 loan {ln} on no summons")
+            if t["kind"] == "delivery" and t["t_release"] is not None:
+                _fail(f"I28 loan on the released delivery troop {tid} still open")
+            if t["kind"] == "review" and t["review"] is not None and _peek(w.reviews, t["review"]).status in ("vested", "overturned", "withdrawn"):
+                _fail(f"I28 loan on the settled seat {tid} still open")
+        return
     if w.deficit_created + EPS < w.deficit_retired:
         _fail(f"I28 retired {w.deficit_retired} more than created {w.deficit_created}")
     if w.deficit > EPS and w.ledger.wallet(w.ledger.OMEGA).U > EPS:
@@ -893,6 +913,39 @@ def I28_the_deficit(w):
 
 
 _CREATION_NOTES = {"creation: summons", "creation: plant", "creation: rebate", "creation: scenario: deficit shock"}
+_LOAN_NOTES = {"loan: delivery", "loan: review"}
+_PLANT_WALLETS = {"OMEGA-REQ", "OMEGA-ACT"}             # engine.PLANT_REQ / PLANT_ACT (not imported: no cycle)
+
+
+def I30_the_bank(w):
+    """2.1.0 §2.4, I30: the bank's identity — while debt or liabilities stand Ω's unlocked balance is zero at the start of the
+    summons pass and at the tick's end; a delivery is lent for only within the wall; a seat is never refused for credit; the
+    loans outstanding are open summonses' (I28 holds the lent = repaid + outstanding + debt identity)."""
+    if not getattr(w, "bank_on", False):
+        return
+    if w._wall_violation:
+        _fail(f"I30 {w._wall_violation}")
+    if w._order_violation:
+        _fail(f"I30 {w._order_violation}")
+    om = w.ledger.wallet(w.ledger.OMEGA).U
+    if (w.debt > EPS or w.omega_liabilities) and om > EPS:
+        _fail(f"I30 Ω holds {om} unlocked at the tick's end with debt {w.debt} and {len(w.omega_liabilities)} liabilities")
+    if w.troop_refused_credit_seats:
+        _fail(f"I30 {w.troop_refused_credit_seats} review seats refused for credit")
+    if w.debt_peak + EPS < w.debt or w.loans_peak + EPS < w.loans_outstanding:
+        _fail("I30 a peak below its current value")
+
+
+def I31_the_index_per_period(w):
+    """2.1.0 §2.5: P_t is what the bank published at the last period boundary and does not move within a period."""
+    if not getattr(w, "bank_on", False):
+        return
+    if abs(w.ledger.P_t - w._P_published) > EPS:
+        _fail(f"I31 the ledger's P_t {w.ledger.P_t} ≠ the published {w._P_published}")
+    if w._P_published_at is not None and w._P_published_at != w.period["start"]:
+        _fail(f"I31 P_t published at {w._P_published_at}, not at the period boundary {w.period['start']}")
+    if w._P_published_at is None and abs(w._P_published - w.p.P0) > EPS:
+        _fail(f"I31 P_t {w._P_published} before any boundary")
 
 
 def I29_the_posting_lock(w, cases=None):
@@ -924,6 +977,18 @@ def _audit_events(w) -> dict:
         _I3_one(e)
         if e.kind == "creation" and e.note not in _CREATION_NOTES:
             _fail(f"I28 creation '{e.note}' is not a payment the rules require")
+        if e.kind == "creation" and getattr(w, "bank_on", False):
+            _fail("I28 Ω created under the bank")
+        if e.kind == "loan" and (e.note not in _LOAN_NOTES or e.case is None):
+            _fail(f"I28 loan '{e.note}' on {e.case} is not a summons's")
+        if e.kind == "mint_plant" and e.dst not in _PLANT_WALLETS:
+            _fail(f"I28 mint_plant to {e.dst}")
+        if e.kind == "mint_scenario" and e.note != "mint_scenario: deficit shock":
+            _fail(f"I28 mint_scenario '{e.note}'")
+        if e.kind == "retire_plant" and e.src not in _PLANT_WALLETS:
+            _fail(f"I28 retire_plant from {e.src}")
+        if e.kind == "repayment" and e.src != w.ledger.OMEGA:
+            _fail(f"I28 repayment from {e.src}")
         if not _i19_event_ok(e):
             _fail(f"I19 {e.case}: {e.kind} {e.amount} '{e.note}' crosses the pots")
         cid = e.case
@@ -979,6 +1044,11 @@ def check_all(w):
     I23_load_and_fund(w)
     I24_troops(w)
     I26_service(w)
+    I27_price_and_indexing(w)
+    I28_the_deficit(w)
+    I29_the_posting_lock(w)
+    I30_the_bank(w)
+    I31_the_index_per_period(w)
     I16_history_is_authoritative(w)
 
 
@@ -1039,6 +1109,8 @@ def check_tick(w):
     I27_price_and_indexing(w, cases)
     I28_the_deficit(w)
     I29_the_posting_lock(w, cases)
+    I30_the_bank(w)
+    I31_the_index_per_period(w)
 
     w._events_checked = len(w.ledger.events)
     w._prune_working_set()

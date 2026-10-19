@@ -129,6 +129,19 @@ class Params:
     #                            a delivery holds two places until its initial review is seated (Appendix M)
     troop_cost_at_price: bool = True   # c^D_T = B̄, the state at cost; False: the 1.x c_D_T × P_t/P_0 (the control, half of P_t)
     bbar_counts_troops: bool = False   # 2.0.0 §8.8's control: troop awards counted in B̄ (the rule excludes them, §2.2)
+    # Design revision 9 (2.1.0): the bank. True (with `floating`): a second account of the orchestrator's that is the only
+    # creator and destroyer of credits — it mints by rule (issuance, emission, a plant's pots), publishes the index once a
+    # period, and lends Ω the shortfall of a summons tied to that summons, repaid from its own return before Ω keeps anything;
+    # what a settled summons's return did not cover is the state's debt, repaid by every inflow to Ω the moment it arrives
+    # (debt → liabilities, oldest first → Ω); the bank lends for a delivery only while the debt is within the wall (one period
+    # of Ω's fee income; a seat is lent for regardless); the state burns its expected cost c^D_T = (1 − b_T) B̄ − b_T G at the
+    # summons and still delivers at B̄; a rebate Ω cannot pay is a liability, never created; every refusal is marked on the
+    # request. False is the 2.0.0 engine (Ω's creation and retirement, the deficit, P_t on the live window).
+    bank: bool = True
+    c_d_t_mode: str = "expected"       # expected: (1 − b_T) B̄ − b_T G floored at 0 | at_cost: B̄ (2.0.0) | half: c_D_T × P_t/P_0 (1.x)
+    b_t_prior: float = 0.2             # the state's fail rate until b_t_min_n of its deliveries have closed
+    b_t_min_n: int = 10                # the last closed period if it closed this many, else trailing periods back until it does
+    debt_bound_periods: int = 1        # Δ_max: this many closed periods of Ω's fee income (base fees + the troops' review fees); 0 unbounded
 
     # Reliability and duty credit windows (§11)
     rho_window: int = 100      # settled outcomes

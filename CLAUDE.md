@@ -1,7 +1,13 @@
 # Agentic-OS — the economic loop
 
 A rulebook for a task → verification → dispute → settlement loop among autonomous actors, and a
-reference implementation of it with no strategies. Ten external reviews. The rulebook is at **2.0.0** — the first major
+reference implementation of it with no strategies. Ten external reviews. The rulebook is at **2.1.0** — design revision 9, *the bank*: a second account of the orchestrator's
+that alone creates and destroys credits — it mints by rule (issuance, emission, a plant's pots), publishes the price level once a
+period, and lends the state the shortfall of a summons tied to it, repaid from its own return; what a settled summons did not repay is
+the state's debt, repaid by every inflow to Ω the moment it arrives, before rebate liabilities and before Ω keeps; the bank lends for a
+delivery only while the debt is within one period of Ω's fee income (the wall) and for a seat always; the state burns its expected
+cost c^D_T = max(0, (1 − b_T) B̄ − b_T G) and still delivers at B̄; a rebate Ω cannot pay is a liability, never created; every refusal
+marks the request and is told — on top of **2.0.0**, the first major
 version, design revision 8, *the price of work*: the price of a task floats (requesters with finite wallets choose a ceiling, members
 bid, the price level P_t is what clears and indexes every nominal the rules fix in place of the backing's v_0/v_t, frozen per case at
 its first lock — a root's posting, which locks the all-in maximum), there is no backing (a credit is worth the work it buys, P_0/P_t;
@@ -42,13 +48,13 @@ and what is proposed next.
 ## Layout
 
 ```
-spec/agentic_economics_loop_spec_v2_0_0.md   the text in force (standalone; Appendix A defaults, E errata, F–M design revisions 1–8 and the rulings)
+spec/agentic_economics_loop_spec_v2_1_0.md   the text in force (standalone; Appendix A defaults, E errata, F–N design revisions 1–9 and the rulings)
 spec/design_revisions/                       accepted design revisions, verbatim (dr1: two pots; dr2: the loop's own clock; dr3:
                                              inspection is membership; dr4: the orchestrator's troops; dr5: the reserve is sized to
-                                             the need; dr6: auto-scale; dr7: the state's earnings; dr8: the price of work), and the implementer's reviews of dr2–dr8's candidates
-spec/history/                                v0.1 … v1.7.1 — superseded, kept for provenance only
+                                             the need; dr6: auto-scale; dr7: the state's earnings; dr8: the price of work; dr9: the bank), and the implementer's reviews of dr2–dr9's candidates
+spec/history/                                v0.1 … v2.0.0 — superseded, kept for provenance only
 reviews/                                     R01–R10, one external review per version, with the reviewer's notes
-agentic_sim/                                 the engine, 29 invariants, 26 test files, runner, drivers, results
+agentic_sim/                                 the engine, 31 invariants, 27 test files, runner, drivers, results
 docs/line_map_economic_loop_v1_0_1.txt       text export of the _line map of the loop (the live map is the source)
 HANDOFF.md                                   status, history table, open questions, proposed next step
 ```
@@ -57,12 +63,16 @@ HANDOFF.md                                   status, history table, open questio
 
 ```
 cd agentic_sim
-python3 run_tests.py        # expected: 259 passed, 0 failed, 31 expected failures
+python3 run_tests.py        # expected: 275 passed, 0 failed, 28 expected failures
 python3 -S run_tests.py     # same, with no site-packages
 python3 run_tests.py --record   # same, every World in record mode
-python3 -m pytest tests -q  # expected: 259 passed, 31 xfailed, 0 xpassed (conftest mirrors the runner; pytest is not installed here)
+python3 -m pytest tests -q  # expected: 275 passed, 28 xfailed, 0 xpassed (conftest mirrors the runner; pytest is not installed here)
 python3 -m drivers.load_run --actors 200 --ticks 10000 --on-duty 40 --tasks 30 --record-dir /path  # throughput run
-python3 -m drivers.stamping --actors 20 --ticks 1000 --stampers 0.6 --seed 1   # §18.1 q1 under 2.0.0: six requesters with wallets, members bidding, the state at cost under N_T 40
+python3 -m drivers.stamping --actors 20 --ticks 1000 --stampers 0.6 --seed 1   # §18.1 q1 under 2.1.0: six requesters with wallets, members bidding, the state at its expected cost on the bank's loans under N_T 40
+python3 -m drivers.stamping --rules 2.0.0 --seed 1   # the 2.0.0 control: Ω's creation and retirement, the deficit, P_t on the live window, the state at cost
+python3 -m drivers.stamping --c-d-t-mode at_cost --debt-bound-periods 0 --seed 1   # the burn and the wall as controls under the bank; --b-t-prior 0.1 / 0.3, --debt-bound-periods 2 are the knobs
+python3 -m drivers.stamping --requester-on-refusal withdraw --k-open 0 --ceiling-policy market --stampers 0.6 --seed 1   # told: the withdrawing requester at the marks
+python3 -m drivers.stamping --troop-fail-rate 0.5 --seed 1   # the red team: the state's deliveries made to fail at a half (0.75 above the two-thirds limit); --state-rejecters 0.5 the rejecting reviewers
 python3 -m drivers.stamping --rules 1.7.1 --seed 1   # the fixed-price control: one bottomless requester at β = 20, the backing, the reserves
 python3 -m drivers.stamping --bid ceiling --seed 1   # every offer at the ceiling (the 1.x behaviour as a strategy); --c-d-t-mode half and --n-t 0 are the other 2.0.0 controls
 python3 -m drivers.stamping --create-at 600 --create-amount 2000 --seed 1   # the deficit shock (2.0.0 §8.3); --spike-requesters 30 --spike-from 400 --spike-ticks 100 is the crowd (run 11's hard spike)
@@ -93,15 +103,15 @@ Results are kept (`drivers/results.py`): the runner writes what it printed to `r
 study folder, `results/studies/<study>/<sweep>/runs/`, so a study is one directory. Commit the ones that matter. Results are written by the code and
 read by people; the suite and the engine stay the authority — never edit a result to match.
 
-Any other result is a regression — including an XPASS. The 31 expected failures each have a stated
+Any other result is a regression — including an XPASS. The 28 expected failures each have a stated
 reason in `run_tests.py` (`EXPECTED_FAIL`, with `EXPECTED_FAIL_PARAMS` naming the parameter runs inside a
 mixed test): one original (a single-answer ⊥ appeal), four superseded by the reviewer-view contract,
 nineteen on the withdrawn audit-reopening path, one superseded by design revision 1 (it pinned the
 1.0.1 deposit through the human's budget; its principle is re-asserted in `test_v11`), one superseded by
-design revision 2 (it pinned Ω's cold-start float at 20; Appendix A now says 300), five superseded by design revision 8 (one pinned
-the backing's v_t halving under emission; one pinned the pay-in's refusal at the award, now refused whole at posting; three pinned 1.x
-figures through the index — the reviewer tests award at 10 and 40, so the price level moves after their first award and the nested
-nominals, the court fee and the cap move with it; their principles are re-asserted in `test_v20`). They are strict in both entry points: an expected
+design revision 2 (it pinned Ω's cold-start float at 20; Appendix A now says 300), two superseded by design revision 8 (one pinned
+the backing's v_t halving under emission; one pinned the pay-in's refusal at the award, now refused whole at posting; their principles
+are re-asserted in `test_v20`). The three reviewer tests that pinned 1.x figures through 2.0.0's moving index pass again under 2.1.0,
+which publishes the index once a period. They are strict in both entry points: an expected
 failure that passes means a withdrawn path is admitted again, and the run fails.
 
 ## Change discipline — spec §19, and the one rule that matters most
@@ -295,6 +305,22 @@ consolidated into one standalone spec with the accepted revision kept verbatim i
   SPONSOR paid out as before; `Params.issuance` (0) is minted to each requester at the tick's start. I27–I29; I15 expects the posting
   lock; I23 and I24 amended under the flag. The 1.x behaviour tests pin `floating=False`; the driver's `--rules 1.7.1` does the same
   with the old demand model (one bottomless H at β).
+- The bank (2.1.0; `Params.bank`, on with `floating`; `--rules 2.0.0` is the control). The bank is counters and kinds, not a wallet:
+  `bank_minted` / `bank_destroyed` by kind (`issuance`, `mint_emission`, `mint_plant`, `mint_scenario`, `loan`; `repayment`, `retire_plant`),
+  `loans` by troop id while the summons is open, `debt` with its peak and age, the 1.6.0 `omega_liabilities` stock. `_fund_can_carry(need,
+  cid, kind)` lends the shortfall over Ω's balance (`loan`, note `loan: delivery|review`), refusing a delivery while `debt > _debt_bound()`
+  (the last `debt_bound_periods` periods' `omega_fee_total`; seats never refused); `_new_troop` ties the loan to the troop; the ledger hook
+  (`_bank_on_inflow`) repays the troop's own loan from any event that credits Ω in the troop's name and then runs `_omega_income` — debt →
+  liabilities oldest first → Ω — on every inflow (the ruling), again at the summons pass's start and the tick's end (`_check_order_point`,
+  I30); `_close_loan` turns the unrepaid remainder into debt at a delivery's release or a seat's settlement (vested, overturned, withdrawn).
+  `_summon_delivery` burns `c_d_t_mode` — `expected` max(0, (1 − b_T) B̄ − b_T G) with `_state_fail_rate()` over `state_delivery_history`
+  (the last closed period if ≥ `b_t_min_n`, else back until it is, else `b_t_prior`), `at_cost` B̄, `half` c_D_T × index — and records
+  `c.c_d_t`, `c.b_t_at_summons`. `_stop_clock` pays from Ω's balance else appends a liability. `create_plant` mints the pots (`mint_plant`)
+  and the tree closure burns whatever the plant wallets hold (`retire_plant`); `scenario_create` mints to the requesters. `price_level()` is
+  `_P_published`, set in `_maybe_end_period` from the closed period's `price_sum / price_n` (carried if none; I31). `_mark_refused` sets
+  `c.refused` (capacity | credit), `refused_at`, `refused_last`; `award` and a summons clear it. Readings: `view.bank()`, the marks in
+  `view.market()`, the period record's `bank` block and `omega_fee_total`. I28 rewritten (lent = repaid + outstanding + debt), I30, I31;
+  I27–I31 run in the full audit too. `test_v21` (13); `test_v20` pins `bank=False`.
 - Money is checked by invariant I1 (conservation) — never silently create or lose credits.
 
 ## Vocabulary (spec Appendix C has the full notation)
@@ -325,5 +351,9 @@ the new sources and sinks; the deficit (created − retired), its peak and age, 
 β(1 + ω₀m) + φ^E + φ^F); below market (the flag) and raising the ceiling; c_D a member's nominal effort cost, the reservation price,
 the adaptive reservation; N_T the capacity, places (one for a seat, two for a delivery until its inspection is seated), refused for
 capacity and told; a crowd (a riot as arriving requesters) and the deficit shock (a created sum paid to the requesters).
+The bank (2.1.0): 𝔅 the second account that alone creates and destroys; loan and repayment; loans outstanding (capital in flight), debt
+(settled summonses' unrepaid loans), liabilities (rebates owed); Δ_max the wall (one period of Ω's fee income); b_T the state's trailing fail
+rate and the expected cost; the cost of truth (a plant's minted pots less what returned, with emission); refused for credit; the mark (a
+refusal's kind and tick on the request); Ω's net position = Ω_U − debt − liabilities; the state retracts (no delivery lent for above the wall).
 "Ruling" has two senses: the orchestrator rules on splits inside the procedure; only a human
 *overrides* it (spec §15.2).

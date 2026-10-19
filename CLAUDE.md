@@ -67,6 +67,7 @@ python3 -m drivers.stamping --rules 1.7.1 --seed 1   # the fixed-price control: 
 python3 -m drivers.stamping --bid ceiling --seed 1   # every offer at the ceiling (the 1.x behaviour as a strategy); --c-d-t-mode half and --n-t 0 are the other 2.0.0 controls
 python3 -m drivers.stamping --create-at 600 --create-amount 2000 --seed 1   # the deficit shock (2.0.0 §8.3); --spike-requesters 30 --spike-from 400 --spike-ticks 100 is the crowd (run 11's hard spike)
 python3 -m drivers.stamping --issuance 15 --lam 0.5 --c-d-adaptive on --seed 1   # the 2.0.0 knobs
+python3 -m drivers.stamping --stampers 0 --actors 40 --seed 1   # run 13's supply cell (all honest, more workers); --idle-k 1 the faster margin decay; --ceiling-policy market --k-open 0 the demand-unbound cell (β = 1.2 B̄, no K_open); --beta-max 30 the cap
 python3 -m drivers.stamping --rules 1.6.0 --seed 1   # the 1.6.0 control: the merged fund (uplift from troop earnings), the half cap, the demand reserve
 python3 -m drivers.stamping --accounts off --seed 1   # the troop account off alone (the cap stays two thirds); --duty-cap half alone is the other OFAT cell
 python3 -m drivers.stamping --omega-rate 0.10 --r-s 1 --seed 1   # the 1.7.0 §8 take sweep: ω₀ 5/10/15% with the rebate pinned at 1 a tick

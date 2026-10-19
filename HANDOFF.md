@@ -1704,6 +1704,43 @@ margin as a reading; (2) the ceiling cap is the price level — the market has n
 margins and the state never undercuts; (3) the rebate under a refusal for capacity prints; (4) P_t at the period boundary would keep the
 three index-moved reviewer tests passing; (5) delegation (2.1.0) — the money is in the members' hoards.
 
+**The reviewer's reply (October 19).** Run 12 accepted as recorded; the raise-policy change accepted as a strategy's reading of its own
+declaration, the first wave discarded. The three rule fixes will be 2.1.0 and do not depend on the price question — the state at cost in
+expectation (c^D_T = (1 − b_T) B̄ − b_T G, b_T the trailing fail rate of the state's deliveries), creation only for what returns (summons
+capital, plants) with rebates from income and the bounded liability stock, a capacity refusal told, P_t updating at period boundaries.
+Before the draft: four evaluations under the rules in force, so the oligopoly can be classified — supply, strategy, or the state's pricing
+— run 13. Delegation and entry go to 2.2.0 together.
+
+## Run 13 — the price question under 2.0.0 (October 19, 2026)
+
+**What ran** (`results/studies/2.0.0-supply/`, 400 runs, 20 seeds a cell, 1,000 ticks, issuance 60 a tick, all audits passed; notes
+`results/studies/2.0.0-supply-notes-for-reviewer.md`; the engine unchanged, the driver at `e05cf3fb`): supply — 20 / 30 / 40 actors all
+honest (60); the strategy — the same cells and 60/40 with the margin falling 0.25 per idle tick instead of per three (80); demand unbound —
+the market-aware ceiling β = 1.2 B̄ (`--ceiling-policy market`) × K_open 5 / none × β_max 40 / 60 at 20 honest and at 60/40, and K_open
+none alone under the wallet rule (200); the cap — β_max 30 / 40 / 60 at 60/40 (60). One driver change: the market-aware ceiling policy and
+`--k-open 0` as no limit; the wallet rule stays the default.
+
+**Findings.** *Supply takes the price to cost, not to a plateau:* P_t 22.5 / 11.6 / 10.9 at 20 / 30 / 40 honest (cost 8, bids 8(1 + m)),
+margins 1.9 / 0.36 / 0.23, members free 9.6 / 18.7 / 28.2. *The strategy's ratchet has no interior equilibrium:* in every cell where it
+runs, a free member's awards per tick converge on margin_down/(idle_k · margin_up) = 0.278 (0.270 at 20 honest, 0.273 at 60/40 at every
+cap, 0.25–0.27 across run 12) — the price rises until the requesters buy one task per 3.6 ticks per free member, and where the demand
+model cannot reach that rate (30 and 40 honest: K_open holds posting at 2.8 a tick) the margins decay to the floor. The faster decay puts
+every honest cell at cost (9.2 / 8.8 / 8.7, the honest earning half) and at 60/40 lengthens the ramp from two hundred ticks to nine hundred
+without stopping it (the two free members wait under a tick between jobs and keep their margins while working). *The cap was not what run
+12 read:* β_max 60 gives the same 34.1 as 40 at 60/40 — the wallet rule (a third of a 35 wallet, raised to B̄) binds first; 30 binds at
+28.8; with market-aware requesters the cap is the price level to the unit (39.6 / 59.5). *The state's pricing never lowers the price:* at
+B̄ it never undercuts a member; where the requesters' ceilings sit at B̄ (the wallet rule with K_open lifted) it delivers 39–75% at 17–27
+and the deficit runs to 6,000–14,000 — the cheapest market in the study is the one the state pays for. *Demand unbound:* price-bound
+posting at 1.6–2.8 a tick, the state's share 12% at 20 honest and 37–54% at 60/40, the capacity case open at 60/40 whenever K_open is
+lifted (3,364 refusals, on time 0.80–0.82, rebates 930). *Honesty unmoved.* **Classification:** supply is the trigger and the cure (the
+cliff between 20 and 30 honest); the strategy's constant places the cliff; the state's pricing sets the price only where the requesters'
+ceilings are B̄, at a loss; the cap is the price level only when the requesters bid above the market.
+
+**Readings for the 2.1.0 draft** (notes §6): the state at expected cost prices below B̄ and becomes the lowest offer on every request past
+w_A — the draft should say whether such a request goes to the state at its expected cost or at B̄; the demand model is the driver's and
+set two of run 12's readings ("lock-bound" was K_open 5; "the cap at 40" was the wallet rule) — the declared requester for 2.1.0's §8
+should be named; P_t at period boundaries does not touch the ratchet; a refusal told would show in the K_open-lifted 60/40 cells.
+
 ## Maps
 
 Two `_line` artifacts in project Agentic-OS (`c54120a6-aaff-40f7-8a9f-3667da542879`):

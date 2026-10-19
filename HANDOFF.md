@@ -1921,6 +1921,40 @@ twenty at 60/40, nineteen arrive in the first period, admissions begin near tick
 and off, the `root` control at 0.8 (§8.3); then entry and the spread together (§8.4), the knobs, the riot with entry, the red team, told under
 entry as time allows.
 
+## Run 16 — the supply side under 2.3.0 (October 19, 2026)
+
+**What ran** (`results/studies/2.3.0-supply/`, 240 runs on run 15's seeds, all audits passed; the engine at `ee4c481c` with the fixes
+`4812ee36` and `dc522fc7` named per cell in the manifests; notes `results/studies/2.3.0-supply-notes-for-reviewer.md`): §8.1 §6; §8.2
+entry at 60/40 and 80/20 with the pool of twenty honest candidates; §8.3 the spread at 20 honest, σ 0.2 / 0.43 / 0.8, delegation on and
+off, and the `root` control at 0.8; §8.4 entry and the spread together at 60/40. §8.5–8.8 not yet run.
+
+**Two fixes on the way, recorded.** I34 caught a departed parent receiving its child's pots at the node's closure: `depart` now refuses
+while an obligation *to* the actor is unpaid — a case of its own not yet final (the price at vesting, a court fee won), a nested case it
+posted whose pots have not refunded — "commitment" read to the money's end. The driver's reviewer selection excluded a nested case's parent
+as the engine does. One cell (the `root` control) ran half before and half after the first fix; its figures do not depend on it.
+
+**Findings.** *Supply finds its level, and the level is the ratchet's:* all twenty candidates arrive in the first two windows, fifteen are
+admitted at a mean of 310 ticks, every stamper departs on zero earnings and the dearest careful follow (departed median cost 8.4 against
+the arrivals' 7.9); the market ends with 19 members where run 15 had 8, the state's share at 0.7% against 39%, the honest earning
+1,237 real against 1,928 — and the price at 22.9 against 32.9: it dips to 18 as the cohort is admitted, then climbs back to 22.5 as the
+free members settle at nine and the margins ratchet to run 13's constant, the twenty-honest cell to the unit (Hypothesis 1 in direction,
+not in level). *Entry relieves inspection only until admission:* reviews unassignable are flat while the probationers carry the initial
+seats and rise once they are members who deliver and the stampers who sat on duty have left (Hypothesis 2 fails). *Delegation runs where
+the spread is wide and the children refuse the price:* nothing at σ 0.2, 5% of awards at 0.8 (predicted a fifth) — three quarters of
+nested requests die at T_wait because the child's ratchet bid exceeds the parent's saving; the gain from trade is 3–4 where a child is
+found; brokers are the dearest two or three members with 5% of the market; a careful parent's wrongful rejection is overturned on the
+child's appeal, a stamping parent approves bad child work (Hypotheses 4 and 5). *The `root` control answers §8.3:* the parents delegate
+2.4 times as much (294 against 122) when the root pays for the child's inspection. *Selection at the wide spread with entry:* the members'
+median cost falls from 8 to 6.4 as the dear depart (9.3) and the cheap arrive (7.2) — and the price rises with the spread (21.8 / 22.5 /
+23.5) because it follows the free members' count, not their cost (Hypothesis 3: half). *Hoards over M* 0.84 with delegation and without
+(Hypothesis 8: the circuit does not close at this scale). *Honesty unmoved* (Hypothesis 7).
+
+**For the decision** (notes §5): the level supply finds is the strategy's constant (a reading on the margin rule for 2.4.0's §8);
+entry's inspection relief ends with admission (a §12.1 question — the duty cap on an all-honest list); the pool's size is the lever's
+length (§8.5's knobs); delegation's scale is the children's bids. Nothing in the rules. **Next:** §8.5–8.8 — the knobs (the
+reservation, the arrivals a tick, the float), the riot with entry, the red team (the cycler, the swarm, the greedy parent, the
+below-cost child, the stamping broker), told under entry — then 2.4.0 as the reviewer sketches it.
+
 ## Maps
 
 Two `_line` artifacts in project Agentic-OS (`c54120a6-aaff-40f7-8a9f-3667da542879`):

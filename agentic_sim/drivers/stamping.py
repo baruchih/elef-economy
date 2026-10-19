@@ -1323,7 +1323,7 @@ class Stamping:
         brokers = [p for p, n in self.parent_delegated.items() if p in self.c_d_of and self.parent_awards.get(p, 0) >= 5
                    and n > 0.5 * self.parent_awards.get(p, 0)]
         cost_rank = sorted(self.c_d_of[x] for x in self.actors if x in self.c_d_of)
-        rank = lambda x: (cost_rank.index(self.c_d_of[x]) + 1) / max(1, len(cost_rank))
+        rank = lambda x: (sum(1 for v in cost_rank if v <= self.c_d_of[x]) / max(1, len(cost_rank)))   # a departed broker ranks against the present
         nested_vested = sum(1 for nid in self.nested_parent if w.case(nid).state == "VESTED")
         nested_final_n = sum(1 for nid in self.nested_parent if w.case(nid).state == "FINAL_N")
         row.update({"actors_n": len(self.actors), "members_total": mk.get("members_total", len(members)), "probationers": mk.get("probationers", 0),

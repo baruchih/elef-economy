@@ -1880,9 +1880,10 @@ two small-request requesters collect 9 each like everyone (a side effect: postin
 P_t 28.9); the withdrawer's rebates are the holder's (Hypothesis 4). *Told whole:* marks, lateness and the forgone share read zero in a
 quiet market and move together in a riot.
 
-**For the reviewer:** nothing in the rules. One consequence recorded (notes §7, Appendix O): Ω's advances to reviewers wait for the
-unlocked balance the pool excludes, two reviewer tests expected failures; in every run Ω's retained balance covered them from the second
-period on. **Next:** 2.3.0 — the supply side, entry and delegation.
+**Accepted as recorded (October 19).** One ruling for Appendix O: a §4.3 reviewer advance may draw on the pool during the period, the pool
+at the close net of it — verification before the state's blame; **to be implemented with 2.3.0**, when `test_review_06` and `test_r4_08`
+return from the expected failures. Until then the engine runs 2.2.0 as accepted (the advances wait for the unlocked balance). **Next:**
+2.3.0 — the supply side, entry and delegation; the draft follows.
 
 ## Maps
 

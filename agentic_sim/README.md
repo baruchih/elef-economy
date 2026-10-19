@@ -129,12 +129,16 @@ tests/test_v24.py                   design revision 12 (2.4.0): the state's rese
                                     mark set at posting, kept under a short raise, cleared at the floor; the clock's one condition; the view's
                                     floor, price and marks; F0 < G_V refused at construction; the kill fee zero for a child that never worked; I37
                                     catching a delivery under the floor and a mark out of place; the reservation at 0 = 2.3.0 — 11
+tests/test_v25.py                   design revision 13 (2.5.0): the missed child — a cancellation before the deadline unchanged, at the deadline
+                                    tick refused with the world unchanged, after the lapse refused; the lapse forfeiting to the parent, releasing the
+                                    bond and freeing the parent; a child submitting on its last tick; the kill fee before the deadline; §6's lowballer
+                                    at −3; I38 catching a deadline-tick cancellation and a lapse that did not run; missed_child off = 2.4.0 — 7
 
-Run: `python3 run_tests.py` — 304 pass, 0 fail, 32 expected failures, each with a stated reason (one original,
+Run: `python3 run_tests.py` — 311 pass, 0 fail, 32 expected failures, each with a stated reason (one original,
 four superseded by the view contract, nineteen on the withdrawn reopening path, one superseded by design
 revision 1, one by design revision 2, two by design revisions 10 and 11 — a service fee pooled until the close and the pool's advance move the reimbursement figures they pin — two by design revision 11 — the parent's pots make three children unaffordable on a float of 50, and the root's allowance is no longer exhausted by a nested review — two by design revision 8 — the backing's v_t and the pay-in refused at posting; the three 1.x figures 2.0.0's moving index broke pass again under 2.1.0's index per period). With pytest: `python3 -m pytest tests -q` reports 259 passed, 31 xfailed; the
 runner expands pytest parametrization as pytest does, including multi-argument and stacked marks. (Spec Appendix D
-records the count at the v1.0.1 freeze, 156; at 1.1.0, 181; at 1.2.0, 197; at 1.3.0, 208; at 1.4.0, 218; at 1.5.0, 225; at 1.6.0, 236; at 1.7.0, 244; at 1.7.1, 248; at 2.0.0, 259; at 2.1.0, 275; at 2.2.0, 282; at 2.3.0, 293; at 2.4.0, 304.)
+records the count at the v1.0.1 freeze, 156; at 1.1.0, 181; at 1.2.0, 197; at 1.3.0, 208; at 1.4.0, 218; at 1.5.0, 225; at 1.6.0, 236; at 1.7.0, 244; at 1.7.1, 248; at 2.0.0, 259; at 2.1.0, 275; at 2.2.0, 282; at 2.3.0, 293; at 2.4.0, 304; at 2.5.0, 311.)
 
 Expected failures are **strict and parameter-exact** in both entry points: `EXPECTED_FAIL_PARAMS` names the
 parameter runs that are expected to fail inside a mixed test (the P/⊥ runs of the eighth review's first case;
@@ -528,6 +532,19 @@ sweeps the take with the rebate pinned. In the engine:
   `advances_made/repaid`, `liabilities_paid`; `drivers/sweep.py` carries them.
 - **Tests.** `test_v17.py` (8); goldens re-pinned once; `test_v13`–`test_v16` pinned to the merged fund and the half cap.
   Reviewer tests untouched and passing.
+
+## Design revision 13 — the missed child (2.5.0, October 19, 2026)
+
+`Params.missed_child` (on; off is 2.4.0 and `--rules 2.4.0`) is the revision: `cancel_nested` refuses when the clock has reached the nested
+request's deadline (`self.t >= c.deadline`), the world unchanged — the deadline tick is the child's (a submission is still admitted, the
+deadline inclusive) and the lapse (the tick loop's step 2 since v1.0: `_finalize_N` "delivery deadline missed", the guarantee to the parent,
+the bond released, the node closed, the milestone reached) runs at that tick's processing. I38 per tick and in the full audit. `test_v25.py`
+(7); goldens unchanged (the equivalence scenario's random cancellations never land at a deadline). Driver: `--rules 2.5.0` default;
+`--parent-cancel eve` (the world at deadline − 1, admitted under both rules — run 18's last-batch move) and `early` (the world at the deadline —
+refused under 2.5.0, the lapse running; admitted under 2.4.0), `cancel_refused_at_deadline`, `nested_lapsed`, `nested_lapsed_forfeit`,
+`lowball_children_wealth_real`; the red team's `--farm-parents` (a parent's child tau 1 against work_ticks 2), `--children-read-deadline on|off`
+(a child bids only where the deadline leaves it room; `nested_declined_deadline`), `--lowball-mode empty` (an empty result at the deadline,
+judged by the parent, appealed by the lowballer; `lowball_empty_*`, `lowball_appeals`).
 
 ## Design revision 12 — the state's reservation (2.4.0, October 19, 2026)
 

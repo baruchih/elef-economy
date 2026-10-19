@@ -2050,6 +2050,20 @@ vanish and the roots' failures fall below the base (568 against 602), the honest
 of 299 nested postings against a child that risks nothing; the rule's answer rc.2 named (a guarantee not released on a non-performance
 cancellation) is the next candidate. **Next:** the reviewer's reading; 2.5.0 as sketched.
 
+## Design revision 13 — the missed child (2.5.0, October 19, 2026)
+
+**Why.** Run 18's last batch: a parent cancelling a child that had not delivered released the child's guarantee the lapse would have forfeited, so a
+lowballer risked nothing (131 cancellations, every fee zero, every guarantee released). My review found that the lapse the sketch presented as
+new is the engine's since v1.0 — step 2 of the tick loop finalizes a committed case at its deadline, forfeits the guarantee to the requester and
+releases the bond — and that the open door was the cancellation reached before the lapse; rc.2 redrafted the rule as the refusal; accepted
+verbatim. **The rule.** `cancel_nested` is admissible only before the earlier of the child's submission and the request's deadline; at or after
+the deadline it is refused with no effect. The deadline tick is the child's: it may still submit on it. **Engine.** `Params.missed_child`; the
+one condition; I38; `test_v25` (7); suite 311 + 32; goldens unchanged. **A reading found in implementation, for the reviewer.** The driver's
+clock runs a tick ahead of the world's, so run 18's "cancel at the child's deadline" cancelled at the world's deadline − 1 — a pre-deadline
+cancellation 2.5.0 admits ("a parent that wants out acts by d − 1"). Under the rule a parent has a choice at the child's silence: cancel the
+tick before (the guarantee released, one tick saved — run 18's move, `--parent-cancel eve`) or wait for the lapse (the guarantee gained, one
+tick lost — `early`, the cancellation at the deadline refused). §8 runs both against the 2.4.0 control that admits the deadline-tick cancellation.
+
 ## Maps
 
 Two `_line` artifacts in project Agentic-OS (`c54120a6-aaff-40f7-8a9f-3667da542879`):

@@ -158,6 +158,7 @@ class Task:
     fulfilled: bool              # hidden truth
     nested: bool = False          # 2.3.0: a child's task
     nested_missed: bool = False   # run 17: a lowball child's miss, counted once
+    nested_missed_counted: bool = False   # 2.5.0: the lapse counted once
     audit_rolled: bool = False
     audit_wanted: bool = False   # rolled yes, not yet assigned
     appeal_wanted: bool = False
@@ -201,15 +202,15 @@ class Stamping:
         self.kind = {aid: (STAMPER if i < n_st else CAREFUL) for i, aid in enumerate(ids)}
         if a.rules == "1.1.0":                   # the control: the 1.1.0 engine's behaviour, declared
             a.pi0, a.dial, a.p_start, a.p_cap, a.omega0 = 0.0, "off", 0.5, 0.5, 20.0
-        rev3 = a.rules in ("1.3.0", "1.4.0", "1.5.0", "1.6.0", "1.7.0", "1.7.1", "2.0.0", "2.1.0", "2.2.0", "2.3.0", "2.4.0")     # 1.2.0 and 1.1.0: membership, the fund and netted capital off
-        rev4 = a.rules in ("1.4.0", "1.5.0", "1.6.0", "1.7.0", "1.7.1", "2.0.0", "2.1.0", "2.2.0", "2.3.0", "2.4.0") and a.troops == "on"
-        rev5 = a.rules in ("1.5.0", "1.6.0", "1.7.0", "1.7.1", "2.0.0", "2.1.0", "2.2.0", "2.3.0", "2.4.0")    # 1.4.0: the reserve is the peak capital carried, over two periods
-        rev6 = a.rules in ("1.6.0", "1.7.0", "1.7.1", "2.0.0", "2.1.0", "2.2.0", "2.3.0", "2.4.0")     # 1.6.0: the five rules, each behind its flag; `--rules 1.5.0` turns them off
-        rev7 = a.rules in ("1.7.0", "1.7.1", "2.0.0", "2.1.0", "2.2.0", "2.3.0", "2.4.0")  # 1.7.0: the troop account behind its flag and the cap at two thirds; `--rules 1.6.0` is the control
-        rev8 = a.rules in ("2.0.0", "2.1.0", "2.2.0", "2.3.0", "2.4.0")     # 2.0.0: the price of work — floating prices, N_T; `--rules 1.7.1` is the fixed-price control
-        rev9 = a.rules in ("2.1.0", "2.2.0", "2.3.0", "2.4.0")     # 2.1.0: the bank — loans, the debt, the wall, P_t once a period; `--rules 2.0.0` is the control
-        rev10 = a.rules in ("2.2.0", "2.3.0", "2.4.0")    # 2.2.0: the rebate from income — the period's fee pool, claims pro rata at the close; `--rules 2.1.0` the control
-        rev11 = a.rules in ("2.3.0", "2.4.0")               # 2.3.0: the supply side — entry, exit, the parent's pots; `--rules 2.2.0` the control
+        rev3 = a.rules in ("1.3.0", "1.4.0", "1.5.0", "1.6.0", "1.7.0", "1.7.1", "2.0.0", "2.1.0", "2.2.0", "2.3.0", "2.4.0", "2.5.0")     # 1.2.0 and 1.1.0: membership, the fund and netted capital off
+        rev4 = a.rules in ("1.4.0", "1.5.0", "1.6.0", "1.7.0", "1.7.1", "2.0.0", "2.1.0", "2.2.0", "2.3.0", "2.4.0", "2.5.0") and a.troops == "on"
+        rev5 = a.rules in ("1.5.0", "1.6.0", "1.7.0", "1.7.1", "2.0.0", "2.1.0", "2.2.0", "2.3.0", "2.4.0", "2.5.0")    # 1.4.0: the reserve is the peak capital carried, over two periods
+        rev6 = a.rules in ("1.6.0", "1.7.0", "1.7.1", "2.0.0", "2.1.0", "2.2.0", "2.3.0", "2.4.0", "2.5.0")     # 1.6.0: the five rules, each behind its flag; `--rules 1.5.0` turns them off
+        rev7 = a.rules in ("1.7.0", "1.7.1", "2.0.0", "2.1.0", "2.2.0", "2.3.0", "2.4.0", "2.5.0")  # 1.7.0: the troop account behind its flag and the cap at two thirds; `--rules 1.6.0` is the control
+        rev8 = a.rules in ("2.0.0", "2.1.0", "2.2.0", "2.3.0", "2.4.0", "2.5.0")     # 2.0.0: the price of work — floating prices, N_T; `--rules 1.7.1` is the fixed-price control
+        rev9 = a.rules in ("2.1.0", "2.2.0", "2.3.0", "2.4.0", "2.5.0")     # 2.1.0: the bank — loans, the debt, the wall, P_t once a period; `--rules 2.0.0` is the control
+        rev10 = a.rules in ("2.2.0", "2.3.0", "2.4.0", "2.5.0")    # 2.2.0: the rebate from income — the period's fee pool, claims pro rata at the close; `--rules 2.1.0` the control
+        rev11 = a.rules in ("2.3.0", "2.4.0", "2.5.0")               # 2.3.0: the supply side — entry, exit, the parent's pots; `--rules 2.2.0` the control
         self.rev9, self.rev10, self.rev11 = rev9, rev10, rev11
         self.floating = rev8
         on = lambda flag: rev6 and flag == "on"
@@ -224,7 +225,8 @@ class Stamping:
                    service_clock=on(a.clock), T_s=a.t_s, omega_backs_fund=on(a.backing), seat_the_queue=on(a.seat_queue),
                    panel_determined=on(a.panel_determined), reserve_periods=(a.reserve_periods if rev6 else 1),
                    duty_cap_frac={"half": 0.5, "twothirds": 2.0 / 3.0, "threequarters": 0.75, "all": 1.0}[a.duty_cap],
-                   state_reservation=(a.state_reservation if a.state_reservation is not None else (8.0 if a.rules in ("2.4.0",) else 0.0)),
+                   state_reservation=(a.state_reservation if a.state_reservation is not None else (8.0 if a.rules in ("2.4.0", "2.5.0") else 0.0)),
+                   missed_child=(a.rules == "2.5.0"),
                    plant_reserve_life=(0 if a.plant_reserve == "period" else 15),
                    troop_account=(rev7 and a.accounts == "on"), omega_rate=a.omega_rate, r_s=a.r_s, T_susp=a.t_susp,
                    theta_panel=a.theta_panel, n_P=a.record_window,
@@ -275,6 +277,8 @@ class Stamping:
         # run 17 red team: greedy parents (careful actors that reject every child), lowball children (bid half, never deliver), cyclers
         ids_g = list(reversed(ids_c))
         self.greedy = set(ids_g[: round(len(ids_g) * a.greedy_parents)]) if a.greedy_parents > 0 else set()
+        self.farmers = set(ids_g[: round(len(ids_g) * a.farm_parents)]) if a.farm_parents > 0 else set()   # 2.5.0 §8.5: deadlines too short
+        self.child_tau: dict[str, int] = {}              # nested case -> the tau the parent will award at
         ids_lb = list(self.actors); self.rng.shuffle(ids_lb)
         self.lowball_children = set(ids_lb[: round(len(ids_lb) * a.lowball_children)]) if a.lowball_children > 0 else set()
         self.cycle_n = 0
@@ -342,6 +346,9 @@ class Stamping:
                   "patient_raised": 0,
                   # 2.4.0: the parent's cancellation and the kill fee
                   "parent_cancellations": 0, "kill_fees_paid": 0.0, "kill_fees_nonzero": 0, "cancel_delay_sum": 0, "parent_cancel_refused": 0,
+                  # 2.5.0: the refusal at the deadline, the lapses, the red team
+                  "cancel_refused_at_deadline": 0, "nested_lapsed": 0, "nested_lapsed_forfeit": 0.0, "nested_declined_deadline": 0,
+                  "lowball_empty_submitted": 0, "lowball_empty_rejected": 0, "lowball_empty_approved": 0, "lowball_appeals": 0,
                   # run 17 batch A: every inspection seat the driver fills, by kind and the reviewer's standing (plants apart)
                   "seated_initial_member": 0, "seated_initial_probationer": 0, "seated_audit_member": 0, "seated_appeal_member": 0, "seated_plant": 0}
         self._awarded_last = 0
@@ -593,9 +600,14 @@ class Stamping:
             if c.state != "AVAILABLE":
                 continue
             root = w.case(self.nested_parent[nid])
+            tau_n = 1 if root.actor in self.farmers else a.work_ticks        # 2.5.0 §8.5: a farming parent's deadline cannot be met
+            self.child_tau[nid] = tau_n
             offers = []
             for aid in self.free_members():
                 if aid == root.actor:
+                    continue
+                if a.children_read_deadline == "on" and tau_n < a.work_ticks:
+                    self.c["nested_declined_deadline"] += 1   # the child reads the deadline and does not bid
                     continue
                 cost = self.cost_now(aid)
                 if aid in self.lowball_children:
@@ -609,7 +621,7 @@ class Stamping:
             if offers:
                 actor, bid = self.select_bid(offers, c.beta)
                 try:
-                    w.award(nid, actor, bid, a.work_ticks)
+                    w.award(nid, actor, bid, self.child_tau.get(nid, a.work_ticks))
                 except (RuleError, LedgerError):
                     self.c["nested_award_refused"] += 1  # the 1.1.0 reading: the parent must fund ω unlocked at the award
                     continue
@@ -651,6 +663,8 @@ class Stamping:
                     self.c["effort_burned"] = round(self.c["effort_burned"] + pay, 6)
             w.judge_nested(nid, v)
             self.c["nested_judged"] += 1
+            if w.case(nid).actor in self.lowball_children and a.lowball_mode == "empty":
+                self.c["lowball_empty_rejected" if v == N else "lowball_empty_approved"] += 1
             if v == F and not truth:
                 self.c["nested_false_approvals"] += 1
                 self.c["nested_fa_stamper_parent" if self.kind[parent] == STAMPER else "nested_fa_careful_parent"] += 1
@@ -1102,13 +1116,25 @@ class Stamping:
                 if child.t_verdict is None and child.state not in ("WITHDRAWN", "CANCELLED", "FINAL_N"):
                     continue                             # §9.1: the parent submits after its child's milestone
                 self.parent_waiting.pop(cid, None)
+                if child.state == "FINAL_N" and child.t_verdict is None and not self.tasks[nid].nested_missed_counted:
+                    self.tasks[nid].nested_missed_counted = True
+                    self.c["nested_lapsed"] += 1         # 2.5.0: the lapse — a missed delivery, the guarantee to the parent
+                    self.c["nested_lapsed_forfeit"] = round(self.c["nested_lapsed_forfeit"] + child.G, 6)
                 if child.verdict == N or child.state in ("WITHDRAWN", "CANCELLED", "FINAL_N"):
                     self.parent_self_exec.add(cid)       # the child failed: the parent does the work itself
             if c.state == "COMMITTED" and cid in self.nested_parent and c.actor in self.lowball_children:
                 if t >= c.deadline and not self.tasks[cid].nested_missed:
                     self.tasks[cid].nested_missed = True
                     self.c["lowball_child_misses"] += 1
-                continue                                 # §8.7 red team: the lowball child never delivers — it misses
+                    if a.lowball_mode == "empty":
+                        # 2.5.0 §8.5 red team: an empty result on the last tick, to avoid the lapse; the parent judges it (§9.1)
+                        self.tasks[cid].fulfilled = False
+                        try:
+                            w.submit(cid)
+                            self.c["lowball_empty_submitted"] += 1
+                        except (RuleError, LedgerError):
+                            pass
+                continue                                 # §8.7 red team: the lowball child never delivers — it misses (or submits empty)
             if c.state == "COMMITTED" and t >= c.t_award + min(a.work_ticks, c.tau) and cid not in self.parent_waiting:
                 if self.floating and not w.is_troop(c.actor):
                     # 2.0.0 §2.2: the actor's effort, burned at submission (§4.6) — what its unlocked credit can pay of it
@@ -1175,6 +1201,9 @@ class Stamping:
             want = a.appeal_policy == "always" or (a.appeal_policy == "truthful" and task.fulfilled)
             if not c.is_root and a.delegation == "on" and task.fulfilled:
                 want = True                              # 2.3.0 §2.4: a child rejected appeals truthfully (declared)
+            if not c.is_root and c.actor in self.lowball_children and a.lowball_mode == "empty":
+                want = True                              # 2.5.0 §8.5 red team: the lowballer appeals its empty result against the parent's bond
+                self.c["lowball_appeals"] += 1
             if want and w.unlocked(c.actor) + 1e-9 < c.D:
                 self.c["appeals_unfunded"] += 1
                 want = False
@@ -1188,10 +1217,15 @@ class Stamping:
         # 2.4.0 §8 (run 18 §7.4): `--parent-cancel early` — after this tick's submissions, a parent cancels a child that reached its
         # deadline without submitting (an honest child submits at its deadline, in the loop above; a lowballer never does; the engine
         # would finalize it N at this tick's end) and self-executes with its own deadline still ahead
-        if a.parent_cancel == "early":
+        if a.parent_cancel in ("early", "eve"):
             for cid, nid in list(self.parent_waiting.items()):
                 child = w.case(nid)
-                if child.state != "COMMITTED" or child.deadline is None or t < child.deadline:
+                # the world's clock runs a tick behind the driver's: at driver tick t the world is at t − 1. `eve` cancels when the world is at
+                # deadline − 1 (driver t = deadline); `early` when the world is at the deadline itself (driver t = deadline + 1)
+                if child.state != "COMMITTED" or child.deadline is None:
+                    continue
+                when = child.deadline if a.parent_cancel == "eve" else child.deadline + 1
+                if t < when:
                     continue
                 try:
                     before = w.case(cid).actor_cost
@@ -1206,6 +1240,7 @@ class Stamping:
                     self.parent_self_exec.add(cid)
                 except (RuleError, LedgerError):
                     self.c["parent_cancel_refused"] += 1
+                    self.c["cancel_refused_at_deadline"] += 1    # 2.5.0 §9.3: nothing to cancel at the deadline; the lapse runs
         # orchestrator: the plants the rate calls for (1.2.0 §2.1), created before this tick's
         # assignments so they join the queue behind the real work submitted so far
         for _ in range(w.plants_due()):
@@ -1572,6 +1607,14 @@ class Stamping:
                     "kill_fees_nonzero": self.c["kill_fees_nonzero"],
                     "cancel_delay_mean": round(self.c["cancel_delay_sum"] / self.c["parent_cancellations"], 3) if self.c["parent_cancellations"] else "",
                     "parent_cancel_refused": self.c["parent_cancel_refused"],
+                    # 2.5.0: the refusal, the lapses, the lowball children's wealth, the red team
+                    "cancel_refused_at_deadline": self.c["cancel_refused_at_deadline"], "nested_lapsed": self.c["nested_lapsed"],
+                    "nested_lapsed_forfeit": self.c["nested_lapsed_forfeit"], "nested_declined_deadline": self.c["nested_declined_deadline"],
+                    "lowball_children_n": sum(1 for x in self.actors if x in self.lowball_children),
+                    "lowball_children_wealth_real": round(sum(w.wealth(x) for x in self.actors if x in self.lowball_children) / max(1, sum(1 for x in self.actors if x in self.lowball_children)) * real, 3) if self.lowball_children else "",
+                    "lowball_empty_submitted": self.c["lowball_empty_submitted"], "lowball_empty_rejected": self.c["lowball_empty_rejected"],
+                    "lowball_empty_approved": self.c["lowball_empty_approved"], "lowball_appeals": self.c["lowball_appeals"],
+                    "farmers_n": len(self.farmers),
                     "refused_capacity_seats": mk["refused_capacity_seats"], "refused_capacity_awards": mk["refused_capacity_awards"],
                     "refused_capacity_waiting": mk["refused_capacity_waiting"], "capacity_wait_max": mk["capacity_wait_max"],
                     "careful_wealth_real": round(row["careful_wealth"] * real, 3), "stamper_wealth_real": round(row["stamper_wealth"] * real, 3),
@@ -1683,8 +1726,8 @@ def main(argv=None):
     ap.add_argument("--p-start", type=float, default=1.0, help="a newcomer's audit odds (1.2.0 §2.4: 1.0; 1.1.0: 0.5)")
     ap.add_argument("--p-cap", type=float, default=1.0, help="the audit odds' cap on doubling (1.2.0 §2.4: 1.0; 1.1.0: 0.5)")
     ap.add_argument("--p-floor", type=float, default=0.2, help="the audit rate's floor (§8.3)")
-    ap.add_argument("--rules", choices=["2.4.0", "2.3.0", "2.2.0", "2.1.0", "2.0.0", "1.7.1", "1.7.0", "1.6.0", "1.5.0", "1.4.0", "1.3.0", "1.2.0", "1.1.0"], default="2.4.0",
-                    help="2.4.0: the state's reservation (the state delivers at max(B̄, 8), never below; the mark; the clock's one condition; the award pass gathering β ≥ p_T); 2.3.0: the supply side (entry and exit, the parent's pots, the reviewer advance from the pool) — the control, the state at B̄; 2.2.0: the rebate from income (the period's fee pool, claims pro rata at the close, the rest forgone); 2.1.0: the bank with the liability stock (the control); 2.1.0 also: the bank (loans, the debt, the wall, the expected cost, P_t once a period, refusals told); 2.0.0: the price of work with "
+    ap.add_argument("--rules", choices=["2.5.0", "2.4.0", "2.3.0", "2.2.0", "2.1.0", "2.0.0", "1.7.1", "1.7.0", "1.6.0", "1.5.0", "1.4.0", "1.3.0", "1.2.0", "1.1.0"], default="2.5.0",
+                    help="2.5.0: the missed child (no cancellation of a nested request at or after its deadline; the lapse forfeits the child's guarantee); 2.4.0: the same without the refusal — the control admitting the deadline-tick cancellation; 2.4.0 also: the state's reservation (the state delivers at max(B̄, 8), never below; the mark; the clock's one condition; the award pass gathering β ≥ p_T); 2.3.0: the supply side (entry and exit, the parent's pots, the reviewer advance from the pool) — the control, the state at B̄; 2.2.0: the rebate from income (the period's fee pool, claims pro rata at the close, the rest forgone); 2.1.0: the bank with the liability stock (the control); 2.1.0 also: the bank (loans, the debt, the wall, the expected cost, P_t once a period, refusals told); 2.0.0: the price of work with "
                          "Ω's creation and retirement (the control); 1.7.1 (= 1.7.0): the fixed-price control — "
                          "one bottomless requester at β, the backing, the reserves; 1.6.0: the merged fund (uplift from troop earnings) and the half cap; 1.5.0: also the five 1.6.0 rules off; "
                          "1.3.0: troops off; 1.2.0: also membership, the duty fund and netted plant capital off; 1.1.0: also no "
@@ -1816,10 +1859,19 @@ def main(argv=None):
     # 2.4.0 — the state's reservation
     ap.add_argument("--state-reservation", type=float, default=None,
                     help="2.4.0 §2.1: the state's floor — nominal, public (default 8; 0 is the control, the 2.3.0 state at B̄; swept 4 / 8 / 12)")
-    ap.add_argument("--parent-cancel", choices=["on", "off", "early"], default="off",
+    # 2.5.0 §8.5 red team
+    ap.add_argument("--farm-parents", type=float, default=0.0,
+                    help="2.5.0 §8.5 red team: the share of careful actors that, as parents, post nested requests with a deadline too short to meet (tau 1 against work_ticks 2) to farm the children's guarantees")
+    ap.add_argument("--children-read-deadline", choices=["on", "off"], default="on",
+                    help="2.5.0 §8.5: a child bids on a nested request only where its deadline leaves it room to deliver (tau ≥ work_ticks); off: it bids regardless")
+    ap.add_argument("--lowball-mode", choices=["miss", "empty"], default="miss",
+                    help="2.5.0 §8.5 red team: a lowball child misses its deadline (run 17's), or submits an empty result at its deadline to avoid the lapse and appeals the rejection")
+    ap.add_argument("--parent-cancel", choices=["on", "off", "early", "eve"], default="off",
                     help="2.4.0 §2.4: a parent whose child has not submitted cancels while self-execution is still possible, pays the kill fee "
                          "(the child's recorded cost — zero for a child that never worked) and does the work itself; `on`: when the parent's own deadline "
-                         "leaves one work_ticks; `early` (run 18 §7.4): at the child's deadline minus one, before the child can lapse")
+                         "leaves one work_ticks; `early`: at the child's deadline tick — the world's clock at the deadline, after the tick's submissions, before "
+                         "the engine's lapse (refused under 2.5.0, admitted under 2.4.0); `eve`: one tick before the deadline, run 18's last-batch move, "
+                         "admitted under both (a parent that will not wait)")
     ap.add_argument("--small-requests", type=int, default=0,
                     help="2.2.0 §8.5 red team: this many requesters post at the market price exactly with K_open tripled — many small requests to collect pro-rata rebates (expected: nothing beyond the capped claims)")
     ap.add_argument("--state-rejecters", type=float, default=0.0,
@@ -1841,8 +1893,8 @@ def main(argv=None):
     ap.add_argument("--results-root", default=None, help="write results/runs under this directory instead of results/")
     a = ap.parse_args(argv)
     if a.c_d_t_mode is None:
-        a.c_d_t_mode = "expected" if a.rules in ("2.1.0", "2.2.0", "2.3.0", "2.4.0") else "cost"
-    if a.rules not in ("2.3.0", "2.4.0"):
+        a.c_d_t_mode = "expected" if a.rules in ("2.1.0", "2.2.0", "2.3.0", "2.4.0", "2.5.0") else "cost"
+    if a.rules not in ("2.3.0", "2.4.0", "2.5.0"):
         a.c_d_sigma = 0.0                                # one cost before 2.3.0: the controls are run 15's cells
 
     name = a.name or f"stamping-s{a.stampers:g}-p{a.p_start:g}-gv{a.gv:g}-b{a.fail_rate:g}-f{a.fee:g}-X{a.on_duty}-seed{a.seed}"
@@ -1915,7 +1967,7 @@ def main(argv=None):
                                     "none": "silent", "truthful": f"disputes a pending F on work that truly failed with probability {a.dispute_rate}",
                                     "half": "disputes a pending F on work that truly failed with probability 0.5",
                                     "always": "disputes every pending F"}[a.dispute_policy], "budget": a.human_budget},
-                                "the_supply_side": None if a.rules not in ("2.3.0", "2.4.0") else {
+                                "the_supply_side": None if a.rules not in ("2.3.0", "2.4.0", "2.5.0") else {
                                     "spec": "2.3.0 design revision 11 — entry as a probationer with a bank-minted float, exit with the wallet out, competence "
                                             "as a private per-actor cost, delegation under competence with the parent posting the pots, the reviewer advance from the pool",
                                     "competence": {"median": a.c_d_median, "sigma": a.c_d_sigma, "clip": a.c_d_clip, "drawn once per actor; private to the driver": True,
@@ -1927,11 +1979,11 @@ def main(argv=None):
                                                                                         "tau": a.work_ticks + a.nested_tau, "nested_pots": a.nested_pots,
                                                                                         "judgment": "by disposition — careful: the truth w.p. accuracy, spending 2; stamper: F; a bad child accepted makes the parent's work bad",
                                                                                         "child_appeals": "truthfully", "unawarded_T_wait": "withdrawn; the parent self-executes"}},
-                                "the_rebate_from_income": None if a.rules not in ("2.2.0", "2.3.0", "2.4.0") else {
+                                "the_rebate_from_income": None if a.rules not in ("2.2.0", "2.3.0", "2.4.0", "2.5.0") else {
                                     "spec": "2.2.0 design revision 10 — the claim recorded at the stop; Ω's fee income after the debt pooled as a lock on Ω; at the period's close the "
                                             "claims stopped in the period paid pro rata, the rest forgone and read; no liability stock",
                                     "red_team": {"small_requesters": sorted(run.small)}},
-                                "the_bank": None if a.rules not in ("2.1.0", "2.2.0", "2.3.0", "2.4.0") else {
+                                "the_bank": None if a.rules not in ("2.1.0", "2.2.0", "2.3.0", "2.4.0", "2.5.0") else {
                                     "spec": "2.1.0 design revision 9 — the bank: a second account that alone creates and destroys; mints by rule, publishes "
                                             "P_t once a period, lends a summons's shortfall tied to it; the state burns its expected cost and delivers at B̄; "
                                             "every inflow to Ω ordered at once (debt → liabilities → Ω); the wall on deliveries; every refusal told",
@@ -1940,7 +1992,7 @@ def main(argv=None):
                                     "requester_on_refusal": a.requester_on_refusal,
                                     "red_team": {"troop_fail_rate": a.troop_fail_rate, "state_rejecters": sorted(run.state_rejecters),
                                                  "state_rejecters_reading": "the case's actor through the public view's case — not the reviewer's view (§14 carries no actor); declared"}},
-                                "price_of_work": None if a.rules not in ("2.0.0", "2.1.0", "2.2.0", "2.3.0", "2.4.0") else {
+                                "price_of_work": None if a.rules not in ("2.0.0", "2.1.0", "2.2.0", "2.3.0", "2.4.0", "2.5.0") else {
                                     "spec": "2.0.0 design revision 8 — the price of work",
                                     "requesters": {"n": a.requesters, "wallet": a.wallet, "issuance_per_tick": a.issuance,
                                                    "ceiling": (f"min({a.beta_max:g}, {a.ceiling_mult:g} × B̄) — market-aware" if a.ceiling_policy == "market"
@@ -1959,7 +2011,7 @@ def main(argv=None):
                                     "plants": "at B = P_t", "P0": 20.0,
                                     "red_team": {"lowball_share": a.lowball_share, "lowballers": sorted(run.lowballers),
                                                  "stingy_requesters": sorted(run.stingy), "bbar_counts_troops": a.bbar_troops}},
-                                "permitted_operations": PERMITTED + (PERMITTED_200 if a.rules in ("2.0.0", "2.1.0", "2.2.0", "2.3.0", "2.4.0") else []), "not_in_run": NOT_IN_RUN,
+                                "permitted_operations": PERMITTED + (PERMITTED_200 if a.rules in ("2.0.0", "2.1.0", "2.2.0", "2.3.0", "2.4.0", "2.5.0") else []), "not_in_run": NOT_IN_RUN,
                                 "record_dir": a.record_dir,
                                 "checks": {"per_tick": "check_tick after every tick — always; not configurable",
                                            "full_audit_every_n_ticks": "not scheduled",

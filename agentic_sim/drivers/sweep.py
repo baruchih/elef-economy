@@ -84,7 +84,8 @@ KEYS = ["careful_wealth", "stamper_wealth", "careful_fees", "stamper_fees", "car
         "omega_net_position", "issued", "departed", "below_market_flagged", "below_market_waiting", "ceilings_raised", "places_held",
         "state_floor", "state_price", "state_price_mean", "state_price_period", "below_reservation_marked", "below_reservation_waiting",
         "below_reservation_ticks", "summons_declined_floor", "parent_cancellations", "kill_fees_paid", "kill_fees_nonzero", "cancel_delay_mean",
-        "parent_cancel_refused",
+        "parent_cancel_refused", "cancel_refused_at_deadline", "nested_lapsed", "nested_lapsed_forfeit", "nested_declined_deadline", "lowball_children_n",
+        "lowball_children_wealth_real", "lowball_empty_submitted", "lowball_empty_rejected", "lowball_empty_approved", "lowball_appeals", "farmers_n",
         "refused_capacity_seats", "refused_capacity_awards", "refused_capacity_waiting", "capacity_wait_max",
         "careful_wealth_real", "stamper_wealth_real", "requester_wallet_mean", "requester_unlocked_mean", "crowd_present",
         "crowd_wallet_mean", "member_price_mean", "troop_price_mean", "c_d_now", "margin_mean", "posts_unaffordable", "posts_k_open", "awarded",
@@ -117,7 +118,7 @@ KEYS = ["careful_wealth", "stamper_wealth", "careful_fees", "stamper_fees", "car
         "seated_initial_member", "seated_initial_probationer", "seated_audit_member", "seated_appeal_member", "seated_plant", "cycles", "greedy_rejections", "greedy_cases_vested",
         "lowball_child_awards", "lowball_child_misses", "nested_fa_stamper_parent", "nested_fa_careful_parent", "nested_posted_by_stamper",
         "nested_posted_by_careful", "patient_raised", "cycler_wealth_real", "cyclers_admitted"]
-SHORT = {"state-reservation": "floor", "parent-cancel": "pc", "bid-plus": "plus", "ceiling-policy": "cp", "cycler": "cyc", "greedy-parents": "greedy", "lowball-children": "lbc", "child-bid": "cbid", "patient-ticks": "pat", "c-d-sigma": "sig", "entry-pool": "pool", "reservation": "r", "arrivals-per-tick": "apt", "delegation": "deleg", "nested-pots": "pots",
+SHORT = {"farm-parents": "farm", "children-read-deadline": "crd", "lowball-mode": "lbm", "state-reservation": "floor", "parent-cancel": "pc", "bid-plus": "plus", "ceiling-policy": "cp", "cycler": "cyc", "greedy-parents": "greedy", "lowball-children": "lbc", "child-bid": "cbid", "patient-ticks": "pat", "c-d-sigma": "sig", "entry-pool": "pool", "reservation": "r", "arrivals-per-tick": "apt", "delegation": "deleg", "nested-pots": "pots",
          "f0": "f0", "entry-stampers": "swarm", "small-requests": "small", "debt-bound-periods": "wall", "b-t-prior": "bprior", "b-t-min-n": "bn", "requester-on-refusal": "onref", "troop-fail-rate": "tfail",
          "state-rejecters": "srej", "c-d-t-mode": "cdt", "stampers": "s", "fee": "f", "on-duty": "X", "gv": "gv", "p-floor": "pf", "p-start": "p", "p-cap": "pc", "band": "band",
          "fail-rate": "b", "accuracy": "a", "ruling-accuracy": "r", "appeal-policy": "appeal", "dispute-policy": "dispute",

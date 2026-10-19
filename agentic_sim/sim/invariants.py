@@ -1074,6 +1074,20 @@ def I37_the_states_reservation(w, cases=None):
             _fail(f"I37 the clock of {c.id} runs while it is below the state's reservation")
 
 
+def I38_the_missed_child(w, cases=None):
+    """2.5.0 §9.3 (I38): no cancelled nested case closed at or after its deadline; every committed nested case past its deadline is final N
+    with its guarantee forfeited to the parent (the lapse's own check, stated); the parent may submit from the next step."""
+    if not getattr(w.p, "missed_child", False):
+        return
+    for c in _cases(w, cases):
+        if not c.is_nested() or c.deadline is None:
+            continue
+        if c.state == "CANCELLED" and c.t_closed is not None and c.t_closed >= c.deadline:
+            _fail(f"I38 nested {c.id} cancelled at {c.t_closed}, at or after its deadline {c.deadline}")
+        if c.state == "COMMITTED" and w.t > c.deadline:
+            _fail(f"I38 nested {c.id} committed past its deadline {c.deadline} at tick {w.t}: the lapse did not run")
+
+
 def I31_the_index_per_period(w):
     """2.1.0 §2.5: P_t is what the bank published at the last period boundary and does not move within a period."""
     if not getattr(w, "bank_on", False):
@@ -1194,6 +1208,7 @@ def check_all(w):
     I35_the_summons_is_for_roots(w)
     I36_the_pots_grow_with_the_tree(w)
     I37_the_states_reservation(w)
+    I38_the_missed_child(w)
     I16_history_is_authoritative(w)
 
 
@@ -1262,6 +1277,7 @@ def check_tick(w):
     I35_the_summons_is_for_roots(w)
     I36_the_pots_grow_with_the_tree(w, cases)
     I37_the_states_reservation(w, cases)
+    I38_the_missed_child(w, cases)
 
     w._events_checked = len(w.ledger.events)
     w._prune_working_set()

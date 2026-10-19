@@ -1884,6 +1884,10 @@ class World:
             return self.withdraw_unawarded(cid)
         if c.state != "COMMITTED":
             raise RuleError("cancel_nested: cancellation is available only until the subcontractor submits")
+        if self.p.missed_child and c.deadline is not None and self.t >= c.deadline:
+            # 2.5.0 §9.3: at or after the deadline there is nothing to cancel — the deadline tick is the child's (it may still submit on
+            # its last tick) and the lapse finalizes it N after the tick's submissions, the guarantee forfeiting to the parent
+            raise RuleError(f"cancel_nested: the deadline {c.deadline} has arrived at tick {self.t}: the case is final N by the lapse, nothing to cancel (2.5.0 §9.3)")
         A, B_ = c.requester, c.actor
         fee = min(c.actor_cost, c.K)
         pool = self.ledger.pool(cid)

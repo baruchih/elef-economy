@@ -163,6 +163,12 @@ class Params:
     # against the free members (the 1.7.1 conformance correction made at acceptance). 0 is the control: the 2.3.0 state at B̄.
     state_reservation: float = 8.0
 
+    # Design revision 13 (2.5.0): the missed child. True: a nested request's cancellation is admissible only before the earlier of the
+    # child's submission and the request's deadline — at or after the deadline there is nothing to cancel (the lapse, the engine's since
+    # v1.0, finalizes it N after the tick's submissions and forfeits the guarantee to the parent), and a cancellation attempted there is
+    # refused with no effect. False is 2.4.0: the cancellation at the deadline tick itself admitted, the guarantee released.
+    missed_child: bool = True
+
     def __post_init__(self):
         # 2.4.0 §2.3 (I33): the arrival float exists so that an arrival can post the reviewer's bond — a constraint on the parameters,
         # nominal, the index cancelling. A parameter set with F0 < G_V is refused at construction, not at arrival.

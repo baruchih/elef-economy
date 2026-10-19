@@ -1,7 +1,11 @@
 # Agentic-OS — the economic loop
 
 A rulebook for a task → verification → dispute → settlement loop among autonomous actors, and a
-reference implementation of it with no strategies. Ten external reviews. The rulebook is at **2.4.0** — design revision 12, *the state's reservation*: the state
+reference implementation of it with no strategies. Ten external reviews. The rulebook is at **2.5.0** — design revision 13, *the missed child*: a nested request's
+cancellation is admissible only before the earlier of the child's submission and the request's deadline — at or after the deadline it is refused with no
+effect; the lapse (the engine's since v1.0: final N at the deadline after the tick's submissions, the guarantee to the parent, the bond released, the parent
+free from the next step) is stated; the deadline tick is the child's — after run 18's last batch showed a parent cancelling a child at its deadline releasing
+the guarantee the lapse would have forfeited, so a lowballer risked nothing — on **2.4.0**, design revision 12, *the state's reservation*: the state
 delivers at $p_T=\max(\bar B,\underline{B})$ and never below its reservation $\underline{B}$ (8, nominal, public, the anchor cost; 0 the control); a request posted or
 raised below it is marked and told and its clock does not run while it waits there (the clock's one condition, β ≥ p_T); the award pass gathers only
 requests at β ≥ p_T (a 1.7.1 conformance correction made at acceptance); the arrival float exists so an arrival can post the reviewer's bond
@@ -60,13 +64,13 @@ and what is proposed next.
 ## Layout
 
 ```
-spec/agentic_economics_loop_spec_v2_4_0.md   the text in force (standalone; Appendix A defaults, E errata, F–Q design revisions 1–12 and the rulings)
+spec/agentic_economics_loop_spec_v2_5_0.md   the text in force (standalone; Appendix A defaults, E errata, F–R design revisions 1–13 and the rulings)
 spec/design_revisions/                       accepted design revisions, verbatim (dr1: two pots; dr2: the loop's own clock; dr3:
                                              inspection is membership; dr4: the orchestrator's troops; dr5: the reserve is sized to
-                                             the need; dr6: auto-scale; dr7: the state's earnings; dr8: the price of work; dr9: the bank; dr10: the rebate from income; dr11: the supply side; dr12: the state's reservation), and the implementer's reviews of dr2–dr12's candidates
-spec/history/                                v0.1 … v2.3.0 — superseded, kept for provenance only
+                                             the need; dr6: auto-scale; dr7: the state's earnings; dr8: the price of work; dr9: the bank; dr10: the rebate from income; dr11: the supply side; dr12: the state's reservation; dr13: the missed child), and the implementer's reviews of dr2–dr13's candidates
+spec/history/                                v0.1 … v2.4.0 — superseded, kept for provenance only
 reviews/                                     R01–R10, one external review per version, with the reviewer's notes
-agentic_sim/                                 the engine, 37 invariants, 30 test files, runner, drivers, results
+agentic_sim/                                 the engine, 38 invariants, 31 test files, runner, drivers, results
 docs/line_map_economic_loop_v1_0_1.txt       text export of the _line map of the loop (the live map is the source)
 HANDOFF.md                                   status, history table, open questions, proposed next step
 ```
@@ -75,13 +79,15 @@ HANDOFF.md                                   status, history table, open questio
 
 ```
 cd agentic_sim
-python3 run_tests.py        # expected: 304 passed, 0 failed, 32 expected failures
+python3 run_tests.py        # expected: 311 passed, 0 failed, 32 expected failures
 python3 -S run_tests.py     # same, with no site-packages
 python3 run_tests.py --record   # same, every World in record mode
-python3 -m pytest tests -q  # expected: 304 passed, 32 xfailed, 0 xpassed (conftest mirrors the runner; pytest is not installed here)
+python3 -m pytest tests -q  # expected: 311 passed, 32 xfailed, 0 xpassed (conftest mirrors the runner; pytest is not installed here)
 python3 -m drivers.load_run --actors 200 --ticks 10000 --on-duty 40 --tasks 30 --record-dir /path  # throughput run
 python3 -m drivers.stamping --actors 20 --ticks 1000 --stampers 0.6 --seed 1   # §18.1 q1 under 2.1.0: six requesters with wallets, members bidding, the state at its expected cost on the bank's loans under N_T 40
 python3 -m drivers.stamping --entry-pool 20 --stampers 0.6 --ceiling-policy patient --patient-ticks 10 --seed 1   # 2.4.0 §8.2: patient customers against the floor (raising to max(B̄, the floor) read from the view); --state-reservation 0 the control (the 2.3.0 state), 4 / 12 the sweep; patient-blind run 17's policy
+python3 -m drivers.stamping --entry-pool 20 --stampers 0.6 --delegation on --c-d-sigma 0.8 --lowball-children 0.2 --parent-cancel early --seed 1   # 2.5.0 §8.2: the lowballer cell — the parent at the child's deadline is refused, the lapse forfeits; --parent-cancel eve the tick before (admitted, run 18's move); --rules 2.4.0 the control admitting the deadline-tick cancellation
+python3 -m drivers.stamping --entry-pool 20 --stampers 0.6 --delegation on --c-d-sigma 0.8 --farm-parents 0.5 --children-read-deadline off --seed 1   # 2.5.0 §8.5 red team: parents posting deadlines too short to meet; --lowball-children 0.2 --lowball-mode empty --parent-cancel early the empty result at the deadline
 python3 -m drivers.stamping --entry-pool 20 --stampers 0.6 --delegation on --c-d-sigma 0.8 --lowball-children 0.2 --parent-cancel on --seed 1   # 2.4.0 §8.6: the kill fee exercised — the parent cancels a child that has not submitted and self-executes
 python3 -m drivers.stamping --rules 2.3.0 --seed 1   # the 2.3.0 control: the state at B̄ with no floor (state_reservation 0)
 python3 -m drivers.stamping --entry-pool 20 --stampers 0.6 --seed 1   # 2.3.0 §8.2: entry — twenty candidates reading the view, arriving as probationers; --reservation, --arrivals-per-tick, --f0 the knobs
@@ -383,6 +389,14 @@ consolidated into one standalone spec with the accepted revision kept verbatim i
   (`patient` raises to `state_price` read from the view after `--patient-ticks`; `patient-blind` to B̄, run 17's, deadlocking at the floor),
   `--parent-cancel on|off` (`cancel_nested` when the child has not submitted and the parent's deadline leaves one `work_ticks`; the fee read from
   the parent's `actor_cost`), the columns. `test_v24` (11).
+- The missed child (2.5.0; `Params.missed_child`, on; off is 2.4.0 and `--rules 2.4.0`). `cancel_nested` refuses when `self.t >= c.deadline` (the world
+  unchanged); the lapse is the tick loop's step 2 as it stands (`_finalize_N` "delivery deadline missed" at `tick >= deadline`, processed inside
+  `advance(deadline + 1)` — `advance(T)` processes the ticks up to T − 1 and leaves the clock at T, so at `w.t == deadline` the deadline tick has
+  arrived, a submission is still admitted (inclusive) and a cancellation is refused). I38 per tick and in the full audit. The driver's clock runs a tick
+  ahead of the world's: `--parent-cancel eve` cancels at driver tick = deadline (the world at deadline − 1, admitted under both rules — run 18's
+  last-batch move), `early` at deadline + 1 (the world at the deadline — refused under 2.5.0, admitted under 2.4.0), counting
+  `cancel_refused_at_deadline`; `nested_lapsed` / `nested_lapsed_forfeit` count the lapses; the red team's `--farm-parents` (child tau 1),
+  `--children-read-deadline`, `--lowball-mode empty` (an empty result at the deadline, appealed). `test_v25` (7); goldens unchanged.
 - Money is checked by invariant I1 (conservation) — never silently create or lose credits.
 
 ## Vocabulary (spec Appendix C has the full notation)
@@ -426,5 +440,8 @@ reservation r; the parent's pots and a node's closure; a broker (a parent delega
 The state's reservation (2.4.0): $\underline{B}$ the state's floor (nominal, public, the anchor cost 8) and $p_T=\max(\bar B,\underline{B})$ the state's price; *below
 the state's reservation* (the mark, with its tick — the busy line's third mark beside below market and refused for capacity or credit); a patient
 customer (a ceiling at 0.7 B̄ raised after T ticks); the kill fee as the child's recorded cost. $R_T$ stays the fund's troop reserve of 1.5.0–1.7.0.
+The missed child (2.5.0): the lapse (a missed delivery — final N at the deadline tick after the tick's submissions, the guarantee to the parent); the
+deadline tick is the child's (it may submit on it; the parent may not cancel at or after it); a farming parent (a nested deadline too short to meet); the
+empty result (a lowballer's submission at the deadline to avoid the lapse).
 "Ruling" has two senses: the orchestrator rules on splits inside the procedure; only a human
 *overrides* it (spec §15.2).

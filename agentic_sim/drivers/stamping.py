@@ -373,7 +373,7 @@ class Stamping:
         out = []
         for aid in self.actors:
             ac = self.w.actor(aid)
-            if ac.on_duty and ac.open_review is None and ac.committed is None and aid != c.actor \
+            if ac.on_duty and ac.open_review is None and ac.committed is None and aid != c.actor and aid != c.requester \
                     and aid not in c.excluded and self.w.unlocked(aid) + 1e-9 >= c.G_V \
                     and (ac.panel_eligible if panel else ac.duty_eligible):
                 out.append(aid)

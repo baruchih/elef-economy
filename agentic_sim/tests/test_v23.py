@@ -186,7 +186,8 @@ def test_the_parent_posts_the_pots_the_child_draws_on_them_and_the_root_deposit_
     assert w.cases[qn].state == "VESTED" and w.cases[qn].node_closed
     assert (L.pools[q].deposit, L.pools[q].fee_pot) == root_pool      # the root's deposit untouched (I36)
     assert w.cases[qn].allowance_refunded == pytest.approx(10.0) and w.cases[qn].pot_refunded == pytest.approx(5.0)   # nothing drawn: no review
-    assert L.pools[qn].deposit == 0 and L.pools[qn].fee_pot == 0
+    pl = L.pools.get(qn)                              # paged out in record mode once settled
+    assert pl is None or (pl.deposit == 0 and pl.fee_pot == 0)
     assert any(e.kind == "feepot_out" and e.note == "node closure: unused fee pot returned" and e.dst == "A" for e in L.events)
     check_all(w)                                      # I19 per case: the node closed with empty pots; I10's note
 

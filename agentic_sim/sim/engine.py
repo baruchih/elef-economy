@@ -652,6 +652,12 @@ class World:
             raise RuleError(f"depart: {name} holds a lock of {self.ledger.wallet(name).L}")
         if any(cl.reviewer == name for cl in self.omega_claims):
             raise RuleError(f"depart: {name} holds a claim on Ω")
+        # an obligation *to* the actor that is not yet paid: a case of its own not yet final (the price at vesting, a court fee won),
+        # or a nested case it posted whose pots have not refunded (the node not closed) — "commitment" read to the money's end
+        live = [c.id for c in self._live_cases.values()
+                if (c.actor == name and not c.final) or (c.requester == name and not (c.final and (c.node_closed or not c.own_pots)))]
+        if live:
+            raise RuleError(f"depart: {name} is owed on {live[0]} (not final or not closed)")
         if a.on_duty:
             self._leave_duty(a, self.t, "departed")
         credits = self.ledger.wallet(name).U

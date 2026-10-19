@@ -1955,6 +1955,41 @@ length (§8.5's knobs); delegation's scale is the children's bids. Nothing in th
 reservation, the arrivals a tick, the float), the riot with entry, the red team (the cycler, the swarm, the greedy parent, the
 below-cost child, the stamping broker), told under entry — then 2.4.0 as the reviewer sketches it.
 
+## Run 17 — the inspection queue, the rest of §8, three variants under 2.3.0 (October 19, 2026)
+
+**What ran** (drivers at `95081c19`, the engine unchanged at `4812ee36`; 700 runs on run 16's seeds, all audits passed; notes
+`results/studies/2.3.0-run17-notes-for-reviewer.md`): **A** `results/studies/2.3.0-queue/` — the inspection queue on the 60/40 entry cell
+with new driver diagnostics (every seat that waits by kind, its seating steps unfilled and who seated it; at every waiting tick the actors
+by state against the kind waiting; the cap against the members on duty), w_R 0 / 2 / 5, the duty cap ⅔ / ¾ / 1, and the control with the
+determined-record gate off. **B** `results/studies/2.3.0-supply-b/` — §8.5 the knobs (pool 60; r 0.5 / 1.2; three arrivals a tick; F_0 0),
+§8.6 the crowd of thirty with the pool, §8.7 the red team (the cycler, the swarm, the greedy parent, the below-cost child, the stamping
+broker), §8.8 told under entry (both ceiling policies, hold and withdraw). **C** `results/studies/2.3.0-strategies/` — patient customers
+(0.7 B̄ raised after 10 / 20 / 40 ticks), the faster margin decay with entry, the ceiling-aware child.
+
+**Findings.** *A: the queue before admission is panel eligibility, not the cap or the window.* Nineteen of twenty waiting seats in the first
+three hundred ticks are audits and appeals; while they wait there are five members on duty idle but not panel-eligible, eight more off duty,
+free, funded and duty-eligible but not panel-eligible, ten probationers barred from panels — and 0.1–0.6 members in the decisive state (free,
+fit, under the cap, unseated), none held out by the cap (slack eight seats). The troops take 605 of 710 waiting audits at exactly w_R; after
+admission the state's inspection share falls from 46% to 0.1% and the queue is initial reviews filled a step later by the rotation's lag.
+w_R 0 / 2 / 5 give the state 18 / 16 / 14% of inspection seats and 0.7 / 1.4 / 4.9% of deliveries (members held on duty do not bid); the cap
+cells are one run. The control (`--panel-determined off`) drops the troops' seats from 688 to 8 and raises false approvals from 13 to 35: the
+gate is what the troops bridge. **The §12.1 question is answered no.** *B:* pool 60 takes the price to 14.5 and the honest to 810 (the
+ratchet broken by turnover); F_0 = 0 admits nobody (no bond, no seat, no record); r and the arrival rate move nothing. The crowd with the
+pool: the state 17% against 53%, the price back to 22 within two windows, the bill as unpaid (88% forgone). The cycler (260 cycles) is never
+admitted, its wallet stays its float, and the loop pays 2,000 of plant mint, 8.5 probation false approvals and a quarter of the honest
+admissions; the swarm is never admitted; a greedy parent loses every appeal; a below-cost child that never delivers triples delegation and
+costs the parents their guarantees (−4%); the stamping broker's false approvals are the stamper's and it departs. Told under the market-aware
+ceiling with the pool is a busy line: 354 marks, 40% forgone at a price of 23.5 (run 15: 34 marks, nothing forgone, at 39.6). *C:* **patient
+customers collapse the price to 4.8 and hand 86% of the work to the state below every member's cost but the cheapest** — the state delivers
+at B̄, the ceiling is 0.7 B̄, P_t counts the troops, the members depart, the requesters hoard 9,000 a wallet (the one result that may warrant
+a §19 decision: a reservation price for the state's delivery, or the clock reading a raise as a posting); the faster decay takes the price to
+8.3 with the honest's real wealth unchanged at 1,256 (the ratchet's constant is nominal); the ceiling-aware child wins every nested request
+and halves the gain from trade.
+
+**For the decision** (notes §5): nothing for §12.1; the float as a gate (§2.1); the cycler's and swarm's bill to the loop (§8.7's text);
+the kill fee unexercised against the below-cost child (a driver gap); patient customers against the state's delivery at B̄ (the reviewer's
+§19 call); the price level as the members' nominal choice. **Next:** the reviewer's reading of A, then 2.4.0 as sketched.
+
 ## Maps
 
 Two `_line` artifacts in project Agentic-OS (`c54120a6-aaff-40f7-8a9f-3667da542879`):

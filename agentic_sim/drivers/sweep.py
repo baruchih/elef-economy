@@ -84,7 +84,7 @@ KEYS = ["careful_wealth", "stamper_wealth", "careful_fees", "stamper_fees", "car
         "omega_net_position", "issued", "departed", "below_market_flagged", "below_market_waiting", "ceilings_raised", "places_held",
         "refused_capacity_seats", "refused_capacity_awards", "refused_capacity_waiting", "capacity_wait_max",
         "careful_wealth_real", "stamper_wealth_real", "requester_wallet_mean", "requester_unlocked_mean", "crowd_present",
-        "crowd_wallet_mean", "member_price_mean", "troop_price_mean", "c_d_now", "margin_mean", "posts_unaffordable", "posts_k_open",
+        "crowd_wallet_mean", "member_price_mean", "troop_price_mean", "c_d_now", "margin_mean", "posts_unaffordable", "posts_k_open", "awarded",
         "effort_burned", "effort_unpaid", "crowd_arrived", "crowd_departed", "shock_created", "M",
         "lowballer_n", "lowballer_wealth_real", "lowballer_awards", "lowballer_rho", "stingy_n", "stingy_open", "stingy_wallet_mean"]
 SHORT = {"stampers": "s", "fee": "f", "on-duty": "X", "gv": "gv", "p-floor": "pf", "p-start": "p", "p-cap": "pc", "band": "band",

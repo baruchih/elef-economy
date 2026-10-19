@@ -55,8 +55,9 @@ A finding here is an evaluation under the fixed rules (§19).
 
 The price of work (2.0.0, design revision 8; `--rules 2.0.0`, the default). Demand is six requesters (`--requesters`)
 with wallets of 200 (`--wallet`) issued 10 a tick each (`--issuance`); each posts at most one request a tick while fewer
-than K_open (`--k-open`) of its requests are open, at a ceiling β = min(β_max, a third of its unlocked wallet)
-(`--beta-max`, `--ceiling-share`) when the all-in maximum fits — the engine locks it at posting and refuses what does not
+than K_open (`--k-open`; 0 = no limit) of its requests are open, at a ceiling β = min(β_max, a third of its unlocked wallet)
+(`--beta-max`, `--ceiling-share`) — or, under `--ceiling-policy market`, β = min(β_max, `--ceiling-mult` × B̄), the
+market-aware policy that locks less and posts more (run 13 §3) — when the all-in maximum fits — the engine locks it at posting and refuses what does not
 fit; a request flagged below market is raised to the market price when the wallet allows. Supply: a free member bids
 c_D (1 + m) — its nominal effort cost 8 (`--c-d`) with a margin raised 0.3 on each award and lowered 0.25 per three idle
 ticks (continuously, a twelfth a tick), floored at 0 (`--bid margin`); `--bid ceiling` is the 1.x behaviour, every offer at the ceiling; `--c-d-adaptive`
@@ -99,7 +100,8 @@ PERMITTED = ["post_root (human H, β fixed)", "award (every free actor offers B 
              "create_plant (1.2.0: the orchestrator supplies the plants the engine's rate calls for, bad w.p. β_P, "
              "at B = β; no audit roll, no dispute on a plant)",
              "advance"]
-PERMITTED_200 = ["post_root (six requesters, β = min(β_max, a third of the unlocked wallet), one a tick while K_open and the all-in fit; "
+PERMITTED_200 = ["post_root (six requesters, β = min(β_max, a third of the unlocked wallet) or min(β_max, mult × B̄) under --ceiling-policy market, "
+                 "one a tick while K_open (0: no limit) and the all-in fit; "
                  "the engine locks the all-in maximum at posting and refuses what does not fit — 2.0.0 §2.1)",
                  "raise_ceiling (a requester flagged below market raises to the market price when its wallet allows)",
                  "award at the bid (a member bids c_D (1 + m), m up on award and down after idle ticks; S_θ = ρ − λ B/β live; "
@@ -375,12 +377,17 @@ class Stamping:
         maximum fits the unlocked wallet, at β = min(β_max, share × unlocked)."""
         a, w = self.a, self.w
         open_n = sum(1 for cid in self.active if self.owner.get(cid) == r)
-        if open_n >= a.k_open:
+        if a.k_open > 0 and open_n >= a.k_open:
             self.c["posts_k_open"] += 1
             return
         U = w.unlocked(r)
-        beta = math.floor(min(a.beta_max, a.ceiling_share * U) * 100) / 100
         mk = w.market()
+        if a.ceiling_policy == "market":
+            # run 13 §3 (the reviewer's demand-unbound cell): a market-aware ceiling — a little above the market price, so a
+            # posting locks less than the wallet rule's and the requester posts more; the wallet still has to carry the all-in
+            beta = math.floor(min(a.beta_max, a.ceiling_mult * mk["B_bar"]) * 100) / 100
+        else:
+            beta = math.floor(min(a.beta_max, a.ceiling_share * U) * 100) / 100
         if r in self.stingy:                              # 2.0.0 §8.8: underbids the market and waits for a troop (expected: flagged, waits)
             beta = min(beta, math.floor(0.6 * mk["B_bar"] * 100) / 100)
         m = w.dial()["m"]
@@ -1074,7 +1081,10 @@ def main(argv=None):
     ap.add_argument("--issuance", type=float, default=10.0, help="credits a tick issued to each requester (swept 15)")
     ap.add_argument("--beta-max", type=float, default=40.0, help="β_max, the ceiling policy's cap")
     ap.add_argument("--ceiling-share", type=float, default=1.0 / 3.0, help="s: β = min(β_max, s × unlocked wallet)")
-    ap.add_argument("--k-open", type=int, default=5, help="K_open: a requester posts while fewer than this many of its requests are open")
+    ap.add_argument("--k-open", type=int, default=5, help="K_open: a requester posts while fewer than this many of its requests are open (0: no limit)")
+    ap.add_argument("--ceiling-policy", choices=["wallet", "market"], default="wallet",
+                    help="the requesters' ceiling: min(β_max, share × unlocked wallet), or market-aware min(β_max, mult × B̄) (run 13 §3)")
+    ap.add_argument("--ceiling-mult", type=float, default=1.2, help="the market-aware ceiling's multiple of B̄")
     ap.add_argument("--bid", choices=["margin", "ceiling"], default="margin", help="members' bid policy: c_D (1 + m), or at the ceiling (the 1.x behaviour, the control)")
     ap.add_argument("--c-d", type=float, default=8.0, help="c_D, a member's nominal effort cost per task (burned at submission)")
     ap.add_argument("--c-d-adaptive", choices=["on", "off"], default="off", help="the adaptive reservation: c_D follows P_t with a one-period lag (the spiral, swept)")
@@ -1174,7 +1184,9 @@ def main(argv=None):
                                 "price_of_work": None if a.rules != "2.0.0" else {
                                     "spec": "2.0.0 design revision 8 — the price of work",
                                     "requesters": {"n": a.requesters, "wallet": a.wallet, "issuance_per_tick": a.issuance,
-                                                   "ceiling": f"min({a.beta_max:g}, {a.ceiling_share:.4g} × unlocked wallet)", "K_open": a.k_open,
+                                                   "ceiling": (f"min({a.beta_max:g}, {a.ceiling_mult:g} × B̄) — market-aware" if a.ceiling_policy == "market"
+                                                               else f"min({a.beta_max:g}, {a.ceiling_share:.4g} × unlocked wallet)"),
+                                                   "K_open": a.k_open if a.k_open > 0 else "no limit",
                                                    "posting": "one a tick while K_open and the all-in maximum fit; the engine locks the all-in at posting",
                                                    "below_market": "a request below the market price (flagged at posting, or overtaken by it) is raised to the market price when the wallet allows"},
                                     "bids": {"policy": a.bid, "c_D": a.c_d, "adaptive_reservation": a.c_d_adaptive, "margin0": a.margin0,

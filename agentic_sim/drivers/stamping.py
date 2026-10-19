@@ -1804,7 +1804,7 @@ def main(argv=None):
     a = ap.parse_args(argv)
     if a.c_d_t_mode is None:
         a.c_d_t_mode = "expected" if a.rules in ("2.1.0", "2.2.0", "2.3.0", "2.4.0") else "cost"
-    if a.rules != "2.3.0":
+    if a.rules not in ("2.3.0", "2.4.0"):
         a.c_d_sigma = 0.0                                # one cost before 2.3.0: the controls are run 15's cells
 
     name = a.name or f"stamping-s{a.stampers:g}-p{a.p_start:g}-gv{a.gv:g}-b{a.fail_rate:g}-f{a.fee:g}-X{a.on_duty}-seed{a.seed}"
@@ -1877,7 +1877,7 @@ def main(argv=None):
                                     "none": "silent", "truthful": f"disputes a pending F on work that truly failed with probability {a.dispute_rate}",
                                     "half": "disputes a pending F on work that truly failed with probability 0.5",
                                     "always": "disputes every pending F"}[a.dispute_policy], "budget": a.human_budget},
-                                "the_supply_side": None if a.rules != "2.3.0" else {
+                                "the_supply_side": None if a.rules not in ("2.3.0", "2.4.0") else {
                                     "spec": "2.3.0 design revision 11 — entry as a probationer with a bank-minted float, exit with the wallet out, competence "
                                             "as a private per-actor cost, delegation under competence with the parent posting the pots, the reviewer advance from the pool",
                                     "competence": {"median": a.c_d_median, "sigma": a.c_d_sigma, "clip": a.c_d_clip, "drawn once per actor; private to the driver": True,

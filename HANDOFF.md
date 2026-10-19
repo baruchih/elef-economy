@@ -2016,6 +2016,31 @@ columns; `--rules 2.3.0` the control.
 **Next.** §8 on run 17's seeds in its order: §6; the patient cells (8.2) and the floor sweep (8.3); the invisibility check (8.4); the riots (8.5);
 then the kill fee (8.6), the red team (8.7), the static w_A sweep (8.8).
 
+## Run 18 — the state's reservation under 2.4.0, §8.1–8.6 (October 19, 2026)
+
+**What ran** (`results/studies/2.4.0-floor/`, 580 runs on run 17's seeds at `f12c803a`, all audits passed; notes
+`results/studies/2.4.0-floor-notes-for-reviewer.md`): §6 reproduced in `test_v24`; the patient cells at T 10 / 20 / 40 under the floor at 8
+against the control at 0 and the `patient-blind` reading; the floor sweep 4 / 8 / 12 at T 10; the invisibility check on the 60/40 entry cell,
+the pool of sixty, the faster decay and the quiet 50–80% cells; the riots (the crowd with and without the pool, the flood); the kill fee with
+the parent's cancellation on and off against the below-cost child. A first sweep ran with two driver gates still reading 2.3.0 alone (every
+member at one cost) and was discarded before anything was kept; the fix is `f12c803a`.
+
+**Findings.** *The floor holds where the patient customer pushed and nowhere else:* P_t 7.7 / 7.2 / 7.5 against the control's 4.8 / 4.5 /
+4.5 — the state at exactly 8, the members under it (median cost 5.1–5.4, $\bar B$ 7.1–7.7), P_t the blend; the state's share 13–27% against
+78–86%; members 6–10 against 3–4; lateness 1.2 against 14, the rebate bill 25 against 466; the requesters still hoard (7,600–9,100 a wallet).
+The blind policy deadlocks as predicted (the state 0, 24,000 declines, P_t 5.2). The sweep: 4 is the control to the unit; 12 prices the state out
+(0.6%) and admits ten members, the market serving the patient demand at 8–9. *Invisible elsewhere:* the entry cell, pool 60, the decay edge
+(B̄ 8.43), every quiet cell and every riot are identical under 8 and 0 to the decimal — no summons declined for the floor anywhere. The award-pass
+correction moved three posts in 2,554 of the entry cell and the riots within a percent. *The kill fee as this driver exercises it closes nothing:*
+every fee zero (as rc.2 expected), 30 cancellations against 117 lowball awards, the roots' failures 658 against the base's 602 — the parent
+cancels when its own deadline leaves room, and the lowballer's deadline comes first; Hypothesis 5 fails in the driver, with the earlier
+cancellation variant named for the next batch.
+
+**For the decision** (notes §7): the floor is also a price the cheap members bid up to (margin 0.36 against 0.07) — a reading for §2.1's
+consequence; the hoard is the demand side's posting rate, not the floor's; the default 8 stands; the kill fee's proper test is a parent that
+cancels before the child's deadline (driver), or the rule's answer rc.2 named (a guarantee not released on a non-performance cancellation).
+**Next:** §8.7 (the cartel at the floor, members colluding above it), §8.8 (the static w_A sweep), the earlier-cancellation variant.
+
 ## Maps
 
 Two `_line` artifacts in project Agentic-OS (`c54120a6-aaff-40f7-8a9f-3667da542879`):

@@ -1792,6 +1792,39 @@ read with the knobs (§8.8) and the red team (§8.9), where b_T and the driver's
 honest, β_max 60, both ceiling policies); told (the withdrawing requester); the books in every cell. Then 2.2.0 — the supply side: entry
 and delegation — which the reviewer is sketching meanwhile.
 
+## Run 14 — the bank under 2.1.0 (October 19, 2026)
+
+**What ran** (`results/studies/2.1.0-bank/`, 600 runs, 20 seeds a cell, 1,000 ticks, all audits passed at `f081e15f`; notes
+`results/studies/2.1.0-bank-notes-for-reviewer.md`): §8.2 the state neutral at 50–80%, expected against at cost (160); §8.8 the knobs
+at 60/40 (100); §8.9 the red team — the state failing at ½ and ¾ × the wall 1 / unbounded, half the careful rejecting the state (100);
+§8.5 the inflation test — 20 honest, β_max 60, issuance 5 / 10 / 20 × both ceiling policies (120); §8.6 told — the withdrawing requester
+at 60/40 with K_open lifted (40); §8.3 the pump — the crowd and the flood at N_T 40, K_open lifted holding under both policies (80).
+
+**Findings.** *Neutral, and the bank unused:* under the expected cost Ω nets −0.6 to −0.8 a delivery (2–3% of B̄, b_T's lag and the
+troop seats' bonds), keeps 4,300–4,500, funds every summons itself — loans, debt and liabilities zero at every split; the wall never
+binds. *The at-cost control under the bank retracts instead of bleeding:* debt 500–650 against a wall of 210–350, 1,900–10,600 refusals
+for credit, liabilities 2,400–8,800, on time 0.79–0.89, the requesters hoarding — "the burn rule is wrong, not the wall", in the record.
+*The index per period changes nothing in kind* (P_t 31 / 33 / 36 / 36 against run 12's 31.6 / 34.1 / 37.4 / 37.3; honesty within
+noise). *The knobs:* the prior moves what the state keeps from its first dozen deliveries by ±236 and nothing else; the wall's width
+irrelevant where it is not approached. *The red team finds the two-thirds limit where §7.7 put it:* at ½ the automatic charge covers
+everything (b_T 0.52, burn 8.4, no debt, Ω 4,543 as in the honest cell); at ¾ the burn is zero, the debt crosses the wall, the state
+retracts and its customers are owed 8,900 of rebates (the unbounded control's debt 4,900 and rising, run 12's bleed legible); the
+rejecters drive b_T to 0.67 — the limit — and make the state 63% of the market at a loss; they read the case's actor (the view carries
+none) and so never meet a plant. *The inflation test gives the quantity theory and the first deflation:* issuance 5 / 10 / 20 → P_t 9.5
+/ 23 / 54 (predicted 11 / 23 / 47); at 5 the price falls from 20 to cost — the credit worth more than it was — and **real wealth by
+disposition is not invariant** (790 / 1,410 / 1,310: at low issuance the ratchet never starts, at high the requesters hoard a third of
+M). *Told:* every mark withdrawn and reposted, the rebate farmer gains nothing (78 against 75), honesty unmoved. *The pump is off:* M is
+issuance alone (the flood 74,000 against 99,400; hoards 1,700 against 3,000), the field's capital on the loans line at 1,700–1,800 and
+repaid, the debt peaks at 400–500 and is repaid — and **the lateness liability is 27,000 in the flood and 10,000 under the crowd, ageing
+400–500 ticks, a quarter of it the state's whole fee income**: nothing is printed for it, and the customers wait for money the state does
+not have. *The books:* lent = repaid + outstanding + debt held in 600 runs; run 12's "deficit" re-read as loans in flight, losses, and
+rebates owed.
+
+**For the decision** (notes §8): (1) the lateness liability's scale under a riot — cap it, price it from income, or keep it as the
+honest bill; (2) the state-rejecter red team is impossible under §14's blind view — strike it, or decide whether a reviewer may know it
+inspects the state; (3) Hypothesis 5's invariance of real wealth failed through the strategy's quantity constant; (4) the at-cost
+control's retraction is the design, recorded; (5) 2.2.0 — entry and delegation — against books that now read.
+
 ## Maps
 
 Two `_line` artifacts in project Agentic-OS (`c54120a6-aaff-40f7-8a9f-3667da542879`):

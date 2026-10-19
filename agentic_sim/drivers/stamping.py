@@ -458,6 +458,13 @@ class Stamping:
         """2.0.0 §2.2: c_D (1 + m), or the ceiling under --bid ceiling (the 1.x behaviour); 2.3.0: the actor's own c_D."""
         if self.a.bid == "ceiling":
             return beta
+        if self.a.bid == "floor-plus":
+            # 2.4.0 §8.7 red team: the members collude to bid just above the state's floor on every request — those whose cost allows it;
+            # the others bid their own c_D (1 + m), since nobody bids below cost on purpose here
+            target = round(self.w.market().get("state_floor", 0.0) * (1.0 + self.a.bid_plus), 6)
+            if target > 0 and self.cost_now(aid) <= target + 1e-9:
+                return target
+            return round(self.cost_now(aid) * (1.0 + self.margin[aid]), 6)
         if aid in self.lowballers:
             return round(0.5 * self.cost_now(aid), 6)   # below cost, to win awards and ρ (2.0.0 §8.8)
         return round(self.cost_now(aid) * (1.0 + self.margin[aid]), 6)
@@ -694,6 +701,10 @@ class Stamping:
             # run 13 §3 (the reviewer's demand-unbound cell): a market-aware ceiling — a little above the market price, so a
             # posting locks less than the wallet rule's and the requester posts more; the wallet still has to carry the all-in
             beta = math.floor(min(a.beta_max, a.ceiling_mult * mk["B_bar"]) * 100) / 100
+        elif a.ceiling_policy == "floor":
+            # 2.4.0 §8.7 red team: the requester cartel — every request at exactly the state's floor, never raised; the state must serve it at
+            # the floor after w_A unless a member bids under it
+            beta = math.floor(min(a.beta_max, max(1.0, mk.get("state_floor", 0.0) or mk["B_bar"])) * 100) / 100
         elif a.ceiling_policy in ("patient", "patient-blind"):
             # run 17 batch C: patient customers — 0.7 B̄, raised only after --patient-ticks unserved (raise_below_market): to max(B̄, the
             # state's floor) read from the view under `patient` (2.4.0), to B̄ alone under `patient-blind` (run 17's, deadlocking at the floor)
@@ -730,6 +741,8 @@ class Stamping:
         # 2.4.0: a policy that reads the view raises to the state's price max(B̄, the floor); `patient-blind` and the 1.x-shaped policies
         # raise to B̄ alone (a wallet- or market-rule requester never posts below the floor unless its wallet is short)
         goal = mk.get("state_price", B_bar) if self.a.ceiling_policy == "patient" else B_bar
+        if self.a.ceiling_policy == "floor":
+            return                                       # the cartel never raises
         for cid in sorted(self.active, key=lambda s: int(s[1:])):
             c = w.case(cid)
             if c.state != "AVAILABLE" or c.beta + 1e-9 >= goal or self.owner.get(cid) in self.stingy or cid in self.nested_parent:
@@ -1172,6 +1185,27 @@ class Stamping:
                 self.c["false_rejections_appealed" if task.fulfilled else "true_rejections_appealed"] += 1
             else:
                 w.respond(cid, "accept")
+        # 2.4.0 §8 (run 18 §7.4): `--parent-cancel early` — after this tick's submissions, a parent cancels a child that reached its
+        # deadline without submitting (an honest child submits at its deadline, in the loop above; a lowballer never does; the engine
+        # would finalize it N at this tick's end) and self-executes with its own deadline still ahead
+        if a.parent_cancel == "early":
+            for cid, nid in list(self.parent_waiting.items()):
+                child = w.case(nid)
+                if child.state != "COMMITTED" or child.deadline is None or t < child.deadline:
+                    continue
+                try:
+                    before = w.case(cid).actor_cost
+                    w.cancel_nested(nid)
+                    fee = w.case(cid).actor_cost - before
+                    self.c["parent_cancellations"] += 1
+                    self.c["kill_fees_paid"] = round(self.c["kill_fees_paid"] + fee, 6)
+                    if fee > 1e-9:
+                        self.c["kill_fees_nonzero"] += 1
+                    self.c["cancel_delay_sum"] += t - child.t_award
+                    self.parent_waiting.pop(cid, None)
+                    self.parent_self_exec.add(cid)
+                except (RuleError, LedgerError):
+                    self.c["parent_cancel_refused"] += 1
         # orchestrator: the plants the rate calls for (1.2.0 §2.1), created before this tick's
         # assignments so they join the queue behind the real work submitted so far
         for _ in range(w.plants_due()):
@@ -1730,10 +1764,13 @@ def main(argv=None):
     ap.add_argument("--beta-max", type=float, default=40.0, help="β_max, the ceiling policy's cap")
     ap.add_argument("--ceiling-share", type=float, default=1.0 / 3.0, help="s: β = min(β_max, s × unlocked wallet)")
     ap.add_argument("--k-open", type=int, default=5, help="K_open: a requester posts while fewer than this many of its requests are open (0: no limit)")
-    ap.add_argument("--ceiling-policy", choices=["wallet", "market", "patient", "patient-blind"], default="wallet",
+    ap.add_argument("--ceiling-policy", choices=["wallet", "market", "patient", "patient-blind", "floor"], default="wallet",
                     help="the requesters' ceiling: min(β_max, share × unlocked wallet), or market-aware min(β_max, mult × B̄) (run 13 §3)")
     ap.add_argument("--ceiling-mult", type=float, default=1.2, help="the market-aware ceiling's multiple of B̄")
-    ap.add_argument("--bid", choices=["margin", "ceiling"], default="margin", help="members' bid policy: c_D (1 + m), or at the ceiling (the 1.x behaviour, the control)")
+    ap.add_argument("--bid", choices=["margin", "ceiling", "floor-plus"], default="margin",
+                    help="members' bid policy: c_D (1 + m); at the ceiling (the 1.x behaviour, the control); or 2.4.0 §8.7's collusion — every member whose cost allows "
+                         "bids the state's floor × (1 + --bid-plus) on every request, the others c_D (1 + m)")
+    ap.add_argument("--bid-plus", type=float, default=0.01, help="--bid floor-plus: the colluding members' bid above the floor, as a share of it")
     ap.add_argument("--c-d", type=float, default=8.0, help="c_D, a member's nominal effort cost per task (burned at submission)")
     ap.add_argument("--c-d-adaptive", choices=["on", "off"], default="off", help="the adaptive reservation: c_D follows P_t with a one-period lag (the spiral, swept)")
     ap.add_argument("--margin0", type=float, default=0.3, help="each member's starting margin m")
@@ -1779,9 +1816,10 @@ def main(argv=None):
     # 2.4.0 — the state's reservation
     ap.add_argument("--state-reservation", type=float, default=None,
                     help="2.4.0 §2.1: the state's floor — nominal, public (default 8; 0 is the control, the 2.3.0 state at B̄; swept 4 / 8 / 12)")
-    ap.add_argument("--parent-cancel", choices=["on", "off"], default="off",
+    ap.add_argument("--parent-cancel", choices=["on", "off", "early"], default="off",
                     help="2.4.0 §2.4: a parent whose child has not submitted cancels while self-execution is still possible, pays the kill fee "
-                         "(the child's recorded cost — zero for a child that never worked) and does the work itself")
+                         "(the child's recorded cost — zero for a child that never worked) and does the work itself; `on`: when the parent's own deadline "
+                         "leaves one work_ticks; `early` (run 18 §7.4): at the child's deadline minus one, before the child can lapse")
     ap.add_argument("--small-requests", type=int, default=0,
                     help="2.2.0 §8.5 red team: this many requesters post at the market price exactly with K_open tripled — many small requests to collect pro-rata rebates (expected: nothing beyond the capped claims)")
     ap.add_argument("--state-rejecters", type=float, default=0.0,

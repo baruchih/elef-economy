@@ -1,0 +1,5020 @@
+{
+  "run_id": "20261019-214843-colludepat",
+  "name": "colludepat",
+  "kind": "sweep summary over drivers.stamping cells \u00d7 seeds",
+  "started": "2026-10-19T18:48:43Z",
+  "environment": {
+    "engine_commit": "e45cd3ee-dirty",
+    "python": "3.13.11",
+    "platform": "macOS-26.5.1-arm64-arm-64bit-Mach-O",
+    "argv": [
+      "/Users/baruchi-admin/projects/elef-economy/agentic_sim/drivers/sweep.py",
+      "--root",
+      "results/studies/2.4.0-floor/collude-patient",
+      "--name",
+      "colludepat",
+      "--grid",
+      "stampers=0.6",
+      "bid-plus=0.01,0.1",
+      "--seeds",
+      "20",
+      "--log-every",
+      "10",
+      "--extra",
+      "--bid",
+      "floor-plus",
+      "--ceiling-policy",
+      "patient",
+      "--patient-ticks",
+      "10",
+      "--entry-pool",
+      "20"
+    ]
+  },
+  "params": {
+    "W": 10,
+    "T_resp": 2,
+    "T_rev": 5,
+    "T_evid": 3,
+    "T_review": 5,
+    "T_wait": 5,
+    "G_frac": 0.5,
+    "G_V": 5.0,
+    "D": 2.0,
+    "K": 5.0,
+    "phi_E_root": 10.0,
+    "phi_F_root": 5.0,
+    "f_fee": 2.0,
+    "omega_rate": 0.05,
+    "m0_root": 1,
+    "V_max": 3,
+    "X": 4,
+    "w_ordinary": 1.0,
+    "w_appeal": 1.5,
+    "w_audit": 1.5,
+    "lam": 0.2,
+    "band": 0.05,
+    "E0": 10.0,
+    "H": 1000.0,
+    "p_start": 1.0,
+    "p_floor": 0.2,
+    "p_cap": 1.0,
+    "p_halve_every": 5,
+    "dial": true,
+    "pi0": 0.1,
+    "pi_max": 0.4,
+    "beta_P": 0.75,
+    "F_star": 0.1,
+    "gamma": 1.0,
+    "period_plants": 50,
+    "period_ticks": 200,
+    "m_max": 4.0,
+    "n_min": 4,
+    "n_P": 20,
+    "theta_panel": 0.2,
+    "theta_duty": 0.5,
+    "T_susp": 100,
+    "membership": true,
+    "duty_fund": true,
+    "net_plant_capital": true,
+    "troops": true,
+    "eps_T": 0.05,
+    "w_R": 2,
+    "w_A": 2,
+    "c_T": 3.0,
+    "c_D_T": 10.0,
+    "A_T": 100.0,
+    "tau_T": 2,
+    "reserve_demand": true,
+    "service_clock": true,
+    "T_s": 8,
+    "r_s": 0.0,
+    "omega_backs_fund": true,
+    "seat_the_queue": true,
+    "panel_determined": true,
+    "reserve_periods": 2,
+    "duty_cap_frac": 0.6666666666666666,
+    "plant_reserve_life": 15,
+    "troop_account": true,
+    "floating": true,
+    "P0": 20.0,
+    "issuance": 0.0,
+    "N_T": 40,
+    "troop_cost_at_price": true,
+    "bbar_counts_troops": false,
+    "bank": true,
+    "c_d_t_mode": "expected",
+    "b_t_prior": 0.2,
+    "b_t_min_n": 10,
+    "debt_bound_periods": 1,
+    "rebate_pool": true,
+    "supply": true,
+    "F0": 50.0,
+    "nested_pots": "parent",
+    "state_reservation": 8.0,
+    "rho_window": 100,
+    "kappa_window": 100,
+    "duty_turn_reviews": 3,
+    "duty_turn_ticks": 30,
+    "rho_pool": 0.25,
+    "thin": 2,
+    "full_check_every": 0,
+    "record_dir": null,
+    "Res0": 10000.0,
+    "v0": 1.0,
+    "float_per_actor": 50.0,
+    "Omega0": 300.0
+  },
+  "declared": {
+    "cells": [
+      "s0.6-plus0.01",
+      "s0.6-plus0.1"
+    ],
+    "factors_grid": [
+      "stampers=0.6",
+      "bid-plus=0.01,0.1"
+    ],
+    "factors_ofat": [],
+    "seeds": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11,
+      12,
+      13,
+      14,
+      15,
+      16,
+      17,
+      18,
+      19,
+      20
+    ],
+    "ticks": 1000,
+    "actors": 20,
+    "per_run": "drivers.stamping at its defaults except the cell's factors and --seed; --phi-f = phi_f_per_fee \u00d7 fee",
+    "phi_f_per_fee": 2.5,
+    "extra_args": [
+      "--bid",
+      "floor-plus",
+      "--ceiling-policy",
+      "patient",
+      "--patient-ticks",
+      "10",
+      "--entry-pool",
+      "20"
+    ]
+  },
+  "status": "completed",
+  "finished": "2026-10-19T18:51:40Z",
+  "elapsed_s": 177.0,
+  "head": "sweep summary: each run's head is in metrics.csv and its own directory",
+  "runs": [
+    {
+      "run_id": "20261019-214843-colludepat-s0.6-plus0.01-seed1",
+      "status": "completed",
+      "rc": 0
+    },
+    {
+      "run_id": "20261019-214847-colludepat-s0.6-plus0.01-seed2",
+      "status": "completed",
+      "rc": 0
+    },
+    {
+      "run_id": "20261019-214851-colludepat-s0.6-plus0.01-seed3",
+      "status": "completed",
+      "rc": 0
+    },
+    {
+      "run_id": "20261019-214856-colludepat-s0.6-plus0.01-seed4",
+      "status": "completed",
+      "rc": 0
+    },
+    {
+      "run_id": "20261019-214900-colludepat-s0.6-plus0.01-seed5",
+      "status": "completed",
+      "rc": 0
+    },
+    {
+      "run_id": "20261019-214904-colludepat-s0.6-plus0.01-seed6",
+      "status": "completed",
+      "rc": 0
+    },
+    {
+      "run_id": "20261019-214908-colludepat-s0.6-plus0.01-seed7",
+      "status": "completed",
+      "rc": 0
+    },
+    {
+      "run_id": "20261019-214912-colludepat-s0.6-plus0.01-seed8",
+      "status": "completed",
+      "rc": 0
+    },
+    {
+      "run_id": "20261019-214916-colludepat-s0.6-plus0.01-seed9",
+      "status": "completed",
+      "rc": 0
+    },
+    {
+      "run_id": "20261019-214921-colludepat-s0.6-plus0.01-seed10",
+      "status": "completed",
+      "rc": 0
+    },
+    {
+      "run_id": "20261019-214926-colludepat-s0.6-plus0.01-seed11",
+      "status": "completed",
+      "rc": 0
+    },
+    {
+      "run_id": "20261019-214931-colludepat-s0.6-plus0.01-seed12",
+      "status": "completed",
+      "rc": 0
+    },
+    {
+      "run_id": "20261019-214935-colludepat-s0.6-plus0.01-seed13",
+      "status": "completed",
+      "rc": 0
+    },
+    {
+      "run_id": "20261019-214939-colludepat-s0.6-plus0.01-seed14",
+      "status": "completed",
+      "rc": 0
+    },
+    {
+      "run_id": "20261019-214943-colludepat-s0.6-plus0.01-seed15",
+      "status": "completed",
+      "rc": 0
+    },
+    {
+      "run_id": "20261019-214947-colludepat-s0.6-plus0.01-seed16",
+      "status": "completed",
+      "rc": 0
+    },
+    {
+      "run_id": "20261019-214952-colludepat-s0.6-plus0.01-seed17",
+      "status": "completed",
+      "rc": 0
+    },
+    {
+      "run_id": "20261019-214956-colludepat-s0.6-plus0.01-seed18",
+      "status": "completed",
+      "rc": 0
+    },
+    {
+      "run_id": "20261019-215001-colludepat-s0.6-plus0.01-seed19",
+      "status": "completed",
+      "rc": 0
+    },
+    {
+      "run_id": "20261019-215005-colludepat-s0.6-plus0.01-seed20",
+      "status": "completed",
+      "rc": 0
+    },
+    {
+      "run_id": "20261019-215010-colludepat-s0.6-plus0.1-seed1",
+      "status": "completed",
+      "rc": 0
+    },
+    {
+      "run_id": "20261019-215014-colludepat-s0.6-plus0.1-seed2",
+      "status": "completed",
+      "rc": 0
+    },
+    {
+      "run_id": "20261019-215019-colludepat-s0.6-plus0.1-seed3",
+      "status": "completed",
+      "rc": 0
+    },
+    {
+      "run_id": "20261019-215023-colludepat-s0.6-plus0.1-seed4",
+      "status": "completed",
+      "rc": 0
+    },
+    {
+      "run_id": "20261019-215028-colludepat-s0.6-plus0.1-seed5",
+      "status": "completed",
+      "rc": 0
+    },
+    {
+      "run_id": "20261019-215032-colludepat-s0.6-plus0.1-seed6",
+      "status": "completed",
+      "rc": 0
+    },
+    {
+      "run_id": "20261019-215037-colludepat-s0.6-plus0.1-seed7",
+      "status": "completed",
+      "rc": 0
+    },
+    {
+      "run_id": "20261019-215042-colludepat-s0.6-plus0.1-seed8",
+      "status": "completed",
+      "rc": 0
+    },
+    {
+      "run_id": "20261019-215046-colludepat-s0.6-plus0.1-seed9",
+      "status": "completed",
+      "rc": 0
+    },
+    {
+      "run_id": "20261019-215050-colludepat-s0.6-plus0.1-seed10",
+      "status": "completed",
+      "rc": 0
+    },
+    {
+      "run_id": "20261019-215055-colludepat-s0.6-plus0.1-seed11",
+      "status": "completed",
+      "rc": 0
+    },
+    {
+      "run_id": "20261019-215059-colludepat-s0.6-plus0.1-seed12",
+      "status": "completed",
+      "rc": 0
+    },
+    {
+      "run_id": "20261019-215103-colludepat-s0.6-plus0.1-seed13",
+      "status": "completed",
+      "rc": 0
+    },
+    {
+      "run_id": "20261019-215108-colludepat-s0.6-plus0.1-seed14",
+      "status": "completed",
+      "rc": 0
+    },
+    {
+      "run_id": "20261019-215113-colludepat-s0.6-plus0.1-seed15",
+      "status": "completed",
+      "rc": 0
+    },
+    {
+      "run_id": "20261019-215117-colludepat-s0.6-plus0.1-seed16",
+      "status": "completed",
+      "rc": 0
+    },
+    {
+      "run_id": "20261019-215122-colludepat-s0.6-plus0.1-seed17",
+      "status": "completed",
+      "rc": 0
+    },
+    {
+      "run_id": "20261019-215126-colludepat-s0.6-plus0.1-seed18",
+      "status": "completed",
+      "rc": 0
+    },
+    {
+      "run_id": "20261019-215131-colludepat-s0.6-plus0.1-seed19",
+      "status": "completed",
+      "rc": 0
+    },
+    {
+      "run_id": "20261019-215135-colludepat-s0.6-plus0.1-seed20",
+      "status": "completed",
+      "rc": 0
+    }
+  ],
+  "summary": {
+    "s0.6-plus0.01": {
+      "careful_wealth": {
+        "mean": 644.516,
+        "sd": 64.196,
+        "min": 508.91,
+        "max": 743.953
+      },
+      "stamper_wealth": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      },
+      "careful_fees": {
+        "mean": 767.828,
+        "sd": 84.076,
+        "min": 582.883,
+        "max": 943.761
+      },
+      "stamper_fees": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      },
+      "careful_fee_fixed": {
+        "mean": 255.883,
+        "sd": 27.987,
+        "min": 191.146,
+        "max": 314.12
+      },
+      "stamper_fee_fixed": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      },
+      "careful_fee_haircut": {
+        "mean": 153.486,
+        "sd": 18.244,
+        "min": 114.354,
+        "max": 186.769
+      },
+      "stamper_fee_haircut": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      },
+      "careful_delivery": {
+        "mean": 624.731,
+        "sd": 79.279,
+        "min": 421.025,
+        "max": 770.293
+      },
+      "stamper_delivery": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      },
+      "careful_costs": {
+        "mean": 1029.3,
+        "sd": 140.645,
+        "min": 722.433,
+        "max": 1311.148
+      },
+      "careful_reimbursed": {
+        "mean": 378.972,
+        "sd": 41.73,
+        "min": 284.658,
+        "max": 465.631
+      },
+      "careful_bonds_forfeited": {
+        "mean": 11.267,
+        "sd": 1.735,
+        "min": 8.065,
+        "max": 15.13
+      },
+      "stamper_bonds_forfeited": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      },
+      "careful_awards": {
+        "mean": 103.13,
+        "sd": 13.034,
+        "min": 69.286,
+        "max": 127.889
+      },
+      "stamper_awards": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      },
+      "careful_reviews": {
+        "mean": 185.454,
+        "sd": 20.378,
+        "min": 139.143,
+        "max": 226.889
+      },
+      "stamper_reviews": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      },
+      "careful_overturned": {
+        "mean": 5.144,
+        "sd": 0.774,
+        "min": 3.5,
+        "max": 6.9
+      },
+      "stamper_overturned": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      },
+      "careful_rho": {
+        "mean": 0.889,
+        "sd": 0.008,
+        "min": 0.876,
+        "max": 0.903
+      },
+      "stamper_rho": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      },
+      "careful_p_audit": {
+        "mean": 0.229,
+        "sd": 0.027,
+        "min": 0.2,
+        "max": 0.3
+      },
+      "stamper_p_audit": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      },
+      "posted": {
+        "mean": 1442.35,
+        "sd": 12.558,
+        "min": 1407,
+        "max": 1455
+      },
+      "vested": {
+        "mean": 1073.3,
+        "sd": 16.069,
+        "min": 1036,
+        "max": 1109
+      },
+      "final_n": {
+        "mean": 340.35,
+        "sd": 18.199,
+        "min": 302,
+        "max": 366
+      },
+      "false_approvals": {
+        "mean": 6.85,
+        "sd": 4.158,
+        "min": 1,
+        "max": 17
+      },
+      "false_rejections": {
+        "mean": 58.45,
+        "sd": 6.909,
+        "min": 46,
+        "max": 70
+      },
+      "audits_rolled": {
+        "mean": 1148.7,
+        "sd": 15.072,
+        "min": 1118,
+        "max": 1175
+      },
+      "audits_assigned": {
+        "mean": 592.65,
+        "sd": 42.675,
+        "min": 508,
+        "max": 681
+      },
+      "audit_unassignable_ticks": {
+        "mean": 857.8,
+        "sd": 107.882,
+        "min": 678,
+        "max": 1105
+      },
+      "challenges": {
+        "mean": 99.65,
+        "sd": 11.292,
+        "min": 76,
+        "max": 130
+      },
+      "rulings": {
+        "mean": 46.3,
+        "sd": 5.658,
+        "min": 34,
+        "max": 60
+      },
+      "reviews_unassignable_ticks": {
+        "mean": 176.2,
+        "sd": 41.793,
+        "min": 67,
+        "max": 244
+      },
+      "awards_unfilled_ticks": {
+        "mean": 96.0,
+        "sd": 92.379,
+        "min": 0,
+        "max": 301
+      },
+      "underfunded_careful_reviews": {
+        "mean": 0.45,
+        "sd": 0.759,
+        "min": 0,
+        "max": 2
+      },
+      "omega_unrecovered_advances": {
+        "mean": 63.123,
+        "sd": 9.678,
+        "min": 47.349,
+        "max": 85.58
+      },
+      "claims_outstanding": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0,
+        "max": 0
+      },
+      "allowance_refunded": {
+        "mean": 2888.216,
+        "sd": 74.022,
+        "min": 2716.376,
+        "max": 2990.164
+      },
+      "pot_refunded": {
+        "mean": 124.612,
+        "sd": 22.739,
+        "min": 85.26,
+        "max": 171.173
+      },
+      "appeals_filed": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0,
+        "max": 0
+      },
+      "appeals_unfunded": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0,
+        "max": 0
+      },
+      "appeals_won": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0,
+        "max": 0
+      },
+      "appeals_lost": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0,
+        "max": 0
+      },
+      "false_rejections_total": {
+        "mean": 47.1,
+        "sd": 6.836,
+        "min": 38,
+        "max": 61
+      },
+      "false_rejections_appealed": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0,
+        "max": 0
+      },
+      "false_rejections_overturned": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0,
+        "max": 0
+      },
+      "true_rejections_appealed": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0,
+        "max": 0
+      },
+      "true_rejections_overturned": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0,
+        "max": 0
+      },
+      "disputes_filed": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0,
+        "max": 0
+      },
+      "disputes_refused": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0,
+        "max": 0
+      },
+      "disputes_won": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0,
+        "max": 0
+      },
+      "disputes_lost": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0,
+        "max": 0
+      },
+      "false_approvals_disputed": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0,
+        "max": 0
+      },
+      "false_approvals_overturned": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0,
+        "max": 0
+      },
+      "true_approvals_disputed": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0,
+        "max": 0
+      },
+      "true_approvals_overturned": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0,
+        "max": 0
+      },
+      "grade_human-explicit_n": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0,
+        "max": 0
+      },
+      "duty_short_of_bond_ticks": {
+        "mean": 15.35,
+        "sd": 14.84,
+        "min": 0,
+        "max": 49
+      },
+      "grade_procedural_n": {
+        "mean": 974.7,
+        "sd": 32.363,
+        "min": 927,
+        "max": 1035
+      },
+      "grade_procedural_acc": {
+        "mean": 0.985,
+        "sd": 0.005,
+        "min": 0.975,
+        "max": 0.992
+      },
+      "grade_protocol-default_n": {
+        "mean": 438.95,
+        "sd": 32.163,
+        "min": 371,
+        "max": 497
+      },
+      "grade_protocol-default_acc": {
+        "mean": 0.884,
+        "sd": 0.019,
+        "min": 0.855,
+        "max": 0.919
+      },
+      "grade_plant_n": {
+        "mean": 378.45,
+        "sd": 16.564,
+        "min": 347,
+        "max": 416
+      },
+      "grade_plant_acc": {
+        "mean": 1.0,
+        "sd": 0.0,
+        "min": 1.0,
+        "max": 1.0
+      },
+      "omega": {
+        "mean": 1633.385,
+        "sd": 93.931,
+        "min": 1499.252,
+        "max": 1783.546
+      },
+      "omega_total": {
+        "mean": 1685.638,
+        "sd": 91.06,
+        "min": 1534.396,
+        "max": 1855.054
+      },
+      "omega_in_plants": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      },
+      "omega_net": {
+        "mean": 1385.638,
+        "sd": 91.06,
+        "min": 1234.396,
+        "max": 1555.054
+      },
+      "m": {
+        "mean": 2.714,
+        "sd": 0.326,
+        "min": 2.362,
+        "max": 3.837
+      },
+      "pi": {
+        "mean": 0.271,
+        "sd": 0.033,
+        "min": 0.236,
+        "max": 0.384
+      },
+      "X_t": {
+        "mean": 4.0,
+        "sd": 0.0,
+        "min": 4,
+        "max": 4
+      },
+      "on_duty": {
+        "mean": 4.0,
+        "sd": 0.0,
+        "min": 4,
+        "max": 4
+      },
+      "F_hat": {
+        "mean": 0.043,
+        "sd": 0.032,
+        "min": 0.0,
+        "max": 0.132
+      },
+      "periods": {
+        "mean": 7.35,
+        "sd": 0.489,
+        "min": 7,
+        "max": 8
+      },
+      "suspensions": {
+        "mean": 9.6,
+        "sd": 2.501,
+        "min": 6,
+        "max": 16
+      },
+      "alarms": {
+        "mean": 0.35,
+        "sd": 0.587,
+        "min": 0,
+        "max": 2
+      },
+      "eligibility_shortfall": {
+        "mean": 0.85,
+        "sd": 2.621,
+        "min": 0,
+        "max": 9
+      },
+      "plant_shortfall": {
+        "mean": 2.45,
+        "sd": 0.999,
+        "min": 0,
+        "max": 4
+      },
+      "plants_created": {
+        "mean": 379.9,
+        "sd": 16.619,
+        "min": 347,
+        "max": 417
+      },
+      "plants_unfunded": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0,
+        "max": 0
+      },
+      "plants_bad": {
+        "mean": 283.6,
+        "sd": 15.257,
+        "min": 258,
+        "max": 322
+      },
+      "plants_stood": {
+        "mean": 332.9,
+        "sd": 12.195,
+        "min": 310,
+        "max": 359
+      },
+      "plants_failed": {
+        "mean": 45.55,
+        "sd": 6.955,
+        "min": 36,
+        "max": 58
+      },
+      "plants_spent": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0,
+        "max": 0
+      },
+      "bad_plants_approved": {
+        "mean": 41.55,
+        "sd": 6.739,
+        "min": 31,
+        "max": 55
+      },
+      "good_plants_rejected": {
+        "mean": 4.0,
+        "sd": 2.077,
+        "min": 1,
+        "max": 9
+      },
+      "omega_plant_spend": {
+        "mean": 1350.261,
+        "sd": 52.478,
+        "min": 1268.2,
+        "max": 1467.4
+      },
+      "careful_plant_reviews": {
+        "mean": 29.656,
+        "sd": 3.935,
+        "min": 21.286,
+        "max": 37.778
+      },
+      "stamper_plant_reviews": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      },
+      "careful_plant_failures": {
+        "mean": 1.325,
+        "sd": 0.43,
+        "min": 0.571,
+        "max": 2.182
+      },
+      "stamper_plant_failures": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      },
+      "careful_a_hat": {
+        "mean": 0.084,
+        "sd": 0.01,
+        "min": 0.07,
+        "max": 0.101
+      },
+      "stamper_a_hat": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      },
+      "careful_suspended": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0,
+        "max": 0
+      },
+      "stamper_suspended": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0,
+        "max": 0
+      },
+      "careful_duty_eligible": {
+        "mean": 11.0,
+        "sd": 1.214,
+        "min": 9,
+        "max": 14
+      },
+      "stamper_duty_eligible": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0,
+        "max": 0
+      },
+      "careful_panel_eligible": {
+        "mean": 9.8,
+        "sd": 1.473,
+        "min": 7,
+        "max": 13
+      },
+      "stamper_panel_eligible": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0,
+        "max": 0
+      },
+      "stamper_share": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      },
+      "disposition_switches": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0,
+        "max": 0
+      },
+      "careful_n": {
+        "mean": 11.0,
+        "sd": 1.214,
+        "min": 9,
+        "max": 14
+      },
+      "stamper_n": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0,
+        "max": 0
+      },
+      "members_on_duty": {
+        "mean": 4.0,
+        "sd": 0.0,
+        "min": 4,
+        "max": 4
+      },
+      "probationers_on_duty": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0,
+        "max": 0
+      },
+      "member_seats": {
+        "mean": 1.0,
+        "sd": 0.0,
+        "min": 1,
+        "max": 1
+      },
+      "readmissions": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0,
+        "max": 0
+      },
+      "duty_fund": {
+        "mean": 0.098,
+        "sd": 0.44,
+        "min": 0.0,
+        "max": 1.969
+      },
+      "fund_in": {
+        "mean": 962.064,
+        "sd": 65.175,
+        "min": 838.913,
+        "max": 1105.279
+      },
+      "fund_out": {
+        "mean": 961.966,
+        "sd": 65.225,
+        "min": 838.913,
+        "max": 1105.279
+      },
+      "awards_refused_members_only_ticks": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0,
+        "max": 0
+      },
+      "probation_false_approvals": {
+        "mean": 0.3,
+        "sd": 0.657,
+        "min": 0,
+        "max": 2
+      },
+      "careful_members": {
+        "mean": 11.0,
+        "sd": 1.214,
+        "min": 9,
+        "max": 14
+      },
+      "stamper_members": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0,
+        "max": 0
+      },
+      "careful_probationers": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0,
+        "max": 0
+      },
+      "stamper_probationers": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0,
+        "max": 0
+      },
+      "careful_fee_uplift": {
+        "mean": 82.287,
+        "sd": 12.633,
+        "min": 57.905,
+        "max": 105.864
+      },
+      "stamper_fee_uplift": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      },
+      "careful_probation_reviews": {
+        "mean": 20.256,
+        "sd": 3.241,
+        "min": 15.091,
+        "max": 27.4
+      },
+      "stamper_probation_reviews": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      },
+      "careful_probation_approvals": {
+        "mean": 13.669,
+        "sd": 2.527,
+        "min": 9.455,
+        "max": 19.1
+      },
+      "stamper_probation_approvals": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      },
+      "audit_obligations": {
+        "mean": 981.2,
+        "sd": 33.18,
+        "min": 934,
+        "max": 1041
+      },
+      "troop_reviews": {
+        "mean": 448.7,
+        "sd": 61.047,
+        "min": 333,
+        "max": 552
+      },
+      "troop_audits": {
+        "mean": 388.8,
+        "sd": 52.515,
+        "min": 285,
+        "max": 475
+      },
+      "troop_deliveries": {
+        "mean": 22.85,
+        "sd": 24.79,
+        "min": 1,
+        "max": 90
+      },
+      "troop_delivered_vested": {
+        "mean": 16.85,
+        "sd": 18.112,
+        "min": 1,
+        "max": 63
+      },
+      "troop_delivered_final_n": {
+        "mean": 5.9,
+        "sd": 6.92,
+        "min": 0,
+        "max": 27
+      },
+      "troop_false_approvals": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0,
+        "max": 0
+      },
+      "troops_active_reviews": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0,
+        "max": 0
+      },
+      "troops_active_deliveries": {
+        "mean": 0.1,
+        "sd": 0.447,
+        "min": 0,
+        "max": 2
+      },
+      "troop_summons_reviews": {
+        "mean": 448.7,
+        "sd": 61.047,
+        "min": 333,
+        "max": 552
+      },
+      "troop_summons_deliveries": {
+        "mean": 22.85,
+        "sd": 24.79,
+        "min": 1,
+        "max": 90
+      },
+      "troop_shortfall_seats": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0,
+        "max": 0
+      },
+      "troop_shortfall_awards": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0,
+        "max": 0
+      },
+      "troop_held_ticks": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0,
+        "max": 0
+      },
+      "troop_ticks_reviews": {
+        "mean": 448.7,
+        "sd": 61.047,
+        "min": 333,
+        "max": 552
+      },
+      "troop_ticks_deliveries": {
+        "mean": 236.6,
+        "sd": 259.103,
+        "min": 13,
+        "max": 860
+      },
+      "held_market_audit_now": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0,
+        "max": 0
+      },
+      "held_market_audit_max_age": {
+        "mean": 10.5,
+        "sd": 46.957,
+        "min": 0,
+        "max": 210
+      },
+      "fund_reserve": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      },
+      "advance_outstanding": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      },
+      "B_bar": {
+        "mean": 8.08,
+        "sd": 0.0,
+        "min": 8.08,
+        "max": 8.08
+      },
+      "troop_demand": {
+        "mean": 0.872,
+        "sd": 3.9,
+        "min": 0.0,
+        "max": 17.44
+      },
+      "troop_demand_refused": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      },
+      "demand_peak_refused": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      },
+      "pfa_route_upheld": {
+        "mean": 0.15,
+        "sd": 0.366,
+        "min": 0,
+        "max": 1
+      },
+      "pfa_route_overturned": {
+        "mean": 0.15,
+        "sd": 0.366,
+        "min": 0,
+        "max": 1
+      },
+      "pfa_route_other": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0,
+        "max": 0
+      },
+      "pfa_kind_troop": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0,
+        "max": 0
+      },
+      "pfa_kind_standing": {
+        "mean": 0.05,
+        "sd": 0.224,
+        "min": 0,
+        "max": 1
+      },
+      "pfa_kind_lag": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0,
+        "max": 0
+      },
+      "pfa_kind_readmitted": {
+        "mean": 0.1,
+        "sd": 0.308,
+        "min": 0,
+        "max": 1
+      },
+      "decliner_wealth": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      },
+      "careful_offering_wealth": {
+        "mean": 644.516,
+        "sd": 64.196,
+        "min": 508.91,
+        "max": 743.953
+      },
+      "decliner_awards": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      },
+      "careful_offering_awards": {
+        "mean": 103.13,
+        "sd": 13.034,
+        "min": 69.286,
+        "max": 127.889
+      },
+      "on_time": {
+        "mean": 1423.7,
+        "sd": 15.163,
+        "min": 1374,
+        "max": 1440
+      },
+      "late": {
+        "mean": 0.95,
+        "sd": 3.605,
+        "min": 0,
+        "max": 16
+      },
+      "on_time_share": {
+        "mean": 0.999,
+        "sd": 0.003,
+        "min": 0.989,
+        "max": 1.0
+      },
+      "mean_lateness": {
+        "mean": 0.151,
+        "sd": 0.468,
+        "min": 0.0,
+        "max": 1.688
+      },
+      "rebates_owed": {
+        "mean": 0.626,
+        "sd": 2.447,
+        "min": 0.0,
+        "max": 10.908
+      },
+      "rebates_paid": {
+        "mean": 0.626,
+        "sd": 2.447,
+        "min": 0.0,
+        "max": 10.908
+      },
+      "omega_liability": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0,
+        "max": 0
+      },
+      "liabilities_accrued": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      },
+      "open_late": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0,
+        "max": 0
+      },
+      "omega_unlocked": {
+        "mean": 1633.385,
+        "sd": 93.931,
+        "min": 1499.252,
+        "max": 1783.546
+      },
+      "omega_min_period": {
+        "mean": 1631.107,
+        "sd": 94.117,
+        "min": 1499.252,
+        "max": 1783.546
+      },
+      "plant_reserve": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      },
+      "x_target": {
+        "mean": 4.0,
+        "sd": 0.0,
+        "min": 4,
+        "max": 4
+      },
+      "waiting_initial": {
+        "mean": 0.1,
+        "sd": 0.308,
+        "min": 0,
+        "max": 1
+      },
+      "waiting_panel": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0,
+        "max": 0
+      },
+      "troop_panel_seats": {
+        "mean": 448.2,
+        "sd": 61.138,
+        "min": 333,
+        "max": 552
+      },
+      "active_cases": {
+        "mean": 30.15,
+        "sd": 1.268,
+        "min": 28,
+        "max": 33
+      },
+      "withdrawn_unawarded": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0,
+        "max": 0
+      },
+      "troop_account": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      },
+      "troop_surplus": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      },
+      "omega_fee_income": {
+        "mean": 577.023,
+        "sd": 4.925,
+        "min": 564.479,
+        "max": 583.117
+      },
+      "advances_made": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      },
+      "advances_repaid": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      },
+      "liabilities_paid": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      },
+      "liabilities_old": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0,
+        "max": 0
+      },
+      "members_total": {
+        "mean": 11.0,
+        "sd": 1.214,
+        "min": 9,
+        "max": 14
+      },
+      "members_free": {
+        "mean": 3.75,
+        "sd": 1.552,
+        "min": 0,
+        "max": 6
+      },
+      "members_committed": {
+        "mean": 3.25,
+        "sd": 1.209,
+        "min": 1,
+        "max": 6
+      },
+      "suspended_waiting": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0,
+        "max": 0
+      },
+      "probationers": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0,
+        "max": 0
+      },
+      "awards_waiting": {
+        "mean": 14.45,
+        "sd": 1.395,
+        "min": 11,
+        "max": 17
+      },
+      "awards_waiting_w_a": {
+        "mean": 0.1,
+        "sd": 0.308,
+        "min": 0,
+        "max": 1
+      },
+      "members_free_at_seating": {
+        "mean": 2.5,
+        "sd": 0.707,
+        "min": 2,
+        "max": 3
+      },
+      "awards_left_to_members": {
+        "mean": 242.0,
+        "sd": 231.358,
+        "min": 16,
+        "max": 1031
+      },
+      "P_t": {
+        "mean": 8.08,
+        "sd": 0.0,
+        "min": 8.08,
+        "max": 8.08
+      },
+      "price_index": {
+        "mean": 0.404,
+        "sd": 0.0,
+        "min": 0.404,
+        "max": 0.404
+      },
+      "credit_value": {
+        "mean": 2.475,
+        "sd": 0.0,
+        "min": 2.475,
+        "max": 2.475
+      },
+      "deficit": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      },
+      "deficit_created": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      },
+      "deficit_retired": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      },
+      "deficit_peak": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      },
+      "deficit_age": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0,
+        "max": 0
+      },
+      "omega_net_position": {
+        "mean": 1633.385,
+        "sd": 93.931,
+        "min": 1499.252,
+        "max": 1783.546
+      },
+      "issued": {
+        "mean": 62500.0,
+        "sd": 0.0,
+        "min": 62500.0,
+        "max": 62500.0
+      },
+      "departed": {
+        "mean": 2079.761,
+        "sd": 314.331,
+        "min": 1213.214,
+        "max": 2737.684
+      },
+      "below_market_flagged": {
+        "mean": 1436.35,
+        "sd": 12.558,
+        "min": 1401,
+        "max": 1449
+      },
+      "below_market_waiting": {
+        "mean": 14.35,
+        "sd": 1.387,
+        "min": 11,
+        "max": 17
+      },
+      "ceilings_raised": {
+        "mean": 1422.0,
+        "sd": 12.204,
+        "min": 1390,
+        "max": 1437
+      },
+      "places_held": {
+        "mean": 0.1,
+        "sd": 0.447,
+        "min": 0,
+        "max": 2
+      },
+      "state_floor": {
+        "mean": 8.0,
+        "sd": 0.0,
+        "min": 8.0,
+        "max": 8.0
+      },
+      "state_price": {
+        "mean": 8.08,
+        "sd": 0.0,
+        "min": 8.08,
+        "max": 8.08
+      },
+      "state_price_mean": {
+        "mean": 8.116,
+        "sd": 0.057,
+        "min": 8.08,
+        "max": 8.271
+      },
+      "state_price_period": {
+        "mean": 8.08,
+        "sd": 0.0,
+        "min": 8.08,
+        "max": 8.08
+      },
+      "below_reservation_marked": {
+        "mean": 1436.35,
+        "sd": 12.558,
+        "min": 1401,
+        "max": 1449
+      },
+      "below_reservation_waiting": {
+        "mean": 14.35,
+        "sd": 1.387,
+        "min": 11,
+        "max": 17
+      },
+      "below_reservation_ticks": {
+        "mean": 76.75,
+        "sd": 10.223,
+        "min": 57,
+        "max": 99
+      },
+      "summons_declined_floor": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0,
+        "max": 0
+      },
+      "parent_cancellations": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0,
+        "max": 0
+      },
+      "kill_fees_paid": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      },
+      "kill_fees_nonzero": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0,
+        "max": 0
+      },
+      "parent_cancel_refused": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0,
+        "max": 0
+      },
+      "refused_capacity_seats": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0,
+        "max": 0
+      },
+      "refused_capacity_awards": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0,
+        "max": 0
+      },
+      "refused_capacity_waiting": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0,
+        "max": 0
+      },
+      "capacity_wait_max": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0,
+        "max": 0
+      },
+      "careful_wealth_real": {
+        "mean": 1595.337,
+        "sd": 158.901,
+        "min": 1259.678,
+        "max": 1841.468
+      },
+      "stamper_wealth_real": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      },
+      "requester_wallet_mean": {
+        "mean": 7383.054,
+        "sd": 41.967,
+        "min": 7297.728,
+        "max": 7476.499
+      },
+      "requester_unlocked_mean": {
+        "mean": 7352.963,
+        "sd": 42.9,
+        "min": 7266.393,
+        "max": 7453.672
+      },
+      "crowd_present": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0,
+        "max": 0
+      },
+      "crowd_wallet_mean": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      },
+      "member_price_mean": {
+        "mean": 8.082,
+        "sd": 0.002,
+        "min": 8.08,
+        "max": 8.086
+      },
+      "troop_price_mean": {
+        "mean": 8.116,
+        "sd": 0.057,
+        "min": 8.08,
+        "max": 8.271
+      },
+      "c_d_now": {
+        "mean": 8.0,
+        "sd": 0.0,
+        "min": 8.0,
+        "max": 8.0
+      },
+      "margin_mean": {
+        "mean": 4.671,
+        "sd": 1.696,
+        "min": 2.22,
+        "max": 8.391
+      },
+      "posts_unaffordable": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0,
+        "max": 0
+      },
+      "posts_k_open": {
+        "mean": 4557.65,
+        "sd": 12.558,
+        "min": 4545,
+        "max": 4593
+      },
+      "awarded": {
+        "mean": 1405.05,
+        "sd": 30.485,
+        "min": 1344,
+        "max": 1439
+      },
+      "effort_burned": {
+        "mean": 7864.88,
+        "sd": 391.577,
+        "min": 7202.954,
+        "max": 8523.206
+      },
+      "effort_unpaid": {
+        "mean": 16.352,
+        "sd": 12.88,
+        "min": 0.441,
+        "max": 42.153
+      },
+      "crowd_arrived": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0,
+        "max": 0
+      },
+      "crowd_departed": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0,
+        "max": 0
+      },
+      "shock_created": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      },
+      "M": {
+        "mean": 53194.381,
+        "sd": 551.817,
+        "min": 52392.718,
+        "max": 54162.239
+      },
+      "lowballer_n": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0,
+        "max": 0
+      },
+      "stingy_n": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0,
+        "max": 0
+      },
+      "stingy_open": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0,
+        "max": 0
+      },
+      "bank_on": {
+        "mean": 1.0,
+        "sd": 0.0,
+        "min": 1,
+        "max": 1
+      },
+      "loans_outstanding": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0,
+        "max": 0
+      },
+      "loans_peak": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      },
+      "loans_open": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0,
+        "max": 0
+      },
+      "debt": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      },
+      "debt_created": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      },
+      "debt_repaid": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      },
+      "debt_peak": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      },
+      "debt_age": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0,
+        "max": 0
+      },
+      "liabilities": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0,
+        "max": 0
+      },
+      "liabilities_n": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0,
+        "max": 0
+      },
+      "liabilities_oldest": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0,
+        "max": 0
+      },
+      "wall": {
+        "mean": 69.811,
+        "sd": 4.772,
+        "min": 57.772,
+        "max": 77.164
+      },
+      "wall_slack": {
+        "mean": 69.811,
+        "sd": 4.772,
+        "min": 57.772,
+        "max": 77.164
+      },
+      "omega_retained": {
+        "mean": 1633.385,
+        "sd": 93.931,
+        "min": 1499.252,
+        "max": 1783.546
+      },
+      "omega_net_bank": {
+        "mean": 1633.385,
+        "sd": 93.931,
+        "min": 1499.252,
+        "max": 1783.546
+      },
+      "omega_review_fee_income": {
+        "mean": 957.311,
+        "sd": 85.07,
+        "min": 800.758,
+        "max": 1100.077
+      },
+      "minted_issuance": {
+        "mean": 62500.0,
+        "sd": 0.0,
+        "min": 62500.0,
+        "max": 62500.0
+      },
+      "minted_emission": {
+        "mean": 5960.222,
+        "sd": 134.494,
+        "min": 5733.723,
+        "max": 6226.093
+      },
+      "minted_plant": {
+        "mean": 2547.108,
+        "sd": 103.715,
+        "min": 2344.2,
+        "max": 2777.34
+      },
+      "minted_scenario": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      },
+      "minted_loan": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      },
+      "destroyed_repayment": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      },
+      "destroyed_plant": {
+        "mean": 1188.06,
+        "sd": 58.744,
+        "min": 1076.0,
+        "max": 1303.88
+      },
+      "cost_of_truth": {
+        "mean": 1359.048,
+        "sd": 53.157,
+        "min": 1268.2,
+        "max": 1473.46
+      },
+      "b_T": {
+        "mean": 0.249,
+        "sd": 0.077,
+        "min": 0.174,
+        "max": 0.455
+      },
+      "c_d_t_last": {
+        "mean": 5.006,
+        "sd": 0.954,
+        "min": 1.976,
+        "max": 5.702
+      },
+      "refused_credit_awards": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0,
+        "max": 0
+      },
+      "refused_credit_seats": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0,
+        "max": 0
+      },
+      "refused_waiting_capacity": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0,
+        "max": 0
+      },
+      "refused_waiting_credit": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0,
+        "max": 0
+      },
+      "marked_capacity": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0,
+        "max": 0
+      },
+      "marked_credit": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0,
+        "max": 0
+      },
+      "withdrawn_at_mark": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0,
+        "max": 0
+      },
+      "reposted_after_mark": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0,
+        "max": 0
+      },
+      "state_rejections": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0,
+        "max": 0
+      },
+      "troop_truth_redrawn": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0,
+        "max": 0
+      },
+      "pool_on": {
+        "mean": 1.0,
+        "sd": 0.0,
+        "min": 1,
+        "max": 1
+      },
+      "pool": {
+        "mean": 51.752,
+        "sd": 22.201,
+        "min": 14.544,
+        "max": 76.76
+      },
+      "claims_period": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      },
+      "rebates_forgone": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      },
+      "forgone_share": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      },
+      "forgone_share_period": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      },
+      "omega_retained_period": {
+        "mean": 69.811,
+        "sd": 4.772,
+        "min": 57.772,
+        "max": 77.164
+      },
+      "actors_n": {
+        "mean": 11.0,
+        "sd": 1.214,
+        "min": 9,
+        "max": 14
+      },
+      "arrivals": {
+        "mean": 8.5,
+        "sd": 1.318,
+        "min": 6,
+        "max": 11
+      },
+      "admissions": {
+        "mean": 7.55,
+        "sd": 1.638,
+        "min": 4,
+        "max": 11
+      },
+      "departures": {
+        "mean": 17.5,
+        "sd": 1.539,
+        "min": 15,
+        "max": 20
+      },
+      "candidates_left": {
+        "mean": 11.5,
+        "sd": 1.318,
+        "min": 9,
+        "max": 14
+      },
+      "time_to_membership": {
+        "mean": 180.169,
+        "sd": 43.841,
+        "min": 90.75,
+        "max": 252.62
+      },
+      "members_median_cost": {
+        "mean": 5.743,
+        "sd": 0.501,
+        "min": 4.649,
+        "max": 7.038
+      },
+      "population_median_cost": {
+        "mean": 5.743,
+        "sd": 0.501,
+        "min": 4.649,
+        "max": 7.038
+      },
+      "departed_median_cost": {
+        "mean": 8.104,
+        "sd": 0.863,
+        "min": 7.081,
+        "max": 9.895
+      },
+      "arrived_median_cost": {
+        "mean": 5.472,
+        "sd": 0.539,
+        "min": 4.52,
+        "max": 6.117
+      },
+      "careful_median_cost": {
+        "mean": 5.743,
+        "sd": 0.501,
+        "min": 4.649,
+        "max": 7.038
+      },
+      "nested_posted": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0,
+        "max": 0
+      },
+      "nested_awarded": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0,
+        "max": 0
+      },
+      "nested_unaffordable": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0,
+        "max": 0
+      },
+      "nested_award_refused": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0,
+        "max": 0
+      },
+      "nested_self_executed": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0,
+        "max": 0
+      },
+      "nested_vested": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0,
+        "max": 0
+      },
+      "nested_final_n": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0,
+        "max": 0
+      },
+      "nested_share": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      },
+      "nested_false_approvals": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0,
+        "max": 0
+      },
+      "nested_false_rejections": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0,
+        "max": 0
+      },
+      "brokers_n": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0,
+        "max": 0
+      },
+      "brokers_award_share": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      },
+      "pool_advances": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      },
+      "hoards_over_M": {
+        "mean": 0.132,
+        "sd": 0.009,
+        "min": 0.113,
+        "max": 0.151
+      },
+      "seats_initial_member": {
+        "mean": 28.75,
+        "sd": 7.225,
+        "min": 15,
+        "max": 45
+      },
+      "seats_initial_probationer": {
+        "mean": 6.9,
+        "sd": 2.808,
+        "min": 2,
+        "max": 12
+      },
+      "seats_initial_troop": {
+        "mean": 0.5,
+        "sd": 0.607,
+        "min": 0,
+        "max": 2
+      },
+      "seats_audit_member": {
+        "mean": 65.1,
+        "sd": 21.43,
+        "min": 32,
+        "max": 105
+      },
+      "seats_audit_probationer": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0,
+        "max": 0
+      },
+      "seats_audit_troop": {
+        "mean": 388.8,
+        "sd": 52.515,
+        "min": 285,
+        "max": 475
+      },
+      "seats_appeal_member": {
+        "mean": 2.45,
+        "sd": 1.504,
+        "min": 0,
+        "max": 5
+      },
+      "seats_appeal_probationer": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0,
+        "max": 0
+      },
+      "seats_appeal_troop": {
+        "mean": 59.4,
+        "sd": 12.137,
+        "min": 34,
+        "max": 78
+      },
+      "wait_initial_member": {
+        "mean": 29.15,
+        "sd": 7.199,
+        "min": 15,
+        "max": 45
+      },
+      "wait_initial_probationer": {
+        "mean": 6.9,
+        "sd": 2.808,
+        "min": 2,
+        "max": 12
+      },
+      "wait_initial_troop": {
+        "mean": 1.0,
+        "sd": 1.214,
+        "min": 0,
+        "max": 4
+      },
+      "wait_audit_member": {
+        "mean": 78.3,
+        "sd": 48.934,
+        "min": 32,
+        "max": 265
+      },
+      "wait_audit_probationer": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0,
+        "max": 0
+      },
+      "wait_audit_troop": {
+        "mean": 779.5,
+        "sd": 104.711,
+        "min": 571,
+        "max": 950
+      },
+      "wait_appeal_member": {
+        "mean": 3.1,
+        "sd": 2.292,
+        "min": 0,
+        "max": 9
+      },
+      "wait_appeal_probationer": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0,
+        "max": 0
+      },
+      "wait_appeal_troop": {
+        "mean": 118.85,
+        "sd": 24.299,
+        "min": 68,
+        "max": 156
+      },
+      "waitge_initial_member": {
+        "mean": 0.4,
+        "sd": 0.598,
+        "min": 0,
+        "max": 2
+      },
+      "waitge_initial_probationer": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0,
+        "max": 0
+      },
+      "waitge_initial_troop": {
+        "mean": 0.5,
+        "sd": 0.607,
+        "min": 0,
+        "max": 2
+      },
+      "waitge_audit_member": {
+        "mean": 2.65,
+        "sd": 1.785,
+        "min": 0,
+        "max": 7
+      },
+      "waitge_audit_probationer": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0,
+        "max": 0
+      },
+      "waitge_audit_troop": {
+        "mean": 388.8,
+        "sd": 52.515,
+        "min": 285,
+        "max": 475
+      },
+      "waitge_appeal_member": {
+        "mean": 0.65,
+        "sd": 0.988,
+        "min": 0,
+        "max": 4
+      },
+      "waitge_appeal_probationer": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0,
+        "max": 0
+      },
+      "waitge_appeal_troop": {
+        "mean": 59.4,
+        "sd": 12.137,
+        "min": 34,
+        "max": 78
+      },
+      "left_initial": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0,
+        "max": 0
+      },
+      "left_audit": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0,
+        "max": 0
+      },
+      "left_appeal": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0,
+        "max": 0
+      },
+      "waiting_now": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0,
+        "max": 0
+      },
+      "avail_ticks_waiting": {
+        "mean": 380.1,
+        "sd": 31.568,
+        "min": 322,
+        "max": 427
+      },
+      "avail_waiting_items": {
+        "mean": 1016.8,
+        "sd": 124.063,
+        "min": 795,
+        "max": 1286
+      },
+      "avail_items_initial": {
+        "mean": 37.05,
+        "sd": 9.133,
+        "min": 19,
+        "max": 58
+      },
+      "avail_items_audit": {
+        "mean": 857.8,
+        "sd": 107.882,
+        "min": 678,
+        "max": 1105
+      },
+      "avail_items_appeal": {
+        "mean": 121.95,
+        "sd": 23.166,
+        "min": 77,
+        "max": 161
+      },
+      "avail_on_duty": {
+        "mean": 1342.75,
+        "sd": 148.422,
+        "min": 1108,
+        "max": 1697
+      },
+      "avail_committed": {
+        "mean": 1083.4,
+        "sd": 105.51,
+        "min": 887,
+        "max": 1228
+      },
+      "avail_in_review": {
+        "mean": 785.5,
+        "sd": 66.999,
+        "min": 650,
+        "max": 886
+      },
+      "avail_on_duty_idle_fits": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0,
+        "max": 0
+      },
+      "avail_on_duty_idle_unfit": {
+        "mean": 1094.8,
+        "sd": 144.931,
+        "min": 861,
+        "max": 1400
+      },
+      "avail_free_fundable": {
+        "mean": 289.15,
+        "sd": 105.05,
+        "min": 113,
+        "max": 495
+      },
+      "avail_held_by_cap": {
+        "mean": 0.75,
+        "sd": 1.41,
+        "min": 0,
+        "max": 5
+      },
+      "avail_free_unfunded": {
+        "mean": 73.15,
+        "sd": 95.083,
+        "min": 7,
+        "max": 370
+      },
+      "avail_free_not_panel": {
+        "mean": 2824.9,
+        "sd": 293.632,
+        "min": 2235,
+        "max": 3336
+      },
+      "avail_ineligible": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0,
+        "max": 0
+      },
+      "avail_free_excluded": {
+        "mean": 64.55,
+        "sd": 12.845,
+        "min": 36,
+        "max": 82
+      },
+      "avail_free_probationers": {
+        "mean": 603.0,
+        "sd": 353.119,
+        "min": 70,
+        "max": 1292
+      },
+      "avail_free_probationers_fit_initial": {
+        "mean": 7.6,
+        "sd": 5.897,
+        "min": 1,
+        "max": 23
+      },
+      "cap_now": {
+        "mean": 7.8,
+        "sd": 0.894,
+        "min": 6,
+        "max": 10
+      },
+      "members_on_duty_now": {
+        "mean": 4.0,
+        "sd": 0.0,
+        "min": 4,
+        "max": 4
+      },
+      "E_t_now": {
+        "mean": 11.0,
+        "sd": 1.214,
+        "min": 9,
+        "max": 14
+      },
+      "cap_slack_sum": {
+        "mean": 5234.3,
+        "sd": 671.598,
+        "min": 4351,
+        "max": 6703
+      },
+      "cap_slack_n": {
+        "mean": 1000.0,
+        "sd": 0.0,
+        "min": 1000,
+        "max": 1000
+      },
+      "cap_bound_ticks": {
+        "mean": 3.9,
+        "sd": 7.907,
+        "min": 0,
+        "max": 25
+      },
+      "seated_initial_member": {
+        "mean": 1544.8,
+        "sd": 39.327,
+        "min": 1482,
+        "max": 1634
+      },
+      "seated_initial_probationer": {
+        "mean": 260.95,
+        "sd": 39.923,
+        "min": 196,
+        "max": 344
+      },
+      "seated_audit_member": {
+        "mean": 592.65,
+        "sd": 42.675,
+        "min": 508,
+        "max": 681
+      },
+      "seated_appeal_member": {
+        "mean": 40.25,
+        "sd": 8.478,
+        "min": 26,
+        "max": 63
+      },
+      "seated_plant": {
+        "mean": 379.8,
+        "sd": 16.669,
+        "min": 347,
+        "max": 417
+      },
+      "cycles": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0,
+        "max": 0
+      },
+      "greedy_rejections": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0,
+        "max": 0
+      },
+      "greedy_cases_vested": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0,
+        "max": 0
+      },
+      "lowball_child_awards": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0,
+        "max": 0
+      },
+      "lowball_child_misses": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0,
+        "max": 0
+      },
+      "nested_fa_stamper_parent": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0,
+        "max": 0
+      },
+      "nested_fa_careful_parent": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0,
+        "max": 0
+      },
+      "nested_posted_by_stamper": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0,
+        "max": 0
+      },
+      "nested_posted_by_careful": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0,
+        "max": 0
+      },
+      "patient_raised": {
+        "mean": 1422.0,
+        "sd": 12.204,
+        "min": 1390,
+        "max": 1437
+      },
+      "cyclers_admitted": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0,
+        "max": 0
+      },
+      "stamper_minus_careful_wealth": {
+        "mean": -644.516,
+        "sd": 64.196,
+        "se": 14.355
+      },
+      "stampers_richer_in": "0 of 20"
+    },
+    "s0.6-plus0.1": {
+      "careful_wealth": {
+        "mean": 639.878,
+        "sd": 63.633,
+        "min": 450.745,
+        "max": 719.044
+      },
+      "stamper_wealth": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      },
+      "careful_fees": {
+        "mean": 703.585,
+        "sd": 49.219,
+        "min": 615.795,
+        "max": 802.309
+      },
+      "stamper_fees": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      },
+      "careful_fee_fixed": {
+        "mean": 238.02,
+        "sd": 16.657,
+        "min": 209.792,
+        "max": 273.507
+      },
+      "stamper_fee_fixed": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      },
+      "careful_fee_haircut": {
+        "mean": 128.769,
+        "sd": 8.529,
+        "min": 112.823,
+        "max": 143.09
+      },
+      "stamper_fee_haircut": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      },
+      "careful_delivery": {
+        "mean": 628.064,
+        "sd": 40.561,
+        "min": 548.743,
+        "max": 713.533
+      },
+      "stamper_delivery": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      },
+      "careful_costs": {
+        "mean": 958.512,
+        "sd": 70.41,
+        "min": 826.102,
+        "max": 1069.403
+      },
+      "careful_reimbursed": {
+        "mean": 354.767,
+        "sd": 23.542,
+        "min": 315.292,
+        "max": 406.57
+      },
+      "careful_bonds_forfeited": {
+        "mean": 11.167,
+        "sd": 1.67,
+        "min": 8.083,
+        "max": 14.201
+      },
+      "stamper_bonds_forfeited": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      },
+      "careful_awards": {
+        "mean": 95.268,
+        "sd": 5.965,
+        "min": 84.143,
+        "max": 108.917
+      },
+      "stamper_awards": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      },
+      "careful_reviews": {
+        "mean": 166.737,
+        "sd": 10.893,
+        "min": 148.846,
+        "max": 191.0
+      },
+      "stamper_reviews": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      },
+      "careful_overturned": {
+        "mean": 4.74,
+        "sd": 0.745,
+        "min": 3.25,
+        "max": 6.2
+      },
+      "stamper_overturned": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      },
+      "careful_rho": {
+        "mean": 0.888,
+        "sd": 0.01,
+        "min": 0.864,
+        "max": 0.903
+      },
+      "stamper_rho": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      },
+      "careful_p_audit": {
+        "mean": 0.221,
+        "sd": 0.025,
+        "min": 0.2,
+        "max": 0.3
+      },
+      "stamper_p_audit": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      },
+      "posted": {
+        "mean": 1448.75,
+        "sd": 5.937,
+        "min": 1432,
+        "max": 1458
+      },
+      "vested": {
+        "mean": 1078.35,
+        "sd": 11.613,
+        "min": 1057,
+        "max": 1102
+      },
+      "final_n": {
+        "mean": 341.9,
+        "sd": 16.18,
+        "min": 304,
+        "max": 371
+      },
+      "false_approvals": {
+        "mean": 8.35,
+        "sd": 2.477,
+        "min": 3,
+        "max": 14
+      },
+      "false_rejections": {
+        "mean": 59.0,
+        "sd": 6.139,
+        "min": 45,
+        "max": 69
+      },
+      "audits_rolled": {
+        "mean": 1153.75,
+        "sd": 11.679,
+        "min": 1134,
+        "max": 1185
+      },
+      "audits_assigned": {
+        "mean": 590.2,
+        "sd": 31.945,
+        "min": 525,
+        "max": 647
+      },
+      "audit_unassignable_ticks": {
+        "mean": 885.6,
+        "sd": 79.18,
+        "min": 747,
+        "max": 1049
+      },
+      "challenges": {
+        "mean": 100.8,
+        "sd": 14.494,
+        "min": 84,
+        "max": 130
+      },
+      "rulings": {
+        "mean": 46.75,
+        "sd": 8.328,
+        "min": 32,
+        "max": 60
+      },
+      "reviews_unassignable_ticks": {
+        "mean": 210.2,
+        "sd": 23.044,
+        "min": 157,
+        "max": 243
+      },
+      "awards_unfilled_ticks": {
+        "mean": 42.85,
+        "sd": 48.389,
+        "min": 0,
+        "max": 194
+      },
+      "underfunded_careful_reviews": {
+        "mean": 0.5,
+        "sd": 1.192,
+        "min": 0,
+        "max": 5
+      },
+      "omega_unrecovered_advances": {
+        "mean": 61.769,
+        "sd": 16.51,
+        "min": 32.0,
+        "max": 91.6
+      },
+      "claims_outstanding": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0,
+        "max": 0
+      },
+      "allowance_refunded": {
+        "mean": 3113.582,
+        "sd": 74.141,
+        "min": 2964.302,
+        "max": 3231.48
+      },
+      "pot_refunded": {
+        "mean": 195.1,
+        "sd": 24.112,
+        "min": 149.0,
+        "max": 255.301
+      },
+      "appeals_filed": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0,
+        "max": 0
+      },
+      "appeals_unfunded": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0,
+        "max": 0
+      },
+      "appeals_won": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0,
+        "max": 0
+      },
+      "appeals_lost": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0,
+        "max": 0
+      },
+      "false_rejections_total": {
+        "mean": 48.35,
+        "sd": 5.603,
+        "min": 35,
+        "max": 57
+      },
+      "false_rejections_appealed": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0,
+        "max": 0
+      },
+      "false_rejections_overturned": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0,
+        "max": 0
+      },
+      "true_rejections_appealed": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0,
+        "max": 0
+      },
+      "true_rejections_overturned": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0,
+        "max": 0
+      },
+      "disputes_filed": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0,
+        "max": 0
+      },
+      "disputes_refused": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0,
+        "max": 0
+      },
+      "disputes_won": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0,
+        "max": 0
+      },
+      "disputes_lost": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0,
+        "max": 0
+      },
+      "false_approvals_disputed": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0,
+        "max": 0
+      },
+      "false_approvals_overturned": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0,
+        "max": 0
+      },
+      "true_approvals_disputed": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0,
+        "max": 0
+      },
+      "true_approvals_overturned": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0,
+        "max": 0
+      },
+      "grade_human-explicit_n": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0,
+        "max": 0
+      },
+      "duty_short_of_bond_ticks": {
+        "mean": 9.9,
+        "sd": 13.357,
+        "min": 0,
+        "max": 44
+      },
+      "grade_procedural_n": {
+        "mean": 981.15,
+        "sd": 26.114,
+        "min": 930,
+        "max": 1041
+      },
+      "grade_procedural_acc": {
+        "mean": 0.983,
+        "sd": 0.004,
+        "min": 0.977,
+        "max": 0.99
+      },
+      "grade_protocol-default_n": {
+        "mean": 439.1,
+        "sd": 27.311,
+        "min": 365,
+        "max": 490
+      },
+      "grade_protocol-default_acc": {
+        "mean": 0.884,
+        "sd": 0.015,
+        "min": 0.847,
+        "max": 0.917
+      },
+      "grade_plant_n": {
+        "mean": 379.95,
+        "sd": 11.664,
+        "min": 353,
+        "max": 401
+      },
+      "grade_plant_acc": {
+        "mean": 1.0,
+        "sd": 0.0,
+        "min": 1.0,
+        "max": 1.0
+      },
+      "omega": {
+        "mean": 1729.33,
+        "sd": 77.261,
+        "min": 1547.22,
+        "max": 1845.56
+      },
+      "omega_total": {
+        "mean": 1778.918,
+        "sd": 65.687,
+        "min": 1622.9,
+        "max": 1865.707
+      },
+      "omega_in_plants": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      },
+      "omega_net": {
+        "mean": 1478.918,
+        "sd": 65.687,
+        "min": 1322.9,
+        "max": 1565.707
+      },
+      "m": {
+        "mean": 2.714,
+        "sd": 0.345,
+        "min": 2.362,
+        "max": 4.0
+      },
+      "pi": {
+        "mean": 0.271,
+        "sd": 0.034,
+        "min": 0.236,
+        "max": 0.4
+      },
+      "X_t": {
+        "mean": 4.0,
+        "sd": 0.0,
+        "min": 4,
+        "max": 4
+      },
+      "on_duty": {
+        "mean": 4.0,
+        "sd": 0.0,
+        "min": 4,
+        "max": 4
+      },
+      "F_hat": {
+        "mean": 0.056,
+        "sd": 0.028,
+        "min": 0.0,
+        "max": 0.135
+      },
+      "periods": {
+        "mean": 7.45,
+        "sd": 0.51,
+        "min": 7,
+        "max": 8
+      },
+      "suspensions": {
+        "mean": 9.25,
+        "sd": 2.954,
+        "min": 4,
+        "max": 15
+      },
+      "alarms": {
+        "mean": 0.15,
+        "sd": 0.366,
+        "min": 0,
+        "max": 1
+      },
+      "eligibility_shortfall": {
+        "mean": 0.2,
+        "sd": 0.696,
+        "min": 0,
+        "max": 3
+      },
+      "plant_shortfall": {
+        "mean": 3.2,
+        "sd": 1.152,
+        "min": 1,
+        "max": 5
+      },
+      "plants_created": {
+        "mean": 381.3,
+        "sd": 11.712,
+        "min": 354,
+        "max": 402
+      },
+      "plants_unfunded": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0,
+        "max": 0
+      },
+      "plants_bad": {
+        "mean": 286.85,
+        "sd": 11.563,
+        "min": 269,
+        "max": 307
+      },
+      "plants_stood": {
+        "mean": 334.05,
+        "sd": 10.395,
+        "min": 315,
+        "max": 359
+      },
+      "plants_failed": {
+        "mean": 45.9,
+        "sd": 5.32,
+        "min": 38,
+        "max": 54
+      },
+      "plants_spent": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0,
+        "max": 0
+      },
+      "bad_plants_approved": {
+        "mean": 41.25,
+        "sd": 5.466,
+        "min": 32,
+        "max": 51
+      },
+      "good_plants_rejected": {
+        "mean": 4.65,
+        "sd": 1.631,
+        "min": 1,
+        "max": 7
+      },
+      "omega_plant_spend": {
+        "mean": 1391.37,
+        "sd": 47.597,
+        "min": 1302.8,
+        "max": 1507.855
+      },
+      "careful_plant_reviews": {
+        "mean": 26.873,
+        "sd": 1.915,
+        "min": 23.357,
+        "max": 32.0
+      },
+      "stamper_plant_reviews": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      },
+      "careful_plant_failures": {
+        "mean": 1.309,
+        "sd": 0.258,
+        "min": 0.917,
+        "max": 1.692
+      },
+      "stamper_plant_failures": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      },
+      "careful_a_hat": {
+        "mean": 0.091,
+        "sd": 0.01,
+        "min": 0.078,
+        "max": 0.112
+      },
+      "stamper_a_hat": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      },
+      "careful_suspended": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0,
+        "max": 0
+      },
+      "stamper_suspended": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0,
+        "max": 0
+      },
+      "careful_duty_eligible": {
+        "mean": 12.15,
+        "sd": 0.875,
+        "min": 10,
+        "max": 14
+      },
+      "stamper_duty_eligible": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0,
+        "max": 0
+      },
+      "careful_panel_eligible": {
+        "mean": 10.6,
+        "sd": 1.465,
+        "min": 8,
+        "max": 13
+      },
+      "stamper_panel_eligible": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0,
+        "max": 0
+      },
+      "stamper_share": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      },
+      "disposition_switches": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0,
+        "max": 0
+      },
+      "careful_n": {
+        "mean": 12.15,
+        "sd": 0.875,
+        "min": 10,
+        "max": 14
+      },
+      "stamper_n": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0,
+        "max": 0
+      },
+      "members_on_duty": {
+        "mean": 4.0,
+        "sd": 0.0,
+        "min": 4,
+        "max": 4
+      },
+      "probationers_on_duty": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0,
+        "max": 0
+      },
+      "member_seats": {
+        "mean": 1.0,
+        "sd": 0.0,
+        "min": 1,
+        "max": 1
+      },
+      "readmissions": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0,
+        "max": 0
+      },
+      "duty_fund": {
+        "mean": 0.327,
+        "sd": 0.763,
+        "min": 0.0,
+        "max": 2.905
+      },
+      "fund_in": {
+        "mean": 1054.167,
+        "sd": 49.012,
+        "min": 944.688,
+        "max": 1147.344
+      },
+      "fund_out": {
+        "mean": 1053.84,
+        "sd": 48.873,
+        "min": 944.688,
+        "max": 1147.344
+      },
+      "awards_refused_members_only_ticks": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0,
+        "max": 0
+      },
+      "probation_false_approvals": {
+        "mean": 0.35,
+        "sd": 0.587,
+        "min": 0,
+        "max": 2
+      },
+      "careful_members": {
+        "mean": 12.15,
+        "sd": 0.875,
+        "min": 10,
+        "max": 14
+      },
+      "stamper_members": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0,
+        "max": 0
+      },
+      "careful_probationers": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0,
+        "max": 0
+      },
+      "stamper_probationers": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0,
+        "max": 0
+      },
+      "careful_fee_uplift": {
+        "mean": 80.778,
+        "sd": 6.273,
+        "min": 70.04,
+        "max": 97.221
+      },
+      "stamper_fee_uplift": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      },
+      "careful_probation_reviews": {
+        "mean": 18.843,
+        "sd": 3.082,
+        "min": 15.385,
+        "max": 25.417
+      },
+      "stamper_probation_reviews": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      },
+      "careful_probation_approvals": {
+        "mean": 12.72,
+        "sd": 2.411,
+        "min": 9.769,
+        "max": 18.417
+      },
+      "stamper_probation_approvals": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      },
+      "audit_obligations": {
+        "mean": 987.7,
+        "sd": 26.294,
+        "min": 934,
+        "max": 1047
+      },
+      "troop_reviews": {
+        "mean": 458.7,
+        "sd": 49.758,
+        "min": 361,
+        "max": 539
+      },
+      "troop_audits": {
+        "mean": 397.8,
+        "sd": 41.165,
+        "min": 321,
+        "max": 466
+      },
+      "troop_deliveries": {
+        "mean": 10.5,
+        "sd": 10.013,
+        "min": 3,
+        "max": 40
+      },
+      "troop_delivered_vested": {
+        "mean": 8.35,
+        "sd": 7.562,
+        "min": 2,
+        "max": 26
+      },
+      "troop_delivered_final_n": {
+        "mean": 2.15,
+        "sd": 3.031,
+        "min": 0,
+        "max": 14
+      },
+      "troop_false_approvals": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0,
+        "max": 0
+      },
+      "troops_active_reviews": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0,
+        "max": 0
+      },
+      "troops_active_deliveries": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0,
+        "max": 0
+      },
+      "troop_summons_reviews": {
+        "mean": 458.7,
+        "sd": 49.758,
+        "min": 361,
+        "max": 539
+      },
+      "troop_summons_deliveries": {
+        "mean": 10.5,
+        "sd": 10.013,
+        "min": 3,
+        "max": 40
+      },
+      "troop_shortfall_seats": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0,
+        "max": 0
+      },
+      "troop_shortfall_awards": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0,
+        "max": 0
+      },
+      "troop_held_ticks": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0,
+        "max": 0
+      },
+      "troop_ticks_reviews": {
+        "mean": 458.7,
+        "sd": 49.758,
+        "min": 361,
+        "max": 539
+      },
+      "troop_ticks_deliveries": {
+        "mean": 126.25,
+        "sd": 108.606,
+        "min": 26,
+        "max": 377
+      },
+      "held_market_audit_now": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0,
+        "max": 0
+      },
+      "held_market_audit_max_age": {
+        "mean": 16.25,
+        "sd": 52.059,
+        "min": 0,
+        "max": 207
+      },
+      "fund_reserve": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      },
+      "advance_outstanding": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      },
+      "B_bar": {
+        "mean": 8.8,
+        "sd": 0.0,
+        "min": 8.8,
+        "max": 8.8
+      },
+      "troop_demand": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      },
+      "troop_demand_refused": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      },
+      "demand_peak_refused": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      },
+      "pfa_route_upheld": {
+        "mean": 0.35,
+        "sd": 0.587,
+        "min": 0,
+        "max": 2
+      },
+      "pfa_route_overturned": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0,
+        "max": 0
+      },
+      "pfa_route_other": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0,
+        "max": 0
+      },
+      "pfa_kind_troop": {
+        "mean": 0.15,
+        "sd": 0.489,
+        "min": 0,
+        "max": 2
+      },
+      "pfa_kind_standing": {
+        "mean": 0.15,
+        "sd": 0.366,
+        "min": 0,
+        "max": 1
+      },
+      "pfa_kind_lag": {
+        "mean": 0.05,
+        "sd": 0.224,
+        "min": 0,
+        "max": 1
+      },
+      "pfa_kind_readmitted": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0,
+        "max": 0
+      },
+      "decliner_wealth": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      },
+      "careful_offering_wealth": {
+        "mean": 639.878,
+        "sd": 63.633,
+        "min": 450.745,
+        "max": 719.044
+      },
+      "decliner_awards": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      },
+      "careful_offering_awards": {
+        "mean": 95.268,
+        "sd": 5.965,
+        "min": 84.143,
+        "max": 108.917
+      },
+      "on_time": {
+        "mean": 1431.65,
+        "sd": 5.706,
+        "min": 1417,
+        "max": 1443
+      },
+      "late": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0,
+        "max": 0
+      },
+      "on_time_share": {
+        "mean": 1.0,
+        "sd": 0.0,
+        "min": 1.0,
+        "max": 1.0
+      },
+      "mean_lateness": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      },
+      "rebates_owed": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      },
+      "rebates_paid": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      },
+      "omega_liability": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0,
+        "max": 0
+      },
+      "liabilities_accrued": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      },
+      "open_late": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0,
+        "max": 0
+      },
+      "omega_unlocked": {
+        "mean": 1729.33,
+        "sd": 77.261,
+        "min": 1547.22,
+        "max": 1845.56
+      },
+      "omega_min_period": {
+        "mean": 1728.75,
+        "sd": 77.435,
+        "min": 1547.22,
+        "max": 1845.56
+      },
+      "plant_reserve": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      },
+      "x_target": {
+        "mean": 4.0,
+        "sd": 0.0,
+        "min": 4,
+        "max": 4
+      },
+      "waiting_initial": {
+        "mean": 0.1,
+        "sd": 0.447,
+        "min": 0,
+        "max": 2
+      },
+      "waiting_panel": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0,
+        "max": 0
+      },
+      "troop_panel_seats": {
+        "mean": 458.2,
+        "sd": 49.503,
+        "min": 361,
+        "max": 538
+      },
+      "active_cases": {
+        "mean": 29.85,
+        "sd": 1.309,
+        "min": 27,
+        "max": 33
+      },
+      "withdrawn_unawarded": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0,
+        "max": 0
+      },
+      "troop_account": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      },
+      "troop_surplus": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      },
+      "omega_fee_income": {
+        "mean": 631.343,
+        "sd": 2.532,
+        "min": 624.8,
+        "max": 636.444
+      },
+      "advances_made": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      },
+      "advances_repaid": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      },
+      "liabilities_paid": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      },
+      "liabilities_old": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0,
+        "max": 0
+      },
+      "members_total": {
+        "mean": 12.15,
+        "sd": 0.875,
+        "min": 10,
+        "max": 14
+      },
+      "members_free": {
+        "mean": 5.25,
+        "sd": 1.07,
+        "min": 3,
+        "max": 8
+      },
+      "members_committed": {
+        "mean": 2.9,
+        "sd": 0.788,
+        "min": 1,
+        "max": 4
+      },
+      "suspended_waiting": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0,
+        "max": 0
+      },
+      "probationers": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0,
+        "max": 0
+      },
+      "awards_waiting": {
+        "mean": 14.2,
+        "sd": 2.707,
+        "min": 10,
+        "max": 19
+      },
+      "awards_waiting_w_a": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0,
+        "max": 0
+      },
+      "awards_left_to_members": {
+        "mean": 86.75,
+        "sd": 54.905,
+        "min": 24,
+        "max": 233
+      },
+      "P_t": {
+        "mean": 8.8,
+        "sd": 0.0,
+        "min": 8.8,
+        "max": 8.8
+      },
+      "price_index": {
+        "mean": 0.44,
+        "sd": 0.0,
+        "min": 0.44,
+        "max": 0.44
+      },
+      "credit_value": {
+        "mean": 2.273,
+        "sd": 0.0,
+        "min": 2.273,
+        "max": 2.273
+      },
+      "deficit": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      },
+      "deficit_created": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      },
+      "deficit_retired": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      },
+      "deficit_peak": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      },
+      "deficit_age": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0,
+        "max": 0
+      },
+      "omega_net_position": {
+        "mean": 1729.33,
+        "sd": 77.261,
+        "min": 1547.22,
+        "max": 1845.56
+      },
+      "issued": {
+        "mean": 62500.0,
+        "sd": 0.0,
+        "min": 62500.0,
+        "max": 62500.0
+      },
+      "departed": {
+        "mean": 2152.262,
+        "sd": 353.148,
+        "min": 1658.617,
+        "max": 2894.182
+      },
+      "below_market_flagged": {
+        "mean": 1442.75,
+        "sd": 5.937,
+        "min": 1426,
+        "max": 1452
+      },
+      "below_market_waiting": {
+        "mean": 14.2,
+        "sd": 2.707,
+        "min": 10,
+        "max": 19
+      },
+      "ceilings_raised": {
+        "mean": 1428.55,
+        "sd": 5.539,
+        "min": 1414,
+        "max": 1440
+      },
+      "places_held": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0,
+        "max": 0
+      },
+      "state_floor": {
+        "mean": 8.0,
+        "sd": 0.0,
+        "min": 8.0,
+        "max": 8.0
+      },
+      "state_price": {
+        "mean": 8.8,
+        "sd": 0.0,
+        "min": 8.8,
+        "max": 8.8
+      },
+      "state_price_mean": {
+        "mean": 8.857,
+        "sd": 0.084,
+        "min": 8.8,
+        "max": 9.09
+      },
+      "below_reservation_marked": {
+        "mean": 1442.75,
+        "sd": 5.937,
+        "min": 1426,
+        "max": 1452
+      },
+      "below_reservation_waiting": {
+        "mean": 14.2,
+        "sd": 2.707,
+        "min": 10,
+        "max": 19
+      },
+      "below_reservation_ticks": {
+        "mean": 78.05,
+        "sd": 20.796,
+        "min": 40,
+        "max": 129
+      },
+      "summons_declined_floor": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0,
+        "max": 0
+      },
+      "parent_cancellations": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0,
+        "max": 0
+      },
+      "kill_fees_paid": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      },
+      "kill_fees_nonzero": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0,
+        "max": 0
+      },
+      "parent_cancel_refused": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0,
+        "max": 0
+      },
+      "refused_capacity_seats": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0,
+        "max": 0
+      },
+      "refused_capacity_awards": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0,
+        "max": 0
+      },
+      "refused_capacity_waiting": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0,
+        "max": 0
+      },
+      "capacity_wait_max": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0,
+        "max": 0
+      },
+      "careful_wealth_real": {
+        "mean": 1454.268,
+        "sd": 144.62,
+        "min": 1024.42,
+        "max": 1634.191
+      },
+      "stamper_wealth_real": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      },
+      "requester_wallet_mean": {
+        "mean": 7161.159,
+        "sd": 34.252,
+        "min": 7083.171,
+        "max": 7237.552
+      },
+      "requester_unlocked_mean": {
+        "mean": 7128.992,
+        "sd": 33.453,
+        "min": 7056.034,
+        "max": 7199.369
+      },
+      "crowd_present": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0,
+        "max": 0
+      },
+      "crowd_wallet_mean": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      },
+      "member_price_mean": {
+        "mean": 8.802,
+        "sd": 0.002,
+        "min": 8.8,
+        "max": 8.809
+      },
+      "troop_price_mean": {
+        "mean": 8.857,
+        "sd": 0.084,
+        "min": 8.8,
+        "max": 9.09
+      },
+      "c_d_now": {
+        "mean": 8.0,
+        "sd": 0.0,
+        "min": 8.0,
+        "max": 8.0
+      },
+      "margin_mean": {
+        "mean": 2.683,
+        "sd": 1.0,
+        "min": 0.855,
+        "max": 4.783
+      },
+      "posts_unaffordable": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0,
+        "max": 0
+      },
+      "posts_k_open": {
+        "mean": 4551.25,
+        "sd": 5.937,
+        "min": 4542,
+        "max": 4568
+      },
+      "awarded": {
+        "mean": 1424.05,
+        "sd": 10.39,
+        "min": 1399,
+        "max": 1438
+      },
+      "effort_burned": {
+        "mean": 8335.976,
+        "sd": 468.833,
+        "min": 7465.32,
+        "max": 9578.63
+      },
+      "effort_unpaid": {
+        "mean": 11.502,
+        "sd": 13.139,
+        "min": 0.0,
+        "max": 40.089
+      },
+      "crowd_arrived": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0,
+        "max": 0
+      },
+      "crowd_departed": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0,
+        "max": 0
+      },
+      "shock_created": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      },
+      "M": {
+        "mean": 52682.835,
+        "sd": 695.761,
+        "min": 51018.264,
+        "max": 53875.36
+      },
+      "lowballer_n": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0,
+        "max": 0
+      },
+      "stingy_n": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0,
+        "max": 0
+      },
+      "stingy_open": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0,
+        "max": 0
+      },
+      "bank_on": {
+        "mean": 1.0,
+        "sd": 0.0,
+        "min": 1,
+        "max": 1
+      },
+      "loans_outstanding": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0,
+        "max": 0
+      },
+      "loans_peak": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      },
+      "loans_open": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0,
+        "max": 0
+      },
+      "debt": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      },
+      "debt_created": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      },
+      "debt_repaid": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      },
+      "debt_peak": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      },
+      "debt_age": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0,
+        "max": 0
+      },
+      "liabilities": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0,
+        "max": 0
+      },
+      "liabilities_n": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0,
+        "max": 0
+      },
+      "liabilities_oldest": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0,
+        "max": 0
+      },
+      "wall": {
+        "mean": 75.702,
+        "sd": 5.81,
+        "min": 57.64,
+        "max": 83.6
+      },
+      "wall_slack": {
+        "mean": 75.702,
+        "sd": 5.81,
+        "min": 57.64,
+        "max": 83.6
+      },
+      "omega_retained": {
+        "mean": 1729.33,
+        "sd": 77.261,
+        "min": 1547.22,
+        "max": 1845.56
+      },
+      "omega_net_bank": {
+        "mean": 1729.33,
+        "sd": 77.261,
+        "min": 1547.22,
+        "max": 1845.56
+      },
+      "omega_review_fee_income": {
+        "mean": 980.518,
+        "sd": 77.223,
+        "min": 798.34,
+        "max": 1099.303
+      },
+      "minted_issuance": {
+        "mean": 62500.0,
+        "sd": 0.0,
+        "min": 62500.0,
+        "max": 62500.0
+      },
+      "minted_emission": {
+        "mean": 5943.931,
+        "sd": 105.055,
+        "min": 5695.564,
+        "max": 6141.108
+      },
+      "minted_plant": {
+        "mean": 2746.273,
+        "sd": 80.464,
+        "min": 2554.8,
+        "max": 2882.251
+      },
+      "minted_scenario": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      },
+      "minted_loan": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      },
+      "destroyed_repayment": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      },
+      "destroyed_plant": {
+        "mean": 1345.993,
+        "sd": 45.871,
+        "min": 1245.4,
+        "max": 1437.6
+      },
+      "cost_of_truth": {
+        "mean": 1400.28,
+        "sd": 48.129,
+        "min": 1309.4,
+        "max": 1521.055
+      },
+      "b_T": {
+        "mean": 0.206,
+        "sd": 0.05,
+        "min": 0.12,
+        "max": 0.4
+      },
+      "c_d_t_last": {
+        "mean": 5.923,
+        "sd": 0.661,
+        "min": 3.28,
+        "max": 6.677
+      },
+      "refused_credit_awards": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0,
+        "max": 0
+      },
+      "refused_credit_seats": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0,
+        "max": 0
+      },
+      "refused_waiting_capacity": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0,
+        "max": 0
+      },
+      "refused_waiting_credit": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0,
+        "max": 0
+      },
+      "marked_capacity": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0,
+        "max": 0
+      },
+      "marked_credit": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0,
+        "max": 0
+      },
+      "withdrawn_at_mark": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0,
+        "max": 0
+      },
+      "reposted_after_mark": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0,
+        "max": 0
+      },
+      "state_rejections": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0,
+        "max": 0
+      },
+      "troop_truth_redrawn": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0,
+        "max": 0
+      },
+      "pool_on": {
+        "mean": 1.0,
+        "sd": 0.0,
+        "min": 1,
+        "max": 1
+      },
+      "pool": {
+        "mean": 49.588,
+        "sd": 29.348,
+        "min": 0.0,
+        "max": 81.84
+      },
+      "claims_period": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      },
+      "rebates_forgone": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      },
+      "forgone_share": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      },
+      "forgone_share_period": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      },
+      "omega_retained_period": {
+        "mean": 75.702,
+        "sd": 5.81,
+        "min": 57.64,
+        "max": 83.6
+      },
+      "actors_n": {
+        "mean": 12.15,
+        "sd": 0.875,
+        "min": 10,
+        "max": 14
+      },
+      "arrivals": {
+        "mean": 9.6,
+        "sd": 1.231,
+        "min": 7,
+        "max": 12
+      },
+      "admissions": {
+        "mean": 8.3,
+        "sd": 1.129,
+        "min": 7,
+        "max": 11
+      },
+      "departures": {
+        "mean": 17.45,
+        "sd": 1.572,
+        "min": 15,
+        "max": 21
+      },
+      "candidates_left": {
+        "mean": 10.4,
+        "sd": 1.231,
+        "min": 8,
+        "max": 13
+      },
+      "time_to_membership": {
+        "mean": 183.516,
+        "sd": 46.03,
+        "min": 98.29,
+        "max": 263.57
+      },
+      "members_median_cost": {
+        "mean": 5.891,
+        "sd": 0.526,
+        "min": 4.837,
+        "max": 7.118
+      },
+      "population_median_cost": {
+        "mean": 5.891,
+        "sd": 0.526,
+        "min": 4.837,
+        "max": 7.118
+      },
+      "departed_median_cost": {
+        "mean": 8.14,
+        "sd": 0.947,
+        "min": 6.862,
+        "max": 9.895
+      },
+      "arrived_median_cost": {
+        "mean": 5.729,
+        "sd": 0.596,
+        "min": 4.538,
+        "max": 7.038
+      },
+      "careful_median_cost": {
+        "mean": 5.891,
+        "sd": 0.526,
+        "min": 4.837,
+        "max": 7.118
+      },
+      "nested_posted": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0,
+        "max": 0
+      },
+      "nested_awarded": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0,
+        "max": 0
+      },
+      "nested_unaffordable": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0,
+        "max": 0
+      },
+      "nested_award_refused": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0,
+        "max": 0
+      },
+      "nested_self_executed": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0,
+        "max": 0
+      },
+      "nested_vested": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0,
+        "max": 0
+      },
+      "nested_final_n": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0,
+        "max": 0
+      },
+      "nested_share": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      },
+      "nested_false_approvals": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0,
+        "max": 0
+      },
+      "nested_false_rejections": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0,
+        "max": 0
+      },
+      "brokers_n": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0,
+        "max": 0
+      },
+      "brokers_award_share": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      },
+      "pool_advances": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      },
+      "hoards_over_M": {
+        "mean": 0.147,
+        "sd": 0.012,
+        "min": 0.115,
+        "max": 0.165
+      },
+      "seats_initial_member": {
+        "mean": 40.2,
+        "sd": 8.037,
+        "min": 28,
+        "max": 59
+      },
+      "seats_initial_probationer": {
+        "mean": 8.05,
+        "sd": 2.46,
+        "min": 3,
+        "max": 12
+      },
+      "seats_initial_troop": {
+        "mean": 0.5,
+        "sd": 0.761,
+        "min": 0,
+        "max": 2
+      },
+      "seats_audit_member": {
+        "mean": 68.65,
+        "sd": 25.72,
+        "min": 11,
+        "max": 115
+      },
+      "seats_audit_probationer": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0,
+        "max": 0
+      },
+      "seats_audit_troop": {
+        "mean": 397.8,
+        "sd": 41.165,
+        "min": 321,
+        "max": 466
+      },
+      "seats_appeal_member": {
+        "mean": 2.4,
+        "sd": 1.569,
+        "min": 0,
+        "max": 6
+      },
+      "seats_appeal_probationer": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0,
+        "max": 0
+      },
+      "seats_appeal_troop": {
+        "mean": 60.4,
+        "sd": 11.047,
+        "min": 40,
+        "max": 80
+      },
+      "wait_initial_member": {
+        "mean": 40.4,
+        "sd": 8.562,
+        "min": 28,
+        "max": 63
+      },
+      "wait_initial_probationer": {
+        "mean": 8.05,
+        "sd": 2.46,
+        "min": 3,
+        "max": 12
+      },
+      "wait_initial_troop": {
+        "mean": 1.0,
+        "sd": 1.522,
+        "min": 0,
+        "max": 4
+      },
+      "wait_audit_member": {
+        "mean": 88.35,
+        "sd": 61.483,
+        "min": 14,
+        "max": 283
+      },
+      "wait_audit_probationer": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0,
+        "max": 0
+      },
+      "wait_audit_troop": {
+        "mean": 797.25,
+        "sd": 81.369,
+        "min": 644,
+        "max": 932
+      },
+      "wait_appeal_member": {
+        "mean": 3.1,
+        "sd": 2.15,
+        "min": 0,
+        "max": 8
+      },
+      "wait_appeal_probationer": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0,
+        "max": 0
+      },
+      "wait_appeal_troop": {
+        "mean": 120.8,
+        "sd": 22.095,
+        "min": 80,
+        "max": 160
+      },
+      "waitge_initial_member": {
+        "mean": 0.2,
+        "sd": 0.894,
+        "min": 0,
+        "max": 4
+      },
+      "waitge_initial_probationer": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0,
+        "max": 0
+      },
+      "waitge_initial_troop": {
+        "mean": 0.5,
+        "sd": 0.761,
+        "min": 0,
+        "max": 2
+      },
+      "waitge_audit_member": {
+        "mean": 3.3,
+        "sd": 2.273,
+        "min": 0,
+        "max": 8
+      },
+      "waitge_audit_probationer": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0,
+        "max": 0
+      },
+      "waitge_audit_troop": {
+        "mean": 397.8,
+        "sd": 41.165,
+        "min": 321,
+        "max": 466
+      },
+      "waitge_appeal_member": {
+        "mean": 0.7,
+        "sd": 0.801,
+        "min": 0,
+        "max": 2
+      },
+      "waitge_appeal_probationer": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0,
+        "max": 0
+      },
+      "waitge_appeal_troop": {
+        "mean": 60.4,
+        "sd": 11.047,
+        "min": 40,
+        "max": 80
+      },
+      "left_initial": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0,
+        "max": 0
+      },
+      "left_audit": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0,
+        "max": 0
+      },
+      "left_appeal": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0,
+        "max": 0
+      },
+      "waiting_now": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0,
+        "max": 0
+      },
+      "avail_ticks_waiting": {
+        "mean": 393.7,
+        "sd": 26.266,
+        "min": 331,
+        "max": 441
+      },
+      "avail_waiting_items": {
+        "mean": 1058.95,
+        "sd": 100.869,
+        "min": 862,
+        "max": 1238
+      },
+      "avail_items_initial": {
+        "mean": 49.45,
+        "sd": 9.66,
+        "min": 35,
+        "max": 71
+      },
+      "avail_items_audit": {
+        "mean": 885.6,
+        "sd": 79.18,
+        "min": 747,
+        "max": 1049
+      },
+      "avail_items_appeal": {
+        "mean": 123.9,
+        "sd": 22.65,
+        "min": 80,
+        "max": 163
+      },
+      "avail_on_duty": {
+        "mean": 1393.15,
+        "sd": 145.259,
+        "min": 1170,
+        "max": 1632
+      },
+      "avail_committed": {
+        "mean": 1168.3,
+        "sd": 79.812,
+        "min": 1031,
+        "max": 1320
+      },
+      "avail_in_review": {
+        "mean": 842.45,
+        "sd": 56.933,
+        "min": 757,
+        "max": 959
+      },
+      "avail_on_duty_idle_fits": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0,
+        "max": 0
+      },
+      "avail_on_duty_idle_unfit": {
+        "mean": 1117.45,
+        "sd": 112.203,
+        "min": 901,
+        "max": 1298
+      },
+      "avail_free_fundable": {
+        "mean": 374.5,
+        "sd": 108.372,
+        "min": 199,
+        "max": 624
+      },
+      "avail_held_by_cap": {
+        "mean": 0.05,
+        "sd": 0.224,
+        "min": 0,
+        "max": 1
+      },
+      "avail_free_unfunded": {
+        "mean": 50.25,
+        "sd": 71.102,
+        "min": 0,
+        "max": 260
+      },
+      "avail_free_not_panel": {
+        "mean": 2949.35,
+        "sd": 330.369,
+        "min": 2280,
+        "max": 3573
+      },
+      "avail_ineligible": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0,
+        "max": 0
+      },
+      "avail_free_excluded": {
+        "mean": 68.55,
+        "sd": 13.881,
+        "min": 38,
+        "max": 94
+      },
+      "avail_free_probationers": {
+        "mean": 753.9,
+        "sd": 390.516,
+        "min": 117,
+        "max": 1675
+      },
+      "avail_free_probationers_fit_initial": {
+        "mean": 9.4,
+        "sd": 7.148,
+        "min": 1,
+        "max": 28
+      },
+      "cap_now": {
+        "mean": 8.3,
+        "sd": 0.657,
+        "min": 7,
+        "max": 10
+      },
+      "members_on_duty_now": {
+        "mean": 4.05,
+        "sd": 0.224,
+        "min": 4,
+        "max": 5
+      },
+      "E_t_now": {
+        "mean": 12.15,
+        "sd": 0.875,
+        "min": 10,
+        "max": 14
+      },
+      "cap_slack_sum": {
+        "mean": 5759.25,
+        "sd": 445.272,
+        "min": 4731,
+        "max": 6939
+      },
+      "cap_slack_n": {
+        "mean": 1000.0,
+        "sd": 0.0,
+        "min": 1000,
+        "max": 1000
+      },
+      "cap_bound_ticks": {
+        "mean": 1.65,
+        "sd": 3.703,
+        "min": 0,
+        "max": 16
+      },
+      "seated_initial_member": {
+        "mean": 1540.85,
+        "sd": 30.77,
+        "min": 1486,
+        "max": 1604
+      },
+      "seated_initial_probationer": {
+        "mean": 272.8,
+        "sd": 35.25,
+        "min": 197,
+        "max": 324
+      },
+      "seated_audit_member": {
+        "mean": 590.2,
+        "sd": 31.945,
+        "min": 525,
+        "max": 647
+      },
+      "seated_appeal_member": {
+        "mean": 40.4,
+        "sd": 9.566,
+        "min": 25,
+        "max": 61
+      },
+      "seated_plant": {
+        "mean": 381.2,
+        "sd": 11.624,
+        "min": 354,
+        "max": 402
+      },
+      "cycles": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0,
+        "max": 0
+      },
+      "greedy_rejections": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0,
+        "max": 0
+      },
+      "greedy_cases_vested": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0,
+        "max": 0
+      },
+      "lowball_child_awards": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0,
+        "max": 0
+      },
+      "lowball_child_misses": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0,
+        "max": 0
+      },
+      "nested_fa_stamper_parent": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0,
+        "max": 0
+      },
+      "nested_fa_careful_parent": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0,
+        "max": 0
+      },
+      "nested_posted_by_stamper": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0,
+        "max": 0
+      },
+      "nested_posted_by_careful": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0,
+        "max": 0
+      },
+      "patient_raised": {
+        "mean": 1428.55,
+        "sd": 5.539,
+        "min": 1414,
+        "max": 1440
+      },
+      "cyclers_admitted": {
+        "mean": 0.0,
+        "sd": 0.0,
+        "min": 0,
+        "max": 0
+      },
+      "stamper_minus_careful_wealth": {
+        "mean": -639.878,
+        "sd": 63.633,
+        "se": 14.229
+      },
+      "stampers_richer_in": "0 of 20"
+    }
+  },
+  "elapsed_total_s": 177.0
+}

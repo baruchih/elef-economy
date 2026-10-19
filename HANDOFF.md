@@ -2037,9 +2037,18 @@ cancels when its own deadline leaves room, and the lowballer's deadline comes fi
 cancellation variant named for the next batch.
 
 **For the decision** (notes §7): the floor is also a price the cheap members bid up to (margin 0.36 against 0.07) — a reading for §2.1's
-consequence; the hoard is the demand side's posting rate, not the floor's; the default 8 stands; the kill fee's proper test is a parent that
-cancels before the child's deadline (driver), or the rule's answer rc.2 named (a guarantee not released on a non-performance cancellation).
-**Next:** §8.7 (the cartel at the floor, members colluding above it), §8.8 (the static w_A sweep), the earlier-cancellation variant.
+consequence, recorded in Appendix Q at the reviewer's direction (wording only); the hoard is the demand side's posting rate, not the floor's;
+the default 8 stands.
+
+**The last batch** (notes §9–10; drivers `46c4cebe`, 220 runs): *the cartel at exactly the floor* is served at the floor — the state half the
+market at 8 after w_A, the cheap members the rest at 7.7, P_t 7.9 (without the floor the same policy spirals to 4.6). *Members colluding just
+above the floor* take the whole market at their price: against the ratchet a price cut (12.5 against 22.5) that pays them more in real terms;
+against the patient customer B̄ is their 8.08 and the state is out (1.6% against 17%) — the floor is a floor, not a ceiling on collusion.
+*The static w_A sweep*: nothing where the price is the ratchet's, two points in the 80/20 captured market — the knob recorded as unnecessary,
+the hold closed. *The parent cancelling at the child's deadline* cancels every lowballer (131 of 131, every fee zero), the nested failures
+vanish and the roots' failures fall below the base (568 against 602), the honest's loss closes from 4% to 3% and not further — the overhead
+of 299 nested postings against a child that risks nothing; the rule's answer rc.2 named (a guarantee not released on a non-performance
+cancellation) is the next candidate. **Next:** the reviewer's reading; 2.5.0 as sketched.
 
 ## Maps
 

@@ -1861,6 +1861,29 @@ claims, paid, forgone by period, Ω retained, M, hoards, on time, lateness); the
 and the three-quarters failure; the red team (the small-request requester, the withdrawing requester); told read whole. Then 2.3.0 — the
 supply side.
 
+## Run 15 — the rebate from income under 2.2.0 (October 19, 2026)
+
+**What ran** (`results/studies/2.2.0-rebate/`, 260 runs on run 14's seeds, all audits passed at `148069fe`; notes
+`results/studies/2.2.0-rebate-notes-for-reviewer.md`): §6; the riots (the crowd of thirty, the flood of twelve, N_T 40); the quiet market
+at 50–80%; the order (the at-cost burn and the three-quarters failure at the wall); the red team (two small-request requesters; the
+withdrawing requester); told read whole.
+
+**Findings.** *The stock is gone and the bill is read:* no liability at any close in 260 runs; the flood forgoes 28,000 of a 34,200 bill
+— 0.87 of every flooded period's claims (§6 said 0.84) — Ω retaining nothing in those periods and ending 1,500 up instead of 27,000 down;
+the crowd's three periods forgo 0.84 / 0.94 / 0.93 and the period after pays in full, Ω retaining again at once. The loans line empties in
+the riots (peak 62 against 1,700–1,800): the returns of capital stay unlocked and fund the summonses. M, hoards, on time and lateness
+within variance of run 14 (Hypothesis 1). *The quiet market does not notice beyond one period's fees:* every claim paid in full; Ω
+retained lower by 186–200, loans of 78–103 a run in the first period only; price, share, honesty and wealth identical within noise
+(Hypothesis 2 as restated). *The order shows:* the at-cost control's forgone share climbs from zero to **1.0 by the eighth period** as the
+debt takes every fee first; the three-quarters failure's to 0.80; the wall's retraction unchanged (Hypothesis 3). *Nobody games the pool:*
+two small-request requesters collect 9 each like everyone (a side effect: posting at exactly B̄ hands the request to the state, share 52%,
+P_t 28.9); the withdrawer's rebates are the holder's (Hypothesis 4). *Told whole:* marks, lateness and the forgone share read zero in a
+quiet market and move together in a riot.
+
+**For the reviewer:** nothing in the rules. One consequence recorded (notes §7, Appendix O): Ω's advances to reviewers wait for the
+unlocked balance the pool excludes, two reviewer tests expected failures; in every run Ω's retained balance covered them from the second
+period on. **Next:** 2.3.0 — the supply side, entry and delegation.
+
 ## Maps
 
 Two `_line` artifacts in project Agentic-OS (`c54120a6-aaff-40f7-8a9f-3667da542879`):

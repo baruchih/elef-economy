@@ -115,6 +115,10 @@ class Public:
                 # and the requests left to those members, summed
                 "awards_waiting_now": w.awards_waiting_now, "members_free_now": w.members_free_now,
                 "awards_left_to_members": w.awards_left_to_members,
+                # 2.4.0: the state's reservation — summonses declined for the floor, the state's price at its deliveries
+                "summons_declined_floor": w.summons_declined_floor,
+                "state_price_mean": (w.state_price_sum / w.state_price_n) if w.state_price_n else None,
+                "state_price_period": (w.period["state_price_sum"] / w.period["state_price_n"]) if w.period["state_price_n"] else None,
                 # 1.5.0 §2.1: the troop demand at the last seating and its components
                 "demand": w.troop_demand_now, "demand_held": w.troop_demand_held, "demand_refused": w.troop_demand_refused,
                 "demand_peak_refused": w.troop_demand_peak_refused,
@@ -138,6 +142,12 @@ class Public:
                 "issued": w.issued, "departed": w.departed,
                 "below_market_flagged": w.below_market_flagged, "below_market_waiting": sum(1 for c in avail if c.beta + 1e-9 < B_bar),
                 "ceilings_raised": w.ceilings_raised,
+                # 2.4.0 §2.1–2.2: the state's floor and price are public; the mark and its stock are readable by a requester's policy
+                "state_floor": w._state_floor(), "state_price": w._state_price(),
+                "below_reservation_marked": w.below_reservation_marked,
+                "below_reservation_waiting": sum(1 for c in avail if c.below_reservation),
+                "below_reservation_ticks": sum(w.t - c.below_reservation_since for c in avail if c.below_reservation and c.below_reservation_since is not None),
+                "summons_declined_floor": w.summons_declined_floor,
                 "places_held": w._places_held(), "N_T": w.p.N_T,
                 "refused_capacity_seats": w.troop_refused_capacity_seats, "refused_capacity_awards": w.troop_refused_capacity_awards,
                 "refused_capacity_waiting": sum(1 for c in avail if c.refused_capacity > 0),

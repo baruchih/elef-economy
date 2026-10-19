@@ -181,16 +181,19 @@ def fingerprint(w: World) -> dict:
 # (8d9b866) 51a3ac39… / 7164 and 2f47e98b… / 4027; at 2.0.0 the price of work — no backing (M is the floats, Ω and the
 # requesters' wallets, Res 0), every nominal indexed by the price level the scenario's awards set, the pay-in locked at
 # posting, Ω creating for its summonses and rebates and retiring from its inflows, the state at cost, N_T — so the whole
-# path changes). Each
+# path changes; 2.0.0 (…) ef0b9ac5… / 8650 and b1ab78fa… / 9267 carried through 2.1.0–2.3.0 as those revisions re-pinned in turn; at 2.4.0 the
+# award pass gathers only requests at or above the state's price — the 1.7.1 conformance correction made at acceptance — so the
+# scenario's below-market requests no longer hold a member's slot and the summonses fall differently (the floor itself never binds
+# here: B̄ is 13–21 throughout, no summons declined for it)). Each
 # changed with the rule, as a change to settlement, the reserve or membership must, and was re-pinned once, at the
 # implementing commit.
 GOLDEN = {
-    1: {"head": "ef0b9ac5e6806bc7e7ec29f0ac2924a29d77ae3d433f26879cf52c575a791e6c", "entries": 8650,
-        "M": 120210.419697, "Res": 0.0,
-        "states": {"FINAL_N": 176, "VESTED": 62, "WITHDRAWN": 5, "CANCELLED": 1, "PENDING": 4, "SUBMITTED": 1, "COMMITTED": 3, "AVAILABLE": 1}},
-    2: {"head": "b1ab78fadae78d028ad2380196d2dd2b538712d19741d34676264fc2fb2eaa1f", "entries": 9267,
-        "M": 120291.393983, "Res": 0.0,
-        "states": {"FINAL_N": 197, "VESTED": 57, "WITHDRAWN": 14, "CANCELLED": 2, "PENDING": 10, "AVAILABLE": 5, "COMMITTED": 3, "SUBMITTED": 1}},
+    1: {"head": "665c7a24ac51ba178ba915fb483642022e09e19f611478057c622e4a3836bea6", "entries": 9509,
+        "M": 119917.109725, "Res": 0.0,
+        "states": {"FINAL_N": 181, "VESTED": 68, "WITHDRAWN": 5, "CANCELLED": 1, "PENDING": 7, "AVAILABLE": 4, "COMMITTED": 1}},
+    2: {"head": "290686008df8f8f0a7e34f88bd315b5984028c9b4e9f7aa98df62575d501a99d", "entries": 8759,
+        "M": 120189.562921, "Res": 0.0,
+        "states": {"FINAL_N": 184, "VESTED": 56, "WITHDRAWN": 10, "CANCELLED": 1, "AVAILABLE": 4, "PENDING": 5, "SUBMITTED": 1, "COMMITTED": 1}},
 }
 
 

@@ -201,15 +201,15 @@ class Stamping:
         self.kind = {aid: (STAMPER if i < n_st else CAREFUL) for i, aid in enumerate(ids)}
         if a.rules == "1.1.0":                   # the control: the 1.1.0 engine's behaviour, declared
             a.pi0, a.dial, a.p_start, a.p_cap, a.omega0 = 0.0, "off", 0.5, 0.5, 20.0
-        rev3 = a.rules in ("1.3.0", "1.4.0", "1.5.0", "1.6.0", "1.7.0", "1.7.1", "2.0.0", "2.1.0", "2.2.0", "2.3.0")     # 1.2.0 and 1.1.0: membership, the fund and netted capital off
-        rev4 = a.rules in ("1.4.0", "1.5.0", "1.6.0", "1.7.0", "1.7.1", "2.0.0", "2.1.0", "2.2.0", "2.3.0") and a.troops == "on"
-        rev5 = a.rules in ("1.5.0", "1.6.0", "1.7.0", "1.7.1", "2.0.0", "2.1.0", "2.2.0", "2.3.0")    # 1.4.0: the reserve is the peak capital carried, over two periods
-        rev6 = a.rules in ("1.6.0", "1.7.0", "1.7.1", "2.0.0", "2.1.0", "2.2.0", "2.3.0")     # 1.6.0: the five rules, each behind its flag; `--rules 1.5.0` turns them off
-        rev7 = a.rules in ("1.7.0", "1.7.1", "2.0.0", "2.1.0", "2.2.0", "2.3.0")  # 1.7.0: the troop account behind its flag and the cap at two thirds; `--rules 1.6.0` is the control
-        rev8 = a.rules in ("2.0.0", "2.1.0", "2.2.0", "2.3.0")     # 2.0.0: the price of work — floating prices, N_T; `--rules 1.7.1` is the fixed-price control
-        rev9 = a.rules in ("2.1.0", "2.2.0", "2.3.0")     # 2.1.0: the bank — loans, the debt, the wall, P_t once a period; `--rules 2.0.0` is the control
-        rev10 = a.rules in ("2.2.0", "2.3.0")    # 2.2.0: the rebate from income — the period's fee pool, claims pro rata at the close; `--rules 2.1.0` the control
-        rev11 = a.rules == "2.3.0"               # 2.3.0: the supply side — entry, exit, the parent's pots; `--rules 2.2.0` the control
+        rev3 = a.rules in ("1.3.0", "1.4.0", "1.5.0", "1.6.0", "1.7.0", "1.7.1", "2.0.0", "2.1.0", "2.2.0", "2.3.0", "2.4.0")     # 1.2.0 and 1.1.0: membership, the fund and netted capital off
+        rev4 = a.rules in ("1.4.0", "1.5.0", "1.6.0", "1.7.0", "1.7.1", "2.0.0", "2.1.0", "2.2.0", "2.3.0", "2.4.0") and a.troops == "on"
+        rev5 = a.rules in ("1.5.0", "1.6.0", "1.7.0", "1.7.1", "2.0.0", "2.1.0", "2.2.0", "2.3.0", "2.4.0")    # 1.4.0: the reserve is the peak capital carried, over two periods
+        rev6 = a.rules in ("1.6.0", "1.7.0", "1.7.1", "2.0.0", "2.1.0", "2.2.0", "2.3.0", "2.4.0")     # 1.6.0: the five rules, each behind its flag; `--rules 1.5.0` turns them off
+        rev7 = a.rules in ("1.7.0", "1.7.1", "2.0.0", "2.1.0", "2.2.0", "2.3.0", "2.4.0")  # 1.7.0: the troop account behind its flag and the cap at two thirds; `--rules 1.6.0` is the control
+        rev8 = a.rules in ("2.0.0", "2.1.0", "2.2.0", "2.3.0", "2.4.0")     # 2.0.0: the price of work — floating prices, N_T; `--rules 1.7.1` is the fixed-price control
+        rev9 = a.rules in ("2.1.0", "2.2.0", "2.3.0", "2.4.0")     # 2.1.0: the bank — loans, the debt, the wall, P_t once a period; `--rules 2.0.0` is the control
+        rev10 = a.rules in ("2.2.0", "2.3.0", "2.4.0")    # 2.2.0: the rebate from income — the period's fee pool, claims pro rata at the close; `--rules 2.1.0` the control
+        rev11 = a.rules in ("2.3.0", "2.4.0")               # 2.3.0: the supply side — entry, exit, the parent's pots; `--rules 2.2.0` the control
         self.rev9, self.rev10, self.rev11 = rev9, rev10, rev11
         self.floating = rev8
         on = lambda flag: rev6 and flag == "on"
@@ -224,6 +224,7 @@ class Stamping:
                    service_clock=on(a.clock), T_s=a.t_s, omega_backs_fund=on(a.backing), seat_the_queue=on(a.seat_queue),
                    panel_determined=on(a.panel_determined), reserve_periods=(a.reserve_periods if rev6 else 1),
                    duty_cap_frac={"half": 0.5, "twothirds": 2.0 / 3.0, "threequarters": 0.75, "all": 1.0}[a.duty_cap],
+                   state_reservation=(a.state_reservation if a.state_reservation is not None else (8.0 if a.rules in ("2.4.0",) else 0.0)),
                    plant_reserve_life=(0 if a.plant_reserve == "period" else 15),
                    troop_account=(rev7 and a.accounts == "on"), omega_rate=a.omega_rate, r_s=a.r_s, T_susp=a.t_susp,
                    theta_panel=a.theta_panel, n_P=a.record_window,
@@ -339,6 +340,8 @@ class Stamping:
                   "cycles": 0, "greedy_rejections": 0, "greedy_overturned": 0, "lowball_child_awards": 0, "lowball_child_misses": 0,
                   "nested_fa_stamper_parent": 0, "nested_fa_careful_parent": 0, "nested_posted_by_stamper": 0, "nested_posted_by_careful": 0,
                   "patient_raised": 0,
+                  # 2.4.0: the parent's cancellation and the kill fee
+                  "parent_cancellations": 0, "kill_fees_paid": 0.0, "kill_fees_nonzero": 0, "cancel_delay_sum": 0, "parent_cancel_refused": 0,
                   # run 17 batch A: every inspection seat the driver fills, by kind and the reviewer's standing (plants apart)
                   "seated_initial_member": 0, "seated_initial_probationer": 0, "seated_audit_member": 0, "seated_appeal_member": 0, "seated_plant": 0}
         self._awarded_last = 0
@@ -691,8 +694,9 @@ class Stamping:
             # run 13 §3 (the reviewer's demand-unbound cell): a market-aware ceiling — a little above the market price, so a
             # posting locks less than the wallet rule's and the requester posts more; the wallet still has to carry the all-in
             beta = math.floor(min(a.beta_max, a.ceiling_mult * mk["B_bar"]) * 100) / 100
-        elif a.ceiling_policy == "patient":
-            # run 17 batch C: patient customers — 0.7 B̄, raised to B̄ only after --patient-ticks unserved (raise_below_market)
+        elif a.ceiling_policy in ("patient", "patient-blind"):
+            # run 17 batch C: patient customers — 0.7 B̄, raised only after --patient-ticks unserved (raise_below_market): to max(B̄, the
+            # state's floor) read from the view under `patient` (2.4.0), to B̄ alone under `patient-blind` (run 17's, deadlocking at the floor)
             beta = math.floor(min(a.beta_max, max(1.0, 0.7 * mk["B_bar"])) * 100) / 100
         else:
             beta = math.floor(min(a.beta_max, a.ceiling_share * U) * 100) / 100
@@ -720,16 +724,21 @@ class Stamping:
         engine's flag is set at posting; a request the market overtakes afterwards is below market too and would otherwise
         wait forever (no troop comes for β < B̄ and the members bid above it), so the policy reads the live condition."""
         w = self.w
-        B_bar = w.market()["B_bar"]
+        mk = w.market()
+        B_bar = mk["B_bar"]
+        patient = self.a.ceiling_policy in ("patient", "patient-blind")
+        # 2.4.0: a policy that reads the view raises to the state's price max(B̄, the floor); `patient-blind` and the 1.x-shaped policies
+        # raise to B̄ alone (a wallet- or market-rule requester never posts below the floor unless its wallet is short)
+        goal = mk.get("state_price", B_bar) if self.a.ceiling_policy == "patient" else B_bar
         for cid in sorted(self.active, key=lambda s: int(s[1:])):
             c = w.case(cid)
-            if c.state != "AVAILABLE" or c.beta + 1e-9 >= B_bar or self.owner.get(cid) in self.stingy or cid in self.nested_parent:
+            if c.state != "AVAILABLE" or c.beta + 1e-9 >= goal or self.owner.get(cid) in self.stingy or cid in self.nested_parent:
                 continue
-            if self.a.ceiling_policy == "patient" and self.w.t - c.t_post < self.a.patient_ticks:
-                continue                                 # batch C: a patient customer waits T ticks before raising
-            if self.a.ceiling_policy == "patient":
+            if patient and self.w.t - c.t_post < self.a.patient_ticks:
+                continue                                 # a patient customer waits T ticks before raising
+            if patient:
                 self.c["patient_raised"] += 1
-            target = min(self.a.beta_max, math.ceil(B_bar * 100) / 100)
+            target = min(self.a.beta_max, math.ceil(goal * 100) / 100)
             if target <= c.beta + 1e-9:
                 continue
             try:
@@ -1062,6 +1071,21 @@ class Stamping:
             if c.state == "COMMITTED" and cid in self.parent_waiting:
                 nid = self.parent_waiting[cid]
                 child = w.case(nid)
+                if a.parent_cancel == "on" and child.state == "COMMITTED" and t >= c.deadline - a.work_ticks:
+                    # 2.4.0 §2.4: the child has not submitted and the parent's deadline leaves just room to self-execute — cancel, pay
+                    # the kill fee (the child's recorded cost; zero for a child that never worked), do the work itself
+                    try:
+                        before = w.case(cid).actor_cost
+                        w.cancel_nested(nid)
+                        fee = w.case(cid).actor_cost - before
+                        self.c["parent_cancellations"] += 1
+                        self.c["kill_fees_paid"] = round(self.c["kill_fees_paid"] + fee, 6)
+                        if fee > 1e-9:
+                            self.c["kill_fees_nonzero"] += 1
+                        self.c["cancel_delay_sum"] += t - child.t_award
+                        child = w.case(nid)
+                    except (RuleError, LedgerError):
+                        self.c["parent_cancel_refused"] += 1
                 if child.t_verdict is None and child.state not in ("WITHDRAWN", "CANCELLED", "FINAL_N"):
                     continue                             # §9.1: the parent submits after its child's milestone
                 self.parent_waiting.pop(cid, None)
@@ -1504,6 +1528,16 @@ class Stamping:
                     "omega_net_position": round(mk["omega_net"], 3), "issued": round(mk["issued"], 3), "departed": round(mk["departed"], 3),
                     "below_market_flagged": mk["below_market_flagged"], "below_market_waiting": mk["below_market_waiting"],
                     "ceilings_raised": mk["ceilings_raised"], "places_held": mk["places_held"],
+                    # 2.4.0: the state's reservation — the floor, the state's price beside B̄ and P_t, the marks and the ticks below, the declines
+                    "state_floor": mk["state_floor"], "state_price": round(mk["state_price"], 4),
+                    "state_price_mean": round(tr["state_price_mean"], 4) if tr.get("state_price_mean") is not None else "",
+                    "state_price_period": round(tr["state_price_period"], 4) if tr.get("state_price_period") is not None else "",
+                    "below_reservation_marked": mk["below_reservation_marked"], "below_reservation_waiting": mk["below_reservation_waiting"],
+                    "below_reservation_ticks": mk["below_reservation_ticks"], "summons_declined_floor": mk["summons_declined_floor"],
+                    "parent_cancellations": self.c["parent_cancellations"], "kill_fees_paid": self.c["kill_fees_paid"],
+                    "kill_fees_nonzero": self.c["kill_fees_nonzero"],
+                    "cancel_delay_mean": round(self.c["cancel_delay_sum"] / self.c["parent_cancellations"], 3) if self.c["parent_cancellations"] else "",
+                    "parent_cancel_refused": self.c["parent_cancel_refused"],
                     "refused_capacity_seats": mk["refused_capacity_seats"], "refused_capacity_awards": mk["refused_capacity_awards"],
                     "refused_capacity_waiting": mk["refused_capacity_waiting"], "capacity_wait_max": mk["capacity_wait_max"],
                     "careful_wealth_real": round(row["careful_wealth"] * real, 3), "stamper_wealth_real": round(row["stamper_wealth"] * real, 3),
@@ -1615,8 +1649,8 @@ def main(argv=None):
     ap.add_argument("--p-start", type=float, default=1.0, help="a newcomer's audit odds (1.2.0 §2.4: 1.0; 1.1.0: 0.5)")
     ap.add_argument("--p-cap", type=float, default=1.0, help="the audit odds' cap on doubling (1.2.0 §2.4: 1.0; 1.1.0: 0.5)")
     ap.add_argument("--p-floor", type=float, default=0.2, help="the audit rate's floor (§8.3)")
-    ap.add_argument("--rules", choices=["2.3.0", "2.2.0", "2.1.0", "2.0.0", "1.7.1", "1.7.0", "1.6.0", "1.5.0", "1.4.0", "1.3.0", "1.2.0", "1.1.0"], default="2.3.0",
-                    help="2.3.0: the supply side (entry and exit, the parent's pots, the reviewer advance from the pool); 2.2.0: the rebate from income (the period's fee pool, claims pro rata at the close, the rest forgone); 2.1.0: the bank with the liability stock (the control); 2.1.0 also: the bank (loans, the debt, the wall, the expected cost, P_t once a period, refusals told); 2.0.0: the price of work with "
+    ap.add_argument("--rules", choices=["2.4.0", "2.3.0", "2.2.0", "2.1.0", "2.0.0", "1.7.1", "1.7.0", "1.6.0", "1.5.0", "1.4.0", "1.3.0", "1.2.0", "1.1.0"], default="2.4.0",
+                    help="2.4.0: the state's reservation (the state delivers at max(B̄, 8), never below; the mark; the clock's one condition; the award pass gathering β ≥ p_T); 2.3.0: the supply side (entry and exit, the parent's pots, the reviewer advance from the pool) — the control, the state at B̄; 2.2.0: the rebate from income (the period's fee pool, claims pro rata at the close, the rest forgone); 2.1.0: the bank with the liability stock (the control); 2.1.0 also: the bank (loans, the debt, the wall, the expected cost, P_t once a period, refusals told); 2.0.0: the price of work with "
                          "Ω's creation and retirement (the control); 1.7.1 (= 1.7.0): the fixed-price control — "
                          "one bottomless requester at β, the backing, the reserves; 1.6.0: the merged fund (uplift from troop earnings) and the half cap; 1.5.0: also the five 1.6.0 rules off; "
                          "1.3.0: troops off; 1.2.0: also membership, the duty fund and netted plant capital off; 1.1.0: also no "
@@ -1696,7 +1730,7 @@ def main(argv=None):
     ap.add_argument("--beta-max", type=float, default=40.0, help="β_max, the ceiling policy's cap")
     ap.add_argument("--ceiling-share", type=float, default=1.0 / 3.0, help="s: β = min(β_max, s × unlocked wallet)")
     ap.add_argument("--k-open", type=int, default=5, help="K_open: a requester posts while fewer than this many of its requests are open (0: no limit)")
-    ap.add_argument("--ceiling-policy", choices=["wallet", "market", "patient"], default="wallet",
+    ap.add_argument("--ceiling-policy", choices=["wallet", "market", "patient", "patient-blind"], default="wallet",
                     help="the requesters' ceiling: min(β_max, share × unlocked wallet), or market-aware min(β_max, mult × B̄) (run 13 §3)")
     ap.add_argument("--ceiling-mult", type=float, default=1.2, help="the market-aware ceiling's multiple of B̄")
     ap.add_argument("--bid", choices=["margin", "ceiling"], default="margin", help="members' bid policy: c_D (1 + m), or at the ceiling (the 1.x behaviour, the control)")
@@ -1740,7 +1774,14 @@ def main(argv=None):
     ap.add_argument("--child-bid", choices=["margin", "ceiling-aware"], default="margin",
                     help="batch C: a child bids c(1 + m), or min(the parent's ceiling, c(1 + m)) when its cost is under the ceiling")
     ap.add_argument("--patient-ticks", type=int, default=20,
-                    help="batch C, --ceiling-policy patient: a request posts at 0.7 B̄ and is raised to B̄ only after this many ticks unserved")
+                    help="--ceiling-policy patient: a request posts at 0.7 B̄ and is raised only after this many ticks unserved — to max(B̄, the state's "
+                         "floor) read from the view (2.4.0), or to B̄ alone under patient-blind (run 17's policy, which deadlocks at the floor)")
+    # 2.4.0 — the state's reservation
+    ap.add_argument("--state-reservation", type=float, default=None,
+                    help="2.4.0 §2.1: the state's floor — nominal, public (default 8; 0 is the control, the 2.3.0 state at B̄; swept 4 / 8 / 12)")
+    ap.add_argument("--parent-cancel", choices=["on", "off"], default="off",
+                    help="2.4.0 §2.4: a parent whose child has not submitted cancels while self-execution is still possible, pays the kill fee "
+                         "(the child's recorded cost — zero for a child that never worked) and does the work itself")
     ap.add_argument("--small-requests", type=int, default=0,
                     help="2.2.0 §8.5 red team: this many requesters post at the market price exactly with K_open tripled — many small requests to collect pro-rata rebates (expected: nothing beyond the capped claims)")
     ap.add_argument("--state-rejecters", type=float, default=0.0,
@@ -1762,7 +1803,7 @@ def main(argv=None):
     ap.add_argument("--results-root", default=None, help="write results/runs under this directory instead of results/")
     a = ap.parse_args(argv)
     if a.c_d_t_mode is None:
-        a.c_d_t_mode = "expected" if a.rules in ("2.1.0", "2.2.0", "2.3.0") else "cost"
+        a.c_d_t_mode = "expected" if a.rules in ("2.1.0", "2.2.0", "2.3.0", "2.4.0") else "cost"
     if a.rules != "2.3.0":
         a.c_d_sigma = 0.0                                # one cost before 2.3.0: the controls are run 15's cells
 
@@ -1848,11 +1889,11 @@ def main(argv=None):
                                                                                         "tau": a.work_ticks + a.nested_tau, "nested_pots": a.nested_pots,
                                                                                         "judgment": "by disposition — careful: the truth w.p. accuracy, spending 2; stamper: F; a bad child accepted makes the parent's work bad",
                                                                                         "child_appeals": "truthfully", "unawarded_T_wait": "withdrawn; the parent self-executes"}},
-                                "the_rebate_from_income": None if a.rules not in ("2.2.0", "2.3.0") else {
+                                "the_rebate_from_income": None if a.rules not in ("2.2.0", "2.3.0", "2.4.0") else {
                                     "spec": "2.2.0 design revision 10 — the claim recorded at the stop; Ω's fee income after the debt pooled as a lock on Ω; at the period's close the "
                                             "claims stopped in the period paid pro rata, the rest forgone and read; no liability stock",
                                     "red_team": {"small_requesters": sorted(run.small)}},
-                                "the_bank": None if a.rules not in ("2.1.0", "2.2.0", "2.3.0") else {
+                                "the_bank": None if a.rules not in ("2.1.0", "2.2.0", "2.3.0", "2.4.0") else {
                                     "spec": "2.1.0 design revision 9 — the bank: a second account that alone creates and destroys; mints by rule, publishes "
                                             "P_t once a period, lends a summons's shortfall tied to it; the state burns its expected cost and delivers at B̄; "
                                             "every inflow to Ω ordered at once (debt → liabilities → Ω); the wall on deliveries; every refusal told",
@@ -1861,7 +1902,7 @@ def main(argv=None):
                                     "requester_on_refusal": a.requester_on_refusal,
                                     "red_team": {"troop_fail_rate": a.troop_fail_rate, "state_rejecters": sorted(run.state_rejecters),
                                                  "state_rejecters_reading": "the case's actor through the public view's case — not the reviewer's view (§14 carries no actor); declared"}},
-                                "price_of_work": None if a.rules not in ("2.0.0", "2.1.0", "2.2.0", "2.3.0") else {
+                                "price_of_work": None if a.rules not in ("2.0.0", "2.1.0", "2.2.0", "2.3.0", "2.4.0") else {
                                     "spec": "2.0.0 design revision 8 — the price of work",
                                     "requesters": {"n": a.requesters, "wallet": a.wallet, "issuance_per_tick": a.issuance,
                                                    "ceiling": (f"min({a.beta_max:g}, {a.ceiling_mult:g} × B̄) — market-aware" if a.ceiling_policy == "market"
@@ -1880,7 +1921,7 @@ def main(argv=None):
                                     "plants": "at B = P_t", "P0": 20.0,
                                     "red_team": {"lowball_share": a.lowball_share, "lowballers": sorted(run.lowballers),
                                                  "stingy_requesters": sorted(run.stingy), "bbar_counts_troops": a.bbar_troops}},
-                                "permitted_operations": PERMITTED + (PERMITTED_200 if a.rules in ("2.0.0", "2.1.0", "2.2.0", "2.3.0") else []), "not_in_run": NOT_IN_RUN,
+                                "permitted_operations": PERMITTED + (PERMITTED_200 if a.rules in ("2.0.0", "2.1.0", "2.2.0", "2.3.0", "2.4.0") else []), "not_in_run": NOT_IN_RUN,
                                 "record_dir": a.record_dir,
                                 "checks": {"per_tick": "check_tick after every tick — always; not configurable",
                                            "full_audit_every_n_ticks": "not scheduled",

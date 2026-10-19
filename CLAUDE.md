@@ -1,7 +1,12 @@
 # Agentic-OS — the economic loop
 
 A rulebook for a task → verification → dispute → settlement loop among autonomous actors, and a
-reference implementation of it with no strategies. Ten external reviews. The rulebook is at **2.3.0** — design revision 11, *the supply side*: actors arrive (`arrive`, a probationer with a
+reference implementation of it with no strategies. Ten external reviews. The rulebook is at **2.4.0** — design revision 12, *the state's reservation*: the state
+delivers at $p_T=\max(\bar B,\underline{B})$ and never below its reservation $\underline{B}$ (8, nominal, public, the anchor cost; 0 the control); a request posted or
+raised below it is marked and told and its clock does not run while it waits there (the clock's one condition, β ≥ p_T); the award pass gathers only
+requests at β ≥ p_T (a 1.7.1 conformance correction made at acceptance); the arrival float exists so an arrival can post the reviewer's bond
+(F_0 ≥ G^V on the parameters); §9.3's kill fee enters the delegation driver (the child's recorded cost, zero for a child that never worked) — after run 17
+showed patient customers at 0.7 B̄ driving the price to 4.8 and the state to 86% of the work below every member's cost — on **2.3.0**, design revision 11, *the supply side*: actors arrive (`arrive`, a probationer with a
 bank-minted float, admitted on n_min bad plants with a passing record, no award of any kind before) and depart (`depart`, with no live
 obligation, the wallet leaving M); competence is the drivers' per-actor effort cost, private, revealed through bids; a nested request
 carries its own pots posted by the parent with the all-in and settles them at the node's own closure (the ruling); the troops never
@@ -55,13 +60,13 @@ and what is proposed next.
 ## Layout
 
 ```
-spec/agentic_economics_loop_spec_v2_3_0.md   the text in force (standalone; Appendix A defaults, E errata, F–P design revisions 1–11 and the rulings)
+spec/agentic_economics_loop_spec_v2_4_0.md   the text in force (standalone; Appendix A defaults, E errata, F–Q design revisions 1–12 and the rulings)
 spec/design_revisions/                       accepted design revisions, verbatim (dr1: two pots; dr2: the loop's own clock; dr3:
                                              inspection is membership; dr4: the orchestrator's troops; dr5: the reserve is sized to
-                                             the need; dr6: auto-scale; dr7: the state's earnings; dr8: the price of work; dr9: the bank; dr10: the rebate from income; dr11: the supply side), and the implementer's reviews of dr2–dr11's candidates
-spec/history/                                v0.1 … v2.2.0 — superseded, kept for provenance only
+                                             the need; dr6: auto-scale; dr7: the state's earnings; dr8: the price of work; dr9: the bank; dr10: the rebate from income; dr11: the supply side; dr12: the state's reservation), and the implementer's reviews of dr2–dr12's candidates
+spec/history/                                v0.1 … v2.3.0 — superseded, kept for provenance only
 reviews/                                     R01–R10, one external review per version, with the reviewer's notes
-agentic_sim/                                 the engine, 36 invariants, 29 test files, runner, drivers, results
+agentic_sim/                                 the engine, 37 invariants, 30 test files, runner, drivers, results
 docs/line_map_economic_loop_v1_0_1.txt       text export of the _line map of the loop (the live map is the source)
 HANDOFF.md                                   status, history table, open questions, proposed next step
 ```
@@ -70,12 +75,15 @@ HANDOFF.md                                   status, history table, open questio
 
 ```
 cd agentic_sim
-python3 run_tests.py        # expected: 293 passed, 0 failed, 32 expected failures
+python3 run_tests.py        # expected: 304 passed, 0 failed, 32 expected failures
 python3 -S run_tests.py     # same, with no site-packages
 python3 run_tests.py --record   # same, every World in record mode
-python3 -m pytest tests -q  # expected: 293 passed, 32 xfailed, 0 xpassed (conftest mirrors the runner; pytest is not installed here)
+python3 -m pytest tests -q  # expected: 304 passed, 32 xfailed, 0 xpassed (conftest mirrors the runner; pytest is not installed here)
 python3 -m drivers.load_run --actors 200 --ticks 10000 --on-duty 40 --tasks 30 --record-dir /path  # throughput run
 python3 -m drivers.stamping --actors 20 --ticks 1000 --stampers 0.6 --seed 1   # §18.1 q1 under 2.1.0: six requesters with wallets, members bidding, the state at its expected cost on the bank's loans under N_T 40
+python3 -m drivers.stamping --entry-pool 20 --stampers 0.6 --ceiling-policy patient --patient-ticks 10 --seed 1   # 2.4.0 §8.2: patient customers against the floor (raising to max(B̄, the floor) read from the view); --state-reservation 0 the control (the 2.3.0 state), 4 / 12 the sweep; patient-blind run 17's policy
+python3 -m drivers.stamping --entry-pool 20 --stampers 0.6 --delegation on --c-d-sigma 0.8 --lowball-children 0.2 --parent-cancel on --seed 1   # 2.4.0 §8.6: the kill fee exercised — the parent cancels a child that has not submitted and self-executes
+python3 -m drivers.stamping --rules 2.3.0 --seed 1   # the 2.3.0 control: the state at B̄ with no floor (state_reservation 0)
 python3 -m drivers.stamping --entry-pool 20 --stampers 0.6 --seed 1   # 2.3.0 §8.2: entry — twenty candidates reading the view, arriving as probationers; --reservation, --arrivals-per-tick, --f0 the knobs
 python3 -m drivers.stamping --c-d-sigma 0.8 --delegation on --stampers 0 --seed 1   # 2.3.0 §8.3: the spread and delegation (σ 0.2 / 0.43 / 0.8); --nested-pots root the 1.1.0 control
 python3 -m drivers.stamping --rules 2.2.0 --seed 1   # the 2.2.0 control: one cost, a fixed population, the children on the root's pots
@@ -363,6 +371,18 @@ consolidated into one standalone spec with the accepted revision kept verbatim i
   `test_v23` (13); `test_v101` pins `supply=False`. Drivers: per-actor `c_d_of` drawn once (`draw_cost`, `cost_now`), the entry pool
   (`entry_step`, `exit_step`), delegation (`delegation_step`: the parent's rule, the children's bids, the parent's judgment by disposition,
   self-execution after T_wait), the readings.
+- The state's reservation (2.4.0; `Params.state_reservation`, 8; 0 is the control and `--rules 2.3.0`). `_state_floor()` / `_state_price(fallback)` =
+  max(B̄, the floor); `_summon_delivery` prices, bonds (`G = ⌈0.5 p_T⌉`), fees and burns at p_T and counts the award in P_t at p_T (`state_price_sum/n`,
+  the period's too); a request admitting the market but not the floor is `summons_declined_floor` and waits at any wait; the award pass filters its
+  gathered list to β ≥ p_T before counting the free members (the 1.7.1 conformance correction — goldens re-pinned once for it); `_clock_runs` is the
+  one condition β ≥ p_T. `Case.below_reservation` / `below_reservation_since` are set by `_mark_reservation` at `post_root` and `raise_ceiling`
+  (from tick 0 — the floor is a constant; the below-market flag keeps its 2.0.0 condition) and cleared at a raise to the floor;
+  `below_reservation_marked`, the period's `below_reservation`. `Params.__post_init__` refuses F0 < G_V under the supply side (I33's bound).
+  I37 per tick and in the full audit. The view: `market()` carries `state_floor`, `state_price`, the marked count, the stock marked and waiting and
+  the ticks below; `troops()` the declined count and the state's price mean. Drivers: `--state-reservation`, `--ceiling-policy patient | patient-blind`
+  (`patient` raises to `state_price` read from the view after `--patient-ticks`; `patient-blind` to B̄, run 17's, deadlocking at the floor),
+  `--parent-cancel on|off` (`cancel_nested` when the child has not submitted and the parent's deadline leaves one `work_ticks`; the fee read from
+  the parent's `actor_cost`), the columns. `test_v24` (11).
 - Money is checked by invariant I1 (conservation) — never silently create or lose credits.
 
 ## Vocabulary (spec Appendix C has the full notation)
@@ -403,5 +423,8 @@ the busy line's third reading); Ω retained (what the claims left of the pool).
 The supply side (2.3.0): arrive and depart; an arrival (a probationer with no record and a bank-minted float F_0); admission (on n_min bad
 plants) and time to membership; competence (an actor's own effort cost, drawn once, private) and the spread σ; the entry pool and the
 reservation r; the parent's pots and a node's closure; a broker (a parent delegating most of its awards) and the gain from trade.
+The state's reservation (2.4.0): $\underline{B}$ the state's floor (nominal, public, the anchor cost 8) and $p_T=\max(\bar B,\underline{B})$ the state's price; *below
+the state's reservation* (the mark, with its tick — the busy line's third mark beside below market and refused for capacity or credit); a patient
+customer (a ceiling at 0.7 B̄ raised after T ticks); the kill fee as the child's recorded cost. $R_T$ stays the fund's troop reserve of 1.5.0–1.7.0.
 "Ruling" has two senses: the orchestrator rules on splits inside the procedure; only a human
 *overrides* it (spec §15.2).

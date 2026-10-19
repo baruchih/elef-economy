@@ -154,8 +154,20 @@ class Params:
     # the remainder refunding to the parent at the node's closure (the ruling at acceptance; `nested_pots root` is the 1.1.0 reading,
     # the control); a §4.3 reviewer advance may draw on the rebate pool (the run 15 ruling). False is the 2.2.0 engine.
     supply: bool = True
-    F0: float = 50.0                   # an arrival's float at P_0, indexed at the arrival tick
+    F0: float = 50.0                   # an arrival's float at P_0, indexed at the arrival tick; 2.4.0 §2.3: F0 ≥ G_V (the bond's capital)
     nested_pots: str = "parent"        # parent: the parent posts the nested case's pots (2.3.0) | root: the children on the root's (1.1.0)
+
+    # Design revision 12 (2.4.0): the state's reservation. The state delivers at p_T = max(B̄, state_reservation) and never below the
+    # reservation — nominal, public, the anchor cost; a request posted or raised below it is marked `below_reservation` with its tick and
+    # its clock does not run while it holds the mark (the clock's one condition: β ≥ p_T); the award pass counts only requests at β ≥ p_T
+    # against the free members (the 1.7.1 conformance correction made at acceptance). 0 is the control: the 2.3.0 state at B̄.
+    state_reservation: float = 8.0
+
+    def __post_init__(self):
+        # 2.4.0 §2.3 (I33): the arrival float exists so that an arrival can post the reviewer's bond — a constraint on the parameters,
+        # nominal, the index cancelling. A parameter set with F0 < G_V is refused at construction, not at arrival.
+        if self.supply and self.bank and self.floating and self.F0 + 1e-9 < self.G_V:
+            raise ValueError(f"Params: the arrival float F0 {self.F0} is below the reviewer's bond G_V {self.G_V} (2.4.0 §2.3, I33)")
 
     # Reliability and duty credit windows (§11)
     rho_window: int = 100      # settled outcomes

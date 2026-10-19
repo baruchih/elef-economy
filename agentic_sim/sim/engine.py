@@ -301,6 +301,8 @@ class Case:
     index_at_lock: Optional[float] = None  # P_t/P_0 at the first lock (None: priced before 2.0.0 or not yet locked)
     posting_lock: float = 0.0              # the all-in maximum locked at posting, raised with the ceiling (I29)
     below_market: bool = False             # flagged at posting (or at a raise): β < B̄
+    below_reservation: bool = False        # 2.4.0: marked at posting (or at a raise): β < the state's reservation; cleared at a raise to it
+    below_reservation_since: Optional[int] = None   # the tick the mark was set (the ticks below the floor are read from it)
     refused_capacity: int = 0              # summonses N_T refused for this request
     capacity_told: bool = False            # the requester was told at the first refusal
     capacity_wait_max: int = 0             # the longest wait at a refusal for capacity
@@ -506,6 +508,9 @@ class World:
         self.scenario_created = 0.0
         self.departed = 0.0
         self.below_market_flagged = 0
+        self.below_reservation_marked = 0               # 2.4.0: requests marked below the state's reservation (at posting or at a raise)
+        self.summons_declined_floor = 0                 # 2.4.0: award summonses declined because the ceiling is below the state's price
+        self.state_price_sum, self.state_price_n = 0.0, 0   # 2.4.0: the state's price at its deliveries (a reading beside B̄ and P_t)
         self.ceilings_raised = 0
         self.troop_refused_capacity_seats = 0
         self.troop_refused_capacity_awards = 0
@@ -928,7 +933,30 @@ class World:
         self.ceilings_raised += 1
         self.period["ceilings_raised"] += 1
         c.below_market = self.market_price_known() and c.beta + 1e-9 < self.mean_awarded_price()
-        self._log(c, f"ceiling raised {old:g} -> {beta:g}" + (" (still below market)" if c.below_market else ""))
+        was_marked = c.below_reservation
+        self._mark_reservation(c, self.t)
+        self._log(c, f"ceiling raised {old:g} -> {beta:g}" + (" (still below market)" if c.below_market else "")
+                  + (" (still below the state's reservation)" if c.below_reservation else
+                     (" (the reservation mark cleared)" if was_marked else "")))
+
+    def _state_floor(self) -> float:
+        """2.4.0 §2.1: the state's reservation — nominal, public; 0 when the revision is off (the 2.3.0 state)."""
+        return self.p.state_reservation if self.p.floating else 0.0
+
+    def _state_price(self, fallback: float = 0.0) -> float:
+        """2.4.0 §2.1: p_T = max(B̄, the reservation) — the price the state delivers at; a price-taker above the floor."""
+        return max(self.mean_awarded_price() or fallback, self._state_floor())
+
+    def _mark_reservation(self, c: "Case", tick: int):
+        """2.4.0 §2.2: a root request with β below the state's reservation carries the mark with its tick; a raise to or above
+        clears it. Set at posting (the floor is a constant — no market price is needed) and re-read at every raise."""
+        below = c.is_root and c.plant is None and c.beta + 1e-9 < self._state_floor()
+        if below and not c.below_reservation:
+            c.below_reservation, c.below_reservation_since = True, tick
+            self.below_reservation_marked += 1
+            self.period["below_reservation"] += 1
+        elif not below and c.below_reservation:
+            c.below_reservation = False
 
     def add_requester(self, name: str, wallet: float):
         """2.0.0 §2.1: a requester arrives (a crowd's member) with a wallet, issued."""
@@ -1102,8 +1130,10 @@ class World:
             if c.below_market:
                 self.below_market_flagged += 1
                 self.period["below_market"] += 1
+            self._mark_reservation(c, self.t)           # 2.4.0 §2.2: the floor is a constant, so the mark is set from tick 0
             self._log(c, f"posted root beta={beta}; all-in {all_in:g} locked at index {idx:g}, m {m_post:g}"
-                      + (f"; flagged below market (B̄ {self.mean_awarded_price():g})" if c.below_market else ""))
+                      + (f"; flagged below market (B̄ {self.mean_awarded_price():g})" if c.below_market else "")
+                      + (f"; marked below the state's reservation ({self.p.state_reservation:g})" if c.below_reservation else ""))
             return cid
         self._log(c, f"posted root beta={beta}")
         return cid
@@ -2613,8 +2643,9 @@ class World:
         if not self.p.service_clock or not c.is_root or c.plant is not None or c.final or c.clock_stopped_at is not None:
             return False
         if c.state == "AVAILABLE":
-            B = self.mean_awarded_price() or c.beta
-            return c.beta + 1e-9 >= B
+            # 2.4.0 §2.2: one condition — the clock runs while the ceiling admits the state's price p_T = max(B̄, the reservation);
+            # a request below the market is not the state's to answer for, one below the floor was told and chose to wait under it
+            return c.beta + 1e-9 >= self._state_price(c.beta)
         return True
 
     def _stop_clock(self, c: Case, reason: str):
@@ -2982,6 +3013,8 @@ class World:
                "price_sum": 0.0, "price_n": 0, "created": 0.0, "retired": 0.0, "deficit_peak": 0.0, "issued": 0.0,
                "departed": 0.0, "below_market": 0, "ceilings_raised": 0, "refused_capacity_seats": 0,
                "refused_capacity_awards": 0,
+               # 2.4.0: the state's reservation — requests marked below it, summonses declined for it, the state's price at its deliveries
+               "below_reservation": 0, "summons_declined_floor": 0, "state_price_sum": 0.0, "state_price_n": 0,
                # 2.1.0: the bank's lines this period, the troops' review fees, the state's deliveries, the refusals for credit
                "loans": 0.0, "repaid": 0.0, "debt_added": 0.0, "debt_repaid": 0.0, "debt_peak": 0.0, "loans_peak": 0.0,
                "troop_review_fee": 0.0, "state_closed": 0, "state_failed": 0, "refused_credit_awards": 0, "refused_credit_seats": 0,
@@ -3420,9 +3453,12 @@ class World:
         return tid
 
     def _summon_delivery(self, c: Case, tick: int) -> Optional[str]:
-        B = self.mean_awarded_price() or c.beta
+        B = self._state_price(c.beta)                   # 2.4.0 §2.1: p_T = max(B̄, the reservation); B̄ alone before it
         if c.beta + 1e-9 < B:
-            return None                                 # priced below the market: not a shortage; waits
+            if c.beta + 1e-9 >= (self.mean_awarded_price() or c.beta):
+                self.summons_declined_floor += 1        # 2.4.0: admits the market, not the floor — declined, marked, told
+                self.period["summons_declined_floor"] += 1
+            return None                                 # priced below the state's price: not a shortage; waits
         G = max(1.0, math.ceil(self.p.G_frac * B))
         omega_base = self.p.omega_rate * B
         b = None                                        # 2.1.0: the state's trailing fail rate at the summons (the bank only)
@@ -3513,12 +3549,19 @@ class World:
         self.troop_summons_deliveries += 1
         self.period["troop_summons_deliveries"] += 1
         self._record_price(B)
+        self.state_price_sum += B                       # 2.4.0: the state's price, read beside B̄ and P_t
+        self.state_price_n += 1
+        self.period["state_price_sum"] += B
+        self.period["state_price_n"] += 1
         if self.p.bbar_counts_troops:                   # the declared control of 2.0.0 §8.8: the state's price counted in B̄
             self.period["award_price_sum"] += B
             self.period["award_n"] += 1
         self.troop_capital_peak = max(self.troop_capital_peak, self._troop_capital_now())
         self.history.append("troop", {"t": tick, "troop": tid, "kind": "delivery", "case": c.id, "B": B, "msg": "summoned"})
-        self._log(c, f"troop {tid} awarded at the market price B={B:g} after the request waited {self.p.w_A} ticks unawarded")
+        if B > (self.mean_awarded_price() or 0.0) + 1e-9:
+            self._log(c, f"troop {tid} awarded at the state's reservation B={B:g} after the request waited {self.p.w_A} ticks unawarded")
+        else:
+            self._log(c, f"troop {tid} awarded at the market price B={B:g} after the request waited {self.p.w_A} ticks unawarded")
         self._service_omega_claims()
         return tid
 
@@ -3597,6 +3640,14 @@ class World:
                    if c.plant is None and not any(a[3] == "override" for a in c.assessments)
                    and c.state == "AVAILABLE" and c.is_root and self.p.troops and c.requester in self.requesters
                    and tick - c.t_post + 1 >= self.p.w_A]
+        # 2.4.0 (the 1.7.1 conformance correction made at acceptance, Appendix Q): the pass gathers only what the state may take —
+        # requests at β ≥ p_T — so a request below the state's price neither holds a member's slot nor pushes a fundable one past the count
+        if waiting and self.p.floating:
+            for c in waiting:
+                if c.beta + 1e-9 < self._state_price(c.beta) and c.beta + 1e-9 >= (self.mean_awarded_price() or c.beta):
+                    self.summons_declined_floor += 1    # counted here, where the request leaves the pass
+                    self.period["summons_declined_floor"] += 1
+            waiting = [c for c in waiting if c.beta + 1e-9 >= self._state_price(c.beta)]
         if waiting:
             B = self.mean_awarded_price() or waiting[0].beta
             G = max(1.0, math.ceil(self.p.G_frac * B))

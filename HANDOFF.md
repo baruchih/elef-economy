@@ -1990,6 +1990,32 @@ and halves the gain from trade.
 the kill fee unexercised against the below-cost child (a driver gap); patient customers against the state's delivery at B̄ (the reviewer's
 §19 call); the price level as the members' nominal choice. **Next:** the reviewer's reading of A, then 2.4.0 as sketched.
 
+## Design revision 12 — the state's reservation (2.4.0, October 19, 2026)
+
+**Why.** Run 17's batch C: a patient demand side — requests at 0.7 B̄ raised to B̄ only after T ticks — took the price to 4.8 at T 10 / 20 / 40
+alike and handed 78–86% of the work to the troops at a price below every member's cost but the cheapest three; the members left, the requesters
+hoarded 9,000 a wallet, every request was late by design. The mechanism was the rules': the state delivered at B̄ with no reservation of its own,
+P_t counted its price, and the market's cost floor was written nowhere. The reviewer's sketch (rc.1) gave the state a public reservation; my
+review found two corrections (the kill fee is the child's *recorded* cost, so a lowballer that never worked pays and is paid nothing; R_T was
+the fund's troop reserve — the floor is $\underline{B}$) and eight readings, all adopted in rc.2 (`spec/design_revisions/dr12_*`); accepted with
+an editorial reading (the header's slip) and one conformance correction recorded in Appendix Q.
+
+**The rule.** The state delivers at $p_T=\max(\bar B,\underline{B})$, $\underline{B}$ = 8 nominal and public (0 the control); the summons only where
+β ≥ p_T; the guarantee, the base fee, the burn and P_t's count at p_T; a request posted or raised below the floor marked *below the state's
+reservation* with its tick, readable, the floor in the view, its clock stopped while it holds the mark (the clock's one condition β ≥ p_T); the
+award pass gathers only requests at β ≥ p_T (the 1.7.1 correction — a below-market request older than w_A used to hold a member's slot it would
+not use); F_0 ≥ G^V on the parameters (the float is the bond's capital); §9.3's kill fee in the delegation driver, no rule moving. Everything
+else 2.3.0.
+
+**Engine and drivers.** `Params.state_reservation`; `_state_floor` / `_state_price`; `_summon_delivery` at p_T; the award pass's filter;
+`_clock_runs`; `_mark_reservation` at `post_root` / `raise_ceiling`; `Params.__post_init__`; I37; the view's fields; `test_v24` (11); goldens
+re-pinned once (the equivalence scenario posts below the market, so the award pass's correction moves its summonses; the floor never binds
+there). Suite 304 + 32 in three modes. Drivers: `--state-reservation`, `--ceiling-policy patient | patient-blind`, `--parent-cancel`, the
+columns; `--rules 2.3.0` the control.
+
+**Next.** §8 on run 17's seeds in its order: §6; the patient cells (8.2) and the floor sweep (8.3); the invisibility check (8.4); the riots (8.5);
+then the kill fee (8.6), the red team (8.7), the static w_A sweep (8.8).
+
 ## Maps
 
 Two `_line` artifacts in project Agentic-OS (`c54120a6-aaff-40f7-8a9f-3667da542879`):

@@ -1047,6 +1047,33 @@ def I36_the_pots_grow_with_the_tree(w, cases=None):
             _fail(f"I36 nested {c.id} pots {c.phi_E} / {c.phi_F} are not the defaults at its posting index {c.index_at_lock}")
 
 
+def I37_the_states_reservation(w, cases=None):
+    """2.4.0 §2.1–2.2 (I37): the state's price is p_T = max(B̄, the reservation); no troop delivers a request whose ceiling is below
+    the reservation, and every troop delivery is priced at or above it; a live root request with β below the reservation carries the
+    mark (and one at or above it does not); its clock does not run while it holds the mark; the reservation is nominal (a parameter)."""
+    if not getattr(w.p, "floating", False):
+        return
+    floor = w.p.state_reservation
+    for tid, t in w.troops.items():
+        if t["kind"] != "delivery":
+            continue
+        c = _peek(w.cases, t["case"])
+        if c.beta + 1e-9 < floor:
+            _fail(f"I37 troop {tid} delivers {c.id} whose ceiling {c.beta} is below the state's reservation {floor}")
+        if c.B is not None and c.B + 1e-9 < floor:
+            _fail(f"I37 troop {tid} delivers {c.id} at {c.B}, below the state's reservation {floor}")
+    for c in _cases(w, cases):
+        if not c.is_root or c.plant is not None or c.final or c.state != "AVAILABLE":
+            continue
+        below = c.beta + 1e-9 < floor
+        if below != c.below_reservation:
+            _fail(f"I37 {c.id} β {c.beta} against the reservation {floor}: marked {c.below_reservation}")
+        if below and c.below_reservation_since is None:
+            _fail(f"I37 {c.id} marked without its tick")
+        if below and w.p.service_clock and w._clock_runs(c):
+            _fail(f"I37 the clock of {c.id} runs while it is below the state's reservation")
+
+
 def I31_the_index_per_period(w):
     """2.1.0 §2.5: P_t is what the bank published at the last period boundary and does not move within a period."""
     if not getattr(w, "bank_on", False):
@@ -1166,6 +1193,7 @@ def check_all(w):
     I34_a_clean_departure(w)
     I35_the_summons_is_for_roots(w)
     I36_the_pots_grow_with_the_tree(w)
+    I37_the_states_reservation(w)
     I16_history_is_authoritative(w)
 
 
@@ -1233,6 +1261,7 @@ def check_tick(w):
     I34_a_clean_departure(w)
     I35_the_summons_is_for_roots(w)
     I36_the_pots_grow_with_the_tree(w, cases)
+    I37_the_states_reservation(w, cases)
 
     w._events_checked = len(w.ledger.events)
     w._prune_working_set()

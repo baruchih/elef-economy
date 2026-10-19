@@ -123,12 +123,18 @@ tests/test_record_mode.py           the record on disk (`Params.record_dir`): th
                                     pickling match memory mode — 8
 run_tests.py        every suite with plain python; pytest reports the same (conftest marks the XFAIL)
 ```
+tests/test_v24.py                   design revision 12 (2.4.0): the state's reservation — the troop at max(B̄, 8) with the guarantee, the fee and
+                                    the burn at it and P_t counting it; no summons below the state's price (declined, marked, waiting); a member may
+                                    still take a request under the floor; the award pass gathering only β ≥ p_T against the 2.3.0 control; the
+                                    mark set at posting, kept under a short raise, cleared at the floor; the clock's one condition; the view's
+                                    floor, price and marks; F0 < G_V refused at construction; the kill fee zero for a child that never worked; I37
+                                    catching a delivery under the floor and a mark out of place; the reservation at 0 = 2.3.0 — 11
 
-Run: `python3 run_tests.py` — 293 pass, 0 fail, 32 expected failures, each with a stated reason (one original,
+Run: `python3 run_tests.py` — 304 pass, 0 fail, 32 expected failures, each with a stated reason (one original,
 four superseded by the view contract, nineteen on the withdrawn reopening path, one superseded by design
 revision 1, one by design revision 2, two by design revisions 10 and 11 — a service fee pooled until the close and the pool's advance move the reimbursement figures they pin — two by design revision 11 — the parent's pots make three children unaffordable on a float of 50, and the root's allowance is no longer exhausted by a nested review — two by design revision 8 — the backing's v_t and the pay-in refused at posting; the three 1.x figures 2.0.0's moving index broke pass again under 2.1.0's index per period). With pytest: `python3 -m pytest tests -q` reports 259 passed, 31 xfailed; the
 runner expands pytest parametrization as pytest does, including multi-argument and stacked marks. (Spec Appendix D
-records the count at the v1.0.1 freeze, 156; at 1.1.0, 181; at 1.2.0, 197; at 1.3.0, 208; at 1.4.0, 218; at 1.5.0, 225; at 1.6.0, 236; at 1.7.0, 244; at 1.7.1, 248; at 2.0.0, 259; at 2.1.0, 275; at 2.2.0, 282; at 2.3.0, 293.)
+records the count at the v1.0.1 freeze, 156; at 1.1.0, 181; at 1.2.0, 197; at 1.3.0, 208; at 1.4.0, 218; at 1.5.0, 225; at 1.6.0, 236; at 1.7.0, 244; at 1.7.1, 248; at 2.0.0, 259; at 2.1.0, 275; at 2.2.0, 282; at 2.3.0, 293; at 2.4.0, 304.)
 
 Expected failures are **strict and parameter-exact** in both entry points: `EXPECTED_FAIL_PARAMS` names the
 parameter runs that are expected to fail inside a mixed test (the P/⊥ runs of the eighth review's first case;
@@ -522,6 +528,21 @@ sweeps the take with the rebate pinned. In the engine:
   `advances_made/repaid`, `liabilities_paid`; `drivers/sweep.py` carries them.
 - **Tests.** `test_v17.py` (8); goldens re-pinned once; `test_v13`–`test_v16` pinned to the merged fund and the half cap.
   Reviewer tests untouched and passing.
+
+## Design revision 12 — the state's reservation (2.4.0, October 19, 2026)
+
+`Params.state_reservation` (8; 0 the control and `--rules 2.3.0`) is the revision: the state delivers at `p_T = max(B̄, the reservation)` and never
+below it — `_state_price()`; `_summon_delivery` prices, bonds, fees and burns at p_T and counts the award in P_t at p_T (`state_price_sum / n`); a
+request admitting the market but not the floor is declined (`summons_declined_floor`) and waits at any wait; the award pass filters its gathered
+list to β ≥ p_T before counting the free fundable members (the 1.7.1 conformance correction made at acceptance — the goldens re-pinned once for
+it; the floor never binds in the equivalence scenario); `_clock_runs` is the one condition β ≥ p_T; `Case.below_reservation` with its tick, set by
+`_mark_reservation` at `post_root` and `raise_ceiling` from tick 0 and cleared at a raise to the floor; `Params.__post_init__` refuses F0 < G_V
+(I33's bound on the parameters); I37 per tick and in the full audit; `view.market()` carries `state_floor`, `state_price`, the marks and the ticks
+below, `view.troops()` the declines and the state's price mean. `test_v24.py` (11). Driver: `--state-reservation 0|4|8|12`, `--ceiling-policy
+patient | patient-blind` (`patient` raises to the state's price read from the view after `--patient-ticks`; `patient-blind` is run 17's, to B̄,
+deadlocking at the floor), `--parent-cancel on|off` (the parent cancels a child that has not submitted when its deadline leaves one `work_ticks`,
+pays the kill fee — the child's recorded cost, zero for one that never worked — and self-executes); columns `state_floor`, `state_price*`,
+`below_reservation_*`, `summons_declined_floor`, `parent_cancellations`, `kill_fees_*`, `cancel_delay_mean`.
 
 ## Design revision 11 — the supply side (2.3.0, October 19, 2026)
 

@@ -79,6 +79,9 @@ python3 -m drivers.stamping --actors 20 --ticks 1000 --stampers 0.6 --seed 1   #
 python3 -m drivers.stamping --entry-pool 20 --stampers 0.6 --seed 1   # 2.3.0 §8.2: entry — twenty candidates reading the view, arriving as probationers; --reservation, --arrivals-per-tick, --f0 the knobs
 python3 -m drivers.stamping --c-d-sigma 0.8 --delegation on --stampers 0 --seed 1   # 2.3.0 §8.3: the spread and delegation (σ 0.2 / 0.43 / 0.8); --nested-pots root the 1.1.0 control
 python3 -m drivers.stamping --rules 2.2.0 --seed 1   # the 2.2.0 control: one cost, a fixed population, the children on the root's pots
+python3 -m drivers.stamping --entry-pool 20 --stampers 0.6 --w-r 5 --seed 1   # run 17's inspection-queue diagnostics (seats_*, wait_*, avail_*, cap_*); --duty-cap threequarters the cap cell; --panel-determined off the control
+python3 -m drivers.stamping --entry-pool 20 --stampers 0.6 --cycler on --seed 1   # 2.3.0 §8.7 red team: the cycler; --entry-stampers 1.0 the swarm; --delegation on --c-d-sigma 0.8 --greedy-parents 0.5 / --lowball-children 0.2 the parents and children
+python3 -m drivers.stamping --entry-pool 20 --stampers 0.6 --ceiling-policy patient --patient-ticks 20 --seed 1   # run 17 C: patient customers (0.7 B̄, raised after T ticks); --idle-k 1 the faster decay; --delegation on --c-d-sigma 0.8 --child-bid ceiling-aware the children's bid
 python3 -m drivers.stamping --rules 2.1.0 --seed 1   # the 2.1.0 control: the rebate at the stop, else the liability stock (2.2.0 pools the fees and settles the claims at the close)
 python3 -m drivers.stamping --small-requests 2 --k-open 0 --ceiling-policy market --stampers 0.6 --seed 1   # 2.2.0 §8.5 red team: many small requests for pro-rata rebates
 python3 -m drivers.stamping --rules 2.0.0 --seed 1   # the 2.0.0 control: Ω's creation and retirement, the deficit, P_t on the live window, the state at cost

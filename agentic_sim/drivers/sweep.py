@@ -101,8 +101,20 @@ KEYS = ["careful_wealth", "stamper_wealth", "careful_fees", "stamper_fees", "car
         "members_median_cost", "population_median_cost", "departed_median_cost", "arrived_median_cost", "careful_median_cost",
         "nested_posted", "nested_awarded", "nested_unaffordable", "nested_award_refused", "nested_self_executed", "nested_vested", "nested_final_n", "nested_share",
         "nested_price_mean", "gain_from_trade_mean", "nested_false_approvals", "nested_false_rejections", "brokers_n", "brokers_cost_rank",
-        "brokers_award_share", "pool_advances", "hoards_over_M"]
-SHORT = {"c-d-sigma": "sig", "entry-pool": "pool", "reservation": "r", "arrivals-per-tick": "apt", "delegation": "deleg", "nested-pots": "pots",
+        "brokers_award_share", "pool_advances", "hoards_over_M",
+        # run 17: the inspection queue, the red team, the strategy variants
+        *[f"seats_{k}_{s}" for k in ("initial", "audit", "appeal") for s in ("member", "probationer", "troop")],
+        *[f"wait_{k}_{s}" for k in ("initial", "audit", "appeal") for s in ("member", "probationer", "troop")],
+        *[f"waitge_{k}_{s}" for k in ("initial", "audit", "appeal") for s in ("member", "probationer", "troop")],
+        "left_initial", "left_audit", "left_appeal", "waiting_now",
+        *[f"avail_{k}" for k in ["ticks_waiting", "waiting_items", "items_initial", "items_audit", "items_appeal", "on_duty", "committed", "in_review",
+                                 "on_duty_idle_fits", "on_duty_idle_unfit", "free_fundable", "held_by_cap", "free_unfunded", "free_not_panel", "ineligible",
+                                 "free_excluded", "free_probationers", "free_probationers_fit_initial"]],
+        "cap_now", "members_on_duty_now", "E_t_now", "cap_slack_sum", "cap_slack_n", "cap_bound_ticks",
+        "seated_initial_member", "seated_initial_probationer", "seated_audit_member", "seated_appeal_member", "seated_plant", "cycles", "greedy_rejections", "greedy_cases_vested",
+        "lowball_child_awards", "lowball_child_misses", "nested_fa_stamper_parent", "nested_fa_careful_parent", "nested_posted_by_stamper",
+        "nested_posted_by_careful", "patient_raised", "cycler_wealth_real", "cyclers_admitted"]
+SHORT = {"cycler": "cyc", "greedy-parents": "greedy", "lowball-children": "lbc", "child-bid": "cbid", "patient-ticks": "pat", "c-d-sigma": "sig", "entry-pool": "pool", "reservation": "r", "arrivals-per-tick": "apt", "delegation": "deleg", "nested-pots": "pots",
          "f0": "f0", "entry-stampers": "swarm", "small-requests": "small", "debt-bound-periods": "wall", "b-t-prior": "bprior", "b-t-min-n": "bn", "requester-on-refusal": "onref", "troop-fail-rate": "tfail",
          "state-rejecters": "srej", "c-d-t-mode": "cdt", "stampers": "s", "fee": "f", "on-duty": "X", "gv": "gv", "p-floor": "pf", "p-start": "p", "p-cap": "pc", "band": "band",
          "fail-rate": "b", "accuracy": "a", "ruling-accuracy": "r", "appeal-policy": "appeal", "dispute-policy": "dispute",

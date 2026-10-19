@@ -544,6 +544,17 @@ Driver (`--rules 2.3.0` default; `2.2.0` the control): per-actor costs (`--c-d-s
 Columns: actors_n, members_total, probationers, arrivals, admissions, departures, time_to_membership, *_median_cost, nested_*,
 nested_share, gain_from_trade_mean, brokers_*, pool_advances, hoards_over_M.
 
+Run 17 (drivers only, rules unchanged): the inspection-queue diagnostics (`inspection_diagnostics`, read each tick after the driver's
+assignments: every seat that waits by kind — initial / audit / appeal — with the seating steps it stood unfilled and who seated it, member /
+probationer / troop, `seats_*`, `wait_*`, `waitge_*`, `left_*`; at every tick something waits, the actors by state against the kind
+waiting — on duty idle and fit, on duty idle and unfit, free and fit under the cap (the decisive state), held by the cap, unfunded for the
+bond, duty-fit but not panel-fit, ineligible, excluded, free probationers — `avail_*`; the cap ⌈frac·E_t⌉ against the members on duty,
+`cap_now`, `cap_slack_*`, `cap_bound_ticks`; every seat the driver fills by standing, `seated_*`), `--duty-cap threequarters`; the red team
+of 2.3.0 §8.7 (`--cycler on`: a suspended stamper departs and re-arrives at once under a fresh identity; `--greedy-parents 0.5`: careful
+parents that reject every child; `--lowball-children 0.2`: children bidding half their cost that never deliver; the stamping broker read by
+`nested_posted_by_*` / `nested_fa_*_parent`); the strategy variants (`--ceiling-policy patient --patient-ticks 20`: a request at 0.7 B̄
+raised to B̄ after T ticks unserved; `--child-bid ceiling-aware`: a child bids min(ceiling, c(1+m)); `--idle-k 1` is the faster decay).
+
 ## Design revision 10 — the rebate from income (2.2.0, October 19, 2026)
 
 `Params.rebate_pool` (on, with `bank`) is the revision: `_stop_clock` records the clock's claim (`rebate_owed`, the period's `claims`;

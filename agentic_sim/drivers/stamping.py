@@ -127,6 +127,10 @@ PERMITTED = ["post_root (human H, β fixed)", "award (every free actor offers B 
              "create_plant (1.2.0: the orchestrator supplies the plants the engine's rate calls for, bad w.p. β_P, "
              "at B = β; no audit roll, no dispute on a plant)",
              "advance"]
+AVAIL_KEYS = ["ticks_waiting", "waiting_items", "items_initial", "items_audit", "items_appeal", "on_duty", "committed", "in_review",
+              "on_duty_idle_fits", "on_duty_idle_unfit", "free_fundable", "held_by_cap", "free_unfunded", "free_not_panel", "ineligible",
+              "free_excluded", "free_probationers", "free_probationers_fit_initial"]
+
 PERMITTED_200 = ["post_root (six requesters, β = min(β_max, a third of the unlocked wallet) or min(β_max, mult × B̄) under --ceiling-policy market, "
                  "one a tick while K_open (0: no limit) and the all-in fit; "
                  "the engine locks the all-in maximum at posting and refuses what does not fit — 2.0.0 §2.1)",
@@ -153,6 +157,7 @@ class Task:
     title: str
     fulfilled: bool              # hidden truth
     nested: bool = False          # 2.3.0: a child's task
+    nested_missed: bool = False   # run 17: a lowball child's miss, counted once
     audit_rolled: bool = False
     audit_wanted: bool = False   # rolled yes, not yet assigned
     appeal_wanted: bool = False
@@ -218,7 +223,7 @@ class Stamping:
                    reserve_demand=rev5,
                    service_clock=on(a.clock), T_s=a.t_s, omega_backs_fund=on(a.backing), seat_the_queue=on(a.seat_queue),
                    panel_determined=on(a.panel_determined), reserve_periods=(a.reserve_periods if rev6 else 1),
-                   duty_cap_frac={"half": 0.5, "twothirds": 2.0 / 3.0, "all": 1.0}[a.duty_cap],
+                   duty_cap_frac={"half": 0.5, "twothirds": 2.0 / 3.0, "threequarters": 0.75, "all": 1.0}[a.duty_cap],
                    plant_reserve_life=(0 if a.plant_reserve == "period" else 15),
                    troop_account=(rev7 and a.accounts == "on"), omega_rate=a.omega_rate, r_s=a.r_s, T_susp=a.t_susp,
                    theta_panel=a.theta_panel, n_P=a.record_window,
@@ -266,6 +271,25 @@ class Stamping:
         self.small = set(self.requesters[-a.small_requests:]) if a.small_requests > 0 else set()
         ids_c = [aid for aid in self.actors if self.kind[aid] == CAREFUL]
         self.state_rejecters = set(ids_c[: round(len(ids_c) * a.state_rejecters)]) if a.state_rejecters > 0 else set()
+        # run 17 red team: greedy parents (careful actors that reject every child), lowball children (bid half, never deliver), cyclers
+        ids_g = list(reversed(ids_c))
+        self.greedy = set(ids_g[: round(len(ids_g) * a.greedy_parents)]) if a.greedy_parents > 0 else set()
+        ids_lb = list(self.actors); self.rng.shuffle(ids_lb)
+        self.lowball_children = set(ids_lb[: round(len(ids_lb) * a.lowball_children)]) if a.lowball_children > 0 else set()
+        self.cycle_n = 0
+        self.cycled_from: dict[str, str] = {}            # new identity -> the one it left
+        self.cycler_admitted_ticks: list[int] = []
+        # run 17 batch A: the inspection queue — who waits, who clears it, who was available while it waited
+        self.waiting_since: dict[tuple, int] = {}       # (case, kind) -> observations seen waiting
+        self.waiting_first: dict[tuple, int] = {}       # (case, kind) -> the world tick first seen waiting
+        KS = [(k, s) for k in ("initial", "audit", "appeal") for s in ("member", "probationer", "troop")]
+        self.seat_counts = {ks: 0 for ks in KS}
+        self.seat_wait_sum = {ks: 0 for ks in KS}
+        self.seat_wait_ge_wR = {ks: 0 for ks in KS}
+        self.seat_left_otherwise = {"initial": 0, "audit": 0, "appeal": 0}
+        self.avail = {k: 0 for k in AVAIL_KEYS}
+        self.cap_slack_sum, self.cap_slack_n, self.cap_bound_ticks = 0, 0, 0
+        self.cap_now, self.members_on_duty_now, self.E_t_now = 0, 0, 0
         world = World(p, self.actors, humans=humans, on_duty=sorted(self.actors)[: a.on_duty])
         self.w = Public(world)
         self._world = world            # for the final check_all and the fingerprint only
@@ -310,7 +334,13 @@ class Stamping:
                   # 2.3.0: the supply side
                   "arrivals": 0, "departures": 0, "departed_cost_sum": 0.0, "nested_posted": 0, "nested_awarded": 0, "nested_unaffordable": 0,
                   "nested_self_executed": 0, "nested_judged": 0, "nested_false_approvals": 0, "nested_false_rejections": 0,
-                  "nested_price_sum": 0.0, "nested_price_n": 0, "gain_sum": 0.0, "gain_vs_cost_sum": 0.0, "nested_award_refused": 0}
+                  "nested_price_sum": 0.0, "nested_price_n": 0, "gain_sum": 0.0, "gain_vs_cost_sum": 0.0, "nested_award_refused": 0,
+                  # run 17: the red team and the parents by kind
+                  "cycles": 0, "greedy_rejections": 0, "greedy_overturned": 0, "lowball_child_awards": 0, "lowball_child_misses": 0,
+                  "nested_fa_stamper_parent": 0, "nested_fa_careful_parent": 0, "nested_posted_by_stamper": 0, "nested_posted_by_careful": 0,
+                  "patient_raised": 0,
+                  # run 17 batch A: every inspection seat the driver fills, by kind and the reviewer's standing (plants apart)
+                  "seated_initial_member": 0, "seated_initial_probationer": 0, "seated_audit_member": 0, "seated_appeal_member": 0, "seated_plant": 0}
         self._awarded_last = 0
         self.marked: set[str] = set()                    # requests seen with a mark (counted once)
         self.repost_due: dict[str, int] = {}             # requester -> withdrawals not yet reposted
@@ -545,6 +575,7 @@ class Stamping:
             self.tasks[nid].nested = True
             self.active[nid] = True
             self.c["nested_posted"] += 1
+            self.c["nested_posted_by_stamper" if self.kind[parent] == STAMPER else "nested_posted_by_careful"] += 1
             self.parent_delegated[parent] = self.parent_delegated.get(parent, 0) + 1
         # 2. children bid on open nested requests; a request unawarded for T_wait is withdrawn and the parent executes itself
         for nid in [x for x in self.active if x in self.nested_parent]:
@@ -552,7 +583,19 @@ class Stamping:
             if c.state != "AVAILABLE":
                 continue
             root = w.case(self.nested_parent[nid])
-            offers = [(aid, bid) for aid, bid in self.offers_for(nid) if aid != root.actor]
+            offers = []
+            for aid in self.free_members():
+                if aid == root.actor:
+                    continue
+                cost = self.cost_now(aid)
+                if aid in self.lowball_children:
+                    bid = round(0.5 * cost, 6)           # §8.7 red team: below cost, and it will not deliver
+                elif a.child_bid == "ceiling-aware" and cost <= c.beta + 1e-9:
+                    bid = round(min(c.beta, cost * (1.0 + self.margin[aid])), 6)   # batch C: bid down to the parent's ceiling
+                else:
+                    bid = self.bid_of(aid, c.beta)
+                if bid <= c.beta + 1e-9 and w.unlocked(aid) + 1e-9 >= max(1.0, math.ceil(self.p.G_frac * bid)):
+                    offers.append((aid, bid))
             if offers:
                 actor, bid = self.select_bid(offers, c.beta)
                 try:
@@ -564,6 +607,8 @@ class Stamping:
                 self.idle[actor] = 0
                 self.tally[actor].awards += 1
                 self.c["nested_awarded"] += 1
+                if actor in self.lowball_children:
+                    self.c["lowball_child_awards"] += 1
                 self.c["nested_price_sum"] += bid
                 self.c["nested_price_n"] += 1
                 self.c["gain_sum"] += root.B - bid - self.nested_overhead(bid) - 0.0      # against the parent's own cost below
@@ -582,7 +627,10 @@ class Stamping:
             root = w.case(self.nested_parent[nid])
             parent = root.actor
             truth = self.tasks[nid].fulfilled
-            if self.kind[parent] == STAMPER:
+            if parent in self.greedy:
+                v = N                                    # §8.7 red team: rejects good work for the guarantee
+                self.c["greedy_rejections"] += 1
+            elif self.kind[parent] == STAMPER:
                 v = F
             else:
                 v = F if (truth == (self.rng.random() < a.accuracy)) else N
@@ -595,6 +643,7 @@ class Stamping:
             self.c["nested_judged"] += 1
             if v == F and not truth:
                 self.c["nested_false_approvals"] += 1
+                self.c["nested_fa_stamper_parent" if self.kind[parent] == STAMPER else "nested_fa_careful_parent"] += 1
                 self.tasks[self.nested_parent[nid]].fulfilled = False      # the parent built on bad work (§9.2)
             if v == N and truth:
                 self.c["nested_false_rejections"] += 1
@@ -642,6 +691,9 @@ class Stamping:
             # run 13 §3 (the reviewer's demand-unbound cell): a market-aware ceiling — a little above the market price, so a
             # posting locks less than the wallet rule's and the requester posts more; the wallet still has to carry the all-in
             beta = math.floor(min(a.beta_max, a.ceiling_mult * mk["B_bar"]) * 100) / 100
+        elif a.ceiling_policy == "patient":
+            # run 17 batch C: patient customers — 0.7 B̄, raised to B̄ only after --patient-ticks unserved (raise_below_market)
+            beta = math.floor(min(a.beta_max, max(1.0, 0.7 * mk["B_bar"])) * 100) / 100
         else:
             beta = math.floor(min(a.beta_max, a.ceiling_share * U) * 100) / 100
         if r in self.small:                               # 2.2.0 §8.5 red team: many small requests at the market price exactly
@@ -671,8 +723,12 @@ class Stamping:
         B_bar = w.market()["B_bar"]
         for cid in sorted(self.active, key=lambda s: int(s[1:])):
             c = w.case(cid)
-            if c.state != "AVAILABLE" or c.beta + 1e-9 >= B_bar or self.owner.get(cid) in self.stingy:
+            if c.state != "AVAILABLE" or c.beta + 1e-9 >= B_bar or self.owner.get(cid) in self.stingy or cid in self.nested_parent:
                 continue
+            if self.a.ceiling_policy == "patient" and self.w.t - c.t_post < self.a.patient_ticks:
+                continue                                 # batch C: a patient customer waits T ticks before raising
+            if self.a.ceiling_policy == "patient":
+                self.c["patient_raised"] += 1
             target = min(self.a.beta_max, math.ceil(B_bar * 100) / 100)
             if target <= c.beta + 1e-9:
                 continue
@@ -701,6 +757,168 @@ class Stamping:
                 self.active.pop(cid, None)
                 self.c["withdrawn_at_mark"] += 1
                 self.repost_due[owner] = self.repost_due.get(owner, 0) + 1
+
+    def cycler_step(self, t: int):
+        """§8.7 red team: a suspended stamper with no live obligation departs and re-arrives at once under a fresh identity, with
+        its cost and disposition; the control serves its probation. Counted; the cyclers' admissions read against readmissions."""
+        if self.a.cycler != "on" or not self.rev11:
+            return
+        w = self.w
+        for aid in list(self.actors):
+            ac = w.actor(aid)
+            if self.kind[aid] != STAMPER or ac.suspended_until is None:
+                continue
+            try:
+                w.depart(aid)
+            except RuleError:
+                continue
+            self.actors.remove(aid)
+            self.departed.append(aid)
+            self.c["departures"] += 1
+            self.cycle_n += 1
+            name = f"c{self.cycle_n:03d}"
+            w.arrive(name)
+            self.actors.append(name)
+            self.kind[name] = STAMPER
+            self.c_d_of[name] = self.c_d_of[aid]
+            self.margin[name], self.idle[name] = self.a.margin0, 0
+            self.tally[name] = Tally()
+            self.arrived.append(name)
+            self.cycled_from[name] = aid
+            self.wealth_at_boundary[name] = w.wealth(name)
+            self.c["departed_cost_sum"] += self.c_d_of[aid]
+            self.c["cycles"] += 1
+            self.c["arrivals"] += 1
+
+    def inspection_diagnostics(self, t: int):
+        """Run 17 batch A: the inspection queue, read at the driver's point in the tick (after this tick's assignments, before the
+        world's seating and summons). For every review seat that waits — initial, audit, appeal — the observations it was seen waiting
+        (the wait is the seating steps it stood unfilled — the engine's count against w_R; a seat the driver fills at once is never seen) and who seated it (member / probationer / troop);
+        and at every tick something waits, the actors by state against the kind waiting: on duty idle and eligible for the kind
+        (should be none — the driver's own gap), off duty and free, fundable, eligible for the kind and not excluded — under the cap
+        (the decisive state: a seat the rotation could have filled) or held out by it; free but unable to fund the bond; free but
+        ineligible by record (for a panel seat: duty-eligible but not panel-eligible counted apart); the free probationers; the
+        cap and the members on duty."""
+        w, p = self.w, self.p
+        waiting_now = []
+        for cid in list(self.active):
+            c = w.case(cid)
+            if c.plant is not None or c.final:
+                continue
+            open_roles = {w.review(r).role for r in c.reviews if w.review(r).status == "open"}
+            if c.state == "SUBMITTED" and c.is_root and "initial" not in open_roles:
+                waiting_now.append((cid, "initial"))
+            if c.state == "PENDING" and (c.audit_obligation or c.audit_vacated) and "audit" not in open_roles:
+                waiting_now.append((cid, "audit"))
+            ch = c.challenge
+            if ch and not ch["resolved"] and len(ch["reviews"]) < 2:
+                waiting_now.append((cid, "appeal"))
+        now = set(waiting_now)
+        for key in waiting_now:
+            self.waiting_since[key] = self.waiting_since.get(key, 0) + 1
+            self.waiting_first.setdefault(key, w.t)
+        for key in list(self.waiting_since):
+            if key in now:
+                continue
+            cid, kind = key
+            seen = self.waiting_since.pop(key)
+            first = self.waiting_first.pop(key)
+            c = w.case(cid)
+            if kind == "appeal":
+                ch_ids = set((c.challenge or {}).get("reviews", []))
+                rs = [w.review(r) for r in c.reviews if r in ch_ids and w.review(r).t_assign >= first]
+            else:
+                rs = [w.review(r) for r in c.reviews if w.review(r).role == kind and w.review(r).t_assign >= first]
+            if not rs:
+                self.seat_left_otherwise[kind] += 1          # withdrawn, ruled, waived, the window ran out
+                continue
+            r = min(rs, key=lambda x: x.t_assign)
+            if w.is_troop(r.reviewer):
+                who = "troop"
+            else:
+                try:
+                    who = "probationer" if w.actor(r.reviewer).probation else "member"
+                except KeyError:
+                    who = "member"
+            self.seat_counts[(kind, who)] += 1
+            self.seat_wait_sum[(kind, who)] += seen          # seating steps it stood unfilled (the engine's count for w_R)
+            if seen >= p.w_R:
+                self.seat_wait_ge_wR[(kind, who)] += 1
+        members = [aid for aid in self.actors if w.actor(aid).is_member]
+        E_t = sum(1 for aid in members if w.actor(aid).duty_eligible)
+        cap = max(int(math.ceil(p.duty_cap_frac * E_t - 1e-9)), p.V_max + 1)
+        on_duty = sum(1 for aid in members if w.actor(aid).on_duty)
+        self.cap_now, self.members_on_duty_now, self.E_t_now = cap, on_duty, E_t
+        self.cap_slack_sum += cap - on_duty
+        self.cap_slack_n += 1
+        if cap - on_duty <= 0:
+            self.cap_bound_ticks += 1
+        if not waiting_now:
+            return
+        av = self.avail
+        av["ticks_waiting"] += 1
+        av["waiting_items"] += len(waiting_now)
+        for _, kind in waiting_now:
+            av[f"items_{kind}"] += 1
+        av["on_duty"] += on_duty
+        panel_waiting = any(kind != "initial" for _, kind in waiting_now)
+        initial_waiting = any(kind == "initial" for _, kind in waiting_now)
+        cases = {cid: w.case(cid) for cid, _ in waiting_now}
+        def fits(aid, ac, kind):
+            """Eligible for some waiting seat of this kind, excluded from none of them? (The engine's test per case.)"""
+            for cid, k in waiting_now:
+                if k != kind:
+                    continue
+                c = cases[cid]
+                if aid in c.excluded or aid == c.actor or aid == c.requester:
+                    continue
+                if w.unlocked(aid) + 1e-9 < c.G_V:
+                    return "unfunded"
+                if not ac.duty_eligible:
+                    return "ineligible"
+                if kind != "initial" and not ac.panel_eligible:
+                    return "not_panel"
+                return "fits"
+            return "excluded"
+        for aid in self.actors:
+            ac = w.actor(aid)
+            if ac.committed is not None:
+                av["committed"] += 1
+                continue
+            if ac.open_review is not None:
+                av["in_review"] += 1
+                continue
+            kinds = [k for k in ("initial", "audit", "appeal") if any(kk == k for _, kk in waiting_now)]
+            verdicts = {k: fits(aid, ac, k) for k in kinds}
+            fit_any = any(v == "fits" for v in verdicts.values())
+            if ac.on_duty:
+                if fit_any:
+                    av["on_duty_idle_fits"] += 1             # the driver's gap: an idle duty reviewer the seat could take
+                else:
+                    av["on_duty_idle_unfit"] += 1
+                continue
+            if ac.probation:
+                av["free_probationers"] += 1
+                if initial_waiting and verdicts.get("initial") == "fits":
+                    av["free_probationers_fit_initial"] += 1
+                continue
+            if not ac.is_member:
+                continue                                     # suspended
+            if fit_any:
+                if on_duty >= cap:
+                    av["held_by_cap"] += 1
+                else:
+                    av["free_fundable"] += 1                 # decisive: under the cap, fit for a waiting seat, not seated
+                continue
+            vs = set(verdicts.values())
+            if "unfunded" in vs:
+                av["free_unfunded"] += 1
+            elif "not_panel" in vs and panel_waiting:
+                av["free_not_panel"] += 1                    # fit for duty, not for the panel seat waiting
+            elif "ineligible" in vs:
+                av["ineligible"] += 1
+            else:
+                av["free_excluded"] += 1
 
     def crowd_step(self, t: int):
         """A riot is a crowd (2.0.0 §2.1): n requesters arrive at --spike-from with the default wallet, post for
@@ -849,6 +1067,11 @@ class Stamping:
                 self.parent_waiting.pop(cid, None)
                 if child.verdict == N or child.state in ("WITHDRAWN", "CANCELLED", "FINAL_N"):
                     self.parent_self_exec.add(cid)       # the child failed: the parent does the work itself
+            if c.state == "COMMITTED" and cid in self.nested_parent and c.actor in self.lowball_children:
+                if t >= c.deadline and not self.tasks[cid].nested_missed:
+                    self.tasks[cid].nested_missed = True
+                    self.c["lowball_child_misses"] += 1
+                continue                                 # §8.7 red team: the lowball child never delivers — it misses
             if c.state == "COMMITTED" and t >= c.t_award + min(a.work_ticks, c.tau) and cid not in self.parent_waiting:
                 if self.floating and not w.is_troop(c.actor):
                     # 2.0.0 §2.2: the actor's effort, burned at submission (§4.6) — what its unlocked credit can pay of it
@@ -951,6 +1174,9 @@ class Stamping:
                 if el:
                     rid = w.assign_initial(cid, self.pick_reviewer(el))
                     self.review_owner[rid] = w.review(rid).reviewer
+                    self.c["seated_initial_probationer" if w.actor(w.review(rid).reviewer).probation else "seated_initial_member"] += 1
+                    if task.plant:
+                        self.c["seated_plant"] += 1
                 else:
                     self.c["reviews_unassignable_ticks"] += 1
             if task.plant:
@@ -988,6 +1214,7 @@ class Stamping:
                     el = self.eligible_reviewers(cid, panel=True)
                     if el:
                         rid = w.assign_audit(cid, self.pick_reviewer(el))
+                        self.c["seated_audit_member"] += 1
                         self.review_owner[rid] = w.review(rid).reviewer
                         task.audit_wanted = False
                         self.c["audits_assigned"] += 1
@@ -1005,6 +1232,7 @@ class Stamping:
                     el = self.eligible_reviewers(cid, panel=True)
                     if el:
                         rid = w.assign_appeal(cid, self.pick_reviewer(el))
+                        self.c["seated_appeal_member"] += 1
                         self.review_owner[rid] = w.review(rid).reviewer
                     else:
                         self.c["appeals_unassignable_ticks"] += 1
@@ -1017,6 +1245,8 @@ class Stamping:
                     if not by_truth:
                         self.c["rulings_wrong"] += 1
         self.c["duty_short_of_bond_ticks"] += self.duty_funding()
+        self.cycler_step(t)
+        self.inspection_diagnostics(t)
         self.awards_window.append((t, self.c["awarded"] - self._awarded_last, len(self.free_members())))
         self._awarded_last = self.c["awarded"]
         w.advance(t)
@@ -1346,6 +1576,24 @@ class Stamping:
                     "brokers_award_share": round(sum(self.parent_awards.get(b, 0) for b in brokers) / max(1, self.c["awarded"]), 4),
                     "pool_advances": round(mk.get("pool_advances", 0.0), 3),
                     "hoards_over_M": round(sum(w.wealth(x) for x in self.actors) / max(1e-9, mk["M"]), 4)})
+        # run 17: the inspection queue (batch A), the red team and the strategy variants (B, C)
+        sc, sw = self.seat_counts, self.seat_wait_sum
+        row.update({f"seats_{k}_{s}": sc[(k, s)] for k in ("initial", "audit", "appeal") for s in ("member", "probationer", "troop")})
+        row.update({f"wait_{k}_{s}": sw[(k, s)] for k in ("initial", "audit", "appeal") for s in ("member", "probationer", "troop")})
+        row.update({f"waitge_{k}_{s}": self.seat_wait_ge_wR[(k, s)] for k in ("initial", "audit", "appeal") for s in ("member", "probationer", "troop")})
+        row.update({f"left_{k}": self.seat_left_otherwise[k] for k in ("initial", "audit", "appeal")})
+        row.update({"waiting_now": sum(1 for k in self.waiting_since), **{f"avail_{k}": self.avail[k] for k in AVAIL_KEYS},
+                    "cap_now": self.cap_now, "members_on_duty_now": self.members_on_duty_now, "E_t_now": self.E_t_now,
+                    "cap_slack_sum": self.cap_slack_sum, "cap_slack_n": self.cap_slack_n, "cap_bound_ticks": self.cap_bound_ticks,
+                    **{k: self.c[k] for k in ("seated_initial_member", "seated_initial_probationer", "seated_audit_member", "seated_appeal_member", "seated_plant")},
+                    "cycles": self.c["cycles"], "greedy_rejections": self.c["greedy_rejections"],
+                    "greedy_cases_vested": sum(1 for nid, rc in self.nested_parent.items() if w.case(rc).actor in self.greedy and w.case(nid).state == "VESTED"),
+                    "lowball_child_awards": self.c["lowball_child_awards"], "lowball_child_misses": self.c["lowball_child_misses"],
+                    "nested_fa_stamper_parent": self.c["nested_fa_stamper_parent"], "nested_fa_careful_parent": self.c["nested_fa_careful_parent"],
+                    "nested_posted_by_stamper": self.c["nested_posted_by_stamper"], "nested_posted_by_careful": self.c["nested_posted_by_careful"],
+                    "patient_raised": self.c["patient_raised"],
+                    "cycler_wealth_real": round(sum(w.wealth(x) for x in self.actors if x in self.cycled_from) / max(1, sum(1 for x in self.actors if x in self.cycled_from)) * real, 3) if self.cycled_from else "",
+                    "cyclers_admitted": sum(1 for x in self.actors if x in self.cycled_from and w.actor(x).admitted_at is not None)})
         row.update({"pfa_route_upheld": len(self.pfa_upheld_by), "pfa_route_overturned": self.pfa_overturned,
                     "pfa_route_other": self.pfa_other, "pfa_kind_troop": kinds["troop"], "pfa_kind_standing": kinds["standing"],
                     "pfa_kind_lag": kinds["lag"], "pfa_kind_readmitted": kinds["readmitted"]})
@@ -1381,7 +1629,7 @@ def main(argv=None):
     ap.add_argument("--seat-queue", choices=["on", "off"], default="on", help="1.6.0 §2.3 the reserve at least the reviews waiting")
     ap.add_argument("--panel-determined", choices=["on", "off"], default="on", help="1.6.0 §2.4 a panel seat needs a determined record")
     ap.add_argument("--reserve-periods", type=int, choices=[1, 2], default=2, help="1.6.0 §2.5 R_T over this and the previous period")
-    ap.add_argument("--duty-cap", choices=["half", "twothirds", "all"], default=None,
+    ap.add_argument("--duty-cap", choices=["half", "twothirds", "threequarters", "all"], default=None,
                     help="the members' duty cap as a share of E_t: two thirds under 1.7.0 (§2.3), half under --rules 1.6.0 and earlier; its own knob for the OFAT cells")
     # 1.7.0: the troop account behind its flag; the take swept with the rebate pinned
     ap.add_argument("--accounts", choices=["on", "off"], default="on",
@@ -1448,7 +1696,7 @@ def main(argv=None):
     ap.add_argument("--beta-max", type=float, default=40.0, help="β_max, the ceiling policy's cap")
     ap.add_argument("--ceiling-share", type=float, default=1.0 / 3.0, help="s: β = min(β_max, s × unlocked wallet)")
     ap.add_argument("--k-open", type=int, default=5, help="K_open: a requester posts while fewer than this many of its requests are open (0: no limit)")
-    ap.add_argument("--ceiling-policy", choices=["wallet", "market"], default="wallet",
+    ap.add_argument("--ceiling-policy", choices=["wallet", "market", "patient"], default="wallet",
                     help="the requesters' ceiling: min(β_max, share × unlocked wallet), or market-aware min(β_max, mult × B̄) (run 13 §3)")
     ap.add_argument("--ceiling-mult", type=float, default=1.2, help="the market-aware ceiling's multiple of B̄")
     ap.add_argument("--bid", choices=["margin", "ceiling"], default="margin", help="members' bid policy: c_D (1 + m), or at the ceiling (the 1.x behaviour, the control)")
@@ -1482,6 +1730,17 @@ def main(argv=None):
     ap.add_argument("--delegation", choices=["on", "off"], default="off", help="2.3.0 §2.4: parents delegate when their cost exceeds the expected child's bid plus the overhead")
     ap.add_argument("--nested-tau", type=int, default=6, help="the extra ticks a member's bid carries under delegation, for a child's work")
     ap.add_argument("--nested-pots", choices=["parent", "root"], default="parent", help="2.3.0 §2.4: the parent posts the nested pots; root = the 1.1.0 reading (the control)")
+    # run 17 — the red team of 2.3.0 §8.7 and the strategy variants of batch C
+    ap.add_argument("--cycler", choices=["on", "off"], default="off",
+                    help="§8.7 red team: a suspended stamper with no live obligation departs and re-arrives at once under a fresh identity (the control: it serves its probation)")
+    ap.add_argument("--greedy-parents", type=float, default=0.0,
+                    help="§8.7 red team: the share of careful actors that, as parents, reject every child's work to collect the guarantee")
+    ap.add_argument("--lowball-children", type=float, default=0.0,
+                    help="§8.7 red team: the share of actors that bid half their cost on nested requests and never deliver (the kill fee, the parent's exit)")
+    ap.add_argument("--child-bid", choices=["margin", "ceiling-aware"], default="margin",
+                    help="batch C: a child bids c(1 + m), or min(the parent's ceiling, c(1 + m)) when its cost is under the ceiling")
+    ap.add_argument("--patient-ticks", type=int, default=20,
+                    help="batch C, --ceiling-policy patient: a request posts at 0.7 B̄ and is raised to B̄ only after this many ticks unserved")
     ap.add_argument("--small-requests", type=int, default=0,
                     help="2.2.0 §8.5 red team: this many requesters post at the market price exactly with K_open tripled — many small requests to collect pro-rata rebates (expected: nothing beyond the capped claims)")
     ap.add_argument("--state-rejecters", type=float, default=0.0,

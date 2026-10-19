@@ -2064,6 +2064,28 @@ cancellation 2.5.0 admits ("a parent that wants out acts by d − 1"). Under the
 tick before (the guarantee released, one tick saved — run 18's move, `--parent-cancel eve`) or wait for the lapse (the guarantee gained, one
 tick lost — `early`, the cancellation at the deadline refused). §8 runs both against the 2.4.0 control that admits the deadline-tick cancellation.
 
+## Run 19 — the missed child under 2.5.0 (October 19, 2026)
+
+**What ran** (`results/studies/2.5.0-missed/`, 480 runs on run 18's seeds at `44ef6e47`, all audits passed; notes
+`results/studies/2.5.0-missed-notes-for-reviewer.md`): §6 in `test_v25`; the lowballer cell under the parent's three moves (`early` at the
+deadline tick, `eve` the tick before, `off` waiting) × 2.5.0 / 2.4.0; the honest delegation cell and run 16's spread cells; the identity
+check (entry, the patient cell at the floor, the crowd with the pool); the red team (farming parents with children reading the deadline or
+not; the lowballer's empty result).
+
+**Findings.** *The refusal holds and changes one cell:* a parent's cancellation at the deadline tick is refused (98.5 a run), the lapse runs,
+the lowballers forfeit 200 a run — and the cell is run 18's no-cancellation cell to the decimal: roots 675, not between 568 and 675; the one
+driver step between cancelling the tick before and waiting for the lapse is the whole gap. *Run 18's move was `eve`* (the world's deadline − 1),
+admitted under both rules and identical (568, 1,262, the guarantees released). So under 2.5.0 a parent facing a silent child chooses: cancel the
+tick before (save the root, free the lowballer) or wait (take the guarantee, risk the root); the honest do better waiting (1,274 against 1,262;
+the base 1,304). *Honest children and everything else identical to the decimal* under 2.5.0 and 2.4.0 (seven cells). *The red team:* a parent
+posting one-tick deadlines cannot farm — the drivers' children meet any deadline of one tick, and a child that needs two reads the deadline and
+declines (455 a run); a lowballer's empty result is rejected by 81% of parents and loses 96% of its appeals, and still beats the lapse — 19% of
+parents approve it and build on it (nested false approvals 18.8 against 2.85). Nothing in the rules moves.
+
+**For the decision** (notes §5): the parent's choice under 2.5.0 between `eve` and the lapse — the rule's words leave it to the parent; the
+guarantee floor as the next candidate if 2 a miss does not deter (it did not stop lowballing here); the empty result as a parent-side problem
+caught at the panel's rate. **Next:** the reviewer's reading.
+
 ## Maps
 
 Two `_line` artifacts in project Agentic-OS (`c54120a6-aaff-40f7-8a9f-3667da542879`):

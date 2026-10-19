@@ -326,6 +326,8 @@ class Case:
     late_ticks: int = 0
     rebate_owed: float = 0.0
     rebate_paid: float = 0.0
+    rebate_forgone: float = 0.0            # 2.2.0: the part of the claim the period's pool did not cover
+    rebate_settled_at: Optional[int] = None
     # outcome record
     grade: Optional[str] = None
     assessments: list = field(default_factory=list)
@@ -542,6 +544,11 @@ class World:
         self._order_violation: Optional[str] = None
         self._ordering = False
         self.state_delivery_history: list = []          # per closed period: (the state's deliveries closed, those final N)
+        # 2.2.0: the rebate pool — a lock on Ω raised from fee income after the debt, settled pro rata at the close
+        self.omega_pool = 0.0
+        self.pool_index = 0
+        self.rebates_forgone = 0.0
+        self._pool_violation: Optional[str] = None
         self.last_b_t: Optional[float] = None
         self.last_c_d_t: Optional[float] = None
         self.ledger.on_event = self._on_ledger_event
@@ -574,6 +581,64 @@ class World:
     def bank_on(self) -> bool:
         """2.1.0: the bank is a rule of the floating economy only."""
         return self.p.floating and self.p.bank
+
+    @property
+    def pool_on(self) -> bool:
+        """2.2.0: the rebate from income is a rule of the bank's economy only."""
+        return self.bank_on and self.p.rebate_pool
+
+    def _is_fee_event(self, e) -> bool:
+        """2.2.0 §2.2: Ω's fee income — the base fee at an award or a summons, a troop reviewer's fee at settlement, a court fee a troop
+        wins. The returns of capital (a troop's price, released locks, reimbursed cost) and a delivery's surplus are not."""
+        L = self.ledger
+        if e.kind == "transfer" and e.dst == L.OMEGA and e.note == "service fee":
+            return True
+        if e.dst is not None and e.dst in self.troops:
+            if e.kind == "feepot_out" and "review fee" in e.note:
+                return True
+            if e.kind == "forfeit_to" and "court fee" in e.note:
+                return True
+        return False
+
+    def _pool_add(self, amount: float):
+        if amount <= 1e-9:
+            return
+        self.ledger.lock(Ledger.OMEGA, amount, key=f"pool:{self.pool_index}", note="rebate pool")
+        self.omega_pool += amount
+        self.period["pool"] += amount
+
+    def _settle_pool(self, tick: int):
+        """2.2.0 §2.2 — the close: the claims stopped in the period are paid from the pool pro rata; the rest is forgone, recorded on
+        each request and in the period; the remainder of the pool is released to Ω's unlocked balance."""
+        per = self.period
+        pool = self.omega_pool
+        total = per["claims_total"]
+        self._ordering = True                           # the release and the payments are the close's own order
+        try:
+            if pool > 1e-9:
+                self.ledger.release(Ledger.OMEGA, pool, key=f"pool:{self.pool_index}", note="rebate pool released at the close")
+            ratio = min(1.0, pool / total) if total > 1e-9 else 0.0
+            paid_total = 0.0
+            for cid, requester, amt in per["claims"]:
+                pay = amt * ratio
+                c = self.cases[cid]
+                if pay > 1e-9:
+                    self.ledger.transfer(Ledger.OMEGA, requester, pay, case=cid, note="rebate (settled at the period's close)")
+                    c.rebate_paid += pay
+                    self.rebates_paid += pay
+                    paid_total += pay
+                c.rebate_forgone = amt - pay
+                c.rebate_settled_at = tick
+                self.rebates_forgone += amt - pay
+                self._log(c, f"rebate settled at the period's close: claim {amt:g}, paid {pay:g}, forgone {amt - pay:g}")
+            per["rebates_paid"] += paid_total
+            per["rebates_forgone"] += total - paid_total
+            per["omega_retained_period"] = pool - paid_total
+        finally:
+            self._ordering = False
+        self.omega_pool = 0.0
+        self.pool_index += 1
+        self._omega_income()                            # the remainder is an inflow like any other: debt first
 
     @property
     def loans_outstanding(self) -> float:
@@ -630,7 +695,7 @@ class World:
 
     def _check_order_point(self, where: str):
         om = self.ledger.wallet(Ledger.OMEGA).U
-        if (self.debt > 1e-6 or self.omega_liabilities) and om > 1e-6:
+        if (self.debt > 1e-6 or (self.omega_liabilities and not self.pool_on)) and om > 1e-6:
             self._order_violation = f"Ω holds {om} unlocked at the {where} with debt {self.debt} and {len(self.omega_liabilities)} liabilities"
 
     def _bank_repay(self, tid: str, case: Optional[str]):
@@ -676,9 +741,15 @@ class World:
             return
         self._ordering = True
         try:
+            debt_before = self.debt
             if e.dst in self.loans:
                 self._bank_repay(e.dst, e.case)
             self._omega_income()
+            if self.pool_on and self._is_fee_event(e):
+                # 2.2.0 §2.2: the fee, less what it repaid of the debt, to the pool. Ω's advances to reviewers and its outstanding claims
+                # (§4.3) are paid from the unlocked balance, which the pool excludes: they wait for the returns of capital or the close
+                paid_debt = max(0.0, debt_before - self.debt)
+                self._pool_add(min(max(0.0, e.amount - paid_debt), self.ledger.wallet(L.OMEGA).U))
         finally:
             self._ordering = False
 
@@ -2369,13 +2440,24 @@ class World:
             self.on_time_n += 1
             self.period["on_time"] += 1
         B = c.B if c.B else 0.0
-        r_s = self.p.r_s if self.p.r_s > 0 else self.p.omega_rate * B
+        if self.p.r_s > 0:
+            # §4.5: r_s is indexed, frozen at the case's first lock like its other nominals (2.2.0's conformance correction; the
+            # default ω₀B scales with the price on its own)
+            idx = (c.index_at_lock if c.index_at_lock is not None else self.ledger.index()) if self.p.floating else 1.0
+            r_s = self.p.r_s * idx
+        else:
+            r_s = self.p.omega_rate * B
         owed = min(r_s * c.late_ticks, B) if B > 0 else 0.0
         c.rebate_owed = owed
         self.rebates_owed += owed
         if owed <= 1e-12:
             self._log(c, f"clock stopped at {reason}: {c.clock_ticks} ticks, on time" if not c.late_ticks
                       else f"clock stopped at {reason}: {c.clock_ticks} ticks, {c.late_ticks} late, nothing owed")
+            return
+        if self.pool_on:                                # 2.2.0 §2.1–2.2: the claim is recorded; it is paid at the period's close
+            self.period["claims"].append((c.id, c.requester, owed))
+            self.period["claims_total"] += owed
+            self._log(c, f"clock stopped at {reason}: {c.clock_ticks} ticks, {c.late_ticks} late; rebate claim {owed:g} recorded for the close")
             return
         if self.p.floating and not self.bank_on:        # 2.0.0 §2.5: paid at the stop, Ω creating the shortfall
             self._omega_pay(c.requester, owed, c.id, "rebate")
@@ -2697,7 +2779,9 @@ class World:
                "refused_capacity_awards": 0,
                # 2.1.0: the bank's lines this period, the troops' review fees, the state's deliveries, the refusals for credit
                "loans": 0.0, "repaid": 0.0, "debt_added": 0.0, "debt_repaid": 0.0, "debt_peak": 0.0, "loans_peak": 0.0,
-               "troop_review_fee": 0.0, "state_closed": 0, "state_failed": 0, "refused_credit_awards": 0, "refused_credit_seats": 0}
+               "troop_review_fee": 0.0, "state_closed": 0, "state_failed": 0, "refused_credit_awards": 0, "refused_credit_seats": 0,
+               # 2.2.0: the rebate pool and the period's claims
+               "claims": [], "claims_total": 0.0, "pool": 0.0, "rebates_forgone": 0.0, "omega_retained_period": 0.0}
 
     def _maybe_end_period(self, tick: int):
         """Once per period — period_plants adjudicated plants or period_ticks ticks, whichever first —
@@ -2746,6 +2830,8 @@ class World:
             self._P_published_at = tick
             self.ledger.P_t = self._P_published
             self.state_delivery_history.append((per["state_closed"], per["state_failed"]))
+            if self.pool_on:                            # 2.2.0 §2.2: the close — the period's claims from the period's pool
+                self._settle_pool(tick)
         rec = {"t": tick, "start": per["start"], "plants": per["plants"], "bad": per["bad"],
                "bad_approved": per["bad_approved"], "F_hat": None if F_hat is None else round(F_hat, 6),
                "m_before": round(m_old, 6), "m": round(self.m_t, 6), "pi": round(self.pi_t, 6), "X": self.X_t,
@@ -2804,7 +2890,12 @@ class World:
                    "omega_net": round(self.ledger.wallet(Ledger.OMEGA).U - self.debt - sum(l["amount"] for l in self.omega_liabilities), 6),
                    "cost_of_truth": round(self.bank_minted["mint_plant"] - self.bank_destroyed["retire_plant"], 6),
                    "state_closed": per["state_closed"], "state_failed": per["state_failed"], "b_T": round(self._state_fail_rate(), 6),
-                   "refused_credit": [per["refused_credit_seats"], per["refused_credit_awards"]]}}
+                   "refused_credit": [per["refused_credit_seats"], per["refused_credit_awards"]]},
+               # 2.2.0: the rebate from income — the period's claims, what the pool paid, what was forgone
+               "claims": round(per["claims_total"], 6), "claims_n": len(per["claims"]), "pool": round(per["pool"], 6),
+               "rebates_forgone": round(per["rebates_forgone"], 6),
+               "forgone_share": round(per["rebates_forgone"] / per["claims_total"], 6) if per["claims_total"] > 1e-9 else 0.0,
+               "omega_retained_period": round(per["omega_retained_period"], 6)}
         self.periods.append(rec)
         self.history.append("period", rec)
         self.troop_capital_peak_prev, self.troop_capital_peak = self.troop_capital_peak, self._troop_capital_now()

@@ -4,7 +4,7 @@ Built up through v0.4–v0.10, unchanged by the v1.0 consolidation and the v1.0.
 since, all on October 17, 2026: for design revision 1 (1.1.0: the verification deposit is two pots), design revision 2
 (1.2.0: the loop's own clock — planted work, the plant record, the effort dial), design revision 3 (1.3.0: inspection
 is membership), design revision 4 (1.4.0: the orchestrator's troops), design revision 5 (1.5.0: the reserve is sized to the need), design revision 6 (1.6.0: auto-scale) and, on October 18, design revision 7 (1.7.0: the state's earnings — see the seven sections below). Section numbers in code comments refer to the
-working-spec versions they were written against; `spec/agentic_economics_loop_spec_v2_1_0.md` is the text in force,
+working-spec versions they were written against; `spec/agentic_economics_loop_spec_v2_2_0.md` is the text in force,
 and its Appendix A holds the defaults that `sim/params.py` encodes.
 
 The loop's rules as code, with no strategies. Every bid, verdict, appeal, audit
@@ -104,6 +104,10 @@ tests/test_v21.py                   design revision 9 (2.1.0): the bank — a su
                                     the burn floored and the state's own record; at_cost and half; P_t published at the boundary; a plant's pots
                                     minted and the sweep destroyed with Ω untouched; the scenario; the capacity mark; the period record; bank off
                                     = 2.0.0 — 13
+tests/test_v22.py                   design revision 10 (2.2.0): the rebate from income — fees pooled as a lock on Ω, the returns of capital not;
+                                    a claim recorded at the stop and paid at the close from the pool only; pro rata and the rest forgone, never
+                                    carried; the pool funds no summons; r_s indexed when stated; debt before the pool; I32; the §6 quiet and
+                                    flooded periods; rebate_pool off = 2.1.0 — 9
 tests/test_perf_equivalence.py      the per-tick check equals the full audit; the working-set engine reproduces the
                                     pinned History head on a seeded random scenario that now plants work (re-pinned once for
                                     1.1.0 and once for 1.2.0); the working set stays bounded — 5
@@ -114,11 +118,11 @@ tests/test_record_mode.py           the record on disk (`Params.record_dir`): th
 run_tests.py        every suite with plain python; pytest reports the same (conftest marks the XFAIL)
 ```
 
-Run: `python3 run_tests.py` — 275 pass, 0 fail, 28 expected failures, each with a stated reason (one original,
+Run: `python3 run_tests.py` — 282 pass, 0 fail, 30 expected failures, each with a stated reason (one original,
 four superseded by the view contract, nineteen on the withdrawn reopening path, one superseded by design
-revision 1, one by design revision 2, two by design revision 8 — the backing's v_t and the pay-in refused at posting; the three 1.x figures 2.0.0's moving index broke pass again under 2.1.0's index per period). With pytest: `python3 -m pytest tests -q` reports 259 passed, 31 xfailed; the
+revision 1, one by design revision 2, two by design revision 10 — a service fee pooled until the close no longer advances a reviewer's reimbursement mid-period — two by design revision 8 — the backing's v_t and the pay-in refused at posting; the three 1.x figures 2.0.0's moving index broke pass again under 2.1.0's index per period). With pytest: `python3 -m pytest tests -q` reports 259 passed, 31 xfailed; the
 runner expands pytest parametrization as pytest does, including multi-argument and stacked marks. (Spec Appendix D
-records the count at the v1.0.1 freeze, 156; at 1.1.0, 181; at 1.2.0, 197; at 1.3.0, 208; at 1.4.0, 218; at 1.5.0, 225; at 1.6.0, 236; at 1.7.0, 244; at 1.7.1, 248; at 2.0.0, 259; at 2.1.0, 275.)
+records the count at the v1.0.1 freeze, 156; at 1.1.0, 181; at 1.2.0, 197; at 1.3.0, 208; at 1.4.0, 218; at 1.5.0, 225; at 1.6.0, 236; at 1.7.0, 244; at 1.7.1, 248; at 2.0.0, 259; at 2.1.0, 275; at 2.2.0, 282.)
 
 Expected failures are **strict and parameter-exact** in both entry points: `EXPECTED_FAIL_PARAMS` names the
 parameter runs that are expected to fail inside a mixed test (the P/⊥ runs of the eighth review's first case;
@@ -512,6 +516,17 @@ sweeps the take with the rebate pinned. In the engine:
   `advances_made/repaid`, `liabilities_paid`; `drivers/sweep.py` carries them.
 - **Tests.** `test_v17.py` (8); goldens re-pinned once; `test_v13`–`test_v16` pinned to the merged fund and the half cap.
   Reviewer tests untouched and passing.
+
+## Design revision 10 — the rebate from income (2.2.0, October 19, 2026)
+
+`Params.rebate_pool` (on, with `bank`) is the revision: `_stop_clock` records the clock's claim (`rebate_owed`, the period's `claims`;
+a stated `r_s` indexed at the case's first lock — the conformance correction) and pays nothing; the inflow hook, on a fee event after the
+debt, locks the fee on Ω as the period's pool (`pool:<n>`, `omega_pool`); the returns of
+capital are Ω's unlocked balance as before. `_settle_pool` at the boundary pays the period's claims pro rata from the pool, records
+`rebate_paid` / `rebate_forgone` on each request and the period's `forgone_share` and `omega_retained_period`, releases the remainder
+to Ω (the order first). No liability stock. I32; I30, I26 and I15 amended; I10's note. `view.service()`: `pool`, `claims_period`,
+`rebates_forgone`, `forgone_share`. `test_v22.py` (9); `test_v21` pins `rebate_pool=False`; goldens re-pinned once. Driver: `--rules
+2.2.0` default (`2.1.0` the control), `--small-requests` (the red team), the pool and forgone columns.
 
 ## Design revision 9 — the bank (2.1.0, October 19, 2026)
 

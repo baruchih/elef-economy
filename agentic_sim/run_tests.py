@@ -88,6 +88,8 @@ EXPECTED_FAIL = {
     # the fifth review's unfunded-dispute test pins the v1.0.1 deposit through the human's budget
     "test_r5_a_unfunded_dispute_keeps_vacated_audit_obligation": 'superseded by design revision 1 (1.1.0, §4.3): the root pay-in is B + φ^E + φ^F + ω, so a human budget of exactly B + 10 no longer funds the award; the principle — a refused filing waives nothing — is re-asserted in test_v11 at the 1.1.0 pay-in',
     # the third review's test 18 pins Ω's cold-start float at 20 (Appendix A, 1.1.0)
+    "test_review_06_future_service_fee_pays_fifo_reimbursement_claim": "superseded by design revision 10 (2.2.0, §10.4): Ω's fee income is pooled for the period's rebate claims until the close, so a service fee no longer advances a reviewer's reimbursement mid-period and does not pay an outstanding claim at once — the claim is paid from Ω's unlocked balance (the returns of capital, the pool's remainder at the close); the principle — Ω's claims are paid first in, first out as it can — holds at the close (test_v22, test_v11)",
+    "test_r4_08_fifo_repayment_updates_the_correct_review": "superseded by design revision 10 (2.2.0, §10.4): the second root's service fee is pooled until the period's close instead of advancing the first review's reimbursement, so the deferred amounts the test pins at 1.x's advance differ; the principle — FIFO repayment updates the review that was deferred — holds when the pool's remainder is released (test_v22)",
     "test_review_14_failed_award_has_no_partial_financial_effects": 'superseded by design revision 8 (2.0.0, §2.1, I29): a root request locks its all-in maximum at posting, so a human with 42 cannot post at β = 40 (the all-in is 55) — the refusal moves from the award to the posting and is whole there; the principle — a refused action has no partial financial effect — is re-asserted in test_v20 at the posting lock',
     "test_review_04_reimbursement_uses_spent_credits_not_real_cost": "superseded by design revision 8 (2.0.0, §2.4): there is no backing — v_t = Res_t/M_t is retired and the credit's value is P_0/P_t, which emission does not move; the principle — reimbursement in the credits spent, within the indexed cap — is re-asserted in test_v20 with P_t in the index's place",
     "test_review_18_unused_deposit_returned_when_no_review_entitled": "superseded by design revision 2 (1.2.0, Appendix A): Ω's cold-start float is 300, one period of plants at m = 1, not 20; the principle — an explicit acceptance with no paid review returns the whole deposit — holds at the new float (the test's other assertions pass)",
@@ -146,7 +148,7 @@ def param_runs(fn):
 
 SUITES = ["test_spec", "test_review_regressions", "test_v05", "test_review2_interactions", "test_v06",
           "test_review3_boundaries", "test_v07", "test_review4_followthrough", "test_v08",
-          "test_review5_contracts", "test_v09", "test_review6_reopening", "test_v10", "test_v101", "test_v11", "test_v12", "test_v13", "test_v14", "test_v15", "test_v16", "test_v17", "test_v171", "test_v20", "test_v21",
+          "test_review5_contracts", "test_v09", "test_review6_reopening", "test_v10", "test_v101", "test_v11", "test_v12", "test_v13", "test_v14", "test_v15", "test_v16", "test_v17", "test_v171", "test_v20", "test_v21", "test_v22",
           "test_perf_equivalence", "test_record_mode"]
 # For a parametrized test with both withdrawn-path runs and controls, only the named parameter
 # labels are expected to fail; every other run of it must pass.

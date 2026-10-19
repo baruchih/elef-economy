@@ -47,7 +47,7 @@ def _i10_exempt(note: str) -> bool:
     clock's stop and carried as its liability is paid when Ω can — an obligation established before
     vesting. Nothing else moves money on a vested case."""
     return "deferred" in note or "Ω claim" in note or note.startswith("nested ") or note.startswith("tree closure") \
-        or note.startswith("rebate (Ω liability serviced)")
+        or note.startswith("rebate (Ω liability serviced)") or note.startswith("rebate (settled at the period's close)")
 
 
 def _i19_event_ok(e) -> bool:

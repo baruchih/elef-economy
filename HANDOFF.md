@@ -1825,6 +1825,42 @@ honest bill; (2) the state-rejecter red team is impossible under §14's blind vi
 inspects the state; (3) Hypothesis 5's invariance of real wealth failed through the strategy's quantity constant; (4) the at-cost
 control's retraction is the design, recorded; (5) 2.2.0 — entry and delegation — against books that now read.
 
+## Design revision 10 — the rebate from income (2.2.0, October 19, 2026)
+
+**The candidate and its reviews.** `2.2.0-rc.1` arrived after run 14's notes: one rule — the clock's rebate claim stays the measure of
+lateness, recorded at the stop; Ω's fee income after the debt accrues to the period's pool; at the period's close the claims stopped in the
+period are paid pro rata and the rest is forgone, read, never owed; no liability stock — with two rulings carried (the reviewer's view
+stays blind to the actor; Hypothesis 5 of 2.1.0 restated as the finding) and the supply side moved to 2.3.0. The implementer's review
+(`dr10_2.2.0-rc.1-review.md`): implementable with one correction — I32 said "every inflow" where §2.2 said "fee income", and pooling the
+troops' capital returns would lock the state's working capital and make every summons a loan — and five readings (the pool as a lock on
+Ω; Hypothesis 2 too strong by one period's fees; a stated r_s not indexed by the engine, a conformance gap fixed with the revision; the
+close inside the tick; the I10 note and `test_v21`'s pin). rc.2 adopted all of it; the rc.2 review: implementable as it stands. **Accepted
+verbatim, no ruling.**
+
+**Implemented** (`Params.rebate_pool`, on with `bank`; the commit named below): the claim recorded at `_stop_clock` with r_s indexed at the
+first lock when stated; the inflow hook pooling a fee event after the debt as a lock on Ω (`_is_fee_event`, `_pool_add`), the returns of
+capital landing unlocked as before; `_settle_pool` at the boundary — the release, the pro-rata payments (I10-exempt by note), `rebate_paid`
+/ `rebate_forgone` on each request, the period's `claims`, `pool`, `rebates_forgone`, `forgone_share`, `omega_retained_period`, the order
+on the remainder; no liability ever made. I32; I30, I26, I15 amended. `test_v22` (9); `test_v21` pins `rebate_pool=False`; the goldens
+re-pinned once; two reviewer tests that pinned a service fee advancing a reviewer's reimbursement mid-period are expected failures
+(30). Suite 282 passed, 0 failed, 30 expected failures. Driver: `--rules 2.2.0` default
+(`2.1.0` the control), `--small-requests`, the pool and forgone columns. Spec consolidated as `v2_2_0` (§2.4, §3.1, §4.5, §10.4, §12.3,
+§14, §17–18, §20, Appendices A, C, O), 2.1.0 to history, rc.2 verbatim as `dr10_the_rebate_from_income_2.2.0.md`.
+
+**One consequence found on the way, for the reviewer.** §4.3 has Ω advance a reviewer's reimbursement when the allowance is exhausted
+and pay its outstanding reviewer claims first in, first out on every inflow. Under the pool a fee inflow is locked until the close, so the
+advance and the claim are paid from what the pool excludes — the returns of capital, the retained balance, the pool's remainder at the
+close — and in a world that starts with no float they wait for the close. Two reviewer tests that pinned a service fee advancing and paying
+a claim at once (`test_review_06`, `test_r4_08`) are expected failures with that reason; their principle holds at the close (`test_v22`).
+Ranking the claims before the pool was tried and does not save them — the advance, not the payment, is what the pool changes — so the
+text stands as written and the reading is recorded in Appendix O. In a quiet market Ω's retained balance covers the advances from the
+second period on; whether a reviewer's reimbursement should wait for the state's rebate pool in the first period is the reviewer's call.
+
+**Next:** run 15 — the revision's §8 against run 14's seeds in its order: §6 first; the riots second (the crowd and the flood at N_T 40:
+claims, paid, forgone by period, Ω retained, M, hoards, on time, lateness); the quiet market at 50–80%; the order under the at-cost control
+and the three-quarters failure; the red team (the small-request requester, the withdrawing requester); told read whole. Then 2.3.0 — the
+supply side.
+
 ## Maps
 
 Two `_line` artifacts in project Agentic-OS (`c54120a6-aaff-40f7-8a9f-3667da542879`):

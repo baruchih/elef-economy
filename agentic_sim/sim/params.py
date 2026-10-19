@@ -142,6 +142,11 @@ class Params:
     b_t_prior: float = 0.2             # the state's fail rate until b_t_min_n of its deliveries have closed
     b_t_min_n: int = 10                # the last closed period if it closed this many, else trailing periods back until it does
     debt_bound_periods: int = 1        # Δ_max: this many closed periods of Ω's fee income (base fees + the troops' review fees); 0 unbounded
+    # Design revision 10 (2.2.0): the rebate from income. True (with `bank`): a rebate claim is recorded at the clock's stop and paid
+    # nothing then; Ω's fee income after the debt (base fees, the troops' review fees, court fees a troop wins) accrues to the period's
+    # pool — a lock on Ω — and at the period's close the claims stopped in the period are paid from it pro rata, the rest forgone and
+    # read; no liability stock. False is the 2.1.0 engine (the rebate at the stop from Ω's balance, else a liability).
+    rebate_pool: bool = True
 
     # Reliability and duty credit windows (§11)
     rho_window: int = 100      # settled outcomes

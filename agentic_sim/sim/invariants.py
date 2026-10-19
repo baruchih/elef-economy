@@ -322,6 +322,7 @@ def I15_locks_reconcile(w, cases=None, reviews=None):
     expected = {}
     _I15_expected_cases(_cases(w, cases), expected, w.p.net_plant_capital, w.ledger.resolve)
     _I15_expected_reviews(_reviews(w, reviews), expected, w.ledger.resolve)
+    _I15_expected_world(w, expected)
     _I15_compare(w, expected)
 
 
@@ -344,6 +345,12 @@ def _I15_expected_cases(cases, expected, netted_plants: bool = True, resolve=lam
             expected[(c.requester, f"post:{c.id}")] = c.posting_lock    # 2.0.0 §2.1 / I29: the posting lock
         if c.is_nested() and c.rejection_bond > EPS:
             expected[(c.requester, f"rej:{c.id}")] = c.rejection_bond
+
+
+def _I15_expected_world(w, expected):
+    """2.2.0 §2.2: the rebate pool is a lock on Ω of exactly the fee income accrued this period after the debt."""
+    if getattr(w, "pool_on", False) and w.omega_pool > EPS:
+        expected[(w.ledger.OMEGA, f"pool:{w.pool_index}")] = w.omega_pool
 
 
 def _I15_expected_reviews(reviews, expected, resolve=lambda x: x):
@@ -753,7 +760,12 @@ def I26_service(w, cases=None):
     if w._priority_violation:
         _fail(f"I26 {w._priority_violation}")
     outstanding = sum(l["amount"] for l in w.omega_liabilities)
-    if abs(w.rebates_owed - (w.rebates_paid + w.liabilities_accrued)) > EPS:
+    if getattr(w, "pool_on", False):
+        # 2.2.0: a claim is paid at the close or forgone; the identity is over claims, paid, forgone and this period's pending claims
+        pending = w.period["claims_total"]
+        if abs(w.rebates_owed - (w.rebates_paid + w.rebates_forgone + pending)) > _tol(w.ledger.M):
+            _fail(f"I26 claims {w.rebates_owed} ≠ paid {w.rebates_paid} + forgone {w.rebates_forgone} + pending {pending}")
+    elif abs(w.rebates_owed - (w.rebates_paid + w.liabilities_accrued)) > EPS:
         _fail(f"I26 rebates owed {w.rebates_owed} ≠ paid {w.rebates_paid} + liabilities accrued {w.liabilities_accrued}")
     if abs(outstanding - (w.liabilities_accrued - w.liabilities_paid)) > EPS:
         _fail(f"I26 liabilities outstanding {outstanding} ≠ accrued {w.liabilities_accrued} − paid {w.liabilities_paid}")
@@ -762,7 +774,11 @@ def I26_service(w, cases=None):
             continue
         if c.clock_stopped_at is not None:
             B = c.B if c.B else 0.0
-            r_s = w.p.r_s if w.p.r_s > 0 else w.p.omega_rate * B
+            if w.p.r_s > 0:                     # §4.5: r_s indexed at the case's first lock (2.2.0's conformance correction)
+                idx = (c.index_at_lock if c.index_at_lock is not None else w.ledger.index()) if w.p.floating else 1.0
+                r_s = w.p.r_s * idx
+            else:
+                r_s = w.p.omega_rate * B
             owed = min(r_s * c.late_ticks, B) if B > 0 else 0.0
             if abs(c.rebate_owed - owed) > EPS:
                 _fail(f"I26 {c.id} rebate owed {c.rebate_owed} ≠ min(r_s·late, B) = {owed}")
@@ -928,12 +944,32 @@ def I30_the_bank(w):
     if w._order_violation:
         _fail(f"I30 {w._order_violation}")
     om = w.ledger.wallet(w.ledger.OMEGA).U
-    if (w.debt > EPS or w.omega_liabilities) and om > EPS:
+    if (w.debt > EPS or (w.omega_liabilities and not getattr(w, "pool_on", False))) and om > EPS:
         _fail(f"I30 Ω holds {om} unlocked at the tick's end with debt {w.debt} and {len(w.omega_liabilities)} liabilities")
     if w.troop_refused_credit_seats:
         _fail(f"I30 {w.troop_refused_credit_seats} review seats refused for credit")
     if w.debt_peak + EPS < w.debt or w.loans_peak + EPS < w.loans_outstanding:
         _fail("I30 a peak below its current value")
+
+
+def I32_the_pool(w):
+    """2.2.0 §2.2: the pool is a lock on Ω of the fee income accrued after the debt this period, untouched until the close; no
+    liability stock exists and nothing is owed across a close; every claim settled is paid or forgone, never carried."""
+    if not getattr(w, "pool_on", False):
+        return
+    if w._pool_violation:
+        _fail(f"I32 {w._pool_violation}")
+    rec = w.ledger.lock_record(w.ledger.OMEGA, f"pool:{w.pool_index}")
+    if abs(rec - w.omega_pool) > EPS or w.omega_pool < -EPS:
+        _fail(f"I32 the pool lock {rec} ≠ the pool {w.omega_pool}")
+    if w.omega_pool > w.period["pool"] + EPS:
+        _fail(f"I32 the pool {w.omega_pool} above the period's fee income {w.period['pool']}")
+    if w.omega_liabilities:
+        _fail(f"I32 a liability stock of {len(w.omega_liabilities)} under the pool")
+    if w.liabilities_accrued > EPS:
+        _fail(f"I32 liabilities accrued {w.liabilities_accrued} under the pool")
+    if abs(w.rebates_owed - (w.rebates_paid + w.rebates_forgone + w.period["claims_total"])) > _tol(w.ledger.M):
+        _fail(f"I32 claims {w.rebates_owed} ≠ paid {w.rebates_paid} + forgone {w.rebates_forgone} + this period's {w.period['claims_total']}")
 
 
 def I31_the_index_per_period(w):
@@ -1038,6 +1074,7 @@ def check_all(w):
             _I22_cases(w, chunk)
         I25_the_obligation(w, chunk)
     _I15_wallets(w)
+    _I15_expected_world(w, expected)
     _I15_compare(w, expected)
     I21_dial_and_reserve(w)
     I22_membership(w)
@@ -1049,6 +1086,7 @@ def check_all(w):
     I29_the_posting_lock(w)
     I30_the_bank(w)
     I31_the_index_per_period(w)
+    I32_the_pool(w)
     I16_history_is_authoritative(w)
 
 
@@ -1111,6 +1149,7 @@ def check_tick(w):
     I29_the_posting_lock(w, cases)
     I30_the_bank(w)
     I31_the_index_per_period(w)
+    I32_the_pool(w)
 
     w._events_checked = len(w.ledger.events)
     w._prune_working_set()

@@ -92,8 +92,11 @@ KEYS = ["careful_wealth", "stamper_wealth", "careful_fees", "stamper_fees", "car
         "liabilities", "liabilities_n", "liabilities_oldest", "wall", "wall_slack", "omega_retained", "omega_net_bank", "omega_review_fee_income",
         "minted_issuance", "minted_emission", "minted_plant", "minted_scenario", "minted_loan", "destroyed_repayment", "destroyed_plant",
         "cost_of_truth", "b_T", "c_d_t_last", "refused_credit_awards", "refused_credit_seats", "refused_waiting_capacity", "refused_waiting_credit",
-        "marked_capacity", "marked_credit", "withdrawn_at_mark", "reposted_after_mark", "state_rejections", "troop_truth_redrawn"]
-SHORT = {"debt-bound-periods": "wall", "b-t-prior": "bprior", "b-t-min-n": "bn", "requester-on-refusal": "onref", "troop-fail-rate": "tfail",
+        "marked_capacity", "marked_credit", "withdrawn_at_mark", "reposted_after_mark", "state_rejections", "troop_truth_redrawn",
+        # 2.2.0: the rebate from income
+        "pool_on", "pool", "claims_period", "rebates_forgone", "forgone_share", "forgone_share_period", "omega_retained_period",
+        "small_requesters_wallet", "small_requesters_rebates"]
+SHORT = {"small-requests": "small", "debt-bound-periods": "wall", "b-t-prior": "bprior", "b-t-min-n": "bn", "requester-on-refusal": "onref", "troop-fail-rate": "tfail",
          "state-rejecters": "srej", "c-d-t-mode": "cdt", "stampers": "s", "fee": "f", "on-duty": "X", "gv": "gv", "p-floor": "pf", "p-start": "p", "p-cap": "pc", "band": "band",
          "fail-rate": "b", "accuracy": "a", "ruling-accuracy": "r", "appeal-policy": "appeal", "dispute-policy": "dispute",
          "dispute-rate": "dr", "assignment": "assign", "rules": "rules", "pi0": "pi", "dial": "dial", "beta-p": "bp",

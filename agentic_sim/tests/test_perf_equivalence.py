@@ -15,7 +15,9 @@ checked, never what the engine does. This file is that claim in test form:
      engine produced for the same scenario (GOLDEN, recorded from commit 6a746a1; re-pinned once at each design
      revision's implementing commit — last for 2.1.0, the bank: the summons is a loan repaid from its return, the index is
      published once a period, a plant's pots are minted and destroyed, and the wall binds in this random drive, whose state
-     deliveries fail far above a fifth, so the state retracts and 24 requests wait at the end of seed 1).
+     deliveries fail far above a fifth, so the state retracts and 24 requests wait at the end of seed 1; and once more for 2.2.0, the rebate from income: the claims
+     are paid at the period's close from the fee pool, which is a lock on Ω, so the summonses between arrive at different
+     ticks and a few more loans are made).
   2. An engine-caused violation is caught by the per-tick check exactly where the full audit
      catches it.
   3. The working set stays bounded while the record grows.
@@ -182,12 +184,12 @@ def fingerprint(w: World) -> dict:
 # changed with the rule, as a change to settlement, the reserve or membership must, and was re-pinned once, at the
 # implementing commit.
 GOLDEN = {
-    1: {"head": "148932dcf5f32644b8ba8e5a14dac44ff0b946d468583e1b0491140e52f7efb5", "entries": 8501,
+    1: {"head": "4e0fc52343312bf20d8a1472aea44e5655f24de4d934310d92afd333bb2fc41c", "entries": 8678,
         "M": 120273.313569, "Res": 0.0,
         "states": {"FINAL_N": 177, "VESTED": 61, "CANCELLED": 3, "WITHDRAWN": 15, "PENDING": 3, "AVAILABLE": 24,
                    "SUBMITTED": 1}},
-    2: {"head": "539329867138c81b21c1112a2b77ae80ff8606ae1d964e4197365fcb73ec7e95", "entries": 8211,
-        "M": 120325.597355, "Res": 0.0,
+    2: {"head": "8f0a37fb938b1f6ee1361cead03027b2c8496920c7116009ed88463cc0353364", "entries": 8573,
+        "M": 120355.591336, "Res": 0.0,
         "states": {"FINAL_N": 184, "VESTED": 57, "WITHDRAWN": 8, "PENDING": 5, "AVAILABLE": 7, "COMMITTED": 1}},
 }
 
@@ -226,6 +228,7 @@ def test_full_audit_agrees_with_tick_check_and_behaviour_is_unchanged(seed):
     assert w.bank_on and w.deficit_created == 0 and w.bank_minted["loan"] > 0 and w.bank_destroyed["repayment"] > 0
     assert w.debt_created > 0 and (w.troop_refused_credit_awards > 0) == (seed == 1) and w.troop_refused_credit_seats == 0
     assert w.bank_minted["mint_plant"] > 0 and w.bank_destroyed["retire_plant"] > 0 and w._P_published_at is not None
+    assert w.pool_on and w.rebates_paid > 0 and not w.omega_liabilities and w.liabilities_accrued == 0     # 2.2.0: the pool, no stock
     assert abs(w.ledger.wallet("DUTY-FUND").W - (w.fund_in - w.fund_out)) < 1e-6
     assert w.ledger.wallet(w.troop_wallet).W + w.troop_surplus_paid > 0          # the troops earned, and it is the state's
 

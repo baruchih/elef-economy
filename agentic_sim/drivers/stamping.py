@@ -176,14 +176,15 @@ class Stamping:
         self.kind = {aid: (STAMPER if i < n_st else CAREFUL) for i, aid in enumerate(ids)}
         if a.rules == "1.1.0":                   # the control: the 1.1.0 engine's behaviour, declared
             a.pi0, a.dial, a.p_start, a.p_cap, a.omega0 = 0.0, "off", 0.5, 0.5, 20.0
-        rev3 = a.rules in ("1.3.0", "1.4.0", "1.5.0", "1.6.0", "1.7.0", "1.7.1", "2.0.0", "2.1.0")     # 1.2.0 and 1.1.0: membership, the fund and netted capital off
-        rev4 = a.rules in ("1.4.0", "1.5.0", "1.6.0", "1.7.0", "1.7.1", "2.0.0", "2.1.0") and a.troops == "on"
-        rev5 = a.rules in ("1.5.0", "1.6.0", "1.7.0", "1.7.1", "2.0.0", "2.1.0")    # 1.4.0: the reserve is the peak capital carried, over two periods
-        rev6 = a.rules in ("1.6.0", "1.7.0", "1.7.1", "2.0.0", "2.1.0")     # 1.6.0: the five rules, each behind its flag; `--rules 1.5.0` turns them off
-        rev7 = a.rules in ("1.7.0", "1.7.1", "2.0.0", "2.1.0")  # 1.7.0: the troop account behind its flag and the cap at two thirds; `--rules 1.6.0` is the control
-        rev8 = a.rules in ("2.0.0", "2.1.0")     # 2.0.0: the price of work — floating prices, N_T; `--rules 1.7.1` is the fixed-price control
-        rev9 = a.rules == "2.1.0"                # 2.1.0: the bank — loans, the debt, the wall, P_t once a period; `--rules 2.0.0` is the control
-        self.rev9 = rev9
+        rev3 = a.rules in ("1.3.0", "1.4.0", "1.5.0", "1.6.0", "1.7.0", "1.7.1", "2.0.0", "2.1.0", "2.2.0")     # 1.2.0 and 1.1.0: membership, the fund and netted capital off
+        rev4 = a.rules in ("1.4.0", "1.5.0", "1.6.0", "1.7.0", "1.7.1", "2.0.0", "2.1.0", "2.2.0") and a.troops == "on"
+        rev5 = a.rules in ("1.5.0", "1.6.0", "1.7.0", "1.7.1", "2.0.0", "2.1.0", "2.2.0")    # 1.4.0: the reserve is the peak capital carried, over two periods
+        rev6 = a.rules in ("1.6.0", "1.7.0", "1.7.1", "2.0.0", "2.1.0", "2.2.0")     # 1.6.0: the five rules, each behind its flag; `--rules 1.5.0` turns them off
+        rev7 = a.rules in ("1.7.0", "1.7.1", "2.0.0", "2.1.0", "2.2.0")  # 1.7.0: the troop account behind its flag and the cap at two thirds; `--rules 1.6.0` is the control
+        rev8 = a.rules in ("2.0.0", "2.1.0", "2.2.0")     # 2.0.0: the price of work — floating prices, N_T; `--rules 1.7.1` is the fixed-price control
+        rev9 = a.rules in ("2.1.0", "2.2.0")     # 2.1.0: the bank — loans, the debt, the wall, P_t once a period; `--rules 2.0.0` is the control
+        rev10 = a.rules == "2.2.0"               # 2.2.0: the rebate from income — the period's fee pool, claims pro rata at the close; `--rules 2.1.0` the control
+        self.rev9, self.rev10 = rev9, rev10
         self.floating = rev8
         on = lambda flag: rev6 and flag == "on"
         if a.duty_cap is None:
@@ -203,7 +204,7 @@ class Stamping:
                    floating=rev8, P0=20.0, issuance=(a.issuance if rev8 else 0.0), N_T=(a.n_t if rev8 else 0),
                    troop_cost_at_price=(rev8 and a.c_d_t_mode in ("cost", "at_cost")), lam=a.lam, bbar_counts_troops=(rev8 and a.bbar_troops == "on"),
                    bank=rev9, c_d_t_mode=("at_cost" if a.c_d_t_mode == "cost" else a.c_d_t_mode), b_t_prior=a.b_t_prior,
-                   b_t_min_n=a.b_t_min_n, debt_bound_periods=a.debt_bound_periods)
+                   b_t_min_n=a.b_t_min_n, debt_bound_periods=a.debt_bound_periods, rebate_pool=rev10)
         self.p = p
         if rev8:
             humans = {f"R{i:02d}": a.wallet for i in range(1, a.requesters + 1)}
@@ -220,6 +221,7 @@ class Stamping:
         ids_l = list(self.actors); self.rng.shuffle(ids_l)
         self.lowballers = set(ids_l[: round(len(ids_l) * a.lowball_share)])
         self.stingy = set(self.requesters[: a.stingy_requesters])
+        self.small = set(self.requesters[-a.small_requests:]) if a.small_requests > 0 else set()
         ids_c = [aid for aid in self.actors if self.kind[aid] == CAREFUL]
         self.state_rejecters = set(ids_c[: round(len(ids_c) * a.state_rejecters)]) if a.state_rejecters > 0 else set()
         world = World(p, self.actors, humans=humans, on_duty=sorted(self.actors)[: a.on_duty])
@@ -401,7 +403,8 @@ class Stamping:
         maximum fits the unlocked wallet, at β = min(β_max, share × unlocked)."""
         a, w = self.a, self.w
         open_n = sum(1 for cid in self.active if self.owner.get(cid) == r)
-        if a.k_open > 0 and open_n >= a.k_open:
+        k_open = a.k_open * 3 if r in self.small else a.k_open
+        if k_open > 0 and open_n >= k_open:
             self.c["posts_k_open"] += 1
             return
         U = w.unlocked(r)
@@ -412,6 +415,8 @@ class Stamping:
             beta = math.floor(min(a.beta_max, a.ceiling_mult * mk["B_bar"]) * 100) / 100
         else:
             beta = math.floor(min(a.beta_max, a.ceiling_share * U) * 100) / 100
+        if r in self.small:                               # 2.2.0 §8.5 red team: many small requests at the market price exactly
+            beta = min(beta, math.ceil(mk["B_bar"] * 100) / 100)
         if r in self.stingy:                              # 2.0.0 §8.8: underbids the market and waits for a troop (expected: flagged, waits)
             beta = min(beta, math.floor(0.6 * mk["B_bar"] * 100) / 100)
         m = w.dial()["m"]
@@ -1056,7 +1061,13 @@ class Stamping:
                     "refused_waiting_capacity": mk["refused_waiting"]["capacity"], "refused_waiting_credit": mk["refused_waiting"]["credit"],
                     "marked_capacity": self.c["marked_capacity"], "marked_credit": self.c["marked_credit"],
                     "withdrawn_at_mark": self.c["withdrawn_at_mark"], "reposted_after_mark": self.c["reposted_after_mark"],
-                    "state_rejections": self.c["state_rejections"], "troop_truth_redrawn": self.c["troop_truth_redrawn"]})
+                    "state_rejections": self.c["state_rejections"], "troop_truth_redrawn": self.c["troop_truth_redrawn"],
+                    # 2.2.0: the rebate from income
+                    "pool_on": int(sv["pool_on"]), "pool": round(sv["pool"], 3), "claims_period": round(sv["claims_period"], 3),
+                    "rebates_forgone": round(sv["rebates_forgone"], 3), "forgone_share": round(sv["forgone_share"], 4),
+                    "forgone_share_period": round(sv["forgone_share_period"], 4), "omega_retained_period": round(sv["omega_retained_period"], 3),
+                    "small_requesters_wallet": round(sum(w.wealth(x) for x in self.small) / max(1, len(self.small)), 3) if self.small else "",
+                    "small_requesters_rebates": round(sum(w.case(cid).rebate_paid for cid in self.owner if self.owner[cid] in self.small), 3) if self.small else ""})
         row.update({"pfa_route_upheld": len(self.pfa_upheld_by), "pfa_route_overturned": self.pfa_overturned,
                     "pfa_route_other": self.pfa_other, "pfa_kind_troop": kinds["troop"], "pfa_kind_standing": kinds["standing"],
                     "pfa_kind_lag": kinds["lag"], "pfa_kind_readmitted": kinds["readmitted"]})
@@ -1078,8 +1089,8 @@ def main(argv=None):
     ap.add_argument("--p-start", type=float, default=1.0, help="a newcomer's audit odds (1.2.0 §2.4: 1.0; 1.1.0: 0.5)")
     ap.add_argument("--p-cap", type=float, default=1.0, help="the audit odds' cap on doubling (1.2.0 §2.4: 1.0; 1.1.0: 0.5)")
     ap.add_argument("--p-floor", type=float, default=0.2, help="the audit rate's floor (§8.3)")
-    ap.add_argument("--rules", choices=["2.1.0", "2.0.0", "1.7.1", "1.7.0", "1.6.0", "1.5.0", "1.4.0", "1.3.0", "1.2.0", "1.1.0"], default="2.1.0",
-                    help="2.1.0: the bank (loans, the debt, the wall, the expected cost, P_t once a period, refusals told); 2.0.0: the price of work with "
+    ap.add_argument("--rules", choices=["2.2.0", "2.1.0", "2.0.0", "1.7.1", "1.7.0", "1.6.0", "1.5.0", "1.4.0", "1.3.0", "1.2.0", "1.1.0"], default="2.2.0",
+                    help="2.2.0: the rebate from income (the period's fee pool, claims pro rata at the close, the rest forgone); 2.1.0: the bank with the liability stock (the control); 2.1.0 also: the bank (loans, the debt, the wall, the expected cost, P_t once a period, refusals told); 2.0.0: the price of work with "
                          "Ω's creation and retirement (the control); 1.7.1 (= 1.7.0): the fixed-price control — "
                          "one bottomless requester at β, the backing, the reserves; 1.6.0: the merged fund (uplift from troop earnings) and the half cap; 1.5.0: also the five 1.6.0 rules off; "
                          "1.3.0: troops off; 1.2.0: also membership, the duty fund and netted plant capital off; 1.1.0: also no "
@@ -1180,6 +1191,8 @@ def main(argv=None):
                     help="2.1.0 §2.6: what a requester does at a refusal's mark — hold (default) or withdraw and repost (the §8.6 variant; the §8.9 rebate farmer)")
     ap.add_argument("--troop-fail-rate", type=float, default=None,
                     help="2.1.0 §8.9 red team: the state's deliveries re-drawn to fail at this rate at the troop's submission (0.5, 0.75; default: the task's own truth)")
+    ap.add_argument("--small-requests", type=int, default=0,
+                    help="2.2.0 §8.5 red team: this many requesters post at the market price exactly with K_open tripled — many small requests to collect pro-rata rebates (expected: nothing beyond the capped claims)")
     ap.add_argument("--state-rejecters", type=float, default=0.0,
                     help="2.1.0 §8.9 red team: the share of careful actors that reject every delivery of the state's (reads the case's actor — declared non-conforming)")
     ap.add_argument("--n-t", type=int, default=40, help="N_T, the most troops ELEF can field at once (0 = unbounded, the control)")
@@ -1199,7 +1212,7 @@ def main(argv=None):
     ap.add_argument("--results-root", default=None, help="write results/runs under this directory instead of results/")
     a = ap.parse_args(argv)
     if a.c_d_t_mode is None:
-        a.c_d_t_mode = "expected" if a.rules == "2.1.0" else "cost"
+        a.c_d_t_mode = "expected" if a.rules in ("2.1.0", "2.2.0") else "cost"
 
     name = a.name or f"stamping-s{a.stampers:g}-p{a.p_start:g}-gv{a.gv:g}-b{a.fail_rate:g}-f{a.fee:g}-X{a.on_duty}-seed{a.seed}"
     run = Stamping(a)
@@ -1271,7 +1284,11 @@ def main(argv=None):
                                     "none": "silent", "truthful": f"disputes a pending F on work that truly failed with probability {a.dispute_rate}",
                                     "half": "disputes a pending F on work that truly failed with probability 0.5",
                                     "always": "disputes every pending F"}[a.dispute_policy], "budget": a.human_budget},
-                                "the_bank": None if a.rules != "2.1.0" else {
+                                "the_rebate_from_income": None if a.rules != "2.2.0" else {
+                                    "spec": "2.2.0 design revision 10 — the claim recorded at the stop; Ω's fee income after the debt pooled as a lock on Ω; at the period's close the "
+                                            "claims stopped in the period paid pro rata, the rest forgone and read; no liability stock",
+                                    "red_team": {"small_requesters": sorted(run.small)}},
+                                "the_bank": None if a.rules not in ("2.1.0", "2.2.0") else {
                                     "spec": "2.1.0 design revision 9 — the bank: a second account that alone creates and destroys; mints by rule, publishes "
                                             "P_t once a period, lends a summons's shortfall tied to it; the state burns its expected cost and delivers at B̄; "
                                             "every inflow to Ω ordered at once (debt → liabilities → Ω); the wall on deliveries; every refusal told",
@@ -1280,7 +1297,7 @@ def main(argv=None):
                                     "requester_on_refusal": a.requester_on_refusal,
                                     "red_team": {"troop_fail_rate": a.troop_fail_rate, "state_rejecters": sorted(run.state_rejecters),
                                                  "state_rejecters_reading": "the case's actor through the public view's case — not the reviewer's view (§14 carries no actor); declared"}},
-                                "price_of_work": None if a.rules not in ("2.0.0", "2.1.0") else {
+                                "price_of_work": None if a.rules not in ("2.0.0", "2.1.0", "2.2.0") else {
                                     "spec": "2.0.0 design revision 8 — the price of work",
                                     "requesters": {"n": a.requesters, "wallet": a.wallet, "issuance_per_tick": a.issuance,
                                                    "ceiling": (f"min({a.beta_max:g}, {a.ceiling_mult:g} × B̄) — market-aware" if a.ceiling_policy == "market"
@@ -1299,7 +1316,7 @@ def main(argv=None):
                                     "plants": "at B = P_t", "P0": 20.0,
                                     "red_team": {"lowball_share": a.lowball_share, "lowballers": sorted(run.lowballers),
                                                  "stingy_requesters": sorted(run.stingy), "bbar_counts_troops": a.bbar_troops}},
-                                "permitted_operations": PERMITTED + (PERMITTED_200 if a.rules in ("2.0.0", "2.1.0") else []), "not_in_run": NOT_IN_RUN,
+                                "permitted_operations": PERMITTED + (PERMITTED_200 if a.rules in ("2.0.0", "2.1.0", "2.2.0") else []), "not_in_run": NOT_IN_RUN,
                                 "record_dir": a.record_dir,
                                 "checks": {"per_tick": "check_tick after every tick — always; not configurable",
                                            "full_audit_every_n_ticks": "not scheduled",

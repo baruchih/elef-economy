@@ -165,7 +165,13 @@ class Public:
                 "liabilities_outstanding": sum(l["amount"] for l in w.omega_liabilities),
                 # the part older than a period — what Ω pays before it advances (1.6.0 §2.2)
                 "liabilities_old": sum(l["amount"] for l in w.omega_liabilities if w.t - l["t"] >= w.p.period_ticks),
-                "open_late": w.open_late()}
+                "open_late": w.open_late(),
+                # 2.2.0: the rebate from income — claims, paid, forgone and the forgone share (the run), the pool and this period's claims
+                "pool_on": w.pool_on, "pool": w.omega_pool, "claims_period": w.period["claims_total"], "claims_n_period": len(w.period["claims"]),
+                "rebates_forgone": w.rebates_forgone,
+                "forgone_share": (w.rebates_forgone / (w.rebates_paid + w.rebates_forgone)) if (w.rebates_paid + w.rebates_forgone) > 1e-9 else 0.0,
+                "omega_retained_period": (w.periods[-1].get("omega_retained_period", 0.0) if w.periods else 0.0),
+                "forgone_share_period": (w.periods[-1].get("forgone_share", 0.0) if w.periods else 0.0)}
 
     # -- the orchestrator's planted work and its clock (1.2.0 §2.1–§2.3) -----------
     def create_plant(self, truth: bool, B: float) -> str:

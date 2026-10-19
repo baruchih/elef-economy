@@ -1885,6 +1885,42 @@ at the close net of it — verification before the state's blame; **to be implem
 return from the expected failures. Until then the engine runs 2.2.0 as accepted (the advances wait for the unlocked balance). **Next:**
 2.3.0 — the supply side, entry and delegation; the draft follows.
 
+## Design revision 11 — the supply side (2.3.0, October 19, 2026)
+
+**The candidate and its reviews.** `2.3.0-rc.1` opened the door both ways: entry as a probationer with a bank-minted float, exit with the
+wallet out, competence as a private per-actor cost, delegation with the troops never nested, the outsider's view, run 15's advance ruling.
+The implementer's review (`dr11_2.3.0-rc.1-review.md`): implementable with two corrections — the §6 child was a probationer, which wins
+no award and is not pinned once admitted; a nested request has carried no pots since 1.1.0, so the root requester paid for the child's
+inspection — and six readings (the cost hidden by the view, not the record; a clean departure on four conditions; admission possible on an
+undetermined record; the summons already root-only, seats staying the troops'; admissions apart from readmissions; the pool advance as
+written). rc.2 adopted all of it and decided the second correction as a rule: **the parent posts the pots** (Q3 answered, the 1.1.0 reading
+the control); the rc.2 review: implementable as it stands, one reading — a node's pots settle at the node's own closure. **Accepted with
+that ruling (Appendix P):** §4.3's payout rule per node, a case closing when it and everything under it have settled; I19 "for every case";
+I10's exemptions narrowed to the case's own closure.
+
+**Implemented** (`Params.supply`, on with `bank`; `F0` 50; `nested_pots parent|root`; the commit named below): `arrive` and `depart` with the
+`arrival` kind and the archive; admission on n_min bad plants counted apart from readmissions; `award` refusing a probationer on any request;
+the nested all-in with the pots locked at posting, drawn at the award, the case's reviews on its own pool, `_maybe_close_node` at the node's
+closure and the tree's closure scoped to the root; the reviewer advance from the pool lock; I33–I36, I1 / I10 / I15 / I19 / I32 amended; the
+view's operations and the outsider's fields. `test_v23` (13); `test_v101` pins `supply=False`; the goldens re-pinned once. **The expected
+failures (32):** two reviewer tests superseded by the parent's pots (`test_review_13`: three children unaffordable on a float of 50;
+`test_r4_07`: the root's allowance no longer exhausted by a nested review); the two 2.2.0 ones (`test_review_06`, `test_r4_08`) **do not
+return with the pool advance** as §2.6 expected — the advance at completion takes what the pool holds, the 0.5 of pooled fee in those tests,
+so the figures they pin move by it; the ruling is implemented and they stay expected failures with that reason; `test_review_17` (the kill
+fee) holds at the 2.3.0 figures. Suite 293 passed, 0 failed, 32 expected failures. Drivers: `--rules 2.3.0` default (`2.2.0` the control);
+per-actor costs; the entry pool; delegation; the readings. Spec consolidated as `v2_3_0` (§2.1, §4.3, §5.1, §9, §10.4, §11.2, §16–18,
+§20, Appendices A, C, P), 2.2.0 to history, rc.2 verbatim as `dr11_the_supply_side_2.3.0.md`.
+
+**Two things the smokes showed before run 16, for the record.** At the default spread no parent delegates: the expected child's bid
+(the median cost at the starting margin, about 9) exceeds what any parent saves after the overhead (the nested fee, about 4.5 of pots' net
+cost at the index, 2 of care); at σ 0.8 the dearest three members delegate — brokers at cost rank 0.95 — and most of their nested requests
+go unawarded within T_wait, since the children's ratchet bids exceed the parent's ceiling, so the parents self-execute. With the pool of
+twenty at 60/40, nineteen arrive in the first period, admissions begin near tick 290, and the price at tick 800 is 24 against 31.
+
+**Next:** run 16 — §6; entry at 60/40 and 80/20 with the pool of twenty (§8.2); the spread at 20 honest, σ 0.2 / 0.43 / 0.8, delegation on
+and off, the `root` control at 0.8 (§8.3); then entry and the spread together (§8.4), the knobs, the riot with entry, the red team, told under
+entry as time allows.
+
 ## Maps
 
 Two `_line` artifacts in project Agentic-OS (`c54120a6-aaff-40f7-8a9f-3667da542879`):

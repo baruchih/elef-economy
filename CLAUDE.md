@@ -1,7 +1,11 @@
 # Agentic-OS — the economic loop
 
 A rulebook for a task → verification → dispute → settlement loop among autonomous actors, and a
-reference implementation of it with no strategies. Ten external reviews. The rulebook is at **2.2.0** — design revision 10, *the rebate from income*: the service clock's claim stays the
+reference implementation of it with no strategies. Ten external reviews. The rulebook is at **2.3.0** — design revision 11, *the supply side*: actors arrive (`arrive`, a probationer with a
+bank-minted float, admitted on n_min bad plants with a passing record, no award of any kind before) and depart (`depart`, with no live
+obligation, the wallet leaving M); competence is the drivers' per-actor effort cost, private, revealed through bids; a nested request
+carries its own pots posted by the parent with the all-in and settles them at the node's own closure (the ruling); the troops never
+deliver a nested request; a reviewer's reimbursement advance may draw on the rebate pool — on **2.2.0**, design revision 10, *the rebate from income*: the service clock's claim stays the
 measure of lateness, recorded at the stop; Ω's fee income after the debt accrues to the period's pool, a lock on Ω, and at the period's
 close the claims stopped in the period are paid pro rata, the rest forgone and read (no liability stock; the state's blame is its fees) —
 on **2.1.0**, design revision 9, *the bank*: a second account of the orchestrator's
@@ -51,13 +55,13 @@ and what is proposed next.
 ## Layout
 
 ```
-spec/agentic_economics_loop_spec_v2_2_0.md   the text in force (standalone; Appendix A defaults, E errata, F–O design revisions 1–10 and the rulings)
+spec/agentic_economics_loop_spec_v2_3_0.md   the text in force (standalone; Appendix A defaults, E errata, F–P design revisions 1–11 and the rulings)
 spec/design_revisions/                       accepted design revisions, verbatim (dr1: two pots; dr2: the loop's own clock; dr3:
                                              inspection is membership; dr4: the orchestrator's troops; dr5: the reserve is sized to
-                                             the need; dr6: auto-scale; dr7: the state's earnings; dr8: the price of work; dr9: the bank; dr10: the rebate from income), and the implementer's reviews of dr2–dr10's candidates
-spec/history/                                v0.1 … v2.1.0 — superseded, kept for provenance only
+                                             the need; dr6: auto-scale; dr7: the state's earnings; dr8: the price of work; dr9: the bank; dr10: the rebate from income; dr11: the supply side), and the implementer's reviews of dr2–dr11's candidates
+spec/history/                                v0.1 … v2.2.0 — superseded, kept for provenance only
 reviews/                                     R01–R10, one external review per version, with the reviewer's notes
-agentic_sim/                                 the engine, 32 invariants, 28 test files, runner, drivers, results
+agentic_sim/                                 the engine, 36 invariants, 29 test files, runner, drivers, results
 docs/line_map_economic_loop_v1_0_1.txt       text export of the _line map of the loop (the live map is the source)
 HANDOFF.md                                   status, history table, open questions, proposed next step
 ```
@@ -66,12 +70,15 @@ HANDOFF.md                                   status, history table, open questio
 
 ```
 cd agentic_sim
-python3 run_tests.py        # expected: 282 passed, 0 failed, 30 expected failures
+python3 run_tests.py        # expected: 293 passed, 0 failed, 32 expected failures
 python3 -S run_tests.py     # same, with no site-packages
 python3 run_tests.py --record   # same, every World in record mode
-python3 -m pytest tests -q  # expected: 282 passed, 30 xfailed, 0 xpassed (conftest mirrors the runner; pytest is not installed here)
+python3 -m pytest tests -q  # expected: 293 passed, 32 xfailed, 0 xpassed (conftest mirrors the runner; pytest is not installed here)
 python3 -m drivers.load_run --actors 200 --ticks 10000 --on-duty 40 --tasks 30 --record-dir /path  # throughput run
 python3 -m drivers.stamping --actors 20 --ticks 1000 --stampers 0.6 --seed 1   # §18.1 q1 under 2.1.0: six requesters with wallets, members bidding, the state at its expected cost on the bank's loans under N_T 40
+python3 -m drivers.stamping --entry-pool 20 --stampers 0.6 --seed 1   # 2.3.0 §8.2: entry — twenty candidates reading the view, arriving as probationers; --reservation, --arrivals-per-tick, --f0 the knobs
+python3 -m drivers.stamping --c-d-sigma 0.8 --delegation on --stampers 0 --seed 1   # 2.3.0 §8.3: the spread and delegation (σ 0.2 / 0.43 / 0.8); --nested-pots root the 1.1.0 control
+python3 -m drivers.stamping --rules 2.2.0 --seed 1   # the 2.2.0 control: one cost, a fixed population, the children on the root's pots
 python3 -m drivers.stamping --rules 2.1.0 --seed 1   # the 2.1.0 control: the rebate at the stop, else the liability stock (2.2.0 pools the fees and settles the claims at the close)
 python3 -m drivers.stamping --small-requests 2 --k-open 0 --ceiling-policy market --stampers 0.6 --seed 1   # 2.2.0 §8.5 red team: many small requests for pro-rata rebates
 python3 -m drivers.stamping --rules 2.0.0 --seed 1   # the 2.0.0 control: Ω's creation and retirement, the deficit, P_t on the live window, the state at cost
@@ -108,15 +115,17 @@ Results are kept (`drivers/results.py`): the runner writes what it printed to `r
 study folder, `results/studies/<study>/<sweep>/runs/`, so a study is one directory. Commit the ones that matter. Results are written by the code and
 read by people; the suite and the engine stay the authority — never edit a result to match.
 
-Any other result is a regression — including an XPASS. The 30 expected failures each have a stated
+Any other result is a regression — including an XPASS. The 32 expected failures each have a stated
 reason in `run_tests.py` (`EXPECTED_FAIL`, with `EXPECTED_FAIL_PARAMS` naming the parameter runs inside a
 mixed test): one original (a single-answer ⊥ appeal), four superseded by the reviewer-view contract,
 nineteen on the withdrawn audit-reopening path, one superseded by design revision 1 (it pinned the
 1.0.1 deposit through the human's budget; its principle is re-asserted in `test_v11`), one superseded by
 design revision 2 (it pinned Ω's cold-start float at 20; Appendix A now says 300), two superseded by design revision 8 (one pinned
 the backing's v_t halving under emission; one pinned the pay-in's refusal at the award, now refused whole at posting; their principles
-are re-asserted in `test_v20`), two superseded by design revision 10 (they pinned a service fee advancing a reviewer's reimbursement
-and paying an outstanding claim at once; the fee is pooled until the period's close and the principle holds there, `test_v22`). The three
+are re-asserted in `test_v20`), two superseded by design revisions 10 and 11 (they pinned a service fee advancing a reviewer's reimbursement and
+paying an outstanding claim at once; the fee is pooled until the close and the pool's advance moves the figures they pin, `test_v22`,
+`test_v23`), two superseded by design revision 11 (a parent on a float of 50 cannot post three children with their pots; the root's
+allowance is no longer exhausted by a nested review — the principles re-asserted in `test_v23`). The three
 reviewer tests that pinned 1.x figures through 2.0.0's moving index pass again under 2.1.0, which publishes the index once a period. They are strict in both entry points: an expected
 failure that passes means a withdrawn path is admitted again, and the run fails.
 
@@ -337,6 +346,20 @@ consolidated into one standalone spec with the accepted revision kept verbatim i
   runs the order on the remainder. No liability is ever made. I32; I30 and I26 amended; I15 expects the pool lock. `view.service()` carries
   the pool and the forgone share. Ω's advances to reviewers and its claims (§4.3) are paid from the unlocked balance the pool excludes —
   two reviewer tests that pinned a fee paying a claim at once are expected failures. `test_v22` (9); `test_v21` pins `rebate_pool=False`.
+- The supply side (2.3.0; `Params.supply`, on with `bank`; `F0` 50; `nested_pots parent|root`; `--rules 2.2.0` is the control). `arrive(name)` makes
+  a probationer (`probation`, `arrived_at`, odds pinned) with a bank-minted float (`arrival`, F0 × index); `_check_record`'s admission branch
+  admits an arrival on n_min BAD plants with a passing record (`admitted_at`, `admissions`, `admission_ticks_sum` — apart from `readmissions`);
+  `award` refuses a probationer on any request. `depart(name)` is refused with a commitment, an open or unsettled review, a lock or a claim on Ω,
+  takes the actor off duty, burns the wallet as `departure`, archives the identity in `departed_actors` (refused to `arrive` forever). Under the
+  parent's pots `post_nested` locks β' + φ^E' + φ^F' + ω₀ m β' under `beta:` with the rejection bond beside it (`c.own_pots`, `c.posting_lock`,
+  I15 expects the all-in), `award` draws the pots and the fee from the lock, `_reimburse` and `_settle_reviews` work on the case's own pool
+  (`pots = c if c.own_pots else root`), and `_maybe_close_node` settles a nested case's pots when it and everything under it have settled
+  (`_subtree_settled`; notes `node closure: …`, I10-exempt), the tree's closure scoped to the root; `_reimburse` draws a reviewer's advance from
+  the pool lock after Ω's unlocked balance (`pool_advances`). I33–I36; I19 per case; the view's `arrive` / `depart` / `withdraw_pool_exhaustion`
+  and the outsider's fields in `market()` (members, free, probationers, arrivals, admissions, time to membership — nothing per actor).
+  `test_v23` (13); `test_v101` pins `supply=False`. Drivers: per-actor `c_d_of` drawn once (`draw_cost`, `cost_now`), the entry pool
+  (`entry_step`, `exit_step`), delegation (`delegation_step`: the parent's rule, the children's bids, the parent's judgment by disposition,
+  self-execution after T_wait), the readings.
 - Money is checked by invariant I1 (conservation) — never silently create or lose credits.
 
 ## Vocabulary (spec Appendix C has the full notation)
@@ -374,5 +397,8 @@ refusal's kind and tick on the request); Ω's net position = Ω_U − debt − l
 The rebate from income (2.2.0): the claim (the rebate as the measure of lateness, recorded at the stop); the pool (the period's fee income
 after the debt, a lock on Ω); the close (the claims paid pro rata); forgone and the forgone share (the unpaid part of the state's blame,
 the busy line's third reading); Ω retained (what the claims left of the pool).
+The supply side (2.3.0): arrive and depart; an arrival (a probationer with no record and a bank-minted float F_0); admission (on n_min bad
+plants) and time to membership; competence (an actor's own effort cost, drawn once, private) and the spread σ; the entry pool and the
+reservation r; the parent's pots and a node's closure; a broker (a parent delegating most of its awards) and the gain from trade.
 "Ruling" has two senses: the orchestrator rules on splits inside the procedure; only a human
 *overrides* it (spec §15.2).

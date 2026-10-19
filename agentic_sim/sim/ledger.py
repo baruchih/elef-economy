@@ -47,7 +47,8 @@ def _i10_exempt(note: str) -> bool:
     clock's stop and carried as its liability is paid when Ω can — an obligation established before
     vesting. Nothing else moves money on a vested case."""
     return "deferred" in note or "Ω claim" in note or note.startswith("nested ") or note.startswith("tree closure") \
-        or note.startswith("rebate (Ω liability serviced)") or note.startswith("rebate (settled at the period's close)")
+        or note.startswith("rebate (Ω liability serviced)") or note.startswith("rebate (settled at the period's close)") \
+        or note.startswith("node closure")
 
 
 def _i19_event_ok(e) -> bool:
@@ -56,7 +57,7 @@ def _i19_event_ok(e) -> bool:
     if e.kind == "deposit_out":
         return "fee" not in e.note
     if e.kind == "feepot_out":
-        return e.note in ("review fee", "nested review fee") or e.note.startswith("tree closure")
+        return e.note in ("review fee", "nested review fee") or e.note.startswith("tree closure") or e.note.startswith("node closure")
     return True
 
 
@@ -183,7 +184,7 @@ class History:
 
 class Ledger:
     OMEGA = "OMEGA"
-    MINTS = {"mint_backed", "mint_emission", "issuance", "creation", "mint_plant", "loan", "mint_scenario"}
+    MINTS = {"mint_backed", "mint_emission", "issuance", "creation", "mint_plant", "loan", "mint_scenario", "arrival"}
     BURNS = {"burn_bond", "purchase", "retirement", "departure", "repayment", "retire_plant"}
 
     def __init__(self, Res0: float, v0: float, history: Optional[History] = None,
@@ -406,7 +407,7 @@ class Ledger:
     def mint(self, kind: str, wid: str, credits: float, case=None, note=""):
         """issuance (a requester's wallet, the genesis floats) or creation (Ω's shortfall on a required payment); 2.1.0: the
         bank's mint_plant (a plant's pots), loan (a summons's shortfall, tied to it) and mint_scenario (the declared shock)."""
-        if kind not in ("issuance", "creation", "mint_plant", "loan", "mint_scenario"):
+        if kind not in ("issuance", "creation", "mint_plant", "loan", "mint_scenario", "arrival"):
             raise LedgerError(f"mint: unknown source kind {kind}")
         credits = amount(credits, kind)
         if credits <= 1e-12:

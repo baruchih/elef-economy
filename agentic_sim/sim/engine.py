@@ -98,6 +98,8 @@ class Actor:
     since_susp: int = 0         # plant outcomes adjudicated since the suspension began (1.3.0 §2.2: ≥ n_min to be readmitted)
     susp_started: Optional[int] = None
     readmitted_at: Optional[int] = None
+    arrived_at: Optional[int] = None    # 2.3.0 §2.1: an arrival (None for a genesis actor)
+    admitted_at: Optional[int] = None   # 2.3.0 §2.1: when the arrival's record admitted it to membership
     _world: object = None
 
     @property
@@ -328,6 +330,8 @@ class Case:
     rebate_paid: float = 0.0
     rebate_forgone: float = 0.0            # 2.2.0: the part of the claim the period's pool did not cover
     rebate_settled_at: Optional[int] = None
+    node_closed: bool = False              # 2.3.0 (the ruling): a nested case's own pots settled and refunded at its closure
+    own_pots: bool = False                 # 2.3.0 §2.4: the parent posted this nested case's pots
     # outcome record
     grade: Optional[str] = None
     assessments: list = field(default_factory=list)
@@ -524,7 +528,7 @@ class World:
         self._reserve_dirty = False                     # an actor left duty since the last rotation (mid-tick)
         # 2.1.0: the bank — minted and destroyed by kind, the loans by summons (troop id), the debt, the refusals for credit,
         # the index as published, and the state's own record of its deliveries
-        self.bank_minted = {"issuance": 0.0, "mint_emission": 0.0, "mint_plant": 0.0, "mint_scenario": 0.0, "loan": 0.0}
+        self.bank_minted = {"issuance": 0.0, "mint_emission": 0.0, "mint_plant": 0.0, "mint_scenario": 0.0, "loan": 0.0, "arrival": 0.0}
         self.bank_destroyed = {"repayment": 0.0, "retire_plant": 0.0}
         self.loans: dict[str, dict] = {}                # troop id -> {amount, kind, case, t} while the summons is open
         self.loans_peak = 0.0
@@ -549,6 +553,15 @@ class World:
         self.pool_index = 0
         self.rebates_forgone = 0.0
         self._pool_violation: Optional[str] = None
+        # 2.3.0: entry and exit, the per-node pots, the reviewer advances from the pool
+        self.departed_actors: dict = {}                 # archived identities, never reused
+        self.arrivals = 0
+        self.admissions = 0
+        self.admission_ticks_sum = 0
+        self.actor_departures = 0
+        self.actor_departed_credits = 0.0
+        self.pool_advances = 0.0
+        self._supply_violation: Optional[str] = None
         self.last_b_t: Optional[float] = None
         self.last_c_d_t: Optional[float] = None
         self.ledger.on_event = self._on_ledger_event
@@ -586,6 +599,72 @@ class World:
     def pool_on(self) -> bool:
         """2.2.0: the rebate from income is a rule of the bank's economy only."""
         return self.bank_on and self.p.rebate_pool
+
+    @property
+    def supply_on(self) -> bool:
+        """2.3.0: entry, exit and the per-node pots are rules of the bank's economy only."""
+        return self.bank_on and self.p.supply
+
+    @property
+    def parent_pots(self) -> bool:
+        """2.3.0 §2.4: a nested case carries its own pots, posted by the parent (the 1.1.0 reading is the control)."""
+        return self.supply_on and self.p.nested_pots == "parent"
+
+    def arrive(self, name: str):
+        """2.3.0 §2.1: the orchestrator admits a fresh actor as a probationer — initial reviews only, odds pinned, no award of any kind
+        — with a float the bank mints (`arrival`, F_0 at P_0 indexed at the arrival tick). Admitted to membership when its trailing
+        record passes θ_duty with n_min bad plants adjudicated (I33). An identity that ever existed is refused."""
+        if not self.supply_on:
+            raise RuleError("arrive: a 2.3.0 operation")
+        if not isinstance(name, str) or not name:
+            raise RuleError("arrive: a name is required")
+        if name in self.actors or name in self.departed_actors or name in self.requesters or name in self.humans \
+                or name in (Ledger.OMEGA, "SPONSOR", PLANT_REQ, PLANT_ACT, DUTY_FUND, TROOP_ACCT) or name in self.troops \
+                or name in self.ledger.wallets:
+            raise RuleError(f"arrive: the identity {name} exists or existed")
+        a = Actor(name, p_audit=self.p.p_start, _world=self)
+        a.probation, a.since_susp, a.susp_started, a.arrived_at = True, 0, self.t, self.t
+        self.actors[name] = a
+        credits = self.p.F0 * self.ledger.index()
+        if credits > 1e-12:
+            self.ledger.mint("arrival", name, credits, note="arrival: the float")
+        self.arrivals += 1
+        self.period["arrivals"] += 1
+        self.history.append("entry", {"t": self.t, "actor": name, "float": round(credits, 6), "msg": "arrived as a probationer"})
+
+    def depart(self, name: str):
+        """2.3.0 §2.2: an actor with no live obligation to or from it leaves — no commitment, no open or unsettled review, no lock, no
+        claim on Ω — off duty as it goes; its unlocked wallet leaves M as `departure`; its identity is archived and never reused (I34).
+        Refused whole otherwise."""
+        if not self.supply_on:
+            raise RuleError("depart: a 2.3.0 operation")
+        a = self.actors.get(name)
+        if a is None:
+            raise RuleError(f"depart: {name} is not an actor")
+        if a.committed is not None:
+            raise RuleError(f"depart: {name} holds a commitment ({a.committed})")
+        if a.open_review is not None:
+            raise RuleError(f"depart: {name} holds an open review ({a.open_review})")
+        unsettled = [r.id for r in self._live_reviews.values() if r.reviewer == name and r.status in ("open", "done")]
+        if unsettled:
+            raise RuleError(f"depart: {name} has a review awaiting settlement ({unsettled[0]})")
+        if self.ledger.wallet(name).L > 1e-9:
+            raise RuleError(f"depart: {name} holds a lock of {self.ledger.wallet(name).L}")
+        if any(cl.reviewer == name for cl in self.omega_claims):
+            raise RuleError(f"depart: {name} holds a claim on Ω")
+        if a.on_duty:
+            self._leave_duty(a, self.t, "departed")
+        credits = self.ledger.wallet(name).U
+        if credits > 1e-12:
+            self.ledger.burn_unlocked("departure", name, credits, note="departure: an actor's wallet leaves")
+        self.departed += credits
+        self.period["departed"] += credits
+        self.actor_departures += 1
+        self.actor_departed_credits += credits
+        self.period["actor_departures"] += 1
+        del self.actors[name]
+        self.departed_actors[name] = a
+        self.history.append("entry", {"t": self.t, "actor": name, "wallet": round(credits, 6), "msg": "departed"})
 
     def _is_fee_event(self, e) -> bool:
         """2.2.0 §2.2: Ω's fee income — the base fee at an award or a summons, a troop reviewer's fee at settlement, a court fee a troop
@@ -1033,20 +1112,32 @@ class World:
         A = parent.actor
         idx = self.ledger.index()                 # §4.5: a nested case is denominated at posting
         D, K, GV = self.p.D * idx, self.p.K * idx, self.p.G_V * idx
-        if self.ledger.wallet(A).U + 1e-9 < beta + GV:
-            raise LedgerError(f"{A} cannot lock beta' + G_V = {beta + GV}")
+        if self.parent_pots:
+            # 2.3.0 §2.4: the parent posts the pots — the nested all-in β' + φ^E' + φ^F' + ω₀ m β' locked with the rejection bond
+            phi_E, phi_F = self.p.phi_E_root * idx, self.p.phi_F_root * idx
+            m_post = self.m_t
+            all_in = beta + phi_E + phi_F + self.p.omega_rate * m_post * beta
+            if self.ledger.wallet(A).U + 1e-9 < all_in + GV:
+                raise LedgerError(f"{A} cannot lock the nested all-in {all_in} + G_V {GV}")
+        else:
+            phi_E, phi_F, m_post, all_in = 0.0, 0.0, 0.0, beta
+            if self.ledger.wallet(A).U + 1e-9 < beta + GV:
+                raise LedgerError(f"{A} cannot lock beta' + G_V = {beta + GV}")
         self._n_case += 1
         cid = f"q{self._n_case}"
         c = Case(cid, root=parent.root, requester=A, is_root=False, beta=beta, t_post=self.t, parent=parent_id)
-        c.D, c.K, c.G_V, c.phi_E, c.phi_F = D, K, GV, 0.0, 0.0
+        c.D, c.K, c.G_V, c.phi_E, c.phi_F = D, K, GV, phi_E, phi_F
         c.rejection_bond = GV
+        if self.parent_pots:
+            c.own_pots, c.m_post, c.index_at_lock, c.posting_lock = True, m_post, idx, all_in
         self.cases[cid] = c
         self._live_cases[cid] = c
-        self.ledger.lock(A, beta, key=f"beta:{cid}", case=cid, note="nested price ceiling")
+        self.ledger.lock(A, all_in, key=f"beta:{cid}", case=cid, note="nested price ceiling" + (" and pots" if self.parent_pots else ""))
         self.ledger.lock(A, GV, key=f"rej:{cid}", case=cid, note="rejection bond")
         self._freeze(c)
         parent.children.append(cid)
-        self._log(c, f"posted nested under {parent_id} beta={beta}; denominated at posting (G_V={GV})")
+        self._log(c, f"posted nested under {parent_id} beta={beta}; denominated at posting (G_V={GV})"
+                     + (f"; the parent's pots {phi_E:g} + {phi_F:g} locked with the all-in {all_in:g}" if self.parent_pots else ""))
         return cid
 
     def withdraw_unawarded(self, cid: str):
@@ -1064,6 +1155,8 @@ class World:
         c.state, c.final = "WITHDRAWN", True
         self._log(c, "withdrawn before award")
         if c.is_nested():
+            if c.own_pots:
+                c.node_closed, c.t_closed = True, self.t     # nothing was funded: the lock came back whole
             self._maybe_close_tree(self.cases[c.root])
 
     # ----------------------------------------------------------------- award
@@ -1107,6 +1200,10 @@ class World:
             need = B + phi_E + phi_F + omega
             if self.ledger.wallet(c.requester).U + 1e-9 < need:
                 raise LedgerError(f"award: requester {c.requester} cannot fund {need} (B + φ^E + φ^F + ω)")
+        elif c.own_pots:
+            D, K, GV, phi_E, phi_F = c.D, c.K, c.G_V, c.phi_E, c.phi_F   # 2.3.0 §2.4: the parent's pots, frozen at posting
+            omega = omega_base * c.m_post
+            omega_fund = (omega - omega_base) if self.p.duty_fund else 0.0
         else:
             D, K, GV, phi_E, phi_F = c.D, c.K, c.G_V, 0.0, 0.0     # frozen at posting
             if self.ledger.wallet(c.requester).U + 1e-9 < omega:
@@ -1136,9 +1233,16 @@ class World:
         else:
             A = c.requester
             self.ledger.fund_escrow(A, cid, B, from_locked=f"beta:{cid}", note="nested escrow")
-            unspent = self.ledger.lock_record(A, f"beta:{cid}")
-            if unspent > 1e-12:
-                self.ledger.release(A, unspent, key=f"beta:{cid}", case=cid, note="unspent beta'")
+            if c.own_pots:
+                # 2.3.0 §2.4: the pots and the fee are drawn from the lock the posting placed, the rest released
+                self.ledger.release(A, self.ledger.lock_record(A, f"beta:{cid}"), key=f"beta:{cid}", case=cid, note="nested lock released at award")
+                self.ledger.fund_deposit(A, cid, phi_E, note="expense allowance (nested)")
+                if phi_F > 0:
+                    self.ledger.fund_fee_pot(A, cid, phi_F, note="fee pot (nested)")
+            else:
+                unspent = self.ledger.lock_record(A, f"beta:{cid}")
+                if unspent > 1e-12:
+                    self.ledger.release(A, unspent, key=f"beta:{cid}", case=cid, note="unspent beta'")
             if omega - omega_fund > 1e-12:
                 self.ledger.transfer(A, Ledger.OMEGA, omega - omega_fund, case=cid, note="service fee (nested)")
                 self._fee_income(omega - omega_fund)
@@ -1358,12 +1462,12 @@ class World:
         amt = target - (r.reimbursed + r.deferred)
         if amt <= 1e-12:
             return
-        root = self.cases[c.root]
-        pool = self.ledger.pool(root.id)
+        pots = c if c.own_pots else self.cases[c.root]   # 2.3.0 §2.4: a nested case with its own pots draws on them
+        pool = self.ledger.pool(pots.id)
         take = min(amt, pool.deposit)
         if take > 0:
-            self.ledger.pay_from_deposit(root.id, r.reviewer, take,
-                                         note=f"{'nested ' if c.is_nested() else ''}reimburse {r.id}")
+            self.ledger.pay_from_deposit(pots.id, r.reviewer, take,
+                                         note=f"{'nested ' if c.is_nested() and not c.own_pots else ''}reimburse {r.id}")
         rest = amt - take
         adv = 0.0
         if rest > 1e-12:
@@ -1372,6 +1476,21 @@ class World:
                 self.ledger.transfer(Ledger.OMEGA, r.reviewer, adv, case=c.id, note=f"Ω advance {r.id}")
                 c.omega_advance += adv
             rest -= adv
+            if rest > 1e-12 and self.supply_on and self.pool_on and self.omega_pool > 1e-9:
+                # 2.3.0 §2.6 (the run 15 ruling): the advance may draw on the rebate pool — verification before the state's blame
+                take_pool = min(rest, self.omega_pool)
+                self._ordering = True
+                try:
+                    self.ledger.release(Ledger.OMEGA, take_pool, key=f"pool:{self.pool_index}", note="rebate pool: reviewer advance")
+                    self.omega_pool -= take_pool
+                    self.ledger.transfer(Ledger.OMEGA, r.reviewer, take_pool, case=c.id, note=f"Ω advance {r.id} (from the pool)")
+                finally:
+                    self._ordering = False
+                c.omega_advance += take_pool
+                self.pool_advances += take_pool
+                self.period["pool_advances"] += take_pool
+                adv += take_pool
+                rest -= take_pool
         r.reimbursed += take + adv
         r.deferred += rest
         c.reimb_total += amt
@@ -1751,6 +1870,11 @@ class World:
         self._terminal_cleanup(c)
         c.state, c.final = "CANCELLED", True
         self._log(c, f"cancelled by {A}; kill fee {fee} to {B_}")
+        if any(self.reviews[r].status == "done" for r in c.reviews):
+            c.needs_review_settlement = True
+        else:
+            self._settle_reviews(c, 0.0)                # the pots return at the node's closure (2.3.0) or the tree's
+        self._maybe_close_node(c)
         self._maybe_close_tree(self.cases[c.root])
 
     def withdraw_pool_exhaustion(self, parent_id: str, nested_id: str):
@@ -1803,6 +1927,8 @@ class World:
         if self.is_troop(c.actor):
             self._release_troop(c.actor)
         self._log(c, f"final N: {reason}")
+        if c.is_nested():
+            self._maybe_close_node(c)                   # 2.3.0 (the ruling): a node closes when it and everything under it have settled
         self._maybe_close_tree(self.cases[c.root])     # final now; a settlement still pending defers this
 
     def _return_escrow(self, c: Case):
@@ -1965,8 +2091,9 @@ class World:
            emission share, minted into this case's pool and paid in full.
         3. Tree closure (`_maybe_close_tree`): when every case in the tree has settled."""
         root = self.cases[c.root]
-        rpool = self.ledger.pool(root.id)
-        nested = "nested " if c.is_nested() else ""
+        pots = c if c.own_pots else root                # 2.3.0 §2.4: a nested case with its own pots settles from them
+        rpool = self.ledger.pool(pots.id)
+        nested = "nested " if c.is_nested() and not c.own_pots else ""
         surviving = [self.reviews[r] for r in c.reviews if self.reviews[r].status == "done"]
         for r in surviving:
             e = 0.0 if self.is_troop(r.reviewer) else self._w(r.role) * emission_per_weight   # a troop claims no emission (1.4.0)
@@ -1980,7 +2107,7 @@ class World:
             if r.deferred > 1e-12:
                 pay = min(r.deferred, rpool.deposit)
                 if pay > 1e-12:
-                    self.ledger.pay_from_deposit(root.id, r.reviewer, pay, note=f"{nested}deferred reimbursement")
+                    self.ledger.pay_from_deposit(pots.id, r.reviewer, pay, note=f"{nested}deferred reimbursement")
                     r.deferred -= pay
                     r.reimbursed += pay
                 if r.deferred > 1e-12:
@@ -1990,7 +2117,7 @@ class World:
         if c.omega_advance > 1e-12:
             pay = min(c.omega_advance, rpool.deposit)
             if pay > 1e-12:
-                self.ledger.pay_from_deposit(root.id, Ledger.OMEGA, pay, note=f"{nested}Ω advance repaid")
+                self.ledger.pay_from_deposit(pots.id, Ledger.OMEGA, pay, note=f"{nested}Ω advance repaid")
                 c.omega_advance -= pay
         # 2. fees, survivors only: the fixed fee from the root's pot, the emission share in full
         if surviving:
@@ -1999,8 +2126,8 @@ class World:
             for r in surviving:
                 fixed = r.fee_owed * scale
                 if fixed > 1e-12:
-                    self.ledger.pay_from_fee_pot(root.id, r.reviewer, fixed, note=f"{nested}review fee")
-                    root.fees_from_pot += fixed
+                    self.ledger.pay_from_fee_pot(pots.id, r.reviewer, fixed, note=f"{nested}review fee")
+                    pots.fees_from_pot += fixed
                 r.fee_fixed = fixed
                 if r.fee > 1e-12:
                     self.ledger.pay_emission(c.id, r.reviewer, r.fee, note="emission share")
@@ -2039,6 +2166,7 @@ class World:
         self._service_omega_claims()
         if c.is_nested():
             self._touch(root)
+            self._maybe_close_node(c)                   # 2.3.0 (the ruling): a node's pots settle at the node's closure
         self._maybe_close_tree(root)
 
     # ------------------------------------------------------------ the tree
@@ -2050,6 +2178,55 @@ class World:
             out.append(c)
             stack.extend(self.cases[ch] for ch in c.children)
         return out
+
+    def _subtree_settled(self, c: Case) -> bool:
+        stack = [c]
+        while stack:
+            x = stack.pop()
+            if not x.final or x.needs_review_settlement:
+                return False
+            stack.extend(self.cases[ch] for ch in x.children)
+        return True
+
+    def _maybe_close_node(self, c: Case):
+        """2.3.0 §2.4 and the ruling at acceptance: a nested case with its own pots closes when it and everything under it have
+        settled — §4.3's payout rule per node: its fee pot's remainder settles its own expense debts (its reviews' claims on Ω, then
+        its Ω advance), and both pots' remainders refund to its requester, the parent. Then the parents above may close."""
+        if not c.is_nested() or not c.own_pots or c.node_closed or not self._subtree_settled(c):
+            return
+        pool = self.ledger.pool(c.id)
+        if pool.fee_pot > 1e-12 and self.omega_claims:
+            kept = []
+            for cl in self.omega_claims:
+                r = self.reviews[cl.review]
+                if r.case == c.id and pool.fee_pot > 1e-12:
+                    pay = min(cl.amount, pool.fee_pot)
+                    self.ledger.pay_from_fee_pot(c.id, cl.reviewer, pay, note=f"node closure: Ω claim {cl.review} paid from the fee pot")
+                    r.reimbursed += pay
+                    r.reimbursed_pending -= pay
+                    c.expenses_from_pot += pay
+                    if cl.amount - pay > 1e-12:
+                        kept.append(Claim(cl.reviewer, cl.amount - pay, cl.review))
+                else:
+                    kept.append(cl)
+            self.omega_claims = kept
+        if c.omega_advance > 1e-12 and pool.fee_pot > 1e-12:
+            pay = min(c.omega_advance, pool.fee_pot)
+            self.ledger.pay_from_fee_pot(c.id, Ledger.OMEGA, pay, note="node closure: Ω advance repaid from the fee pot")
+            c.omega_advance -= pay
+            c.expenses_from_pot += pay
+        back_E, back_F = pool.deposit, pool.fee_pot
+        if back_E > 1e-12:
+            self.ledger.pay_from_deposit(c.id, c.requester, back_E, note="node closure: unused allowance returned")
+            c.allowance_refunded += back_E
+        if back_F > 1e-12:
+            self.ledger.pay_from_fee_pot(c.id, c.requester, back_F, note="node closure: unused fee pot returned")
+            c.pot_refunded += back_F
+        c.node_closed, c.t_closed = True, self.t
+        self._log(c, f"node closed; unused allowance {back_E:g} and fee pot {back_F:g} returned to {c.requester}")
+        parent = self.cases.get(c.parent)
+        if parent is not None and parent.is_nested():
+            self._maybe_close_node(parent)
 
     def _maybe_close_tree(self, root: Case):
         """§4.3 step 3 / §2.4 of design revision 1: when the root and every nested case under it
@@ -2063,7 +2240,13 @@ class World:
         if any(not c.final or c.needs_review_settlement for c in tree):
             return
         pool = self.ledger.pool(root.id)
-        ids = {c.id for c in tree}
+        if self.parent_pots:                            # 2.3.0: the root's pots serve the root's reviews alone; each node closed itself
+            for c in tree[1:]:
+                if c.own_pots:
+                    self._maybe_close_node(c)
+            ids = {root.id} | {c.id for c in tree if not c.own_pots}
+        else:
+            ids = {c.id for c in tree}
         if pool.fee_pot > 1e-12 and self.omega_claims:
             kept = []
             for cl in self.omega_claims:
@@ -2080,6 +2263,8 @@ class World:
                     kept.append(cl)
             self.omega_claims = kept
         for c in tree:
+            if c.id not in ids:
+                continue
             if c.omega_advance > 1e-12 and pool.fee_pot > 1e-12:
                 pay = min(c.omega_advance, pool.fee_pot)
                 self.ledger.pay_from_fee_pot(root.id, Ledger.OMEGA, pay, note="tree closure: Ω advance repaid from the fee pot")
@@ -2129,6 +2314,8 @@ class World:
         if self.is_troop(c.actor):
             self._release_troop(c.actor)
         self._log(c, f"vested; grade {c.grade}")
+        if c.is_nested():
+            self._maybe_close_node(c)                   # 2.3.0 (the ruling): final now — the node's pots settle at its closure
         self._maybe_close_tree(self.cases[c.root])     # final now: the tree may have closed with this vest
 
     def _service_omega_claims(self):
@@ -2730,6 +2917,18 @@ class World:
                 a.since_susp += 1
                 if failed:
                     self._suspend(a, "probation failed: plant failure")
+                elif a.arrived_at is not None and a.admitted_at is None:
+                    # 2.3.0 §2.1: an arrival is admitted on n_min BAD plants adjudicated with a passing record (I33); counted apart
+                    if len(a.plant_bad) >= self.p.n_min and a.record_passes(self.p.theta_duty):
+                        a.probation = False
+                        a.admitted_at = self.t
+                        self.admissions += 1
+                        self.admission_ticks_sum += self.t - a.arrived_at
+                        self.period["admissions"] += 1
+                        self.period["admission_ticks"] += self.t - a.arrived_at
+                        self.history.append("entry", {"t": self.t, "actor": a.id, "msg": "admitted to membership",
+                                                      "a_hat": round(a.a_hat, 4), "r_hat": round(a.r_hat, 4),
+                                                      "ticks": self.t - a.arrived_at})
                 elif a.since_susp >= self.p.n_min and a.record_passes(self.p.theta_duty):
                     a.probation = False
                     a.readmitted_at = self.t
@@ -2781,7 +2980,9 @@ class World:
                "loans": 0.0, "repaid": 0.0, "debt_added": 0.0, "debt_repaid": 0.0, "debt_peak": 0.0, "loans_peak": 0.0,
                "troop_review_fee": 0.0, "state_closed": 0, "state_failed": 0, "refused_credit_awards": 0, "refused_credit_seats": 0,
                # 2.2.0: the rebate pool and the period's claims
-               "claims": [], "claims_total": 0.0, "pool": 0.0, "rebates_forgone": 0.0, "omega_retained_period": 0.0}
+               "claims": [], "claims_total": 0.0, "pool": 0.0, "rebates_forgone": 0.0, "omega_retained_period": 0.0,
+               # 2.3.0: entry and exit, the pool's reviewer advances
+               "arrivals": 0, "admissions": 0, "admission_ticks": 0, "actor_departures": 0, "pool_advances": 0.0}
 
     def _maybe_end_period(self, tick: int):
         """Once per period — period_plants adjudicated plants or period_ticks ticks, whichever first —
@@ -2895,7 +3096,13 @@ class World:
                "claims": round(per["claims_total"], 6), "claims_n": len(per["claims"]), "pool": round(per["pool"], 6),
                "rebates_forgone": round(per["rebates_forgone"], 6),
                "forgone_share": round(per["rebates_forgone"] / per["claims_total"], 6) if per["claims_total"] > 1e-9 else 0.0,
-               "omega_retained_period": round(per["omega_retained_period"], 6)}
+               "omega_retained_period": round(per["omega_retained_period"], 6),
+               # 2.3.0: the supply side
+               "arrivals": per["arrivals"], "admissions": per["admissions"],
+               "time_to_membership": (per["admission_ticks"] / per["admissions"]) if per["admissions"] else None,
+               "actor_departures": per["actor_departures"], "members": sum(1 for a in self.actors.values() if a.is_member),
+               "probationers": sum(1 for a in self.actors.values() if a.probation), "actors": len(self.actors),
+               "pool_advances": round(per["pool_advances"], 6)}
         self.periods.append(rec)
         self.history.append("period", rec)
         self.troop_capital_peak_prev, self.troop_capital_peak = self.troop_capital_peak, self._troop_capital_now()

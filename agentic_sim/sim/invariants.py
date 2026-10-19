@@ -20,6 +20,7 @@ from itertools import islice
 import hashlib
 import math
 from .ledger import Ledger, _i10_exempt, _i19_event_ok
+PANEL_ROLES = ("appeal", "audit")              # the challenge-panel seats (1.2.0 §2.2)          # as the engine defines them (not imported: no cycle)
 DUTY_FUND = "DUTY-FUND"
 
 EPS = 1e-6
@@ -29,6 +30,7 @@ ALLOWED_EVENT_KINDS = {
     "mint_backed", "mint_emission", "issuance", "creation", "retirement", "departure", "escrow_in", "deposit_in", "feepot_in", "escrow_out",
     "deposit_out", "feepot_out", "fee_out",
     "mint_plant", "loan", "mint_scenario", "repayment", "retire_plant",     # 2.1.0: the bank's kinds
+    "arrival",                                                              # 2.3.0: an arrival's float
 }
 GRADES = {"human-explicit", "delegate-explicit", "protocol-default", "procedural", "plant"}
 
@@ -340,7 +342,7 @@ def _I15_expected_cases(cases, expected, netted_plants: bool = True, resolve=lam
                 and not (netted_plants and c.plant is not None):      # 1.3.0 §2.5: a plant's guarantee binds nothing
             expected[(resolve(c.actor), f"G:{c.id}")] = c.G          # a troop's lock sits on the fund (1.4.0)
         if c.is_nested() and c.state == "AVAILABLE":
-            expected[(c.requester, f"beta:{c.id}")] = c.beta
+            expected[(c.requester, f"beta:{c.id}")] = c.posting_lock if c.own_pots else c.beta   # 2.3.0: the all-in with the pots
         if c.is_root and c.state == "AVAILABLE" and c.plant is None and c.index_at_lock is not None:
             expected[(c.requester, f"post:{c.id}")] = c.posting_lock    # 2.0.0 §2.1 / I29: the posting lock
         if c.is_nested() and c.rejection_bond > EPS:
@@ -539,15 +541,23 @@ def I19_the_pots(w, cases=None, events=None):
         if not _i19_event_ok(e):
             _fail(f"I19 {e.case}: {e.kind} {e.amount} '{e.note}' crosses the pots")
     for c in _cases(w, cases):
-        if not c.is_root or c.nominals is None:
+        if c.nominals is None or not (c.is_root or c.own_pots):
             continue
         if c.fees_from_pot > c.phi_F + EPS:
             _fail(f"I19 {c.id}: fees {c.fees_from_pot} paid from a pot of {c.phi_F}")
         if c.expenses_from_pot > c.phi_F - c.fees_from_pot + EPS:
             _fail(f"I19 {c.id}: expenses {c.expenses_from_pot} from the pot exceed what fees left of {c.phi_F}")
         moved_back = c.expenses_from_pot > EPS or c.pot_refunded > EPS or c.allowance_refunded > EPS
-        if moved_back and not c.tree_closed:
-            _fail(f"I19 {c.id}: fee money reached expenses or the requester before the tree closed")
+        closed = c.node_closed if c.own_pots else c.tree_closed      # 2.3.0 (the ruling): 'for every case' — a node closes itself
+        if moved_back and not closed:
+            _fail(f"I19 {c.id}: fee money reached expenses or the requester before the {'node' if c.own_pots else 'tree'} closed")
+        if c.own_pots and c.node_closed:
+            pl = w.ledger.pools.get(c.id)
+            if pl is not None and (pl.deposit > EPS or pl.fee_pot > EPS):
+                _fail(f"I19 {c.id}: node closed with {pl.deposit} allowance and {pl.fee_pot} fee pot left")
+            if not c.final:
+                _fail(f"I19 {c.id}: node closed while {c.state}")
+            continue
         if c.tree_closed:
             pl = w.ledger.pools.get(c.id)
             if pl is not None and (pl.deposit > EPS or pl.fee_pot > EPS):
@@ -972,6 +982,71 @@ def I32_the_pool(w):
         _fail(f"I32 claims {w.rebates_owed} ≠ paid {w.rebates_paid} + forgone {w.rebates_forgone} + this period's {w.period['claims_total']}")
 
 
+def I33_entry_through_inspection(w, cases=None):
+    """2.3.0 §2.1: an arrival holds no award — root or nested — and no panel seat until admitted on n_min bad plants with a passing
+    record; its odds read 1 until then; its float was minted once, at arrival."""
+    if not getattr(w, "supply_on", False):
+        return
+    if w._supply_violation:
+        _fail(f"I33 {w._supply_violation}")
+    arrivals = {a.id: a for a in w.actors.values() if a.arrived_at is not None}
+    if not arrivals:
+        return
+    for a in arrivals.values():
+        if a.admitted_at is None:
+            if a.is_member:                         # a probationer, or suspended after a plant failure — never a member
+                _fail(f"I33 arrival {a.id} is a member before admission")
+            if a.suspended_until is None and abs(a.p_eff - 1.0) > EPS:
+                _fail(f"I33 arrival {a.id} odds {a.p_eff} before admission")
+        elif len(a.plant_bad) < w.p.n_min and a.admitted_at is not None and a.suspended_until is None:
+            pass                                    # the record window may have rolled; admission itself needed n_min at the time
+    for c in _cases(w, cases):
+        a = arrivals.get(c.actor) if c.actor else None
+        if a is not None and c.t_award is not None and (a.admitted_at is None or c.t_award < a.admitted_at) and c.plant is None:
+            _fail(f"I33 arrival {a.id} awarded {c.id} at {c.t_award} before admission {a.admitted_at}")
+    for r in w._live_reviews.values():
+        a = arrivals.get(r.reviewer)
+        if a is not None and a.admitted_at is None and r.role in PANEL_ROLES and r.status in ("open", "done"):
+            _fail(f"I33 arrival {a.id} holds the panel seat {r.id} before admission")
+
+
+def I34_a_clean_departure(w):
+    """2.3.0 §2.2: a departed identity is gone — not an actor, holding no balance or lock, never readmitted."""
+    if not getattr(w, "supply_on", False):
+        return
+    for name, a in w.departed_actors.items():
+        if name in w.actors:
+            _fail(f"I34 departed {name} is an actor again")
+        wl = w.ledger.wallets.get(name)
+        if wl is not None and (wl.U > EPS or wl.L > EPS):
+            _fail(f"I34 departed {name} still holds {wl.U} / {wl.L}")
+        if a.committed is not None or a.open_review is not None:
+            _fail(f"I34 departed {name} left with an obligation")
+
+
+def I35_the_summons_is_for_roots(w):
+    """2.3.0 §2.4: no troop delivers a nested request."""
+    for tid, t in w.troops.items():
+        if t["kind"] == "delivery":
+            c = _peek(w.cases, t["case"])
+            if not c.is_root:
+                _fail(f"I35 troop {tid} delivers the nested request {c.id}")
+
+
+def I36_the_pots_grow_with_the_tree(w, cases=None):
+    """2.3.0 §2.4 (I36): under the parent's pots every awarded nested case carries its own two pots, posted by the parent at its posting
+    index, and its reviews never draw on the root's deposit."""
+    if not getattr(w, "parent_pots", False):
+        return
+    for c in _cases(w, cases):
+        if not c.is_nested() or c.t_award is None:
+            continue
+        if not c.own_pots:
+            _fail(f"I36 nested {c.id} awarded without its own pots")
+        if c.index_at_lock is None or abs(c.phi_E - w.p.phi_E_root * c.index_at_lock) > EPS or abs(c.phi_F - w.p.phi_F_root * c.index_at_lock) > EPS:
+            _fail(f"I36 nested {c.id} pots {c.phi_E} / {c.phi_F} are not the defaults at its posting index {c.index_at_lock}")
+
+
 def I31_the_index_per_period(w):
     """2.1.0 §2.5: P_t is what the bank published at the last period boundary and does not move within a period."""
     if not getattr(w, "bank_on", False):
@@ -1087,6 +1162,10 @@ def check_all(w):
     I30_the_bank(w)
     I31_the_index_per_period(w)
     I32_the_pool(w)
+    I33_entry_through_inspection(w)
+    I34_a_clean_departure(w)
+    I35_the_summons_is_for_roots(w)
+    I36_the_pots_grow_with_the_tree(w)
     I16_history_is_authoritative(w)
 
 
@@ -1150,6 +1229,10 @@ def check_tick(w):
     I30_the_bank(w)
     I31_the_index_per_period(w)
     I32_the_pool(w)
+    I33_entry_through_inspection(w, cases)
+    I34_a_clean_departure(w)
+    I35_the_summons_is_for_roots(w)
+    I36_the_pots_grow_with_the_tree(w, cases)
 
     w._events_checked = len(w.ledger.events)
     w._prune_working_set()

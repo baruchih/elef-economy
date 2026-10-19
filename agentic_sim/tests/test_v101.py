@@ -19,7 +19,8 @@ DUTY = list("CDEF")
 
 
 def world():
-    return World(Params(), ACTORS, humans={"H": 1000.0}, on_duty=DUTY)
+    # 2.3.0 (design revision 11) gave a nested request its own pots, posted by the parent; these tests pin the 1.x nested lock (supply=False)
+    return World(Params(supply=False), ACTORS, humans={"H": 1000.0}, on_duty=DUTY)
 
 
 def snapshot(w):

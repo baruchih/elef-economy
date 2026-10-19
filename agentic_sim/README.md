@@ -4,7 +4,7 @@ Built up through v0.4–v0.10, unchanged by the v1.0 consolidation and the v1.0.
 since, all on October 17, 2026: for design revision 1 (1.1.0: the verification deposit is two pots), design revision 2
 (1.2.0: the loop's own clock — planted work, the plant record, the effort dial), design revision 3 (1.3.0: inspection
 is membership), design revision 4 (1.4.0: the orchestrator's troops), design revision 5 (1.5.0: the reserve is sized to the need), design revision 6 (1.6.0: auto-scale) and, on October 18, design revision 7 (1.7.0: the state's earnings — see the seven sections below). Section numbers in code comments refer to the
-working-spec versions they were written against; `spec/agentic_economics_loop_spec_v2_2_0.md` is the text in force,
+working-spec versions they were written against; `spec/agentic_economics_loop_spec_v2_3_0.md` is the text in force,
 and its Appendix A holds the defaults that `sim/params.py` encodes.
 
 The loop's rules as code, with no strategies. Every bid, verdict, appeal, audit
@@ -108,6 +108,12 @@ tests/test_v22.py                   design revision 10 (2.2.0): the rebate from 
                                     a claim recorded at the stop and paid at the close from the pool only; pro rata and the rest forgone, never
                                     carried; the pool funds no summons; r_s indexed when stated; debt before the pool; I32; the §6 quiet and
                                     flooded periods; rebate_pool off = 2.1.0 — 9
+tests/test_v23.py                   design revision 11 (2.3.0): the supply side — an arrival as a probationer with a bank-minted float, no award
+                                    root or nested, the float indexed; admission on n_min bad plants counted apart from readmissions; a plant failure
+                                    suspends an arrival; depart refused for a commitment, an open or unsettled review, a lock, a claim on Ω, then the
+                                    wallet out and the identity gone; the parent's pots, the child's audit on them, the root's deposit untouched, the
+                                    node's closure; the root reading as the control; no troop delivers a nested request; the reviewer advance from
+                                    the pool and the close net of it; the record and the view; supply off = 2.2.0 — 13
 tests/test_perf_equivalence.py      the per-tick check equals the full audit; the working-set engine reproduces the
                                     pinned History head on a seeded random scenario that now plants work (re-pinned once for
                                     1.1.0 and once for 1.2.0); the working set stays bounded — 5
@@ -118,11 +124,11 @@ tests/test_record_mode.py           the record on disk (`Params.record_dir`): th
 run_tests.py        every suite with plain python; pytest reports the same (conftest marks the XFAIL)
 ```
 
-Run: `python3 run_tests.py` — 282 pass, 0 fail, 30 expected failures, each with a stated reason (one original,
+Run: `python3 run_tests.py` — 293 pass, 0 fail, 32 expected failures, each with a stated reason (one original,
 four superseded by the view contract, nineteen on the withdrawn reopening path, one superseded by design
-revision 1, one by design revision 2, two by design revision 10 — a service fee pooled until the close no longer advances a reviewer's reimbursement mid-period — two by design revision 8 — the backing's v_t and the pay-in refused at posting; the three 1.x figures 2.0.0's moving index broke pass again under 2.1.0's index per period). With pytest: `python3 -m pytest tests -q` reports 259 passed, 31 xfailed; the
+revision 1, one by design revision 2, two by design revisions 10 and 11 — a service fee pooled until the close and the pool's advance move the reimbursement figures they pin — two by design revision 11 — the parent's pots make three children unaffordable on a float of 50, and the root's allowance is no longer exhausted by a nested review — two by design revision 8 — the backing's v_t and the pay-in refused at posting; the three 1.x figures 2.0.0's moving index broke pass again under 2.1.0's index per period). With pytest: `python3 -m pytest tests -q` reports 259 passed, 31 xfailed; the
 runner expands pytest parametrization as pytest does, including multi-argument and stacked marks. (Spec Appendix D
-records the count at the v1.0.1 freeze, 156; at 1.1.0, 181; at 1.2.0, 197; at 1.3.0, 208; at 1.4.0, 218; at 1.5.0, 225; at 1.6.0, 236; at 1.7.0, 244; at 1.7.1, 248; at 2.0.0, 259; at 2.1.0, 275; at 2.2.0, 282.)
+records the count at the v1.0.1 freeze, 156; at 1.1.0, 181; at 1.2.0, 197; at 1.3.0, 208; at 1.4.0, 218; at 1.5.0, 225; at 1.6.0, 236; at 1.7.0, 244; at 1.7.1, 248; at 2.0.0, 259; at 2.1.0, 275; at 2.2.0, 282; at 2.3.0, 293.)
 
 Expected failures are **strict and parameter-exact** in both entry points: `EXPECTED_FAIL_PARAMS` names the
 parameter runs that are expected to fail inside a mixed test (the P/⊥ runs of the eighth review's first case;
@@ -516,6 +522,27 @@ sweeps the take with the rebate pinned. In the engine:
   `advances_made/repaid`, `liabilities_paid`; `drivers/sweep.py` carries them.
 - **Tests.** `test_v17.py` (8); goldens re-pinned once; `test_v13`–`test_v16` pinned to the merged fund and the half cap.
   Reviewer tests untouched and passing.
+
+## Design revision 11 — the supply side (2.3.0, October 19, 2026)
+
+`Params.supply` (on, with `bank`) is the revision: `arrive(name)` admits a fresh actor as a probationer (`probation`, `arrived_at`, odds
+pinned) with a float the bank mints (`arrival`, `F0` × P_t/P_0); `_check_record` admits an arrival on `n_min` bad plants with a passing
+record (`admitted_at`; `admissions`, `admission_ticks_sum` apart from `readmissions`); `award` refuses a probationer on any request.
+`depart(name)` validates four conditions whole (no commitment, no open or unsettled review, no lock, no claim on Ω), takes the actor off
+duty, burns the wallet as `departure` and archives the identity (`departed_actors`, refused to `arrive`). Under `nested_pots parent`
+`post_nested` locks the nested all-in with the pots under `beta:` beside the rejection bond (`own_pots`, `posting_lock`), `award` draws
+the pots and the fee from the lock, the case's reviews draw on its own pool, and `_maybe_close_node` settles a nested case's pots when it
+and everything under it have settled (the ruling), the tree's closure scoped to the root; `root` is the 1.1.0 control. `_reimburse`
+draws a reviewer's advance from the pool lock after Ω's unlocked balance (`pool_advances`). I33–I36; I1, I10, I15, I19, I32 amended.
+`view.market()` carries the outsider's fields; `view.arrive` / `depart` / `withdraw_pool_exhaustion`. `test_v23.py` (13); `test_v101`
+pins `supply=False`; goldens re-pinned once; two reviewer tests out of the expected failures' 2.2.0 reasons and into 2.3.0's, two more in.
+
+Driver (`--rules 2.3.0` default; `2.2.0` the control): per-actor costs (`--c-d-sigma 0.43 --c-d-median 8 --c-d-clip 2 40`, drawn once,
+`cost_now`), the entry pool (`--entry-pool 20 --reservation 0.8 --arrivals-per-tick 1 --exit-patience 1 --f0 50 --entry-stampers 0`:
+`entry_step` on the view, `exit_step` at the boundary), delegation (`--delegation on --nested-tau 6 --nested-pots parent|root`:
+`delegation_step` — the parent's rule, children's bids, the parent's judgment, self-execution after T_wait; children appeal truthfully).
+Columns: actors_n, members_total, probationers, arrivals, admissions, departures, time_to_membership, *_median_cost, nested_*,
+nested_share, gain_from_trade_mean, brokers_*, pool_advances, hoards_over_M.
 
 ## Design revision 10 — the rebate from income (2.2.0, October 19, 2026)
 

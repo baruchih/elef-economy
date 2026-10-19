@@ -95,8 +95,15 @@ KEYS = ["careful_wealth", "stamper_wealth", "careful_fees", "stamper_fees", "car
         "marked_capacity", "marked_credit", "withdrawn_at_mark", "reposted_after_mark", "state_rejections", "troop_truth_redrawn",
         # 2.2.0: the rebate from income
         "pool_on", "pool", "claims_period", "rebates_forgone", "forgone_share", "forgone_share_period", "omega_retained_period",
-        "small_requesters_wallet", "small_requesters_rebates"]
-SHORT = {"small-requests": "small", "debt-bound-periods": "wall", "b-t-prior": "bprior", "b-t-min-n": "bn", "requester-on-refusal": "onref", "troop-fail-rate": "tfail",
+        "small_requesters_wallet", "small_requesters_rebates",
+        # 2.3.0: the supply side
+        "actors_n", "members_total", "probationers", "arrivals", "admissions", "departures", "candidates_left", "time_to_membership",
+        "members_median_cost", "population_median_cost", "departed_median_cost", "arrived_median_cost", "careful_median_cost",
+        "nested_posted", "nested_awarded", "nested_unaffordable", "nested_award_refused", "nested_self_executed", "nested_vested", "nested_final_n", "nested_share",
+        "nested_price_mean", "gain_from_trade_mean", "nested_false_approvals", "nested_false_rejections", "brokers_n", "brokers_cost_rank",
+        "brokers_award_share", "pool_advances", "hoards_over_M"]
+SHORT = {"c-d-sigma": "sig", "entry-pool": "pool", "reservation": "r", "arrivals-per-tick": "apt", "delegation": "deleg", "nested-pots": "pots",
+         "f0": "f0", "entry-stampers": "swarm", "small-requests": "small", "debt-bound-periods": "wall", "b-t-prior": "bprior", "b-t-min-n": "bn", "requester-on-refusal": "onref", "troop-fail-rate": "tfail",
          "state-rejecters": "srej", "c-d-t-mode": "cdt", "stampers": "s", "fee": "f", "on-duty": "X", "gv": "gv", "p-floor": "pf", "p-start": "p", "p-cap": "pc", "band": "band",
          "fail-rate": "b", "accuracy": "a", "ruling-accuracy": "r", "appeal-policy": "appeal", "dispute-policy": "dispute",
          "dispute-rate": "dr", "assignment": "assign", "rules": "rules", "pi0": "pi", "dial": "dial", "beta-p": "bp",

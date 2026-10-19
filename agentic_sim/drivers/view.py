@@ -50,6 +50,18 @@ class Public:
         """2.0.0 (Appendix M): a requester leaves once its requests are served out; its wallet departs M."""
         self._w.remove_requester(name)
 
+    def arrive(self, name: str):
+        """2.3.0 §2.1: a fresh actor arrives as a probationer with a float the bank mints."""
+        self._w.arrive(name)
+
+    def depart(self, name: str):
+        """2.3.0 §2.2: an actor with no live obligation leaves; its wallet departs M."""
+        self._w.depart(name)
+
+    def withdraw_pool_exhaustion(self, parent: str, nested: str):
+        """§9.3: the parent exits a nested request unawarded past T_wait."""
+        self._w.withdraw_pool_exhaustion(parent, nested)
+
     def scenario_create(self, amount: float):
         """2.0.0 §8.3: the declared scenario operation — Ω creates a sum and pays the requesters (a money event)."""
         self._w.scenario_create(amount)
@@ -134,7 +146,16 @@ class Public:
                 # 2.1.0 §2.6: the marks — requests waiting with a refusal told, by kind
                 "refused_waiting": {"capacity": sum(1 for c in avail if c.refused == "capacity"),
                                     "credit": sum(1 for c in avail if c.refused == "credit")},
-                "refused_credit_awards": w.troop_refused_credit_awards, "refused_credit_seats": w.troop_refused_credit_seats}
+                "refused_credit_awards": w.troop_refused_credit_awards, "refused_credit_seats": w.troop_refused_credit_seats,
+                # 2.3.0 §2.5: what an outsider may read — the market's counts and the gate's length, nothing per actor
+                "members_total": sum(1 for a in w.actors.values() if a.is_member),
+                "members_free": sum(1 for a in w.actors.values() if a.is_member and not a.on_duty and a.committed is None and a.open_review is None),
+                "probationers": sum(1 for a in w.actors.values() if a.probation), "actors": len(w.actors),
+                "arrivals": w.arrivals, "admissions": w.admissions, "actor_departures": w.actor_departures,
+                "time_to_membership": (w.periods[-1].get("time_to_membership") if w.periods else None),
+                "time_to_membership_run": (w.admission_ticks_sum / w.admissions) if w.admissions else None,
+                "state_share_period": (w.period["troop_summons_deliveries"] / max(1, w.period["troop_summons_deliveries"] + w.period["award_n"])),
+                "pool_advances": w.pool_advances}
 
     def bank(self) -> dict:
         """2.1.0 readings: the bank's books — minted and destroyed by kind, loans outstanding, the debt, the liabilities, the wall,

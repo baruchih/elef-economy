@@ -147,6 +147,15 @@ class Params:
     # pool — a lock on Ω — and at the period's close the claims stopped in the period are paid from it pro rata, the rest forgone and
     # read; no liability stock. False is the 2.1.0 engine (the rebate at the stop from Ω's balance, else a liability).
     rebate_pool: bool = True
+    # Design revision 11 (2.3.0): the supply side. True (with `bank`): `arrive` admits a fresh actor as a probationer with a float the
+    # bank mints (`arrival`, F0 × P_t/P_0), admitted to membership on n_min bad plants adjudicated with a passing record; `depart` takes
+    # an actor with no live obligation out, its wallet leaving M as `departure`, its identity archived; a nested request carries its own
+    # two pots, posted by the parent with its all-in and the rejection bond at the nested posting index, its reviews drawing on them and
+    # the remainder refunding to the parent at the node's closure (the ruling at acceptance; `nested_pots root` is the 1.1.0 reading,
+    # the control); a §4.3 reviewer advance may draw on the rebate pool (the run 15 ruling). False is the 2.2.0 engine.
+    supply: bool = True
+    F0: float = 50.0                   # an arrival's float at P_0, indexed at the arrival tick
+    nested_pots: str = "parent"        # parent: the parent posts the nested case's pots (2.3.0) | root: the children on the root's (1.1.0)
 
     # Reliability and duty credit windows (§11)
     rho_window: int = 100      # settled outcomes

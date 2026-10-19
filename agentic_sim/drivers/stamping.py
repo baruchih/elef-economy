@@ -78,6 +78,22 @@ share of the careful actors that reject every delivery of the state's — readin
 does not carry (a declared non-conforming reading of what the rule would do if a reviewer could tell). Readings: the bank's
 books — minted and destroyed by kind, loans outstanding, the debt by peak and age, the liabilities and their oldest age, the
 wall and its slack, Ω's retained income, the cost of truth, b_T and the burn, the marks and what the requesters did at them.
+
+The supply side (2.3.0, design revision 11; `--rules 2.3.0`, the default; `--rules 2.2.0` the control with the fixed population and
+one cost). Competence: each actor's effort cost is drawn once at its creation from a log-normal around the anchor (`--c-d-median` 8,
+`--c-d-sigma` 0.43, clipped `--c-d-clip` 2 40; σ 0 is one cost) — private to the driver, revealed through bids. Entry: a pool of
+candidates (`--entry-pool` 20, costs from the same distribution, `--entry-stampers` share dishonest) read the public view each tick and
+arrive (`arrive`, as probationers with a float the bank mints) when their expected real earnings — (B̄ − c) × the awards a free member
+wins a tick × the share of the run left after the time to membership — exceed a reservation (`--reservation` 0.8 a tick), at most
+`--arrivals-per-tick`; a member whose trailing period's real earnings fall below the reservation for `--exit-patience` periods and
+holds no obligation departs (`depart`, its wallet leaving M). Delegation (`--delegation on`): a member awarded a root request whose
+cost exceeds the expected child's bid plus the overhead (the nested fee, the pots' net cost, its care in judging) posts a nested
+request at that saving as its ceiling (`--nested-pots parent|root`), carrying a longer τ; free members other than the parent bid as
+on roots; the parent judges by its disposition (careful: the truth w.p. accuracy, spending its care; stamper: F) and builds on the
+child's work (a bad child accepted makes the parent's work bad); a child rejected appeals truthfully; a nested request unawarded for
+T_wait is withdrawn and the parent self-executes. Readings: arrivals, admissions, time to membership, departures, members and
+probationers, the members' and the population's median cost (the driver's own declaration), nested posted / awarded / self-executed /
+vested / final N, the gain from trade, brokers (parents delegating more than half their awards), nested false approvals and overturns.
 """
 from __future__ import annotations
 import argparse
@@ -121,7 +137,10 @@ PERMITTED_200 = ["post_root (six requesters, β = min(β_max, a third of the unl
                  "add_requester / remove_requester (a crowd arrives with wallets and leaves when served out — 2.0.0 §2.1, Appendix M)",
                  "scenario_create (the deficit shock, declared — 2.0.0 §8.3; the bank's mint_scenario under 2.1.0)",
                  "withdraw_unawarded at a refusal's mark (2.1.0 §2.6: the requester's declared policy under --requester-on-refusal withdraw; "
-                 "withdrawn before award, owed nothing)"]
+                 "withdrawn before award, owed nothing)",
+                 "arrive / depart (2.3.0 §2.1–2.2: the entry pool's declared policy on the public view; a departure with no live obligation)",
+                 "post_nested / award (a child) / judge_nested / withdraw_unawarded + self-execution (2.3.0 §2.4 under --delegation on: the parent's "
+                 "declared rule and judgment by disposition; a child rejected appeals truthfully)"]
 NOT_IN_RUN = ["appeals by actors (unless --appeal-policy is set)", "disputes (unless --dispute-policy is set)", "human overrides", "P/⊥", "revision/evidence", "delegation (nested cases)",
               "cancellation", "resource spend by actors", "volunteering for duty", "actor competence (truth is actor-independent)",
               "price competition (every offer is at the ceiling)", "requester budget pressure (H is funded beyond the run)",
@@ -133,6 +152,7 @@ class Task:
     cid: str
     title: str
     fulfilled: bool              # hidden truth
+    nested: bool = False          # 2.3.0: a child's task
     audit_rolled: bool = False
     audit_wanted: bool = False   # rolled yes, not yet assigned
     appeal_wanted: bool = False
@@ -176,15 +196,16 @@ class Stamping:
         self.kind = {aid: (STAMPER if i < n_st else CAREFUL) for i, aid in enumerate(ids)}
         if a.rules == "1.1.0":                   # the control: the 1.1.0 engine's behaviour, declared
             a.pi0, a.dial, a.p_start, a.p_cap, a.omega0 = 0.0, "off", 0.5, 0.5, 20.0
-        rev3 = a.rules in ("1.3.0", "1.4.0", "1.5.0", "1.6.0", "1.7.0", "1.7.1", "2.0.0", "2.1.0", "2.2.0")     # 1.2.0 and 1.1.0: membership, the fund and netted capital off
-        rev4 = a.rules in ("1.4.0", "1.5.0", "1.6.0", "1.7.0", "1.7.1", "2.0.0", "2.1.0", "2.2.0") and a.troops == "on"
-        rev5 = a.rules in ("1.5.0", "1.6.0", "1.7.0", "1.7.1", "2.0.0", "2.1.0", "2.2.0")    # 1.4.0: the reserve is the peak capital carried, over two periods
-        rev6 = a.rules in ("1.6.0", "1.7.0", "1.7.1", "2.0.0", "2.1.0", "2.2.0")     # 1.6.0: the five rules, each behind its flag; `--rules 1.5.0` turns them off
-        rev7 = a.rules in ("1.7.0", "1.7.1", "2.0.0", "2.1.0", "2.2.0")  # 1.7.0: the troop account behind its flag and the cap at two thirds; `--rules 1.6.0` is the control
-        rev8 = a.rules in ("2.0.0", "2.1.0", "2.2.0")     # 2.0.0: the price of work — floating prices, N_T; `--rules 1.7.1` is the fixed-price control
-        rev9 = a.rules in ("2.1.0", "2.2.0")     # 2.1.0: the bank — loans, the debt, the wall, P_t once a period; `--rules 2.0.0` is the control
-        rev10 = a.rules == "2.2.0"               # 2.2.0: the rebate from income — the period's fee pool, claims pro rata at the close; `--rules 2.1.0` the control
-        self.rev9, self.rev10 = rev9, rev10
+        rev3 = a.rules in ("1.3.0", "1.4.0", "1.5.0", "1.6.0", "1.7.0", "1.7.1", "2.0.0", "2.1.0", "2.2.0", "2.3.0")     # 1.2.0 and 1.1.0: membership, the fund and netted capital off
+        rev4 = a.rules in ("1.4.0", "1.5.0", "1.6.0", "1.7.0", "1.7.1", "2.0.0", "2.1.0", "2.2.0", "2.3.0") and a.troops == "on"
+        rev5 = a.rules in ("1.5.0", "1.6.0", "1.7.0", "1.7.1", "2.0.0", "2.1.0", "2.2.0", "2.3.0")    # 1.4.0: the reserve is the peak capital carried, over two periods
+        rev6 = a.rules in ("1.6.0", "1.7.0", "1.7.1", "2.0.0", "2.1.0", "2.2.0", "2.3.0")     # 1.6.0: the five rules, each behind its flag; `--rules 1.5.0` turns them off
+        rev7 = a.rules in ("1.7.0", "1.7.1", "2.0.0", "2.1.0", "2.2.0", "2.3.0")  # 1.7.0: the troop account behind its flag and the cap at two thirds; `--rules 1.6.0` is the control
+        rev8 = a.rules in ("2.0.0", "2.1.0", "2.2.0", "2.3.0")     # 2.0.0: the price of work — floating prices, N_T; `--rules 1.7.1` is the fixed-price control
+        rev9 = a.rules in ("2.1.0", "2.2.0", "2.3.0")     # 2.1.0: the bank — loans, the debt, the wall, P_t once a period; `--rules 2.0.0` is the control
+        rev10 = a.rules in ("2.2.0", "2.3.0")    # 2.2.0: the rebate from income — the period's fee pool, claims pro rata at the close; `--rules 2.1.0` the control
+        rev11 = a.rules == "2.3.0"               # 2.3.0: the supply side — entry, exit, the parent's pots; `--rules 2.2.0` the control
+        self.rev9, self.rev10, self.rev11 = rev9, rev10, rev11
         self.floating = rev8
         on = lambda flag: rev6 and flag == "on"
         if a.duty_cap is None:
@@ -204,7 +225,8 @@ class Stamping:
                    floating=rev8, P0=20.0, issuance=(a.issuance if rev8 else 0.0), N_T=(a.n_t if rev8 else 0),
                    troop_cost_at_price=(rev8 and a.c_d_t_mode in ("cost", "at_cost")), lam=a.lam, bbar_counts_troops=(rev8 and a.bbar_troops == "on"),
                    bank=rev9, c_d_t_mode=("at_cost" if a.c_d_t_mode == "cost" else a.c_d_t_mode), b_t_prior=a.b_t_prior,
-                   b_t_min_n=a.b_t_min_n, debt_bound_periods=a.debt_bound_periods, rebate_pool=rev10)
+                   b_t_min_n=a.b_t_min_n, debt_bound_periods=a.debt_bound_periods, rebate_pool=rev10,
+                   supply=rev11, F0=a.f0, nested_pots=a.nested_pots)
         self.p = p
         if rev8:
             humans = {f"R{i:02d}": a.wallet for i in range(1, a.requesters + 1)}
@@ -217,6 +239,26 @@ class Stamping:
         self.margin = {aid: a.margin0 for aid in self.actors}   # 2.0.0 §2.2: each member's bid margin m
         self.idle = {aid: 0 for aid in self.actors}
         self.c_d_now = a.c_d                              # the effort cost in force (the adaptive variant moves it by period)
+        # 2.3.0 §2.3: competence — each actor's effort cost drawn once at its creation, private to the driver (σ 0: one cost)
+        self.cost_rng = random.Random(a.seed * 7919 + 17)
+        self.c_d_of = {aid: self.draw_cost() for aid in self.actors}
+        # 2.3.0 §2.5: the entry pool — candidates with costs from the same distribution and a reservation in real earnings a tick
+        self.candidates = [{"name": f"n{i:03d}", "cost": self.draw_cost(),
+                            "kind": STAMPER if self.cost_rng.random() < a.entry_stampers else CAREFUL} for i in range(a.entry_pool)]
+        self.arrived: list[str] = []
+        self.departed: list[str] = []
+        self.wealth_at_boundary: dict[str, float] = {}
+        self.below_reservation: dict[str, int] = {}
+        self.periods_seen = 0
+        self.awards_window: list[tuple[int, int, int]] = []     # (tick, member awards this tick, free members) for the entry pool's rate
+        self.boundary_cost_median: list[tuple[float, float]] = []   # per period: (members' median cost, the population's)
+        # 2.3.0 §2.4: delegation — the parent's rule, the children, the readings
+        self.nested_parent: dict[str, str] = {}          # nested case -> its parent's root case
+        self.parent_delegated: dict[str, int] = {}       # parent actor -> nested requests posted
+        self.parent_awards: dict[str, int] = {}          # parent actor -> root awards (for the broker reading)
+        self.parent_waiting: dict[str, str] = {}         # root case -> its open nested case while it waits
+        self.parent_self_exec: set[str] = set()          # root cases the parent executed itself after a failed delegation
+        self.deleg_considered: set[str] = set()         # root cases the parent has decided on
         # 2.0.0 §8.8 red team: lowballers bid half their cost to win reputation; stingy requesters post below the market and never raise
         ids_l = list(self.actors); self.rng.shuffle(ids_l)
         self.lowballers = set(ids_l[: round(len(ids_l) * a.lowball_share)])
@@ -264,7 +306,12 @@ class Stamping:
                   "member_price_sum": 0.0, "member_price_n": 0, "troop_price_sum": 0.0, "troop_price_n": 0,
                   # 2.1.0: the marks and what the requesters did at them; the red team's readings
                   "marked_capacity": 0, "marked_credit": 0, "withdrawn_at_mark": 0, "reposted_after_mark": 0,
-                  "state_rejections": 0, "troop_truth_redrawn": 0}
+                  "state_rejections": 0, "troop_truth_redrawn": 0,
+                  # 2.3.0: the supply side
+                  "arrivals": 0, "departures": 0, "departed_cost_sum": 0.0, "nested_posted": 0, "nested_awarded": 0, "nested_unaffordable": 0,
+                  "nested_self_executed": 0, "nested_judged": 0, "nested_false_approvals": 0, "nested_false_rejections": 0,
+                  "nested_price_sum": 0.0, "nested_price_n": 0, "gain_sum": 0.0, "gain_vs_cost_sum": 0.0, "nested_award_refused": 0}
+        self._awarded_last = 0
         self.marked: set[str] = set()                    # requests seen with a mark (counted once)
         self.repost_due: dict[str, int] = {}             # requester -> withdrawals not yet reposted
         self.omega0_total = self.w.money()["omega_total"]
@@ -362,13 +409,195 @@ class Stamping:
         return max(tied, key=lambda aid: (self.w.actor(aid).kappa, -int(aid[1:])))
 
     # -- 2.0.0: bids, the requester model, the crowd ----------------------------------
+    def draw_cost(self) -> float:
+        """2.3.0 §2.3: a log-normal around the anchor — median --c-d-median, σ --c-d-sigma, clipped; σ 0 is the one cost of 2.0.0–2.2.0."""
+        a = self.a
+        if a.c_d_sigma <= 0:
+            return a.c_d
+        x = a.c_d_median * math.exp(self.cost_rng.gauss(0.0, a.c_d_sigma))
+        return round(min(a.c_d_clip[1], max(a.c_d_clip[0], x)), 4)
+
+    def cost_now(self, aid: str) -> float:
+        """An actor's effort cost in force: its own, scaled by the adaptive reservation when that variant is on."""
+        return round(self.c_d_of[aid] * (self.c_d_now / self.a.c_d), 6)
+
     def bid_of(self, aid: str, beta: float) -> float:
-        """2.0.0 §2.2: c_D (1 + m), or the ceiling under --bid ceiling (the 1.x behaviour)."""
+        """2.0.0 §2.2: c_D (1 + m), or the ceiling under --bid ceiling (the 1.x behaviour); 2.3.0: the actor's own c_D."""
         if self.a.bid == "ceiling":
             return beta
         if aid in self.lowballers:
-            return round(0.5 * self.c_d_now, 6)         # below cost, to win awards and ρ (2.0.0 §8.8)
-        return round(self.c_d_now * (1.0 + self.margin[aid]), 6)
+            return round(0.5 * self.cost_now(aid), 6)   # below cost, to win awards and ρ (2.0.0 §8.8)
+        return round(self.cost_now(aid) * (1.0 + self.margin[aid]), 6)
+
+    def median_cost(self, ids) -> float:
+        xs = sorted(self.c_d_of[i] for i in ids if i in self.c_d_of)
+        if not xs:
+            return float("nan")
+        n = len(xs)
+        return xs[n // 2] if n % 2 else 0.5 * (xs[n // 2 - 1] + xs[n // 2])
+
+    # -- 2.3.0 §2.5: the entry pool and exit, on the public view ---------------------
+    def entry_step(self, t: int):
+        a, w = self.a, self.w
+        if a.entry_pool <= 0 or not self.rev11:
+            return
+        mk = w.market()
+        window = [x for x in self.awards_window if x[0] > t - 50]
+        awards = sum(x[1] for x in window)
+        free_ticks = sum(max(1, x[2]) for x in window)
+        rate = awards / free_ticks if free_ticks else 0.0           # awards a free member wins a tick
+        ttm = mk.get("time_to_membership") or mk.get("time_to_membership_run") or 250.0
+        left = max(0.0, (a.ticks - t - ttm) / max(1, a.ticks - t))  # the share of what is left of the run after the gate
+        real = mk["P0"] / mk["P_t"] if mk["P_t"] > 0 else 1.0
+        arrived = 0
+        for cand in list(self.candidates):
+            if arrived >= a.arrivals_per_tick:
+                break
+            expected = max(0.0, mk["B_bar"] - cand["cost"]) * rate * left * real
+            if expected > a.reservation:
+                name = cand["name"]
+                w.arrive(name)
+                self.candidates.remove(cand)
+                self.actors.append(name)
+                self.kind[name] = cand["kind"]
+                self.c_d_of[name] = cand["cost"]
+                self.margin[name], self.idle[name] = a.margin0, 0
+                self.tally[name] = Tally()
+                self.arrived.append(name)
+                self.wealth_at_boundary[name] = w.wealth(name)
+                self.c["arrivals"] += 1
+                arrived += 1
+
+    def exit_step(self, t: int):
+        """At each period boundary: a member whose real earnings over the last period fell below the reservation for --exit-patience
+        periods and that holds no live obligation departs; its wallet leaves M."""
+        a, w = self.a, self.w
+        if not self.rev11:
+            return
+        per = w.dial()["periods"]
+        if len(per) <= self.periods_seen:
+            return
+        self.periods_seen = len(per)
+        length = max(1, per[-1]["t"] - per[-1]["start"])
+        real = self.p.P0 / w.market()["P_t"]
+        members = [aid for aid in self.actors if w.actor(aid).is_member]
+        self.boundary_cost_median.append((self.median_cost(members), self.median_cost(self.actors)))
+        if a.entry_pool <= 0:
+            return
+        for aid in list(self.actors):
+            ac = w.actor(aid)
+            earned = (w.wealth(aid) - self.wealth_at_boundary.get(aid, w.wealth(aid))) * real / length
+            self.wealth_at_boundary[aid] = w.wealth(aid)
+            if ac.probation and ac.arrived_at is not None and ac.admitted_at is None:
+                continue                                 # an arrival waits out its gate
+            if earned < a.reservation:
+                self.below_reservation[aid] = self.below_reservation.get(aid, 0) + 1
+            else:
+                self.below_reservation[aid] = 0
+            if self.below_reservation[aid] >= a.exit_patience:
+                try:
+                    w.depart(aid)
+                except RuleError:
+                    continue                             # an obligation is live; it departs after
+                self.actors.remove(aid)
+                self.departed.append(aid)
+                self.c["departures"] += 1
+                self.c["departed_cost_sum"] += self.c_d_of[aid]
+
+    # -- 2.3.0 §2.4: delegation -------------------------------------------------------
+    def nested_overhead(self, beta_nested: float) -> float:
+        """The parent's overhead on a child: the nested fee, the pots' expected net cost (a reviewer's cost and fee at the index), its care."""
+        idx = self.w.market()["index"]
+        pots = 4.5 * idx if self.a.nested_pots == "parent" else 0.0
+        return self.p.omega_rate * self.w.dial()["m"] * beta_nested + pots + 2.0
+
+    def expected_child_bid(self) -> float:
+        if self.c["nested_price_n"]:
+            return self.c["nested_price_sum"] / self.c["nested_price_n"]
+        return self.median_cost(self.actors) * (1.0 + self.a.margin0)
+
+    def delegation_step(self, t: int):
+        a, w = self.a, self.w
+        if a.delegation != "on" or not self.rev11:
+            return
+        # 1. a parent just awarded a root decides: delegate when its cost exceeds the expected child bid plus the overhead
+        for cid in list(self.active):
+            c = w.case(cid)
+            if not c.is_root or c.state != "COMMITTED" or w.is_troop(c.actor) or cid in self.deleg_considered \
+                    or c.children or t - c.t_award > 2:        # the world's clock runs a tick behind the driver's
+                continue
+            self.deleg_considered.add(cid)
+            parent = c.actor
+            cost = self.cost_now(parent)
+            child_bid = self.expected_child_bid()
+            beta_n = round(cost - self.nested_overhead(child_bid), 2)
+            if beta_n <= 1.0 or child_bid > beta_n:
+                continue
+            try:
+                nid = w.post_nested(cid, beta_n)
+            except (RuleError, LedgerError):
+                self.c["nested_unaffordable"] += 1
+                continue
+            self.nested_parent[nid] = cid
+            self.parent_waiting[cid] = nid
+            self.title_n += 1
+            self.tasks[nid] = Task(nid, f"nested #{self.title_n}", fulfilled=self.rng.random() >= a.fail_rate)
+            self.tasks[nid].nested = True
+            self.active[nid] = True
+            self.c["nested_posted"] += 1
+            self.parent_delegated[parent] = self.parent_delegated.get(parent, 0) + 1
+        # 2. children bid on open nested requests; a request unawarded for T_wait is withdrawn and the parent executes itself
+        for nid in [x for x in self.active if x in self.nested_parent]:
+            c = w.case(nid)
+            if c.state != "AVAILABLE":
+                continue
+            root = w.case(self.nested_parent[nid])
+            offers = [(aid, bid) for aid, bid in self.offers_for(nid) if aid != root.actor]
+            if offers:
+                actor, bid = self.select_bid(offers, c.beta)
+                try:
+                    w.award(nid, actor, bid, a.work_ticks)
+                except (RuleError, LedgerError):
+                    self.c["nested_award_refused"] += 1  # the 1.1.0 reading: the parent must fund ω unlocked at the award
+                    continue
+                self.margin[actor] = round(self.margin[actor] + a.margin_up, 6)
+                self.idle[actor] = 0
+                self.tally[actor].awards += 1
+                self.c["nested_awarded"] += 1
+                self.c["nested_price_sum"] += bid
+                self.c["nested_price_n"] += 1
+                self.c["gain_sum"] += root.B - bid - self.nested_overhead(bid) - 0.0      # against the parent's own cost below
+                self.c["gain_vs_cost_sum"] += self.cost_now(root.actor) - bid - self.nested_overhead(bid)
+            elif t - c.t_post >= self.p.T_wait:
+                w.withdraw_unawarded(nid)
+                self.active.pop(nid, None)
+                self.parent_waiting.pop(self.nested_parent[nid], None)
+                self.parent_self_exec.add(self.nested_parent[nid])
+                self.c["nested_self_executed"] += 1
+        # 3. the parent judges a submitted child by its disposition, spending its care
+        for nid in [x for x in self.active if x in self.nested_parent]:
+            c = w.case(nid)
+            if c.state != "SUBMITTED":
+                continue
+            root = w.case(self.nested_parent[nid])
+            parent = root.actor
+            truth = self.tasks[nid].fulfilled
+            if self.kind[parent] == STAMPER:
+                v = F
+            else:
+                v = F if (truth == (self.rng.random() < a.accuracy)) else N
+                have = max(0.0, math.floor((w.unlocked(parent) - 1e-6) * 100) / 100)
+                pay = min(2.0, have)
+                if pay > 0:
+                    w.spend(parent, pay, self.nested_parent[nid])
+                    self.c["effort_burned"] = round(self.c["effort_burned"] + pay, 6)
+            w.judge_nested(nid, v)
+            self.c["nested_judged"] += 1
+            if v == F and not truth:
+                self.c["nested_false_approvals"] += 1
+                self.tasks[self.nested_parent[nid]].fulfilled = False      # the parent built on bad work (§9.2)
+            if v == N and truth:
+                self.c["nested_false_rejections"] += 1
 
     def offers_for(self, cid: str) -> list[tuple[str, float]]:
         """Free members whose bid is at or under the ceiling and who can fund the guarantee at it."""
@@ -551,6 +780,9 @@ class Stamping:
                 self.requester_posts(r, t)
             self.raise_below_market()
             self.read_marks(t)
+            self.exit_step(t)                            # 2.3.0 §2.2: at a period boundary, below the reservation → depart
+            self.entry_step(t)                           # 2.3.0 §2.1: the pool reads the view and arrives
+            self.delegation_step(t)                      # 2.3.0 §2.4: parents delegate, children bid, parents judge
         # requester posts — the spike cell (run 11 §1): --spike-tasks a tick from --spike-from for --spike-ticks, then back
         tasks_now = 0 if self.floating else (a.spike_tasks if a.spike_tasks > 0 and a.spike_from <= t < a.spike_from + a.spike_ticks else a.tasks)
         for _ in range(tasks_now):
@@ -573,7 +805,7 @@ class Stamping:
                     self.active.pop(cid, None)
         # orchestrator awards
         for cid in sorted(self.active, key=lambda s: int(s[1:])):
-            if w.case(cid).state != "AVAILABLE":
+            if w.case(cid).state != "AVAILABLE" or cid in self.nested_parent:
                 continue
             if self.floating:
                 # 2.0.0 §2.2: members bid; the award is at the bid; a request nobody bids under waits (the state's after w_A)
@@ -585,7 +817,9 @@ class Stamping:
                     continue
                 beta = w.case(cid).beta
                 actor, bid = self.select_bid(bids, beta)
-                w.award(cid, actor, bid, a.work_ticks)
+                tau = a.work_ticks + (a.nested_tau if a.delegation == "on" and self.rev11 else 0)   # 2.3.0: room for a child
+                w.award(cid, actor, bid, tau)
+                self.parent_awards[actor] = self.parent_awards.get(actor, 0) + 1
                 self.margin[actor] = round(self.margin[actor] + a.margin_up, 6)
                 self.idle[actor] = 0
                 self.tally[actor].awards += 1
@@ -607,10 +841,20 @@ class Stamping:
         # actors work and submit
         for cid in list(self.active):
             c = w.case(cid)
-            if c.state == "COMMITTED" and t >= c.t_award + min(a.work_ticks, c.tau):
+            if c.state == "COMMITTED" and cid in self.parent_waiting:
+                nid = self.parent_waiting[cid]
+                child = w.case(nid)
+                if child.t_verdict is None and child.state not in ("WITHDRAWN", "CANCELLED", "FINAL_N"):
+                    continue                             # §9.1: the parent submits after its child's milestone
+                self.parent_waiting.pop(cid, None)
+                if child.verdict == N or child.state in ("WITHDRAWN", "CANCELLED", "FINAL_N"):
+                    self.parent_self_exec.add(cid)       # the child failed: the parent does the work itself
+            if c.state == "COMMITTED" and t >= c.t_award + min(a.work_ticks, c.tau) and cid not in self.parent_waiting:
                 if self.floating and not w.is_troop(c.actor):
                     # 2.0.0 §2.2: the actor's effort, burned at submission (§4.6) — what its unlocked credit can pay of it
-                    want = self.c_d_now
+                    # 2.3.0: the actor's own cost; a parent that delegated and was served pays its care, not the work
+                    delegated = c.is_root and c.children and cid not in self.parent_self_exec
+                    want = 0.0 if delegated else self.cost_now(c.actor)
                     have = max(0.0, math.floor((w.unlocked(c.actor) - 1e-6) * 100) / 100)
                     pay = min(want, have)
                     if pay > 0:
@@ -669,6 +913,8 @@ class Stamping:
             if task.fulfilled:
                 self.c["false_rejections_total"] += 1
             want = a.appeal_policy == "always" or (a.appeal_policy == "truthful" and task.fulfilled)
+            if not c.is_root and a.delegation == "on" and task.fulfilled:
+                want = True                              # 2.3.0 §2.4: a child rejected appeals truthfully (declared)
             if want and w.unlocked(c.actor) + 1e-9 < c.D:
                 self.c["appeals_unfunded"] += 1
                 want = False
@@ -698,6 +944,8 @@ class Stamping:
         for cid in sorted(self.active, key=lambda s: int(s[1:])):
             c = w.case(cid)
             task = self.tasks[cid]
+            if c.state == "SUBMITTED" and not c.is_root:
+                continue                                     # 2.3.0 §2.4: the parent judges its child (delegation_step)
             if c.state == "SUBMITTED" and not any(w.review(r).status == "open" for r in c.reviews):
                 el = self.eligible_reviewers(cid)
                 if el:
@@ -769,6 +1017,8 @@ class Stamping:
                     if not by_truth:
                         self.c["rulings_wrong"] += 1
         self.c["duty_short_of_bond_ticks"] += self.duty_funding()
+        self.awards_window.append((t, self.c["awarded"] - self._awarded_last, len(self.free_members())))
+        self._awarded_last = self.c["awarded"]
         w.advance(t)
         self.harvest()
         for aid in self.actors:                           # 1.5.0 §2.3: when each suspension began
@@ -1068,6 +1318,34 @@ class Stamping:
                     "forgone_share_period": round(sv["forgone_share_period"], 4), "omega_retained_period": round(sv["omega_retained_period"], 3),
                     "small_requesters_wallet": round(sum(w.wealth(x) for x in self.small) / max(1, len(self.small)), 3) if self.small else "",
                     "small_requesters_rebates": round(sum(w.case(cid).rebate_paid for cid in self.owner if self.owner[cid] in self.small), 3) if self.small else ""})
+        # 2.3.0: the supply side — the population, the gate, the costs (the driver's own), delegation
+        members = [aid for aid in self.actors if w.actor(aid).is_member]
+        brokers = [p for p, n in self.parent_delegated.items() if p in self.c_d_of and self.parent_awards.get(p, 0) >= 5
+                   and n > 0.5 * self.parent_awards.get(p, 0)]
+        cost_rank = sorted(self.c_d_of[x] for x in self.actors if x in self.c_d_of)
+        rank = lambda x: (cost_rank.index(self.c_d_of[x]) + 1) / max(1, len(cost_rank))
+        nested_vested = sum(1 for nid in self.nested_parent if w.case(nid).state == "VESTED")
+        nested_final_n = sum(1 for nid in self.nested_parent if w.case(nid).state == "FINAL_N")
+        row.update({"actors_n": len(self.actors), "members_total": mk.get("members_total", len(members)), "probationers": mk.get("probationers", 0),
+                    "arrivals": self.c["arrivals"], "admissions": mk.get("admissions", 0), "departures": self.c["departures"],
+                    "candidates_left": len(self.candidates),
+                    "time_to_membership": round(mk["time_to_membership_run"], 2) if mk.get("time_to_membership_run") else "",
+                    "members_median_cost": round(self.median_cost(members), 3) if members else "",
+                    "population_median_cost": round(self.median_cost(self.actors), 3) if self.actors else "",
+                    "departed_median_cost": round(self.median_cost(self.departed), 3) if self.departed else "",
+                    "arrived_median_cost": round(self.median_cost(self.arrived), 3) if self.arrived else "",
+                    "careful_median_cost": round(self.median_cost([x for x in self.actors if self.kind[x] == CAREFUL]), 3) if self.actors else "",
+                    "nested_posted": self.c["nested_posted"], "nested_awarded": self.c["nested_awarded"], "nested_unaffordable": self.c["nested_unaffordable"],
+                    "nested_self_executed": self.c["nested_self_executed"], "nested_vested": nested_vested, "nested_final_n": nested_final_n,
+                    "nested_award_refused": self.c["nested_award_refused"],
+                    "nested_share": round(self.c["nested_posted"] / max(1, self.c["awarded"]), 4),
+                    "nested_price_mean": round(self.c["nested_price_sum"] / self.c["nested_price_n"], 3) if self.c["nested_price_n"] else "",
+                    "gain_from_trade_mean": round(self.c["gain_vs_cost_sum"] / self.c["nested_price_n"], 3) if self.c["nested_price_n"] else "",
+                    "nested_false_approvals": self.c["nested_false_approvals"], "nested_false_rejections": self.c["nested_false_rejections"],
+                    "brokers_n": len(brokers), "brokers_cost_rank": round(sum(rank(b) for b in brokers) / len(brokers), 3) if brokers else "",
+                    "brokers_award_share": round(sum(self.parent_awards.get(b, 0) for b in brokers) / max(1, self.c["awarded"]), 4),
+                    "pool_advances": round(mk.get("pool_advances", 0.0), 3),
+                    "hoards_over_M": round(sum(w.wealth(x) for x in self.actors) / max(1e-9, mk["M"]), 4)})
         row.update({"pfa_route_upheld": len(self.pfa_upheld_by), "pfa_route_overturned": self.pfa_overturned,
                     "pfa_route_other": self.pfa_other, "pfa_kind_troop": kinds["troop"], "pfa_kind_standing": kinds["standing"],
                     "pfa_kind_lag": kinds["lag"], "pfa_kind_readmitted": kinds["readmitted"]})
@@ -1089,8 +1367,8 @@ def main(argv=None):
     ap.add_argument("--p-start", type=float, default=1.0, help="a newcomer's audit odds (1.2.0 §2.4: 1.0; 1.1.0: 0.5)")
     ap.add_argument("--p-cap", type=float, default=1.0, help="the audit odds' cap on doubling (1.2.0 §2.4: 1.0; 1.1.0: 0.5)")
     ap.add_argument("--p-floor", type=float, default=0.2, help="the audit rate's floor (§8.3)")
-    ap.add_argument("--rules", choices=["2.2.0", "2.1.0", "2.0.0", "1.7.1", "1.7.0", "1.6.0", "1.5.0", "1.4.0", "1.3.0", "1.2.0", "1.1.0"], default="2.2.0",
-                    help="2.2.0: the rebate from income (the period's fee pool, claims pro rata at the close, the rest forgone); 2.1.0: the bank with the liability stock (the control); 2.1.0 also: the bank (loans, the debt, the wall, the expected cost, P_t once a period, refusals told); 2.0.0: the price of work with "
+    ap.add_argument("--rules", choices=["2.3.0", "2.2.0", "2.1.0", "2.0.0", "1.7.1", "1.7.0", "1.6.0", "1.5.0", "1.4.0", "1.3.0", "1.2.0", "1.1.0"], default="2.3.0",
+                    help="2.3.0: the supply side (entry and exit, the parent's pots, the reviewer advance from the pool); 2.2.0: the rebate from income (the period's fee pool, claims pro rata at the close, the rest forgone); 2.1.0: the bank with the liability stock (the control); 2.1.0 also: the bank (loans, the debt, the wall, the expected cost, P_t once a period, refusals told); 2.0.0: the price of work with "
                          "Ω's creation and retirement (the control); 1.7.1 (= 1.7.0): the fixed-price control — "
                          "one bottomless requester at β, the backing, the reserves; 1.6.0: the merged fund (uplift from troop earnings) and the half cap; 1.5.0: also the five 1.6.0 rules off; "
                          "1.3.0: troops off; 1.2.0: also membership, the duty fund and netted plant capital off; 1.1.0: also no "
@@ -1191,6 +1469,19 @@ def main(argv=None):
                     help="2.1.0 §2.6: what a requester does at a refusal's mark — hold (default) or withdraw and repost (the §8.6 variant; the §8.9 rebate farmer)")
     ap.add_argument("--troop-fail-rate", type=float, default=None,
                     help="2.1.0 §8.9 red team: the state's deliveries re-drawn to fail at this rate at the troop's submission (0.5, 0.75; default: the task's own truth)")
+    # 2.3.0: competence, the entry pool, delegation
+    ap.add_argument("--c-d-sigma", type=float, default=0.43, help="2.3.0 §2.3: σ of the log-normal effort cost (0: one cost; swept 0.2 / 0.43 / 0.8)")
+    ap.add_argument("--c-d-median", type=float, default=8.0, help="the cost distribution's median (the anchor)")
+    ap.add_argument("--c-d-clip", type=float, nargs=2, default=[2.0, 40.0], help="the cost distribution's clip")
+    ap.add_argument("--entry-pool", type=int, default=0, help="2.3.0 §2.5: candidates reading the view (0: a fixed population; the §8 cells use 20)")
+    ap.add_argument("--entry-stampers", type=float, default=0.0, help="the share of candidates that are stampers (the §8.7 swarm)")
+    ap.add_argument("--reservation", type=float, default=0.8, help="r: real earnings a tick below which a candidate stays out and a member leaves (swept 0.5 / 1.2)")
+    ap.add_argument("--arrivals-per-tick", type=int, default=1, help="at most this many arrivals a tick (swept 3)")
+    ap.add_argument("--exit-patience", type=int, default=1, help="periods below the reservation before a member departs")
+    ap.add_argument("--f0", type=float, default=50.0, help="F_0, an arrival's float at P_0 (swept 0)")
+    ap.add_argument("--delegation", choices=["on", "off"], default="off", help="2.3.0 §2.4: parents delegate when their cost exceeds the expected child's bid plus the overhead")
+    ap.add_argument("--nested-tau", type=int, default=6, help="the extra ticks a member's bid carries under delegation, for a child's work")
+    ap.add_argument("--nested-pots", choices=["parent", "root"], default="parent", help="2.3.0 §2.4: the parent posts the nested pots; root = the 1.1.0 reading (the control)")
     ap.add_argument("--small-requests", type=int, default=0,
                     help="2.2.0 §8.5 red team: this many requesters post at the market price exactly with K_open tripled — many small requests to collect pro-rata rebates (expected: nothing beyond the capped claims)")
     ap.add_argument("--state-rejecters", type=float, default=0.0,
@@ -1212,7 +1503,9 @@ def main(argv=None):
     ap.add_argument("--results-root", default=None, help="write results/runs under this directory instead of results/")
     a = ap.parse_args(argv)
     if a.c_d_t_mode is None:
-        a.c_d_t_mode = "expected" if a.rules in ("2.1.0", "2.2.0") else "cost"
+        a.c_d_t_mode = "expected" if a.rules in ("2.1.0", "2.2.0", "2.3.0") else "cost"
+    if a.rules != "2.3.0":
+        a.c_d_sigma = 0.0                                # one cost before 2.3.0: the controls are run 15's cells
 
     name = a.name or f"stamping-s{a.stampers:g}-p{a.p_start:g}-gv{a.gv:g}-b{a.fail_rate:g}-f{a.fee:g}-X{a.on_duty}-seed{a.seed}"
     run = Stamping(a)
@@ -1284,11 +1577,23 @@ def main(argv=None):
                                     "none": "silent", "truthful": f"disputes a pending F on work that truly failed with probability {a.dispute_rate}",
                                     "half": "disputes a pending F on work that truly failed with probability 0.5",
                                     "always": "disputes every pending F"}[a.dispute_policy], "budget": a.human_budget},
-                                "the_rebate_from_income": None if a.rules != "2.2.0" else {
+                                "the_supply_side": None if a.rules != "2.3.0" else {
+                                    "spec": "2.3.0 design revision 11 — entry as a probationer with a bank-minted float, exit with the wallet out, competence "
+                                            "as a private per-actor cost, delegation under competence with the parent posting the pots, the reviewer advance from the pool",
+                                    "competence": {"median": a.c_d_median, "sigma": a.c_d_sigma, "clip": a.c_d_clip, "drawn once per actor; private to the driver": True,
+                                                   "genesis_costs": {k: v for k, v in sorted(run.c_d_of.items())}},
+                                    "entry_pool": None if a.entry_pool == 0 else {"candidates": a.entry_pool, "stamper_share": a.entry_stampers, "reservation_real_per_tick": a.reservation,
+                                                                                  "arrivals_per_tick": a.arrivals_per_tick, "exit_patience_periods": a.exit_patience, "F0": a.f0,
+                                                                                  "decision": "(B̄ − c) × awards a free member wins a tick (last 50 ticks) × the share of the run left after the time to membership × P0/P_t > r"},
+                                    "delegation": None if a.delegation != "on" else {"rule": "delegate when c_A > expected child bid + overhead (nested fee + the pots' expected net cost + care 2); β' = c_A − overhead",
+                                                                                        "tau": a.work_ticks + a.nested_tau, "nested_pots": a.nested_pots,
+                                                                                        "judgment": "by disposition — careful: the truth w.p. accuracy, spending 2; stamper: F; a bad child accepted makes the parent's work bad",
+                                                                                        "child_appeals": "truthfully", "unawarded_T_wait": "withdrawn; the parent self-executes"}},
+                                "the_rebate_from_income": None if a.rules not in ("2.2.0", "2.3.0") else {
                                     "spec": "2.2.0 design revision 10 — the claim recorded at the stop; Ω's fee income after the debt pooled as a lock on Ω; at the period's close the "
                                             "claims stopped in the period paid pro rata, the rest forgone and read; no liability stock",
                                     "red_team": {"small_requesters": sorted(run.small)}},
-                                "the_bank": None if a.rules not in ("2.1.0", "2.2.0") else {
+                                "the_bank": None if a.rules not in ("2.1.0", "2.2.0", "2.3.0") else {
                                     "spec": "2.1.0 design revision 9 — the bank: a second account that alone creates and destroys; mints by rule, publishes "
                                             "P_t once a period, lends a summons's shortfall tied to it; the state burns its expected cost and delivers at B̄; "
                                             "every inflow to Ω ordered at once (debt → liabilities → Ω); the wall on deliveries; every refusal told",
@@ -1297,7 +1602,7 @@ def main(argv=None):
                                     "requester_on_refusal": a.requester_on_refusal,
                                     "red_team": {"troop_fail_rate": a.troop_fail_rate, "state_rejecters": sorted(run.state_rejecters),
                                                  "state_rejecters_reading": "the case's actor through the public view's case — not the reviewer's view (§14 carries no actor); declared"}},
-                                "price_of_work": None if a.rules not in ("2.0.0", "2.1.0", "2.2.0") else {
+                                "price_of_work": None if a.rules not in ("2.0.0", "2.1.0", "2.2.0", "2.3.0") else {
                                     "spec": "2.0.0 design revision 8 — the price of work",
                                     "requesters": {"n": a.requesters, "wallet": a.wallet, "issuance_per_tick": a.issuance,
                                                    "ceiling": (f"min({a.beta_max:g}, {a.ceiling_mult:g} × B̄) — market-aware" if a.ceiling_policy == "market"
@@ -1316,7 +1621,7 @@ def main(argv=None):
                                     "plants": "at B = P_t", "P0": 20.0,
                                     "red_team": {"lowball_share": a.lowball_share, "lowballers": sorted(run.lowballers),
                                                  "stingy_requesters": sorted(run.stingy), "bbar_counts_troops": a.bbar_troops}},
-                                "permitted_operations": PERMITTED + (PERMITTED_200 if a.rules in ("2.0.0", "2.1.0", "2.2.0") else []), "not_in_run": NOT_IN_RUN,
+                                "permitted_operations": PERMITTED + (PERMITTED_200 if a.rules in ("2.0.0", "2.1.0", "2.2.0", "2.3.0") else []), "not_in_run": NOT_IN_RUN,
                                 "record_dir": a.record_dir,
                                 "checks": {"per_tick": "check_tick after every tick — always; not configurable",
                                            "full_audit_every_n_ticks": "not scheduled",

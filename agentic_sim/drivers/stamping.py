@@ -112,6 +112,7 @@ from drivers.results import RunRecorder                             # noqa: E402
 
 CAREFUL, STAMPER = "careful", "stamper"
 TELL = "tell"      # the learned red team's Q2, hand-written first: a reviewer that reads the view for a plant's tells and stamps the rest
+LEARNER = "learner"   # the learned red team: the slot actor whose decisions a policy supplies through `Stamping.learner` (redteam.env)
 GRADES = ("human-explicit", "delegate-explicit", "procedural", "protocol-default", PLANT)
 
 PERMITTED = ["post_root (human H, β fixed)", "award (every free actor offers B = β, τ = work_ticks; S_θ argmax ρ, κ tie band)",
@@ -299,6 +300,14 @@ class Stamping:
         # the slot: the actor that is (or, in a control run, would be) the single tell-reader — the same id, cost and tie-break position
         # on the same seed, so a control run's slot is the paired comparison the brief's "same cost and split" asks for
         self.tell_slot = ids_t[0] if ids_t else None
+        # the learned red team (redteam.env): the slot actor's reviewing decisions come from a policy — `self.learner(run, reviewer, view, r)`
+        # returns 0 (care: the careful disposition's signal at its cost), 1 (approve blind), 2 (reject blind); the truth is never shown to it
+        self.learner = None
+        self.learner_id = None
+        if a.learner_slot == "on" and self.tell_slot is not None:
+            self.learner_id = self.tell_slot
+            self.kind[self.learner_id] = LEARNER
+        self.learner_decisions = 0
         self.tells = {"gap", "cap", "idage", "seen", "post", "price", "losttie"} if a.tell == "all" else set(a.tell.split("+"))   # `oracle` / `freshname`: outside the convention (declared)
         self.seen: dict[tuple, tuple] = {}            # (reader, case) -> (world tick first seen available, its ceiling, P_t then)
         self.my_bid: dict[tuple, float] = {}          # (reader, case) -> the reader's bid
@@ -369,7 +378,7 @@ class Stamping:
                   "marked_capacity": 0, "marked_credit": 0, "withdrawn_at_mark": 0, "reposted_after_mark": 0,
                   "state_rejections": 0, "troop_truth_redrawn": 0,
                   "tell_plant_read_plant": 0, "tell_plant_read_real": 0, "tell_real_read_plant": 0, "tell_real_read_real": 0, "tell_false_approvals": 0,
-                  "plant_bids_lost": 0, "plant_lag_sum": 0, "plant_lag_n": 0,
+                  "plant_bids_lost": 0, "plant_lag_sum": 0, "plant_lag_n": 0, "learner_false_approvals": 0,
                   # 2.3.0: the supply side
                   "arrivals": 0, "departures": 0, "departed_cost_sum": 0.0, "nested_posted": 0, "nested_awarded": 0, "nested_unaffordable": 0,
                   "nested_self_executed": 0, "nested_judged": 0, "nested_false_approvals": 0, "nested_false_rejections": 0,
@@ -416,6 +425,16 @@ class Stamping:
                 if self.a.camouflage > 0 and self.rng.random() < self.a.camouflage:
                     return N, 0.0                # looks careful without looking (1.2.0 §8 red team)
                 return F, 0.0
+        if self.kind[reviewer] == LEARNER and view is not None and self.learner is not None:
+            action = int(self.learner(self, reviewer, view, r))
+            self.learner_decisions += 1
+            if action == 1:
+                if not truth and not self.tasks[view.case_id].plant:
+                    self.c["learner_false_approvals"] += 1
+                return F, 0.0
+            if action == 2:
+                return N, 0.0
+            # 0: care — the careful path below (the signal at accuracy a, the care cost)
         if self.kind[reviewer] == TELL and view is not None:
             # Q2: the tells are read from the view and the reader's own assignment alone; the truth is read afterwards to score the
             # tell, never to decide. Read as a plant -> the careful path below; read as real work -> stamped, F at no cost.
@@ -1584,7 +1603,7 @@ class Stamping:
     def row(self, t: int) -> dict:
         w = self.w
         row = {"t": t, "head": w.head()}
-        for kind in ((CAREFUL, STAMPER, TELL) if self.tell_readers else (CAREFUL, STAMPER)):
+        for kind in (CAREFUL, STAMPER) + ((TELL,) if self.tell_readers else ()) + ((LEARNER,) if self.learner_id else ()):
             ids = [aid for aid in self.actors if self.kind[aid] == kind]
             n = max(1, len(ids))
             T = [self.tally[aid] for aid in ids]
@@ -1753,6 +1772,7 @@ class Stamping:
                     "slot_reviews": (self.tally[self.tell_slot].reviews if self.tell_slot else ""),
                     "slot_rho": (round(w.actor(self.tell_slot).rho, 4) if self.tell_slot and self.tell_slot in self.actors else ""),
                     "slot_cost": (round(self.c_d_of[self.tell_slot], 3) if self.tell_slot else ""),
+                    "learner_decisions": self.learner_decisions, "learner_false_approvals": self.c["learner_false_approvals"],
                     "tell_plant_read_plant": self.c["tell_plant_read_plant"], "tell_plant_read_real": self.c["tell_plant_read_real"],
                     "tell_real_read_plant": self.c["tell_real_read_plant"], "tell_real_read_real": self.c["tell_real_read_real"],
                     "tell_plant_pass_rate": round(self.c["tell_plant_read_plant"] / (self.c["tell_plant_read_plant"] + self.c["tell_plant_read_real"]), 4) if (self.c["tell_plant_read_plant"] + self.c["tell_plant_read_real"]) else "",
@@ -1857,7 +1877,8 @@ class Stamping:
         return row
 
 
-def main(argv=None):
+def build_parser():
+    """The run's arguments — shared by `main` and the red team's environment (`redteam.env`), which builds a run from the same cell."""
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     ap.add_argument("--actors", type=int, default=20)
     ap.add_argument("--on-duty", type=int, default=4)
@@ -2027,6 +2048,7 @@ def main(argv=None):
     ap.add_argument("--tie-break", choices=["draw", "id"], default=None, help="2.6.0 §2.3: the tie after κ broken by a seeded draw (the default under 2.6.0) or by the lowest id (the control, the earlier rules' default)")
     ap.add_argument("--genesis-duty", choices=["draw", "lowest"], default=None, help="2.6.0 §2.3: the genesis duty reserve by a seeded draw (the default under 2.6.0) or the lowest-id actors (the control)")
     ap.add_argument("--trailing-periods", type=int, default=1, help="2.6.0: the closed periods a plant's draws read (1; the knob 2)")
+    ap.add_argument("--learner-slot", choices=["on", "off"], default="off", help="the learned red team: the slot actor's reviewing decisions come from the policy redteam.env supplies (nothing changes without it)")
     ap.add_argument("--plant-submit", type=int, default=0, help="2.6.0: pin the plant actor's time to submission (0: the draw from the trailing real deliveries'; 1 the lag-pinning cell)")
     ap.add_argument("--state-rejecters", type=float, default=0.0,
                     help="2.1.0 §8.9 red team: the share of careful actors that reject every delivery of the state's (reads the case's actor — declared non-conforming)")
@@ -2045,12 +2067,20 @@ def main(argv=None):
     ap.add_argument("--name", default=None)
     ap.add_argument("--expect-head", default=None)
     ap.add_argument("--results-root", default=None, help="write results/runs under this directory instead of results/")
-    a = ap.parse_args(argv)
+    return ap
+
+
+def parse_args(argv=None):
+    a = build_parser().parse_args(argv)
     if a.c_d_t_mode is None:
         a.c_d_t_mode = "expected" if a.rules in ("2.1.0", "2.2.0", "2.3.0", "2.4.0", "2.5.0", "2.6.0") else "cost"
     if a.rules not in ("2.3.0", "2.4.0", "2.5.0", "2.6.0"):
         a.c_d_sigma = 0.0                                # one cost before 2.3.0: the controls are run 15's cells
+    return a
 
+
+def main(argv=None):
+    a = parse_args(argv)
     name = a.name or f"stamping-s{a.stampers:g}-p{a.p_start:g}-gv{a.gv:g}-b{a.fail_rate:g}-f{a.fee:g}-X{a.on_duty}-seed{a.seed}"
     run = Stamping(a)
     rec = RunRecorder(name, kind="scoped run — §18.1 q1 careful vs careless review; policies fixed by disposition",

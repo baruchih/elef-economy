@@ -2174,7 +2174,25 @@ approvals (1.2 → 2.45) and the patient cell's time to membership (135 → 169)
 
 **For the decision** (notes §5): Hypothesis 1 holds and the §7.6 test has its instrument; the attention's cost as measured; the two readings
 and a lag-pinning cell to separate them; plants at p_T under scarcity as a reading for Q1; the proxy as a conformance correction of the surface.
-**Next:** the reviewer's reading; then the environment (`agentic_sim/redteam/`) and Q2's learned probe on the repaired construction, or Q1.
+**The reviewer's reply (October 20).** Run 21 accepted as recorded; 2.6.0 holds. **One ruling for Appendix S** (`86f7ed60`): the $p_T$ path
+follows the summons pass, refusals included — a plant unbid by w_A that the pass would refuse for capacity or credit is marked and told as a
+real root would be and waits, no place in N_T, no loan; `test_v26` 15 with the regression; the equivalence golden's seed 1 re-pinned with the
+ruling (nineteen plants refused for credit in the scenario); suite 326 + 32. **The lag-pinning cell** (`results/studies/2.6.0-disguise/lag/`,
+80 runs; notes `2.6.0-disguise-lag-notes-for-reviewer.md`): the ruling fires in neither the lowballer nor the patient cell (no refusal; the
+baselines reproduce run 21 to the decimal); pinning the plant actor's submission to one tick shortens the lag 9.2 → 7.3 in the lowballer cell
+and not at all in the patient cell, where the lag is the w_A wait before the plant goes at p_T; the two readings move toward 2.5.0 and stay
+within noise of 2.6.0 (nested false approvals 2.45 → 2.15; time to membership 169 → 149) — the draw is not their mechanism. **Then:** the Q2
+probe when the environment is built, then Q1 with own odds visible and hidden.
+
+## The learned red team — the environment (October 20, 2026)
+
+Decisions 1–5 taken; the conda environment `elef-redteam` (Python 3.11, torch 2.14.1 with MPS, gymnasium 1.4.0, stable-worldmodel 0.1.1,
+opencv-headless) is installed beside the project's Python; le-wm's `module.py` and `jepa.py` are vendored under MIT at
+`agentic_sim/redteam/lewm/`. The driver carries the learner's slot (`--learner-slot on`: the slot actor's reviewing decisions come from a
+policy `Stamping.learner(run, reviewer, view, r)` → 0 care / 1 approve blind / 2 reject blind, the truth never shown to it; `LEARNER` kind,
+`learner_decisions`, `learner_false_approvals`) and `parse_args` / `build_parser` for the environment to build a run from a cell; every
+existing run is unchanged (the 2.5.0 control identical to the decimal). **Next:** `redteam/obs.py`, `env.py` (the decision-event Gymnasium
+environment), `collect.py`, `model.py`, `train.py`, `plan.py`, `run_q.py`; then the Q2 probe on the repaired construction; then Q1.
 
 ## Maps
 

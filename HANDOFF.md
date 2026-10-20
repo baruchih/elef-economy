@@ -2135,6 +2135,24 @@ repair's shape (the plant's id reserved τ ticks ahead; opaque ids; a seating de
 exposed per actor today and the learner reads only its own. **Next:** the reviewer's ruling; then the environment and Q2's learner on the
 repaired construction, or Q1.
 
+## Design revision 14 — the plant's disguise (2.6.0, October 20, 2026)
+
+**Why.** Run 20 (the learned red team's Q2, hand-written first): a plant was built submitted, so its id was minted at its submission while a real
+root's was minted at its posting a tick or more earlier, and a free member sees the available roots every tick — the `idage` reader passed every
+plant on forty seeds and was never suspended; the audit still priced its stamps (the oracle −28%). The reviewer ruled the study paused for the
+repair; rc.1 the same day, my review (the fresh name is itself a tell in a public record that names awardees — the test scoped to a member's
+observations; three corrections of fact; five readings), rc.2 adopted all, accepted with one ruling: the deadline comes with the report as the
+price does, the draw only on the p_T path, the time to submission the plant actor's draw within (0, τ]. **The rule.** A plant goes through the
+market — posted as a root under a fresh plant-requester name with a ceiling drawn from the trailing real roots', open to the free members and
+waiting as a real root waits, awarded to a fresh plant-actor name at the price and work ticks the market's selection reports (past w_A at p_T,
+counted apart), submitted at a draw from the trailing real deliveries' within (0, τ]; fresh names alias the two plant wallets; no fee, no clock,
+not in B̄ or P_t, marked and counted as any root; the dial's plant counts published at the close; the indistinguishability test widened to
+everything a member observes, the drivers' convention its boundary; public identifiers opaque. **Engine** (`7c948b41`): `Params.plant_market`,
+`post_plant`, the award as the report, the p_T path, the submission step, the trailing window, the aliases; I15/I21/I29/I37 amended; I39, I40;
+the view's id translation and counts; `test_v26` (12); suite 323 + 32; goldens re-pinned once. **Drivers:** `--rules 2.6.0` default, the
+readers `seen`, `post`, `price`, `losttie` beside the four of run 20, `freshname` outside the convention, `--tie-break`, `--genesis-duty`,
+`--trailing-periods`, the plant readings. **Next:** run 21 — §8 on run 20's seeds.
+
 ## Maps
 
 Two `_line` artifacts in project Agentic-OS (`c54120a6-aaff-40f7-8a9f-3667da542879`):

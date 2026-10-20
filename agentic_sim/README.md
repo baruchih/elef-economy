@@ -133,12 +133,18 @@ tests/test_v25.py                   design revision 13 (2.5.0): the missed child
                                     tick refused with the world unchanged, after the lapse refused; the lapse forfeiting to the parent, releasing the
                                     bond and freeing the parent; a child submitting on its last tick; the kill fee before the deadline; §6's lowballer
                                     at −3; I38 catching a deadline-tick cancellation and a lapse that did not run; missed_child off = 2.4.0 — 7
+tests/test_v26.py                   design revision 14 (2.6.0): the plant's disguise — a plant posted as a root in sequence under a fresh name with the
+                                    pots minted and the marker sealed; the award as the market's report (the plant actor takes it, the member not
+                                    committed, no price recorded, no fee); the submission at the drawn tick and the adjudication and destruction as
+                                    before; a good plant vesting to its actor; the p_T path past w_A counted apart; fresh names aliasing the two
+                                    wallets; the mark and the available count; the draws reading the trailing real roots; the public identifiers
+                                    translated both ways and carrying no order; the dial's counts at the close; I39's catches; plant_market off = 2.5.0 — 12
 
-Run: `python3 run_tests.py` — 311 pass, 0 fail, 32 expected failures, each with a stated reason (one original,
+Run: `python3 run_tests.py` — 323 pass, 0 fail, 32 expected failures, each with a stated reason (one original,
 four superseded by the view contract, nineteen on the withdrawn reopening path, one superseded by design
 revision 1, one by design revision 2, two by design revisions 10 and 11 — a service fee pooled until the close and the pool's advance move the reimbursement figures they pin — two by design revision 11 — the parent's pots make three children unaffordable on a float of 50, and the root's allowance is no longer exhausted by a nested review — two by design revision 8 — the backing's v_t and the pay-in refused at posting; the three 1.x figures 2.0.0's moving index broke pass again under 2.1.0's index per period). With pytest: `python3 -m pytest tests -q` reports 259 passed, 31 xfailed; the
 runner expands pytest parametrization as pytest does, including multi-argument and stacked marks. (Spec Appendix D
-records the count at the v1.0.1 freeze, 156; at 1.1.0, 181; at 1.2.0, 197; at 1.3.0, 208; at 1.4.0, 218; at 1.5.0, 225; at 1.6.0, 236; at 1.7.0, 244; at 1.7.1, 248; at 2.0.0, 259; at 2.1.0, 275; at 2.2.0, 282; at 2.3.0, 293; at 2.4.0, 304; at 2.5.0, 311.)
+records the count at the v1.0.1 freeze, 156; at 1.1.0, 181; at 1.2.0, 197; at 1.3.0, 208; at 1.4.0, 218; at 1.5.0, 225; at 1.6.0, 236; at 1.7.0, 244; at 1.7.1, 248; at 2.0.0, 259; at 2.1.0, 275; at 2.2.0, 282; at 2.3.0, 293; at 2.4.0, 304; at 2.5.0, 311; at 2.6.0, 323.)
 
 Expected failures are **strict and parameter-exact** in both entry points: `EXPECTED_FAIL_PARAMS` names the
 parameter runs that are expected to fail inside a mixed test (the P/⊥ runs of the eighth review's first case;
@@ -532,6 +538,26 @@ sweeps the take with the rebate pinned. In the engine:
   `advances_made/repaid`, `liabilities_paid`; `drivers/sweep.py` carries them.
 - **Tests.** `test_v17.py` (8); goldens re-pinned once; `test_v13`–`test_v16` pinned to the merged fund and the half cap.
   Reviewer tests untouched and passing.
+
+## Design revision 14 — the plant's disguise (2.6.0, October 20, 2026)
+
+`Params.plant_market` (on; off is 2.5.0 and `--rules 2.5.0`, where `create_plant` builds a plant submitted — refused under the flag) is the
+revision: a plant goes through the market. `post_plant(truth)` posts a root under a fresh `plant_req:<hash>` name (a ledger alias of
+`PLANT_REQ`) with a ceiling drawn from the trailing real roots' (`_plant_draw`, by the History's head, over the last `trailing_periods` closed
+periods; P_t before the first), the all-in β + φ^E + φ^F minted and locked (no fee), the marker sealed at the posting, the marks applied; it is
+available to the free members and waits as a real root waits. `award(cid, member, B, τ)` on a plant is the market's report: `_award_plant`
+commits a fresh `plant_act:<hash>` (alias of `PLANT_ACT`) at B and τ — the deadline comes with the report, as the price does (the ruling) —
+mints and locks G, draws the pots from the posting lock, records no price (neither B̄ nor P_t) and commits no member; a plant unbid by w_A goes
+to its actor at p_T and τ_T in the summons pass, counted apart from the troops (`plants_awarded_at_floor`). `_plant_submit_step` submits at the
+drawn tick within (0, τ] before the deadlines; `submit` on a plant is refused; from there 1.2.0. The view translates case ids both ways
+(`public_id`, copies of what it returns), counts the plant among `available_roots`, and carries the live plant counters as the orchestrator's
+instrument; the periods' records publish the counts at the close. I15, I21, I29, I37 amended for the market plant's real locks and marks; I39
+(the plant's disguise), I40 (opaque identifiers) per tick and in the full audit. `test_v26.py` (12); goldens re-pinned once (the equivalence
+scenario's plants go through the market); eight 1.2.0-style test files pin `plant_market=False`. Driver: `--rules 2.6.0` default; `post_plant`
+at the rate; the working set in the order the driver learned of the cases; the award loop reading the awarded actor after the report
+(`plant_bids_lost`); `--tie-break draw|id`, `--genesis-duty draw|lowest`, `--trailing-periods`; the tell-readers `gap`, `cap`, `idage`, `seen`,
+`post`, `price`, `losttie`, `all` within the convention and `oracle`, `freshname` outside it; the readings `plants_posted/awarded/at_floor`,
+`plant_time_in_market_mean`, `plant_lag_mean`, `plant_names`, `available_roots`.
 
 ## Design revision 13 — the missed child (2.5.0, October 19, 2026)
 

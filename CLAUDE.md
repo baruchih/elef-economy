@@ -1,7 +1,15 @@
 # Agentic-OS — the economic loop
 
 A rulebook for a task → verification → dispute → settlement loop among autonomous actors, and a
-reference implementation of it with no strategies. Ten external reviews. The rulebook is at **2.5.0** — design revision 13, *the missed child*: a nested request's
+reference implementation of it with no strategies. Ten external reviews. The rulebook is at **2.6.0** — design revision 14, *the plant's disguise*: a plant goes
+through the market — posted as a root under a fresh plant-requester name with a ceiling drawn from the trailing real roots', open to the free members and
+waiting as a real root waits, awarded to a fresh plant-actor name at the price and work ticks the market's selection reports (the award as the report; past
+w_A at p_T, counted apart), submitted at a draw from the trailing real deliveries' within (0, τ]; fresh names alias the two plant wallets; no fee, no clock,
+not in B̄ or P_t, marked and counted as any root; the dial's plant counts published at the close; the indistinguishability test widened to everything a
+*member* observes, with the drivers' convention (the view and the record's fields about one's own cases) as the disguise's boundary; public identifiers
+opaque (a hardening) — after run 20, the learned red team's Q2 run hand-written first, found that a plant built submitted had its id minted at its
+submission while a real root's was minted at its posting, so a reader comparing an assigned case's id with the newest root it had seen available passed
+every plant on forty seeds (the audit still priced its stamps: a perfect detector ended 28% poorer) — on **2.5.0**, design revision 13, *the missed child*: a nested request's
 cancellation is admissible only before the earlier of the child's submission and the request's deadline — at or after the deadline it is refused with no
 effect; the lapse (the engine's since v1.0: final N at the deadline after the tick's submissions, the guarantee to the parent, the bond released, the parent
 free from the next step) is stated; the deadline tick is the child's — after run 18's last batch showed a parent cancelling a child at its deadline releasing
@@ -64,13 +72,13 @@ and what is proposed next.
 ## Layout
 
 ```
-spec/agentic_economics_loop_spec_v2_5_0.md   the text in force (standalone; Appendix A defaults, E errata, F–R design revisions 1–13 and the rulings)
+spec/agentic_economics_loop_spec_v2_6_0.md   the text in force (standalone; Appendix A defaults, E errata, F–S design revisions 1–14 and the rulings)
 spec/design_revisions/                       accepted design revisions, verbatim (dr1: two pots; dr2: the loop's own clock; dr3:
                                              inspection is membership; dr4: the orchestrator's troops; dr5: the reserve is sized to
-                                             the need; dr6: auto-scale; dr7: the state's earnings; dr8: the price of work; dr9: the bank; dr10: the rebate from income; dr11: the supply side; dr12: the state's reservation; dr13: the missed child), and the implementer's reviews of dr2–dr13's candidates
-spec/history/                                v0.1 … v2.4.0 — superseded, kept for provenance only
+                                             the need; dr6: auto-scale; dr7: the state's earnings; dr8: the price of work; dr9: the bank; dr10: the rebate from income; dr11: the supply side; dr12: the state's reservation; dr13: the missed child; dr14: the plant's disguise), and the implementer's reviews of dr2–dr14's candidates
+spec/history/                                v0.1 … v2.5.0 — superseded, kept for provenance only
 reviews/                                     R01–R10, one external review per version, with the reviewer's notes
-agentic_sim/                                 the engine, 38 invariants, 31 test files, runner, drivers, results
+agentic_sim/                                 the engine, 40 invariants, 32 test files, runner, drivers, results
 docs/line_map_economic_loop_v1_0_1.txt       text export of the _line map of the loop (the live map is the source)
 docs/economy_2x_account.md                   the reviewer's consolidated account of 2.0.0 → 2.5.0 and runs 12–19 (verbatim), with the implementer's review beside it
 docs/red_team_brief.md                       the learned red team's brief (verbatim; LeWorldModel on the public view), with the implementer's review and build plan beside it
@@ -81,12 +89,14 @@ HANDOFF.md                                   status, history table, open questio
 
 ```
 cd agentic_sim
-python3 run_tests.py        # expected: 311 passed, 0 failed, 32 expected failures
+python3 run_tests.py        # expected: 323 passed, 0 failed, 32 expected failures
 python3 -S run_tests.py     # same, with no site-packages
 python3 run_tests.py --record   # same, every World in record mode
-python3 -m pytest tests -q  # expected: 311 passed, 32 xfailed, 0 xpassed (conftest mirrors the runner; pytest is not installed here)
+python3 -m pytest tests -q  # expected: 323 passed, 32 xfailed, 0 xpassed (conftest mirrors the runner; pytest is not installed here)
 python3 -m drivers.load_run --actors 200 --ticks 10000 --on-duty 40 --tasks 30 --record-dir /path  # throughput run
 python3 -m drivers.stamping --actors 20 --ticks 1000 --stampers 0.6 --seed 1   # §18.1 q1 under 2.1.0: six requesters with wallets, members bidding, the state at its expected cost on the bank's loans under N_T 40
+python3 -m drivers.stamping --entry-pool 20 --stampers 0.6 --seed 1   # 2.6.0: run 16's cell with the plants going through the market (posted, bid on, awarded on the report, submitted at a drawn tick); --rules 2.5.0 the control (plants built submitted); --tie-break id / --genesis-duty lowest the ordering controls; --trailing-periods 2 the window knob
+python3 -m drivers.stamping --entry-pool 20 --stampers 0.6 --tell-readers 0.125 --tell idage --seed 21   # the red team's Q2, hand-written: one tell-reader in eight careful actors; --tell gap|cap|idage|seen|post|price|losttie|all (any) within the convention, oracle (the marker) and freshname (the record's awardee) outside it, declared
 python3 -m drivers.stamping --entry-pool 20 --stampers 0.6 --ceiling-policy patient --patient-ticks 10 --seed 1   # 2.4.0 §8.2: patient customers against the floor (raising to max(B̄, the floor) read from the view); --state-reservation 0 the control (the 2.3.0 state), 4 / 12 the sweep; patient-blind run 17's policy
 python3 -m drivers.stamping --entry-pool 20 --stampers 0.6 --delegation on --c-d-sigma 0.8 --lowball-children 0.2 --parent-cancel early --seed 1   # 2.5.0 §8.2: the lowballer cell — the parent at the child's deadline is refused, the lapse forfeits; --parent-cancel eve the tick before (admitted, run 18's move); --rules 2.4.0 the control admitting the deadline-tick cancellation
 python3 -m drivers.stamping --entry-pool 20 --stampers 0.6 --delegation on --c-d-sigma 0.8 --farm-parents 0.5 --children-read-deadline off --seed 1   # 2.5.0 §8.5 red team: parents posting deadlines too short to meet; --lowball-children 0.2 --lowball-mode empty --parent-cancel early the empty result at the deadline
@@ -399,6 +409,22 @@ consolidated into one standalone spec with the accepted revision kept verbatim i
   last-batch move), `early` at deadline + 1 (the world at the deadline — refused under 2.5.0, admitted under 2.4.0), counting
   `cancel_refused_at_deadline`; `nested_lapsed` / `nested_lapsed_forfeit` count the lapses; the red team's `--farm-parents` (child tau 1),
   `--children-read-deadline`, `--lowball-mode empty` (an empty result at the deadline, appealed). `test_v25` (7); goldens unchanged.
+- The plant's disguise (2.6.0; `Params.plant_market`, on; off is 2.5.0 and `--rules 2.5.0`, where `create_plant` builds a plant submitted and is refused under
+  the flag). `post_plant(truth)` posts a root under a fresh `plant_req:<hash>` (a `Ledger.aliases` entry for `PLANT_REQ`) with β drawn from the trailing real
+  roots' (`_plant_draw` by the History's head over `_trailing`, the last `trailing_periods` closed periods' `betas`/`taus`/`deliv`, rolled at the close; P_t
+  before the first), the all-in β + φ^E + φ^F minted (no ω: a plant pays no fee) and locked as a posting lock, the marker sealed (`plant_created` at the
+  posting, I20), the marks applied; `award(cid, member, B, τ)` on a plant is the market's report — `_award_plant` commits a fresh `plant_act:<hash>` (alias of
+  `PLANT_ACT`) at B and τ, mints and locks G, draws the pots from the posting lock, records no price (neither B̄ nor P_t), commits no member; a plant unbid
+  for w_A goes to its actor at p_T and τ_T in `_summon_troops` (`plant_at_floor`, counted apart from the troops); `_plant_submit_step` submits at
+  `plant_submit_at` = t_award + a draw within (0, τ] before the deadlines, and `submit` on a plant is refused; from there 1.2.0 (`_adjudicate_plant`,
+  the wallets' holdings destroyed at closure). `_plant_notional` is False for a market plant (its locks are real: I15, I21, I29, I37 amended); I39, I40 per
+  tick and in the full audit. The view translates case ids both ways (`sim.invariants.public_id`, copies of cases, reviews, events and the ReviewView),
+  counts the plant in `market()["available_roots"]`, and carries the live plant counters in `dial()` as the orchestrator's instrument (the published counts
+  are the periods' records). Drivers: `post_plant` at the rate; the working set in the order the driver learned of the cases (no id arithmetic); the award
+  loop reads the awarded actor after the report (`plant_bids_lost`); the plant's submission left to the engine; `--tie-break draw|id`, `--genesis-duty
+  draw|lowest`, `--trailing-periods`; the tell-readers' observations per reader (`seen`, `my_bid`, `lost_bid`) and the tells `gap`, `cap`, `idage`, `seen`,
+  `post`, `price`, `losttie`, `all`, with `oracle` and `freshname` outside the convention; the readings `plants_posted/awarded/at_floor`,
+  `plant_bids_lost`, `plant_time_in_market_mean`, `plant_lag_mean`, `plant_names`, `available_roots`. `test_v26` (12); goldens re-pinned once.
 - Money is checked by invariant I1 (conservation) — never silently create or lose credits.
 
 ## Vocabulary (spec Appendix C has the full notation)
@@ -445,5 +471,9 @@ customer (a ceiling at 0.7 B̄ raised after T ticks); the kill fee as the child'
 The missed child (2.5.0): the lapse (a missed delivery — final N at the deadline tick after the tick's submissions, the guarantee to the parent); the
 deadline tick is the child's (it may submit on it; the parent may not cancel at or after it); a farming parent (a nested deadline too short to meet); the
 empty result (a lowballer's submission at the deadline to avoid the lapse).
+The plant's disguise (2.6.0): the plant's life (posted, available, awarded on the market's report, submitted at a drawn tick); the time in the market; the
+seen set (what a free member saw available and when); the tell-readers (the indistinguishability test's instrument — gap, cap, idage, seen, post, price,
+losttie within the convention; oracle and freshname outside it); the disguise's boundary (the drivers' convention: the view and one's own record); an
+opaque identifier (the public surface's hash of a case's id, carrying no order).
 "Ruling" has two senses: the orchestrator rules on splits inside the procedure; only a human
 *overrides* it (spec §15.2).

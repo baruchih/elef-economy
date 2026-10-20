@@ -865,6 +865,8 @@ class Stamping:
         goal = mk.get("state_price", B_bar) if self.a.ceiling_policy == "patient" else B_bar
         if self.a.ceiling_policy == "floor":
             return                                       # the cartel never raises
+        # 2.6.1 (erratum, §7.6): the plant requester raises as the population's requesters do — the plants are in the working set and take
+        # this step in this pass, at the same timing; the engine mints the difference for a plant (a requester's wallet may refuse one)
         for cid in list(self.active):
             c = w.case(cid)
             if c.state != "AVAILABLE" or c.beta + 1e-9 >= goal or self.owner.get(cid) in self.stingy or cid in self.nested_parent:
@@ -1848,6 +1850,7 @@ class Stamping:
                     "lowball_empty_approved": self.c["lowball_empty_approved"], "lowball_appeals": self.c["lowball_appeals"],
                     "farmers_n": len(self.farmers),
                     # 2.6.0: the plant's life — posted, awarded (at the floor), the bids lost to plants, the time in the market, the lag
+                    "plants_raised": dl.get("plants_raised", 0),
                     "plants_posted": dl["plants_posted"], "plants_awarded": dl["plants_awarded"], "plants_at_floor": dl["plants_at_floor"],
                     "plant_bids_lost": dl["plant_bids_lost"],
                     "plant_time_in_market_mean": round(dl["plant_market_ticks"] / dl["plants_awarded"], 3) if dl["plants_awarded"] else "",

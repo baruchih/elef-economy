@@ -99,12 +99,13 @@ def main(argv=None):
     ap.add_argument("--train-seeds", default="1-10"); ap.add_argument("--test-seeds", default="11-20")
     ap.add_argument("--out", default=None)
     ap.add_argument("--initial-only", action="store_true", help="restrict to the initial reviews (rv_responses_available), where plants are received")
-    ap.add_argument("--policies", default=None, help="the behaviour policies' episodes to read (comma-separated; all files in the directory otherwise — "
-                    "an online run writes its rounds' episodes beside the offline ones)")
+    ap.add_argument("--policies", default="careful,stamper,eps,random",
+                    help="the behaviour policies' episodes to read (comma-separated; the four offline policies by default — an online run writes "
+                         "its rounds' episodes beside the offline ones, and the probe names its episodes from run 24; 'all' reads every file)")
     ap.add_argument("--ablate-case", action="store_true", help="the per-field ablation of the case's fields (alone, added to the context, removed from the raw)")
     a = ap.parse_args(argv)
     m, ck = load_model(a.model)
-    pols = a.policies.split(",") if a.policies else None
+    pols = None if a.policies in (None, "", "all") else a.policies.split(",")
     tr, te = load_episodes(a.data, seeds_of(a.train_seeds), pols), load_episodes(a.data, seeds_of(a.test_seeds), pols)
     if a.initial_only:
         for e in tr + te:
@@ -116,7 +117,9 @@ def main(argv=None):
     Otr, Ote = stack(tr, lambda e: e["obs"]), stack(te, lambda e: e["obs"])
     ytr, yte = stack(tr, lambda e: e["is_plant"]), stack(te, lambda e: e["is_plant"])
     gte = stack(te, lambda e: np.full(len(e["is_plant"]), e["seed"]))      # the decision's seed, for the seed-level bootstrap
-    out = {"data": a.data, "model": a.model, "initial_only": a.initial_only, "train_decisions": int(len(ytr)), "test_decisions": int(len(yte)),
+    out = {"data": a.data, "model": a.model, "policies": pols or "all", "train_seeds": a.train_seeds, "test_seeds": a.test_seeds,
+           "episodes_train": len(tr), "episodes_test": len(te),
+           "initial_only": a.initial_only, "train_decisions": int(len(ytr)), "test_decisions": int(len(yte)),
            "plant_share_test": float(yte.mean())}
     out["auc_latent"] = auc_se(fit_logistic(Ztr, ytr)(Zte), yte, gte)       # every AUC as [value, SE over decisions, SE over seeds]
     out["auc_raw_obs"] = auc_se(fit_logistic(Otr, ytr)(Ote), yte, gte)

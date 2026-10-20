@@ -195,13 +195,14 @@ GOLDEN = {
     # refusals, and this scenario refuses nineteen plants for credit; seed 2 meets no refusal and is unchanged
     # (9e3fbbd1… / 8979 and 843ad304… / 9756). Both re-pinned once more with the conformance item after run 23 (the same day): the plant's
     # draws read a rolling window of the last k real roots, k the closed period's count, not the closed period's own box, so every plant's
-    # ceiling and time to submission may differ and the whole path moves.
-    1: {"head": "381b09c50b7f83d2044da36109ad571376d56c880bfa4c026833d617557a3a53", "entries": 9161,
-        "M": 120202.351381, "Res": 0.0,
-        "states": {"FINAL_N": 189, "VESTED": 55, "WITHDRAWN": 6, "PENDING": 2, "AVAILABLE": 12, "COMMITTED": 3}},
-    2: {"head": "12bbf75751c8fe1e1ec20b422c74ee81d3d6c3ea482749cba531a38fc0a32dce", "entries": 10302,
-        "M": 120250.324989, "Res": 0.0,
-        "states": {"FINAL_N": 217, "VESTED": 52, "WITHDRAWN": 12, "SUBMITTED": 3, "PENDING": 6, "AVAILABLE": 3, "COMMITTED": 1}},
+    # ceiling and time to submission may differ and the whole path moves (381b09c5… / 9161 and 12bbf757… / 10302). Re-pinned once more
+    # for erratum 2.6.1 (October 21, 2026): the ceilings enter the window as posted, so every plant's drawn ceiling may differ again.
+    1: {"head": "9a7db073915e75d0e4eb8533439a8d712e0eee6c1d4d87a8073b961f7696a2b1", "entries": 9046,
+        "M": 120348.800683, "Res": 0.0,
+        "states": {"FINAL_N": 181, "VESTED": 48, "WITHDRAWN": 11, "PENDING": 7, "AVAILABLE": 8, "SUBMITTED": 1}},
+    2: {"head": "0408cb1996285b93e2bafec8072b062eb36698c05271ed2a2b2e2d560b79bb04", "entries": 9558,
+        "M": 120298.252136, "Res": 0.0,
+        "states": {"FINAL_N": 186, "VESTED": 69, "WITHDRAWN": 5, "CANCELLED": 3, "PENDING": 7, "SUBMITTED": 3, "AVAILABLE": 5}},
 }
 
 

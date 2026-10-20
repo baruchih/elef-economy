@@ -1,7 +1,7 @@
 # Agentic-OS — the economic loop
 
 A rulebook for a task → verification → dispute → settlement loop among autonomous actors, and a
-reference implementation of it with no strategies. Ten external reviews. The rulebook is at **2.6.0** — design revision 14, *the plant's disguise*: a plant goes
+reference implementation of it with no strategies. Ten external reviews. The rulebook is at **2.6.1** — erratum 2.6.1 (October 21, 2026; §7.6, Appendix E E5: the plant's ceiling drawn from the real roots' ceilings *as posted*, the plant requester raising it as the population's requesters do, so the plant waits as a real root waits — the reviewer's ruling after run 24) on **2.6.0** — design revision 14, *the plant's disguise*: a plant goes
 through the market — posted as a root under a fresh plant-requester name with a ceiling drawn from the trailing real roots', open to the free members and
 waiting as a real root waits, awarded to a fresh plant-actor name at the price and work ticks the market's selection reports (the award as the report; past
 w_A at p_T, counted apart), submitted at a draw from the trailing real deliveries' within (0, τ]; fresh names alias the two plant wallets; no fee, no clock,
@@ -72,11 +72,11 @@ and what is proposed next.
 ## Layout
 
 ```
-spec/agentic_economics_loop_spec_v2_6_0.md   the text in force (standalone; Appendix A defaults, E errata, F–S design revisions 1–14 and the rulings)
+spec/agentic_economics_loop_spec_v2_6_1.md   the text in force (standalone; Appendix A defaults, E errata incl. 2.6.1, F–S design revisions 1–14 and the rulings)
 spec/design_revisions/                       accepted design revisions, verbatim (dr1: two pots; dr2: the loop's own clock; dr3:
                                              inspection is membership; dr4: the orchestrator's troops; dr5: the reserve is sized to
                                              the need; dr6: auto-scale; dr7: the state's earnings; dr8: the price of work; dr9: the bank; dr10: the rebate from income; dr11: the supply side; dr12: the state's reservation; dr13: the missed child; dr14: the plant's disguise), and the implementer's reviews of dr2–dr14's candidates
-spec/history/                                v0.1 … v2.5.0 — superseded, kept for provenance only
+spec/history/                                v0.1 … v2.6.0 — superseded, kept for provenance only
 reviews/                                     R01–R10, one external review per version, with the reviewer's notes
 agentic_sim/                                 the engine, 40 invariants, 32 test files, runner, drivers, results
 agentic_sim/redteam/                         the learned red team (docs/red_team_brief.md, docs/red_team_build_plan.md): a separate package the suite never imports —
@@ -91,10 +91,10 @@ HANDOFF.md                                   status, history table, open questio
 
 ```
 cd agentic_sim
-python3 run_tests.py        # expected: 328 passed, 0 failed, 32 expected failures
+python3 run_tests.py        # expected: 330 passed, 0 failed, 32 expected failures
 python3 -S run_tests.py     # same, with no site-packages
 python3 run_tests.py --record   # same, every World in record mode
-python3 -m pytest tests -q  # expected: 328 passed, 32 xfailed, 0 xpassed (conftest mirrors the runner; pytest is not installed here)
+python3 -m pytest tests -q  # expected: 330 passed, 32 xfailed, 0 xpassed (conftest mirrors the runner; pytest is not installed here)
 python3 -m drivers.load_run --actors 200 --ticks 10000 --on-duty 40 --tasks 30 --record-dir /path  # throughput run
 python3 -m drivers.stamping --actors 20 --ticks 1000 --stampers 0.6 --seed 1   # §18.1 q1 under 2.1.0: six requesters with wallets, members bidding, the state at its expected cost on the bank's loans under N_T 40
 python3 -m drivers.stamping --entry-pool 20 --stampers 0.6 --appeal-policy none --seed 1   # runs 1–23's population: no appeals (truthful appeals are the default from run 24, the ruling after run 23)
@@ -440,7 +440,13 @@ consolidated into one standalone spec with the accepted revision kept verbatim i
   posted the plants after the tick's award pass (1.2.0's place for a created-submitted plant), so a plant waited a tick more than every real
   root by construction and reached its seat the oldest of the tick's submissions under the working set's oldest-first seating. The
   correction (the driver's `plant_step`): under 2.6.0 the plants due are posted in the requesters' posting step, before the awards, each at a
-  drawn position among the tick's postings; under 2.5.0 and before they are created submitted where they were.
+  drawn position among the tick's postings; under 2.5.0 and before they are created submitted where they were. Run 24's acceptance
+  (Appendix S) recorded it as the third conformance correction of the instrument and stated the principle — at every step of a root's life
+  the instrument takes for a plant (posting, raising, submission) the plant takes the step in the same pass a real root would, at a drawn
+  position among the tick's real roots taking it, its parameters drawn from the trailing real roots' at that step — and ruled **erratum
+  2.6.1**: the ceilings enter the window at `post_root`, *as posted* (not at the award), and `raise_ceiling` admits a market plant (the
+  difference minted as the posting was, no fee, locked; `plants_raised` in `dial()`), so the driver's `raise_below_market` raises the plant as
+  it raises a requester's root (`test_v26` 19; goldens re-pinned once more).
 - The learned red team (`agentic_sim/redteam/`, October 20, 2026; the brief and the build plan in `docs/`). Run it with
   `/opt/homebrew/Caskroom/miniconda/base/envs/elef-redteam/bin/python -m redteam.<module>` from `agentic_sim/`; the project's Python has no torch and
   the suite never imports the package. The learner is a driver: `--learner-slot on` makes the slot actor (the first careful id, the same actor the

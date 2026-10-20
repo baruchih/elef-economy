@@ -457,6 +457,7 @@ class World:
         # 2.6.0 §2.1: the plant's life in the market — the readings and the trailing distributions its draws read
         self.plants_posted, self.plants_awarded, self.plants_awarded_at_floor, self.plant_bids_lost = 0, 0, 0, 0
         self.plant_market_ticks = 0                      # Σ (t_award − t_post) over plants awarded: the time in the market
+        self.plants_raised = 0                           # 2.6.1: the plant requester's raises (as the population's requesters raise)
         self.plant_names: set = set()                    # every fresh plant name minted (I39: no two plants share one)
         self.plants_refused_capacity, self.plants_refused_credit = 0, 0   # the p_T path's refusals (Appendix S ruling after run 21)
         self._trailing: list = []                        # the last closed periods' real roots: {"betas", "taus", "deliv"} — their counts are k
@@ -930,15 +931,28 @@ class World:
         c = self._case(cid)
         if not self.p.floating:
             raise RuleError("raise_ceiling: a 2.0.0 operation")
-        if not c.is_root or c.plant is not None:
+        market_plant = c.plant is not None and c.plant_market
+        if not c.is_root or (c.plant is not None and not market_plant):
             raise RuleError("raise_ceiling: a root request's ceiling only")
         if c.state != "AVAILABLE":
             raise RuleError(f"raise_ceiling: case {cid} is {c.state}")
         if beta <= c.beta + 1e-9:
             raise RuleError(f"raise_ceiling: {beta} does not raise the ceiling {c.beta}")
-        extra = (beta - c.beta) * (1.0 + self.p.omega_rate * c.m_post)
-        if self.ledger.wallet(c.requester).U + 1e-9 < extra:
-            raise LedgerError(f"raise_ceiling: {c.requester} cannot lock the difference {extra}")
+        if market_plant:
+            # 2.6.1 (erratum, §7.6): the plant requester raises as the population's requesters do — so the plant waits as a real root
+            # waits; the difference is minted as the posting was (no ω: a plant pays no fee), locked, and destroyed with the rest at closure
+            extra = beta - c.beta
+            if self.bank_on:
+                self.ledger.mint("mint_plant", PLANT_REQ, extra, case=cid, note="mint_plant: the ceiling raised")
+            else:
+                self._omega_ensure(extra, None, "plant")
+                self.ledger.transfer(Ledger.OMEGA, PLANT_REQ, extra, case=cid, note="plant: the ceiling raised, funded by Ω")
+            self.period["plant_out"] += extra
+            self.plants_raised += 1
+        else:
+            extra = (beta - c.beta) * (1.0 + self.p.omega_rate * c.m_post)
+            if self.ledger.wallet(c.requester).U + 1e-9 < extra:
+                raise LedgerError(f"raise_ceiling: {c.requester} cannot lock the difference {extra}")
         self.ledger.lock(c.requester, extra, key=f"post:{cid}", case=cid, note="posting lock raised")
         c.posting_lock += extra
         old = c.beta
@@ -1144,6 +1158,8 @@ class World:
                 self.below_market_flagged += 1
                 self.period["below_market"] += 1
             self._mark_reservation(c, self.t)           # 2.4.0 §2.2: the floor is a constant, so the mark is set from tick 0
+            self._cur_trailing["betas"].append(c.beta)  # 2.6.1 (erratum): a plant's ceiling is drawn from the real roots' ceilings AS POSTED
+            self._recent["betas"].append(c.beta)
             self._log(c, f"posted root beta={beta}; all-in {all_in:g} locked at index {idx:g}, m {m_post:g}"
                       + (f"; flagged below market (B̄ {self.mean_awarded_price():g})" if c.below_market else "")
                       + (f"; marked below the state's reservation ({self.p.state_reservation:g})" if c.below_reservation else ""))
@@ -1311,10 +1327,8 @@ class World:
             self.period["award_price_sum"] += B
             self.period["award_n"] += 1
             self._record_price(B)
-            self._cur_trailing["betas"].append(c.beta)   # 2.6.0: what a plant's draws read — the real roots' terms
-            self._cur_trailing["taus"].append(tau)
-            self._recent["betas"].append(c.beta)
-            self._recent["taus"].append(tau)
+            self._cur_trailing["taus"].append(tau)       # 2.6.0: the real roots' work ticks (the award is the market's report; not drawn)
+            self._recent["taus"].append(tau)             # (2.6.1: the ceilings enter the window at posting, as posted — `post_root`)
         a.committed = cid
         self._log(c, f"awarded to {actor_id} B={B} tau={tau} G={G}; deadline {c.deadline}")
 

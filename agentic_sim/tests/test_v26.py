@@ -180,6 +180,45 @@ def test_the_draws_read_a_rolling_window_of_the_last_k_real_roots_not_the_closed
     check_all(w)
 
 
+def test_the_ceiling_window_reads_the_roots_ceilings_as_posted_and_the_plant_requester_raises_as_a_requester_does():
+    """Erratum 2.6.1 (§7.6): the ceiling a plant draws is from the real roots' ceilings as posted — a root enters the window at its
+    posting, unawarded or not, and a raise does not rewrite its entry — and the plant requester may raise the plant's ceiling as the
+    population's requesters raise theirs: the difference minted as the posting was (no fee), locked, I29 and I39 holding."""
+    w = make_world(period_ticks=10, period_plants=10_000)
+    q = w.post_root("H", 24)                                      # posted, never awarded: in the window all the same
+    assert w._recent["betas"] == [24.0] and w._cur_trailing["betas"] == [24.0]
+    w.award(q, "A", 20, 9)
+    w.advance(3)
+    w.submit(q)
+    q2 = w.post_root("H", 12)
+    w.raise_ceiling(q2, 30)                                       # raised: the window keeps the ceiling as posted
+    assert w._recent["betas"] == [24.0, 12.0] and w.cases[q2].beta == 30
+    w.advance(12)                                                 # the period closes: k = 2, the window β 24, 12
+    p = w.post_plant(True)
+    c = w.cases[p]
+    assert c.beta in (24.0, 12.0)
+    before_lock = w.ledger.lock_record(c.requester, f"post:{p}")
+    minted_before = w.bank_minted.get("mint_plant", 0.0) if hasattr(w, "bank_minted") else None
+    w.raise_ceiling(p, c.beta + 6)                                # the plant requester raises: minted, locked, no fee
+    assert w.cases[p].beta == pytest.approx(before_lock - c.phi_E - c.phi_F + 6)
+    assert w.ledger.lock_record(c.requester, f"post:{p}") == pytest.approx(before_lock + 6)
+    assert c.posting_lock == pytest.approx(before_lock + 6) and c.omega == 0 and w.plants_raised == 1
+    if minted_before is not None:
+        assert w.bank_minted["mint_plant"] == pytest.approx(minted_before + 6)
+    assert w._recent["betas"] == [24.0, 12.0]                     # a plant's ceiling never enters the window; the raise neither
+    check_all(w)
+    w.award(p, "B", 18, 9)                                        # the market's report at the raised ceiling: the pots drawn, the lock gone
+    assert w.ledger.lock_record(c.requester, f"post:{p}") == 0
+    check_all(w)
+
+
+def test_a_created_submitted_plant_cannot_be_raised():
+    w = make_world(period_ticks=10, period_plants=10_000, plant_market=False)
+    p = w.create_plant(True, 20)
+    with pytest.raises(RuleError):
+        w.raise_ceiling(p, 30)
+
+
 # ---------------------------------------------------------------- §2.3 opaque identifiers, the view
 
 def test_the_public_surface_translates_identifiers_both_ways_and_they_carry_no_order():

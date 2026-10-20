@@ -7,7 +7,7 @@ import argparse, json, os, sys, time
 import numpy as np
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
-from redteam.env import ElefReviewerEnv, POLICIES
+from redteam.env import ElefReviewerEnv, policy_of
 
 
 def rollout(env, policy, seed, rng):
@@ -39,7 +39,7 @@ def main(argv=None):
     summary = []
     t0 = time.time()
     for name in a.policies.split(","):
-        pol = POLICIES[name]
+        pol = policy_of(name)
         for seed in range(lo, hi + 1):
             rng = np.random.default_rng(seed * 1000 + hash(name) % 997)
             O, A, R, P, F, T, info = rollout(env, pol, seed, rng)

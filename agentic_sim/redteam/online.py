@@ -1,7 +1,9 @@
 """The online iterations (the build plan's budget: up to ten rounds of plan-and-collect on the training seeds): each round collects
 episodes with the current learned policy (ε-exploration) on seeds 1–20 into the same data directory (policy name online-<k>), retrains
 the world model on everything collected so far, and every `--eval-every` rounds evaluates the learned reviewer against careful on the
-evaluation seeds. Usage: python -m redteam.online --data <dir> --models <dir> --evals <dir> [--rounds 6] [--eps 0.1] -- <cell args>"""
+evaluation seeds. `--explore careful` (Q1 onward) draws the ε decisions from the careful policy instead of uniformly, so the rounds keep
+data on the careful line beside the planner's own; `uniform` is Q2's. `--value`/`--gamma` go to the trainer (the terminal value, decision 5).
+Usage: python -m redteam.online --data <dir> --models <dir> --evals <dir> [--rounds 6] [--eps 0.1] [--explore careful] [--value mc] -- <cell args>"""
 from __future__ import annotations
 import argparse, json, os, sys, time
 import numpy as np
@@ -22,14 +24,18 @@ def main(argv=None):
     ap.add_argument("--train-seeds", default="1-20"); ap.add_argument("--eval-seeds", default="21-40"); ap.add_argument("--eval-every", type=int, default=2)
     ap.add_argument("--epochs", type=int, default=40); ap.add_argument("--horizon", type=int, default=8); ap.add_argument("--start", default=None, help="the model to start from")
     ap.add_argument("--hide", default=""); ap.add_argument("--ticks", type=int, default=1000)
+    ap.add_argument("--explore", choices=["careful", "uniform"], default="careful", help="what the ε decisions are drawn from")
+    ap.add_argument("--value", choices=["off", "mc", "td"], default="off"); ap.add_argument("--gamma", type=float, default=0.95)
+    ap.add_argument("--eval-policies", default="learned,careful")
     ap.add_argument("cell", nargs=argparse.REMAINDER)
     a = ap.parse_args(argv)
     cell = [x for x in a.cell if x != "--"]
     hide = tuple(x for x in a.hide.split(",") if x)
     os.makedirs(a.models, exist_ok=True); os.makedirs(a.evals, exist_ok=True)
+    train_args = ["--seeds", a.train_seeds, "--epochs", str(a.epochs), "--horizon", str(a.horizon), "--value", a.value, "--gamma", str(a.gamma)]
     model_path = a.start or os.path.join(a.models, "wm-online-0.pt")
     if not a.start:
-        T.main(["--data", a.data, "--out", model_path, "--seeds", a.train_seeds, "--epochs", str(a.epochs), "--horizon", str(a.horizon)])
+        T.main(["--data", a.data, "--out", model_path] + train_args)
     env = ElefReviewerEnv(cell, ticks=a.ticks, hide=hide)
     log = []
     for k in range(a.first_round, a.first_round + a.rounds):
@@ -40,22 +46,26 @@ def main(argv=None):
         lifetimes = []
         for seed in range(lo, hi + 1):
             rng = np.random.default_rng(seed * 7919 + k)
-            explore = lambda obs, r: int(r.integers(3)) if r.random() < a.eps else pol(obs, r)
+            if a.explore == "uniform":
+                explore = lambda obs, r: int(r.integers(3)) if r.random() < a.eps else pol(obs, r)
+            else:
+                explore = lambda obs, r: 0 if r.random() < a.eps else pol(obs, r)
             O, A, R, P, F, Tk, info = rollout(env, explore, seed, rng)
             np.savez_compressed(os.path.join(a.data, f"online{k}-seed{seed}.npz"), obs=O, action=A, reward=R, is_plant=P, fulfilled=F, t=Tk,
                                 lifetime=info.get("lifetime_real_wealth", float("nan")), seed=seed, policy=f"online{k}")
             lifetimes.append(info.get("lifetime_real_wealth", float("nan")))
         model_path = os.path.join(a.models, f"wm-online-{k}.pt")
-        T.main(["--data", a.data, "--out", model_path, "--seeds", a.train_seeds, "--epochs", str(a.epochs), "--horizon", str(a.horizon)])
-        rec = {"round": k, "train_lifetime_mean": float(np.nanmean(lifetimes)), "seconds": round(time.time() - t0, 1)}
+        T.main(["--data", a.data, "--out", model_path] + train_args)
+        rec = {"round": k, "train_lifetime_mean": float(np.nanmean(lifetimes)), "seconds": round(time.time() - t0, 1), "explore": a.explore, "value": a.value}
         if k % a.eval_every == 0 or k == a.first_round + a.rounds - 1:
             out = os.path.join(a.evals, f"round-{k}")
-            Q.main(["--model", model_path, "--out", out, "--seeds", a.eval_seeds, "--policies", "learned,careful", "--horizon", str(a.horizon),
+            Q.main(["--model", model_path, "--out", out, "--seeds", a.eval_seeds, "--policies", a.eval_policies, "--horizon", str(a.horizon),
                     "--hide", a.hide, "--ticks", str(a.ticks), "--"] + cell)
             s = json.load(open(os.path.join(out, "eval.json")))["summary"]
             rec["eval"] = {"learned": s["learned"]["lifetime_real_wealth"], "careful": s["careful"]["lifetime_real_wealth"],
                            "paired": s["learned"]["paired_minus_careful"], "care_share": s["learned"]["care_share"],
-                           "plant_stamp_rate": s["learned"]["plant_stamp_rate"], "real_stamp_rate": s["learned"]["real_stamp_rate"]}
+                           "plant_stamp_rate": s["learned"]["plant_stamp_rate"], "real_stamp_rate": s["learned"]["real_stamp_rate"],
+                           "odds_at_stamps": s["learned"]["odds_at_stamps_mean"], "slot_suspensions": s["learned"]["slot_suspensions"]}
         log.append(rec)
         print(json.dumps(rec, default=float), flush=True)
         json.dump(log, open(os.path.join(a.evals, f"online-log-{a.first_round}.json" if a.first_round > 1 else "online-log.json"), "w"), indent=1, default=float)

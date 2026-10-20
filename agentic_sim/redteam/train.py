@@ -1,5 +1,6 @@
 """Train the world model on the offline episodes. Usage: python -m redteam.train --data results/redteam/Q2/offline-2.6.0 --out <ckpt.pt>
-[--seeds 1-20] [--horizon 8] [--epochs 40] [--lam 0.05] [--d 64]. Records the losses per epoch beside the checkpoint."""
+[--seeds 1-20] [--horizon 8] [--epochs 40] [--lam 0.05] [--d 64] [--value off|mc|td --gamma 0.95]. Records the losses per epoch beside the
+checkpoint. `--value` trains the terminal value head (decision 5's named variant; Q1 onward) and the planner reads it at the horizon's end."""
 from __future__ import annotations
 import argparse, json, os, sys, time
 import numpy as np
@@ -24,13 +25,15 @@ def main(argv=None):
     ap.add_argument("--batch", type=int, default=256); ap.add_argument("--lr", type=float, default=1e-3)
     ap.add_argument("--lam", type=float, default=0.05); ap.add_argument("--d", type=int, default=64)
     ap.add_argument("--torch-seed", type=int, default=0)
+    ap.add_argument("--value", choices=["off", "mc", "td"], default="off", help="the terminal value head: off (Q2's planner), mc (the discounted return-to-go), td (bootstrapped)")
+    ap.add_argument("--gamma", type=float, default=0.95, help="the discount per decision for the value head and the planner's sum")
     a = ap.parse_args(argv)
     torch.manual_seed(a.torch_seed); np.random.seed(a.torch_seed)
     eps = load_episodes(a.data, seeds_of(a.seeds), a.policies.split(",") if a.policies else None)
-    O, A, R = windows(eps, a.horizon)
+    O, A, R, G, D = windows(eps, a.horizon, gamma=a.gamma)
     mean, std = obs_stats(eps)
     dev = device()
-    m = WorldModel(OBS_DIM, 3, d=a.d, horizon=a.horizon).to(dev)
+    m = WorldModel(OBS_DIM, 3, d=a.d, horizon=a.horizon, value_mode=a.value, gamma=a.gamma).to(dev)
     m.obs_mean.copy_(mean.to(dev)); m.obs_std.copy_(std.to(dev))
     m.reward_scale.fill_(float(R.std().clamp(min=1e-3)))
     opt = torch.optim.AdamW(m.parameters(), lr=a.lr, weight_decay=1e-4)
@@ -41,30 +44,31 @@ def main(argv=None):
     for ep in range(a.epochs):
         m.train()
         perm = torch.randperm(n)
-        tot, parts = 0.0, {"pred": 0.0, "sigreg": 0.0, "reward": 0.0}
+        tot, parts = 0.0, {"pred": 0.0, "sigreg": 0.0, "reward": 0.0, "value": 0.0}
         nb = 0
         for i in range(0, n, a.batch):
             idx = perm[i:i + a.batch]
-            loss, p = m.loss(O[idx].to(dev), A[idx].to(dev), R[idx].to(dev), a.lam)
+            loss, p = m.loss(O[idx].to(dev), A[idx].to(dev), R[idx].to(dev), a.lam, ret=G[idx].to(dev), done=D[idx].to(dev))
             opt.zero_grad(); loss.backward(); torch.nn.utils.clip_grad_norm_(m.parameters(), 1.0); opt.step()
             tot += loss.item(); nb += 1
-            for k in parts: parts[k] += p[k]
+            for k in parts: parts[k] += p.get(k, 0.0)
         sched.step()
         rec = {"epoch": ep + 1, "loss": tot / nb, **{k: v / nb for k, v in parts.items()}}
         log.append(rec)
         if (ep + 1) % 5 == 0 or ep == 0:
-            print(f"epoch {ep+1}: loss {rec['loss']:.4f} pred {rec['pred']:.4f} sigreg {rec['sigreg']:.4f} reward {rec['reward']:.4f}", flush=True)
+            print(f"epoch {ep+1}: loss {rec['loss']:.4f} pred {rec['pred']:.4f} sigreg {rec['sigreg']:.4f} reward {rec['reward']:.4f} value {rec['value']:.4f}", flush=True)
     os.makedirs(os.path.dirname(a.out) or ".", exist_ok=True)
-    torch.save({"state": m.state_dict(), "config": {"obs_dim": OBS_DIM, "n_actions": 3, "d": a.d, "horizon": a.horizon},
+    torch.save({"state": m.state_dict(), "config": {"obs_dim": OBS_DIM, "n_actions": 3, "d": a.d, "horizon": a.horizon, "value_mode": a.value, "gamma": a.gamma},
                 "train": {"data": a.data, "seeds": a.seeds, "policies": a.policies, "episodes": len(eps), "windows": int(n), "epochs": a.epochs,
-                          "lam": a.lam, "lr": a.lr, "batch": a.batch, "seconds": round(time.time() - t0, 1), "log": log}}, a.out)
+                          "lam": a.lam, "lr": a.lr, "batch": a.batch, "value": a.value, "gamma": a.gamma, "seconds": round(time.time() - t0, 1), "log": log}}, a.out)
     print(f"saved {a.out}: {len(eps)} episodes, {n} windows, {round(time.time()-t0,1)}s")
 
 
 def load_model(path):
     ck = torch.load(path, map_location="cpu")
     m = WorldModel(**ck["config"])
-    m.load_state_dict(ck["state"])
+    missing, unexpected = m.load_state_dict(ck["state"], strict=False)
+    assert not unexpected and all(k.startswith("value_head.") for k in missing), (missing, unexpected)   # Q2's checkpoints predate the value head (off)
     return m.eval(), ck
 
 

@@ -444,7 +444,12 @@ consolidated into one standalone spec with the accepted revision kept verbatim i
   SIGReg) plus the wealth head, `get_cost` on stable-worldmodel's contract; `redteam.train`, `redteam.probe` (the logistic probe on the latent,
   the raw observation, the context alone and the case's fields alone — AUC, chance 0.5), `redteam.plan` (categorical CEM, receding horizon;
   the greedy head as the no-horizon control), `redteam.run_q` (the learned reviewer against careful, paired by seed), `redteam.online` (the
-  plan-and-collect rounds). Results under `results/redteam/<question>/`; notes in `results/studies/` as before.
+  plan-and-collect rounds). Results under `results/redteam/<question>/`; notes in `results/studies/` as before. Before Q1: the
+  terminal value (`train --value mc|td --gamma 0.95`, decision 5's named variant — a value head on the latent, the planner's cost adding
+  γ^H V(z_H); `off` is Q2's planner), the horizon 16 decisions, the online rounds' ε decisions drawn from the careful policy
+  (`online --explore careful`; `uniform` Q2's); Q1's hand-written sleeper (`run_q --policies sleeper0.5`: a blind approval below that
+  applied odds) and the trace readings (odds at stamps, stamp rate by odds band, the slot's suspensions and admissions), read from the
+  engine so the hidden cell (`--hide own_p_eff`) is read too.
 - Money is checked by invariant I1 (conservation) — never silently create or lose credits.
 
 ## Vocabulary (spec Appendix C has the full notation)

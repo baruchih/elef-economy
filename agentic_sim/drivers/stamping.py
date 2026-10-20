@@ -1777,6 +1777,7 @@ class Stamping:
                     "slot_reviews": (self.tally[self.tell_slot].reviews if self.tell_slot else ""),
                     "slot_rho": (round(w.actor(self.tell_slot).rho, 4) if self.tell_slot and self.tell_slot in self.actors else ""),
                     "slot_cost": (round(self.c_d_of[self.tell_slot], 3) if self.tell_slot else ""),
+                    "slot_suspensions": (len(self.susp_log.get(self.tell_slot, [])) if self.tell_slot else ""),
                     "learner_decisions": self.learner_decisions, "learner_false_approvals": self.c["learner_false_approvals"],
                     "tell_plant_read_plant": self.c["tell_plant_read_plant"], "tell_plant_read_real": self.c["tell_plant_read_real"],
                     "tell_real_read_plant": self.c["tell_real_read_plant"], "tell_real_read_real": self.c["tell_real_read_real"],

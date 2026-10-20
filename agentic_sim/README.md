@@ -552,6 +552,18 @@ stable-worldmodel cost contract, `train.py`, `probe.py` (the Q2 probe: a logisti
 alone and the case's fields alone, AUC), `plan.py` (categorical CEM), `run_q.py` (the learned reviewer against careful, paired by seed),
 `online.py` (the plan-and-collect rounds). Results under `results/redteam/<question>/`.
 
+Before Q1 (after Q2's learner proved short-sighted) the three changes named in run 22's notes: the terminal value (the build plan's
+decision 5, its named variant) — `model.py` gains a value head on the latent, the discounted return-to-go of the behaviour data
+(`--value mc`, Monte Carlo; `td`, bootstrapped on the next embedding, the episode's last observation valued at its own return), and the
+planner's cost adds γ^H V(z_H) at the horizon's end (`--gamma`, 0.95 per decision; `off` is Q2's planner; Q2's checkpoints load with the
+head unset); the horizon 16 decisions (about a period); the ε decisions of the online rounds drawn from the careful policy
+(`online.py --explore careful`; `uniform` is Q2's). Q1's instruments: the hand-written sleeper (`sleeper0.5` in `run_q --policies`: a blind
+approval whenever its own applied odds read below the threshold, careful otherwise — within the convention, own odds are on the view; a
+plain stamper when the odds are hidden), and the readings from the decision trace — the applied odds at the policy's blind approvals
+against its other decisions, its stamp rate by odds band, the slot's suspensions (`slot_suspensions`, a driver column), the ticks between
+its admissions, the false approvals passed per suspension — read from the engine at each decision, so the hidden cell (`--hide own_p_eff`)
+is read too.
+
 ## Design revision 14 — the plant's disguise (2.6.0, October 20, 2026)
 
 `Params.plant_market` (on; off is 2.5.0 and `--rules 2.5.0`, where `create_plant` builds a plant submitted — refused under the flag) is the

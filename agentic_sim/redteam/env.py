@@ -18,7 +18,7 @@ except ImportError:  # the project's own Python has no gymnasium; the environmen
 from drivers import stamping
 from drivers.stamping import Stamping
 from sim import check_all
-from .obs import build_obs, OBS_DIM
+from .obs import build_obs, OBS_DIM, IDX
 
 _END = "end"
 
@@ -52,8 +52,11 @@ class ElefReviewerEnv(gym.Env if gym else object):
             raise _Abort()
         obs = build_obs(run, reviewer, view, r, self.hide)
         # the label for the Q2 probe only — read after the fact, never in the observation: was the assignment a plant?
+        ac = run.w.actor(reviewer)
         self._q_obs.put(("obs", obs, {"t": run.w.t, "wealth_real": self._wealth_real(), "case": view.case_id,
-                                      "is_plant": bool(run.tasks[view.case_id].plant), "fulfilled": bool(run.tasks[view.case_id].fulfilled)}))
+                                      "is_plant": bool(run.tasks[view.case_id].plant), "fulfilled": bool(run.tasks[view.case_id].fulfilled),
+                                      # Q1's readings (the evaluation's trace, never the policy's input): the applied odds and standing at the decision
+                                      "p_eff": float(run.w.p_effective(reviewer)), "member": bool(ac.is_member), "suspended": ac.suspended_until is not None}))
         a = self._q_act.get()
         if a is None:
             raise _Abort()
@@ -119,3 +122,20 @@ def policy_stamper(obs, rng): return 1
 def policy_eps(obs, rng, eps=0.2): return int(rng.integers(3)) if rng.random() < eps else 0
 def policy_random(obs, rng): return int(rng.integers(3))
 POLICIES = {"careful": policy_careful, "stamper": policy_stamper, "eps": policy_eps, "random": policy_random}
+
+
+# Q1's hand-written sleeper (the reference beside the learned one, within the convention: own audit odds are on the view): careful while
+# its applied odds are at or above the threshold, a blind approval below it — `sleeper0.5` stamps whenever min(1, m_t p_j) < 0.5. With the
+# odds hidden the field reads zero and the sleeper is a plain stamper, so it is run in the visible cell only.
+def make_sleeper(threshold):
+    i = IDX["own_p_eff"]
+    def policy_sleeper(obs, rng):
+        return 1 if float(obs[i]) < threshold else 0
+    policy_sleeper.__name__ = f"policy_sleeper{threshold}"
+    return policy_sleeper
+
+
+def policy_of(name):
+    if name.startswith("sleeper"):
+        return make_sleeper(float(name[len("sleeper"):]))
+    return POLICIES[name]

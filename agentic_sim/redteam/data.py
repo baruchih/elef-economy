@@ -19,19 +19,34 @@ def load_episodes(root, seeds=None, policies=None):
     return eps
 
 
-def windows(eps, horizon, n_actions=3):
-    """Every window of horizon+1 observations with the horizon actions and rewards between them (stride 1)."""
-    O, A, R = [], [], []
+def returns_to_go(rewards, gamma):
+    """G_t = Σ_{k ≥ t} γ^{k−t} r_k over the episode, with G_T = 0 after the last reward (an episode ends when the run ends or the
+    learner departs; nothing is earned after)."""
+    G = np.zeros(len(rewards) + 1, dtype=np.float32)
+    for t in range(len(rewards) - 1, -1, -1):
+        G[t] = rewards[t] + gamma * G[t + 1]
+    return G
+
+
+def windows(eps, horizon, n_actions=3, gamma=0.95):
+    """Every window of horizon+1 observations with the horizon actions and rewards between them (stride 1); beside them the discounted
+    return-to-go at each of the horizon+1 positions and the episode's-end flag (1 at the last observation, which has no successor —
+    the terminal value's targets). An episode shorter than the horizon contributes nothing."""
+    O, A, R, G, D = [], [], [], [], []
     for e in eps:
         T = len(e["action"])
+        g = returns_to_go(e["reward"], gamma)
         for s in range(0, T - horizon):
             O.append(e["obs"][s:s + horizon + 1]); A.append(e["action"][s:s + horizon]); R.append(e["reward"][s:s + horizon])
+            G.append(g[s:s + horizon + 1])
+            d = np.zeros(horizon + 1, dtype=np.float32); d[-1] = 1.0 if s + horizon == T - 1 else 0.0   # the last obs of the episode sits at the window's end
+            D.append(d)
     if not O:
         return None
     O = torch.tensor(np.stack(O), dtype=torch.float32)
     A = torch.nn.functional.one_hot(torch.tensor(np.stack(A), dtype=torch.long), n_actions).float()
     R = torch.tensor(np.stack(R), dtype=torch.float32)
-    return O, A, R
+    return O, A, R, torch.tensor(np.stack(G), dtype=torch.float32), torch.tensor(np.stack(D), dtype=torch.float32)
 
 
 def obs_stats(eps):

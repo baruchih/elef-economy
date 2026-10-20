@@ -2,7 +2,12 @@
 the vision transformer, the autoregressive predictor conditioned on the action through AdaLN, next-embedding prediction plus SIGReg; and
 the wealth head, which LeWM does not have: the predicted change in the learner's real wealth over a decision, read off the latent and the
 action, so that the planner's cost is minus the predicted sum over the horizon. `get_cost` follows stable-worldmodel's contract
-(info dict with "obs" (B, T, D_obs); candidates (B, S, H, n_actions) one-hot; a cost (B, S), lower is better)."""
+(info dict with "obs" (B, T, D_obs); candidates (B, S, H, n_actions) one-hot; a cost (B, S), lower is better).
+
+The terminal value (the build plan's decision 5, its named variant, added before Q1 after Q2's learner proved short-sighted): a value head on
+the latent predicts the discounted return-to-go of the behaviour data from that state — Monte Carlo (`mc`: the discounted sum of the
+episode's remaining rewards) or bootstrapped (`td`: r + γ V(next), the next embedding detached) — and the planner's cost adds γ^H V(z_H) at the
+horizon's end, so a stamp whose suspension lies beyond the horizon is charged for it. `value_mode` "off" is Q2's planner."""
 from __future__ import annotations
 import torch
 import torch.nn.functional as F
@@ -13,15 +18,17 @@ from .lewm.module import Embedder, ARPredictor, SIGReg, MLP
 
 class WorldModel(nn.Module):
     def __init__(self, obs_dim: int, n_actions: int = 3, d: int = 64, horizon: int = 8, depth: int = 2, heads: int = 4, dropout: float = 0.1,
-                 sigreg_proj: int = 256):
+                 sigreg_proj: int = 256, value_mode: str = "off", gamma: float = 0.95):
         super().__init__()
         self.obs_dim, self.n_actions, self.d, self.horizon = obs_dim, n_actions, d, horizon
+        self.value_mode, self.gamma = value_mode, float(gamma)
         self.encoder = Embedder(input_dim=obs_dim, smoothed_dim=d, emb_dim=d, mlp_scale=4)
         self.action_encoder = nn.Linear(n_actions, d, bias=False)          # a one-hot action → the conditioning vector (AdaLN reads d)
         self.predictor = ARPredictor(num_frames=horizon + 2, depth=depth, heads=heads, mlp_dim=4 * d, input_dim=d, hidden_dim=d,
                                      dim_head=max(8, d // heads), dropout=dropout, emb_dropout=0.0)
         self.sigreg = SIGReg(knots=17, num_proj=sigreg_proj)
         self.reward_head = MLP(2 * d, 2 * d, 1)
+        self.value_head = MLP(d, 2 * d, 1)                                  # V(z): the discounted return-to-go, in reward_scale units
         self.register_buffer("obs_mean", torch.zeros(obs_dim))
         self.register_buffer("obs_std", torch.ones(obs_dim))
         self.register_buffer("reward_scale", torch.ones(()))               # the wealth head learns r / scale; rollouts multiply back
@@ -42,8 +49,11 @@ class WorldModel(nn.Module):
     def reward(self, emb, act_emb):            # (B, T, d), (B, T, d) → (B, T)
         return self.reward_head(torch.cat([emb, act_emb], dim=-1)).squeeze(-1)
 
+    def value(self, emb):                      # (B, T, d) → (B, T): the discounted return-to-go from the state, scaled
+        return self.value_head(emb).squeeze(-1)
+
     # -- the training loss: next-embedding MSE + λ SIGReg + the wealth head's MSE
-    def loss(self, obs, act_onehot, rew, lam: float):
+    def loss(self, obs, act_onehot, rew, lam: float, ret=None, done=None):
         emb = self.encode(obs)                                   # (B, T+1, d)
         ctx, tgt = emb[:, :-1], emb[:, 1:].detach()              # the target is the same encoder, detached (le-wm's training script)
         a = self.act(act_onehot)                                 # (B, T, d)
@@ -51,7 +61,19 @@ class WorldModel(nn.Module):
         pred_loss = F.mse_loss(pred, tgt)
         sig = self.sigreg(emb.transpose(0, 1))                   # (T+1, B, d)
         r_loss = F.mse_loss(self.reward(ctx, a), rew.float() / self.reward_scale)
-        return pred_loss + lam * sig + r_loss, {"pred": pred_loss.item(), "sigreg": sig.item(), "reward": r_loss.item()}
+        parts = {"pred": pred_loss.item(), "sigreg": sig.item(), "reward": r_loss.item()}
+        total = pred_loss + lam * sig + r_loss
+        if self.value_mode == "mc" and ret is not None:          # ret (B, T+1): the discounted return-to-go at every position of the window
+            v_loss = F.mse_loss(self.value(emb), ret.float() / self.reward_scale)
+            total = total + v_loss; parts["value"] = v_loss.item()
+        elif self.value_mode == "td" and done is not None:       # done (B, T+1): 1 at the episode's last observation, whose value is its
+            with torch.no_grad():                                #   own return-to-go (the last decision's reward runs to the episode's end)
+                d = done[:, 1:].float()
+                nxt = self.value(emb[:, 1:]).detach() * (1.0 - d) + (ret[:, 1:].float() / self.reward_scale) * d
+                target = rew.float() / self.reward_scale + self.gamma * nxt
+            v_loss = F.mse_loss(self.value(emb[:, :-1]), target)
+            total = total + v_loss; parts["value"] = v_loss.item()
+        return total, parts
 
     # -- planning: roll the candidates through the predictor from the current embedding, sum the predicted wealth changes
     @torch.no_grad()
@@ -68,13 +90,16 @@ class WorldModel(nn.Module):
             rewards.append(self.reward(ctx[:, -1:], a_seq[:, h:h + 1])[:, 0] * self.reward_scale * (discount ** h))
             pred = self.predict(ctx, a_seq[:, :h + 1])           # (B*S, h+1, d)
             embs.append(pred[:, -1])
-        return torch.stack(rewards, dim=1).reshape(B, S, H)
+        if self.value_mode != "off":                             # the terminal value at the horizon's end, discounted to now
+            rewards.append(self.value(embs[-1].unsqueeze(1))[:, 0] * self.reward_scale * (discount ** H))
+        return torch.stack(rewards, dim=1).reshape(B, S, -1)
 
     @torch.no_grad()
     def get_cost(self, info, action_candidates):
         obs = info["obs"]
         obs_now = obs[:, -1] if obs.dim() == 3 else obs
-        return -self.rollout_rewards(obs_now.to(self.obs_mean.device), action_candidates.to(self.obs_mean.device)).sum(-1)
+        return -self.rollout_rewards(obs_now.to(self.obs_mean.device), action_candidates.to(self.obs_mean.device),
+                                     discount=self.gamma if self.value_mode != "off" else 1.0).sum(-1)
 
 
 def device():

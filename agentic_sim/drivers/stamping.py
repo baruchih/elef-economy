@@ -137,8 +137,13 @@ PERMITTED_200 = ["post_root (six requesters, β = min(β_max, a third of the unl
                  "the engine locks the all-in maximum at posting and refuses what does not fit — 2.0.0 §2.1)",
                  "raise_ceiling (a requester flagged below market raises to the market price when its wallet allows)",
                  "the tell-reader (--tell-readers, Q2 of the learned red team's brief, hand-written first): a reviewer reads its own ReviewView "
-                 "(t_submit, cap, case id), its own assignment tick, and the ids of the roots it saw available as a free member, for a plant's "
-                 "tells; reviews carefully what reads as a plant, stamps F what reads as real; the truth is read after the verdict to score the tell",
+                 "(t_submit, cap, case id), its own assignment tick, and what it saw available as a free member (the roots, when, at what ceiling), "
+                 "its own bids and their outcomes, for a plant's tells (gap, cap, idage, seen, post, price, losttie); reviews carefully what reads "
+                 "as a plant, stamps F what reads as real; the truth is read after the verdict to score the tell. `freshname` reads the case's "
+                 "awardee name and `oracle` the plant marker — both outside the convention, declared, the boundary's control and the upper bound",
+                 "post_plant (2.6.0 §2.1: the orchestrator posts the plants the rate calls for as roots under fresh names; the market bids, the "
+                 "selection reports through award and the engine awards the plant actor; the plant actor submits at its drawn tick; the "
+                 "population's dispositions never read Task.plant before the verdict)",
                  "award at the bid (a member bids c_D (1 + m), m up on award and down after idle ticks; S_θ = ρ − λ B/β live; "
                  "or every offer at the ceiling under --bid ceiling)",
                  "spend (the actor burns its nominal effort c_D at submission — §4.6, used for the first time)",
@@ -206,20 +211,23 @@ class Stamping:
         self.kind = {aid: (STAMPER if i < n_st else CAREFUL) for i, aid in enumerate(ids)}
         if a.rules == "1.1.0":                   # the control: the 1.1.0 engine's behaviour, declared
             a.pi0, a.dial, a.p_start, a.p_cap, a.omega0 = 0.0, "off", 0.5, 0.5, 20.0
-        rev3 = a.rules in ("1.3.0", "1.4.0", "1.5.0", "1.6.0", "1.7.0", "1.7.1", "2.0.0", "2.1.0", "2.2.0", "2.3.0", "2.4.0", "2.5.0")     # 1.2.0 and 1.1.0: membership, the fund and netted capital off
-        rev4 = a.rules in ("1.4.0", "1.5.0", "1.6.0", "1.7.0", "1.7.1", "2.0.0", "2.1.0", "2.2.0", "2.3.0", "2.4.0", "2.5.0") and a.troops == "on"
-        rev5 = a.rules in ("1.5.0", "1.6.0", "1.7.0", "1.7.1", "2.0.0", "2.1.0", "2.2.0", "2.3.0", "2.4.0", "2.5.0")    # 1.4.0: the reserve is the peak capital carried, over two periods
-        rev6 = a.rules in ("1.6.0", "1.7.0", "1.7.1", "2.0.0", "2.1.0", "2.2.0", "2.3.0", "2.4.0", "2.5.0")     # 1.6.0: the five rules, each behind its flag; `--rules 1.5.0` turns them off
-        rev7 = a.rules in ("1.7.0", "1.7.1", "2.0.0", "2.1.0", "2.2.0", "2.3.0", "2.4.0", "2.5.0")  # 1.7.0: the troop account behind its flag and the cap at two thirds; `--rules 1.6.0` is the control
-        rev8 = a.rules in ("2.0.0", "2.1.0", "2.2.0", "2.3.0", "2.4.0", "2.5.0")     # 2.0.0: the price of work — floating prices, N_T; `--rules 1.7.1` is the fixed-price control
-        rev9 = a.rules in ("2.1.0", "2.2.0", "2.3.0", "2.4.0", "2.5.0")     # 2.1.0: the bank — loans, the debt, the wall, P_t once a period; `--rules 2.0.0` is the control
-        rev10 = a.rules in ("2.2.0", "2.3.0", "2.4.0", "2.5.0")    # 2.2.0: the rebate from income — the period's fee pool, claims pro rata at the close; `--rules 2.1.0` the control
-        rev11 = a.rules in ("2.3.0", "2.4.0", "2.5.0")               # 2.3.0: the supply side — entry, exit, the parent's pots; `--rules 2.2.0` the control
-        self.rev9, self.rev10, self.rev11 = rev9, rev10, rev11
+        rev3 = a.rules in ("1.3.0", "1.4.0", "1.5.0", "1.6.0", "1.7.0", "1.7.1", "2.0.0", "2.1.0", "2.2.0", "2.3.0", "2.4.0", "2.5.0", "2.6.0")     # 1.2.0 and 1.1.0: membership, the fund and netted capital off
+        rev4 = a.rules in ("1.4.0", "1.5.0", "1.6.0", "1.7.0", "1.7.1", "2.0.0", "2.1.0", "2.2.0", "2.3.0", "2.4.0", "2.5.0", "2.6.0") and a.troops == "on"
+        rev5 = a.rules in ("1.5.0", "1.6.0", "1.7.0", "1.7.1", "2.0.0", "2.1.0", "2.2.0", "2.3.0", "2.4.0", "2.5.0", "2.6.0")    # 1.4.0: the reserve is the peak capital carried, over two periods
+        rev6 = a.rules in ("1.6.0", "1.7.0", "1.7.1", "2.0.0", "2.1.0", "2.2.0", "2.3.0", "2.4.0", "2.5.0", "2.6.0")     # 1.6.0: the five rules, each behind its flag; `--rules 1.5.0` turns them off
+        rev7 = a.rules in ("1.7.0", "1.7.1", "2.0.0", "2.1.0", "2.2.0", "2.3.0", "2.4.0", "2.5.0", "2.6.0")  # 1.7.0: the troop account behind its flag and the cap at two thirds; `--rules 1.6.0` is the control
+        rev8 = a.rules in ("2.0.0", "2.1.0", "2.2.0", "2.3.0", "2.4.0", "2.5.0", "2.6.0")     # 2.0.0: the price of work — floating prices, N_T; `--rules 1.7.1` is the fixed-price control
+        rev9 = a.rules in ("2.1.0", "2.2.0", "2.3.0", "2.4.0", "2.5.0", "2.6.0")     # 2.1.0: the bank — loans, the debt, the wall, P_t once a period; `--rules 2.0.0` is the control
+        rev10 = a.rules in ("2.2.0", "2.3.0", "2.4.0", "2.5.0", "2.6.0")    # 2.2.0: the rebate from income — the period's fee pool, claims pro rata at the close; `--rules 2.1.0` the control
+        rev11 = a.rules in ("2.3.0", "2.4.0", "2.5.0", "2.6.0")               # 2.3.0: the supply side — entry, exit, the parent's pots; `--rules 2.2.0` the control
+        rev12 = a.rules == "2.6.0"                                   # 2.6.0: the plant's disguise — a plant goes through the market; `--rules 2.5.0` the control
+        self.rev9, self.rev10, self.rev11, self.rev12 = rev9, rev10, rev11, rev12
         self.floating = rev8
         on = lambda flag: rev6 and flag == "on"
         if a.duty_cap is None:
             a.duty_cap = "twothirds" if rev7 else "half"
+        if a.tie_break is None:
+            a.tie_break = "draw" if rev12 else "id"                      # 2.6.0 §2.3: the tie after κ by a seeded draw; `id` the control
         p = Params(Res0=a.res0, X=a.on_duty, G_V=a.gv, p_start=a.p_start, p_cap=a.p_cap, p_floor=a.p_floor, band=a.band,
                    record_dir=a.record_dir, f_fee=a.fee, phi_E_root=a.phi_e, phi_F_root=a.phi_f,
                    pi0=a.pi0, dial=(a.dial == "on"), beta_P=a.beta_p, Omega0=a.omega0,
@@ -229,8 +237,9 @@ class Stamping:
                    service_clock=on(a.clock), T_s=a.t_s, omega_backs_fund=on(a.backing), seat_the_queue=on(a.seat_queue),
                    panel_determined=on(a.panel_determined), reserve_periods=(a.reserve_periods if rev6 else 1),
                    duty_cap_frac={"half": 0.5, "twothirds": 2.0 / 3.0, "threequarters": 0.75, "all": 1.0}[a.duty_cap],
-                   state_reservation=(a.state_reservation if a.state_reservation is not None else (8.0 if a.rules in ("2.4.0", "2.5.0") else 0.0)),
-                   missed_child=(a.rules == "2.5.0"),
+                   state_reservation=(a.state_reservation if a.state_reservation is not None else (8.0 if a.rules in ("2.4.0", "2.5.0", "2.6.0") else 0.0)),
+                   missed_child=(a.rules in ("2.5.0", "2.6.0")),
+                   plant_market=rev12, trailing_periods=a.trailing_periods,
                    plant_reserve_life=(0 if a.plant_reserve == "period" else 15),
                    troop_account=(rev7 and a.accounts == "on"), omega_rate=a.omega_rate, r_s=a.r_s, T_susp=a.t_susp,
                    theta_panel=a.theta_panel, n_P=a.record_window,
@@ -290,9 +299,10 @@ class Stamping:
         # the slot: the actor that is (or, in a control run, would be) the single tell-reader — the same id, cost and tie-break position
         # on the same seed, so a control run's slot is the paired comparison the brief's "same cost and split" asks for
         self.tell_slot = ids_t[0] if ids_t else None
-        self.tells = {"gap", "cap", "idage"} if a.tell == "all" else set(a.tell.split("+"))   # `oracle`: the plant marker itself (declared non-conforming), the upper bound
-        self.id_seen_cummax: dict[int, int] = {}       # world tick -> the largest root id a free tell-reader had seen available by then
-        self._id_cummax = 0
+        self.tells = {"gap", "cap", "idage", "seen", "post", "price", "losttie"} if a.tell == "all" else set(a.tell.split("+"))   # `oracle` / `freshname`: outside the convention (declared)
+        self.seen: dict[tuple, tuple] = {}            # (reader, case) -> (world tick first seen available, its ceiling, P_t then)
+        self.my_bid: dict[tuple, float] = {}          # (reader, case) -> the reader's bid
+        self.lost_bid: dict[tuple, int] = {}          # (reader, case) -> the tick the case went to someone else
         ids_g = list(reversed(ids_c))
         self.greedy = set(ids_g[: round(len(ids_g) * a.greedy_parents)]) if a.greedy_parents > 0 else set()
         self.farmers = set(ids_g[: round(len(ids_g) * a.farm_parents)]) if a.farm_parents > 0 else set()   # 2.5.0 §8.5: deadlines too short
@@ -313,7 +323,11 @@ class Stamping:
         self.avail = {k: 0 for k in AVAIL_KEYS}
         self.cap_slack_sum, self.cap_slack_n, self.cap_bound_ticks = 0, 0, 0
         self.cap_now, self.members_on_duty_now, self.E_t_now = 0, 0, 0
-        world = World(p, self.actors, humans=humans, on_duty=sorted(self.actors)[: a.on_duty])
+        if a.genesis_duty is None:
+            a.genesis_duty = "draw" if rev12 else "lowest"
+        self.draw_rng = random.Random(a.seed * 104729 + 7)             # 2.6.0 §2.3: the orderings the rules should not carry — a seeded draw
+        duty0 = sorted(self.draw_rng.sample(sorted(self.actors), a.on_duty)) if a.genesis_duty == "draw" else sorted(self.actors)[: a.on_duty]
+        world = World(p, self.actors, humans=humans, on_duty=duty0)
         self.w = Public(world)
         self._world = world            # for the final check_all and the fingerprint only
         self.tasks: dict[str, Task] = {}
@@ -355,6 +369,7 @@ class Stamping:
                   "marked_capacity": 0, "marked_credit": 0, "withdrawn_at_mark": 0, "reposted_after_mark": 0,
                   "state_rejections": 0, "troop_truth_redrawn": 0,
                   "tell_plant_read_plant": 0, "tell_plant_read_real": 0, "tell_real_read_plant": 0, "tell_real_read_real": 0, "tell_false_approvals": 0,
+                  "plant_bids_lost": 0, "plant_lag_sum": 0, "plant_lag_n": 0,
                   # 2.3.0: the supply side
                   "arrivals": 0, "departures": 0, "departed_cost_sum": 0.0, "nested_posted": 0, "nested_awarded": 0, "nested_unaffordable": 0,
                   "nested_self_executed": 0, "nested_judged": 0, "nested_false_approvals": 0, "nested_false_rejections": 0,
@@ -429,15 +444,28 @@ class Stamping:
         tick earlier). Everything read is the reviewer's view, its own assignment, and what a free member sees of the market."""
         if "oracle" in self.tells:                       # the upper bound: a perfect detector — reads the plant marker, declared non-conforming
             return bool(self.tasks[view.case_id].plant)
+        if "freshname" in self.tells:
+            # outside the convention (declared): reads the record's awardee — a plant when the case went, before w_A, to a name that is
+            # neither a member this reader knows nor a troop; the boundary's control (2.6.0 §2.2)
+            c = self.w.case(view.case_id)
+            return c.actor is not None and c.actor not in self.actors and c.actor not in self.departed and not self.w.is_troop(c.actor)
+        reader, cid = r.reviewer, view.case_id
+        first = self.seen.get((reader, cid))             # (tick first seen available, ceiling, P_t then) or None
         votes = []
         if "gap" in self.tells:
             votes.append(view.t_submit is not None and r.t_assign - view.t_submit == 0)
         if "cap" in self.tells:
             votes.append(abs(view.cap - self.p.K * self.w.market()["index"]) < 1e-6)
-        if "idage" in self.tells:
-            n = int(view.case_id[1:])
-            before = [m for tk, m in self.id_seen_cummax.items() if tk < (view.t_submit if view.t_submit is not None else 0)]
-            votes.append(n > (max(before) if before else 0))
+        if "idage" in self.tells:                        # newer than everything this reader saw available before the submission tick
+            votes.append(first is None or (view.t_submit is not None and first[0] >= view.t_submit))
+        if "seen" in self.tells:                         # never among the roots this reader saw available
+            votes.append(first is None)
+        if "post" in self.tells:                         # submitted the tick it appeared, or before it was ever seen
+            votes.append(first is None or (view.t_submit is not None and view.t_submit - first[0] <= 0))
+        if "price" in self.tells:                        # a ceiling at the index exactly, as 1.2.0's plant was priced
+            votes.append(first is not None and abs(first[1] - first[2]) < 1e-6)
+        if "losttie" in self.tells:                      # this reader bid on the very case and it went to someone else
+            votes.append((reader, cid) in self.lost_bid)
         return (all(votes) if self.a.tell_rule == "all" else any(votes)) if votes else False
 
     def free_workers(self) -> list[str]:
@@ -749,6 +777,8 @@ class Stamping:
         scored = [(self.w.actor(aid).rho - lam * bid / beta, aid, bid) for aid, bid in offers]
         best = max(sc for sc, _, _ in scored)
         tied = [(aid, bid) for sc, aid, bid in scored if sc >= best - band]
+        if self.a.tie_break == "draw":
+            return max(tied, key=lambda ab: (self.w.actor(ab[0]).kappa, self.draw_rng.random()))
         return max(tied, key=lambda ab: (self.w.actor(ab[0]).kappa, -int(ab[0][1:])))
 
     def requester_posts(self, r: str, t: int):
@@ -808,7 +838,7 @@ class Stamping:
         goal = mk.get("state_price", B_bar) if self.a.ceiling_policy == "patient" else B_bar
         if self.a.ceiling_policy == "floor":
             return                                       # the cartel never raises
-        for cid in sorted(self.active, key=lambda s: int(s[1:])):
+        for cid in list(self.active):
             c = w.case(cid)
             if c.state != "AVAILABLE" or c.beta + 1e-9 >= goal or self.owner.get(cid) in self.stingy or cid in self.nested_parent:
                 continue
@@ -829,7 +859,7 @@ class Stamping:
         (default; nothing changes), or withdraw at the mark and repost (the next tick's posting; withdrawn before award, owed
         nothing). Each marked request is counted once by the kind of its first mark."""
         w = self.w
-        for cid in sorted(self.active, key=lambda s: int(s[1:])):
+        for cid in list(self.active):
             c = w.case(cid)
             if c.state != "AVAILABLE" or c.refused is None:
                 continue
@@ -1102,20 +1132,28 @@ class Stamping:
             self.c["posted"] += 1
         # 1.6.0 §8 red team: a requester that withdraws its late unawarded requests (expected: nothing owed, nothing gained)
         if a.withdraw_after > 0:
-            for cid in sorted(self.active, key=lambda s: int(s[1:])):
+            for cid in list(self.active):
                 c = w.case(cid)
                 if c.state == "AVAILABLE" and t - c.t_post >= a.withdraw_after:
                     w.withdraw_unawarded(cid)
                     self.c["withdrawn_unawarded"] += 1
                     self.active.pop(cid, None)
-        # Q2: what a free tell-reader sees of the market before this tick's awards — the ids of the roots available (the idage tell)
-        if self.tell_readers and any(aid in self.tell_readers for aid in self.free_members()):
-            avail_ids = [int(cid[1:]) for cid in self.active if cid not in self.nested_parent and w.case(cid).state == "AVAILABLE"]
-            if avail_ids:
-                self._id_cummax = max(self._id_cummax, max(avail_ids))
-            self.id_seen_cummax[w.t] = self._id_cummax
+        # Q2: what a free tell-reader sees of the market before this tick's awards — the roots available, when first seen, at what
+        # ceiling, against the index then (the seen set; the idage, post and price tells read it)
+        if self.tell_readers:
+            free_readers = [aid for aid in self.free_members() if aid in self.tell_readers]
+            if free_readers:
+                P_now = w.market()["P_t"]
+                for cid in self.active:
+                    if cid in self.nested_parent:
+                        continue
+                    cc = w.case(cid)
+                    if cc.state == "AVAILABLE":
+                        for aid in free_readers:
+                            if (aid, cid) not in self.seen:
+                                self.seen[(aid, cid)] = (w.t, cc.beta, P_now)
         # orchestrator awards
-        for cid in sorted(self.active, key=lambda s: int(s[1:])):
+        for cid in list(self.active):
             if w.case(cid).state != "AVAILABLE" or cid in self.nested_parent:
                 continue
             if self.floating:
@@ -1129,7 +1167,20 @@ class Stamping:
                 beta = w.case(cid).beta
                 actor, bid = self.select_bid(bids, beta)
                 tau = a.work_ticks + (a.nested_tau if a.delegation == "on" and self.rev11 else 0)   # 2.3.0: room for a child
+                for aid_b, bid_b in bids:
+                    if aid_b in self.tell_readers:
+                        self.my_bid[(aid_b, cid)] = bid_b    # Q2's readers: what the reader bid, to read a lost bid later
                 w.award(cid, actor, bid, tau)
+                if w.case(cid).actor != actor:
+                    # 2.6.0 §2.1: the award was the market's report on a plant — the plant actor took it; the member's bid is lost
+                    self.c["plant_bids_lost"] += 1
+                    for aid_b, _ in bids:
+                        if aid_b in self.tell_readers:
+                            self.lost_bid[(aid_b, cid)] = w.t
+                    continue
+                for aid_b, _ in bids:
+                    if aid_b in self.tell_readers and aid_b != actor:
+                        self.lost_bid[(aid_b, cid)] = w.t
                 self.parent_awards[actor] = self.parent_awards.get(actor, 0) + 1
                 self.margin[actor] = round(self.margin[actor] + a.margin_up, 6)
                 self.idle[actor] = 0
@@ -1192,6 +1243,8 @@ class Stamping:
                         except (RuleError, LedgerError):
                             pass
                 continue                                 # §8.7 red team: the lowball child never delivers — it misses (or submits empty)
+            if c.state == "COMMITTED" and self.tasks[cid].plant and self.rev12:
+                continue                                 # 2.6.0 §2.1: the plant actor submits at its drawn tick — the engine's step
             if c.state == "COMMITTED" and t >= c.t_award + min(a.work_ticks, c.tau) and cid not in self.parent_waiting:
                 if self.floating and not w.is_troop(c.actor):
                     # 2.0.0 §2.2: the actor's effort, burned at submission (§4.6) — what its unlocked credit can pay of it
@@ -1303,7 +1356,10 @@ class Stamping:
         for _ in range(w.plants_due()):
             truth = self.rng.random() >= a.beta_p            # bad with probability β_P
             try:
-                cid = w.create_plant(truth, (w.market()["P_t"] if self.floating else a.beta))   # 2.0.0: a plant at the price level
+                if self.rev12:
+                    cid = w.post_plant(truth)                # 2.6.0 §2.1: posted as a root under a fresh name; the market takes it from here
+                else:
+                    cid = w.create_plant(truth, (w.market()["P_t"] if self.floating else a.beta))   # 2.0.0: a plant at the price level
             except LedgerError:
                 self.c["plants_unfunded"] += 1               # Ω's working capital is the cap; the engine counts the shortfall
                 break
@@ -1314,7 +1370,7 @@ class Stamping:
             if not truth:
                 self.c["plants_bad"] += 1
         # orchestrator: initial reviews, audits, appeal reviews, rulings
-        for cid in sorted(self.active, key=lambda s: int(s[1:])):
+        for cid in list(self.active):
             c = w.case(cid)
             task = self.tasks[cid]
             if c.state == "SUBMITTED" and not c.is_root:
@@ -1442,6 +1498,9 @@ class Stamping:
                 # a plant leaves the queue once adjudicated and closed; its outcome is the reviewer's
                 if c.plant_outcome is not None and c.tree_closed:
                     r = w.review(c.reviews[-1])
+                    if c.t_verdict is not None:
+                        self.c["plant_lag_sum"] += c.t_verdict - c.t_post    # 2.6.0: from the posting to the verdict
+                        self.c["plant_lag_n"] += 1
                     if c.plant_outcome == "spent":
                         self.c["plants_spent"] += 1
                     else:
@@ -1646,6 +1705,7 @@ class Stamping:
         # 2.0.0: the price level and the market price, the deficit, issuance and departures, the flags, the capacity case,
         # real wealth (W · P_0/P_t) and the demand side
         mk = w.market()
+        dl = w.dial()
         real = mk["P0"] / mk["P_t"] if mk["P_t"] > 0 else 1.0
         reqs = [r for r in self.requesters]
         row.update({"P_t": round(mk["P_t"], 4), "price_index": round(mk["index"], 4), "credit_value": round(mk["v"], 4),
@@ -1672,6 +1732,12 @@ class Stamping:
                     "lowball_empty_submitted": self.c["lowball_empty_submitted"], "lowball_empty_rejected": self.c["lowball_empty_rejected"],
                     "lowball_empty_approved": self.c["lowball_empty_approved"], "lowball_appeals": self.c["lowball_appeals"],
                     "farmers_n": len(self.farmers),
+                    # 2.6.0: the plant's life — posted, awarded (at the floor), the bids lost to plants, the time in the market, the lag
+                    "plants_posted": dl["plants_posted"], "plants_awarded": dl["plants_awarded"], "plants_at_floor": dl["plants_at_floor"],
+                    "plant_bids_lost": dl["plant_bids_lost"],
+                    "plant_time_in_market_mean": round(dl["plant_market_ticks"] / dl["plants_awarded"], 3) if dl["plants_awarded"] else "",
+                    "plant_lag_mean": round(self.c["plant_lag_sum"] / self.c["plant_lag_n"], 3) if self.c["plant_lag_n"] else "",
+                    "plant_names": dl["plant_names"], "available_roots": mk["available_roots"],
                     # Q2 (the learned red team, hand-written first): the tell-reader's confusion table, its stamps caught and its standing
                     "tell_n": sum(1 for x in self.tell_readers if x in self.actors), "tell_set": "+".join(sorted(self.tells)) if self.tell_readers else "",
                     "tell_departed": sum(1 for x in self.tell_readers if x not in self.actors),
@@ -1805,8 +1871,8 @@ def main(argv=None):
     ap.add_argument("--p-start", type=float, default=1.0, help="a newcomer's audit odds (1.2.0 §2.4: 1.0; 1.1.0: 0.5)")
     ap.add_argument("--p-cap", type=float, default=1.0, help="the audit odds' cap on doubling (1.2.0 §2.4: 1.0; 1.1.0: 0.5)")
     ap.add_argument("--p-floor", type=float, default=0.2, help="the audit rate's floor (§8.3)")
-    ap.add_argument("--rules", choices=["2.5.0", "2.4.0", "2.3.0", "2.2.0", "2.1.0", "2.0.0", "1.7.1", "1.7.0", "1.6.0", "1.5.0", "1.4.0", "1.3.0", "1.2.0", "1.1.0"], default="2.5.0",
-                    help="2.5.0: the missed child (no cancellation of a nested request at or after its deadline; the lapse forfeits the child's guarantee); 2.4.0: the same without the refusal — the control admitting the deadline-tick cancellation; 2.4.0 also: the state's reservation (the state delivers at max(B̄, 8), never below; the mark; the clock's one condition; the award pass gathering β ≥ p_T); 2.3.0: the supply side (entry and exit, the parent's pots, the reviewer advance from the pool) — the control, the state at B̄; 2.2.0: the rebate from income (the period's fee pool, claims pro rata at the close, the rest forgone); 2.1.0: the bank with the liability stock (the control); 2.1.0 also: the bank (loans, the debt, the wall, the expected cost, P_t once a period, refusals told); 2.0.0: the price of work with "
+    ap.add_argument("--rules", choices=["2.6.0", "2.5.0", "2.4.0", "2.3.0", "2.2.0", "2.1.0", "2.0.0", "1.7.1", "1.7.0", "1.6.0", "1.5.0", "1.4.0", "1.3.0", "1.2.0", "1.1.0"], default="2.6.0",
+                    help="2.6.0: the plant's disguise (a plant goes through the market: posted under a fresh name, bid on, awarded on the market's report, submitted at a drawn tick; opaque public ids); 2.5.0: the missed child (no cancellation of a nested request at or after its deadline; the lapse forfeits the child's guarantee); 2.4.0: the same without the refusal — the control admitting the deadline-tick cancellation; 2.4.0 also: the state's reservation (the state delivers at max(B̄, 8), never below; the mark; the clock's one condition; the award pass gathering β ≥ p_T); 2.3.0: the supply side (entry and exit, the parent's pots, the reviewer advance from the pool) — the control, the state at B̄; 2.2.0: the rebate from income (the period's fee pool, claims pro rata at the close, the rest forgone); 2.1.0: the bank with the liability stock (the control); 2.1.0 also: the bank (loans, the debt, the wall, the expected cost, P_t once a period, refusals told); 2.0.0: the price of work with "
                          "Ω's creation and retirement (the control); 1.7.1 (= 1.7.0): the fixed-price control — "
                          "one bottomless requester at β, the backing, the reserves; 1.6.0: the merged fund (uplift from troop earnings) and the half cap; 1.5.0: also the five 1.6.0 rules off; "
                          "1.3.0: troops off; 1.2.0: also membership, the duty fund and netted plant capital off; 1.1.0: also no "
@@ -1957,6 +2023,9 @@ def main(argv=None):
                     help="Q2 (the learned red team, hand-written first): the share of careful actors that read the view for a plant's tells and stamp the rest")
     ap.add_argument("--tell", default="gap+cap", help="the tells read, joined by +: gap (assigned the tick it was submitted), cap (K at this period's index), idage (the id newer than every root seen available before the submission tick); all (the three, any); oracle (the plant marker itself — declared non-conforming, the upper bound a perfect detector earns)")
     ap.add_argument("--tell-rule", choices=["any", "all"], default="any", help="a plant is read when any tell fires, or only when all do")
+    ap.add_argument("--tie-break", choices=["draw", "id"], default=None, help="2.6.0 §2.3: the tie after κ broken by a seeded draw (the default under 2.6.0) or by the lowest id (the control, the earlier rules' default)")
+    ap.add_argument("--genesis-duty", choices=["draw", "lowest"], default=None, help="2.6.0 §2.3: the genesis duty reserve by a seeded draw (the default under 2.6.0) or the lowest-id actors (the control)")
+    ap.add_argument("--trailing-periods", type=int, default=1, help="2.6.0: the closed periods a plant's draws read (1; the knob 2)")
     ap.add_argument("--state-rejecters", type=float, default=0.0,
                     help="2.1.0 §8.9 red team: the share of careful actors that reject every delivery of the state's (reads the case's actor — declared non-conforming)")
     ap.add_argument("--n-t", type=int, default=40, help="N_T, the most troops ELEF can field at once (0 = unbounded, the control)")
@@ -1976,8 +2045,8 @@ def main(argv=None):
     ap.add_argument("--results-root", default=None, help="write results/runs under this directory instead of results/")
     a = ap.parse_args(argv)
     if a.c_d_t_mode is None:
-        a.c_d_t_mode = "expected" if a.rules in ("2.1.0", "2.2.0", "2.3.0", "2.4.0", "2.5.0") else "cost"
-    if a.rules not in ("2.3.0", "2.4.0", "2.5.0"):
+        a.c_d_t_mode = "expected" if a.rules in ("2.1.0", "2.2.0", "2.3.0", "2.4.0", "2.5.0", "2.6.0") else "cost"
+    if a.rules not in ("2.3.0", "2.4.0", "2.5.0", "2.6.0"):
         a.c_d_sigma = 0.0                                # one cost before 2.3.0: the controls are run 15's cells
 
     name = a.name or f"stamping-s{a.stampers:g}-p{a.p_start:g}-gv{a.gv:g}-b{a.fail_rate:g}-f{a.fee:g}-X{a.on_duty}-seed{a.seed}"
@@ -2050,7 +2119,7 @@ def main(argv=None):
                                     "none": "silent", "truthful": f"disputes a pending F on work that truly failed with probability {a.dispute_rate}",
                                     "half": "disputes a pending F on work that truly failed with probability 0.5",
                                     "always": "disputes every pending F"}[a.dispute_policy], "budget": a.human_budget},
-                                "the_supply_side": None if a.rules not in ("2.3.0", "2.4.0", "2.5.0") else {
+                                "the_supply_side": None if a.rules not in ("2.3.0", "2.4.0", "2.5.0", "2.6.0") else {
                                     "spec": "2.3.0 design revision 11 — entry as a probationer with a bank-minted float, exit with the wallet out, competence "
                                             "as a private per-actor cost, delegation under competence with the parent posting the pots, the reviewer advance from the pool",
                                     "competence": {"median": a.c_d_median, "sigma": a.c_d_sigma, "clip": a.c_d_clip, "drawn once per actor; private to the driver": True,
@@ -2062,11 +2131,11 @@ def main(argv=None):
                                                                                         "tau": a.work_ticks + a.nested_tau, "nested_pots": a.nested_pots,
                                                                                         "judgment": "by disposition — careful: the truth w.p. accuracy, spending 2; stamper: F; a bad child accepted makes the parent's work bad",
                                                                                         "child_appeals": "truthfully", "unawarded_T_wait": "withdrawn; the parent self-executes"}},
-                                "the_rebate_from_income": None if a.rules not in ("2.2.0", "2.3.0", "2.4.0", "2.5.0") else {
+                                "the_rebate_from_income": None if a.rules not in ("2.2.0", "2.3.0", "2.4.0", "2.5.0", "2.6.0") else {
                                     "spec": "2.2.0 design revision 10 — the claim recorded at the stop; Ω's fee income after the debt pooled as a lock on Ω; at the period's close the "
                                             "claims stopped in the period paid pro rata, the rest forgone and read; no liability stock",
                                     "red_team": {"small_requesters": sorted(run.small)}},
-                                "the_bank": None if a.rules not in ("2.1.0", "2.2.0", "2.3.0", "2.4.0", "2.5.0") else {
+                                "the_bank": None if a.rules not in ("2.1.0", "2.2.0", "2.3.0", "2.4.0", "2.5.0", "2.6.0") else {
                                     "spec": "2.1.0 design revision 9 — the bank: a second account that alone creates and destroys; mints by rule, publishes "
                                             "P_t once a period, lends a summons's shortfall tied to it; the state burns its expected cost and delivers at B̄; "
                                             "every inflow to Ω ordered at once (debt → liabilities → Ω); the wall on deliveries; every refusal told",
@@ -2075,7 +2144,7 @@ def main(argv=None):
                                     "requester_on_refusal": a.requester_on_refusal,
                                     "red_team": {"troop_fail_rate": a.troop_fail_rate, "state_rejecters": sorted(run.state_rejecters),
                                                  "state_rejecters_reading": "the case's actor through the public view's case — not the reviewer's view (§14 carries no actor); declared"}},
-                                "price_of_work": None if a.rules not in ("2.0.0", "2.1.0", "2.2.0", "2.3.0", "2.4.0", "2.5.0") else {
+                                "price_of_work": None if a.rules not in ("2.0.0", "2.1.0", "2.2.0", "2.3.0", "2.4.0", "2.5.0", "2.6.0") else {
                                     "spec": "2.0.0 design revision 8 — the price of work",
                                     "requesters": {"n": a.requesters, "wallet": a.wallet, "issuance_per_tick": a.issuance,
                                                    "ceiling": (f"min({a.beta_max:g}, {a.ceiling_mult:g} × B̄) — market-aware" if a.ceiling_policy == "market"
@@ -2094,7 +2163,7 @@ def main(argv=None):
                                     "plants": "at B = P_t", "P0": 20.0,
                                     "red_team": {"lowball_share": a.lowball_share, "lowballers": sorted(run.lowballers),
                                                  "stingy_requesters": sorted(run.stingy), "bbar_counts_troops": a.bbar_troops}},
-                                "permitted_operations": PERMITTED + (PERMITTED_200 if a.rules in ("2.0.0", "2.1.0", "2.2.0", "2.3.0", "2.4.0", "2.5.0") else []), "not_in_run": NOT_IN_RUN,
+                                "permitted_operations": PERMITTED + (PERMITTED_200 if a.rules in ("2.0.0", "2.1.0", "2.2.0", "2.3.0", "2.4.0", "2.5.0", "2.6.0") else []), "not_in_run": NOT_IN_RUN,
                                 "record_dir": a.record_dir,
                                 "checks": {"per_tick": "check_tick after every tick — always; not configurable",
                                            "full_audit_every_n_ticks": "not scheduled",

@@ -338,13 +338,14 @@ def _I15_wallets(w):
 
 def _I15_expected_cases(cases, expected, netted_plants: bool = True, resolve=lambda x: x):
     for c in cases:
+        market_plant = c.plant is not None and getattr(c, "plant_market", False)   # 2.6.0: a market plant's money is real
         if c.actor and c.state in ("COMMITTED", "SUBMITTED", "AWAITING_RESPONSE", "RESUBMITTING", "PENDING") \
-                and not (netted_plants and c.plant is not None):      # 1.3.0 §2.5: a plant's guarantee binds nothing
-            expected[(resolve(c.actor), f"G:{c.id}")] = c.G          # a troop's lock sits on the fund (1.4.0)
+                and not (netted_plants and c.plant is not None and not market_plant):   # 1.3.0 §2.5: a plant's guarantee binds nothing
+            expected[(resolve(c.actor), f"G:{c.id}")] = c.G          # a troop's lock sits on the fund (1.4.0); a plant actor's on its wallet
         if c.is_nested() and c.state == "AVAILABLE":
             expected[(c.requester, f"beta:{c.id}")] = c.posting_lock if c.own_pots else c.beta   # 2.3.0: the all-in with the pots
-        if c.is_root and c.state == "AVAILABLE" and c.plant is None and c.index_at_lock is not None:
-            expected[(c.requester, f"post:{c.id}")] = c.posting_lock    # 2.0.0 §2.1 / I29: the posting lock
+        if c.is_root and c.state == "AVAILABLE" and (c.plant is None or market_plant) and c.index_at_lock is not None:
+            expected[(resolve(c.requester), f"post:{c.id}")] = c.posting_lock    # 2.0.0 §2.1 / I29: the posting lock
         if c.is_nested() and c.rejection_bond > EPS:
             expected[(c.requester, f"rej:{c.id}")] = c.rejection_bond
 
@@ -649,7 +650,7 @@ def I21_plant_capital(w, cases=None):
         return
     L = w.ledger
     for c in _cases(w, cases):
-        if c.plant is None:
+        if c.plant is None or getattr(c, "plant_market", False):      # 2.6.0: a market plant's award and guarantee are real
             continue
         pl = L.pools.get(c.id)
         if pl is not None and pl.escrow > EPS:
@@ -1063,7 +1064,7 @@ def I37_the_states_reservation(w, cases=None):
         if c.B is not None and c.B + 1e-9 < floor:
             _fail(f"I37 troop {tid} delivers {c.id} at {c.B}, below the state's reservation {floor}")
     for c in _cases(w, cases):
-        if not c.is_root or c.plant is not None or c.final or c.state != "AVAILABLE":
+        if not c.is_root or (c.plant is not None and not getattr(c, "plant_market", False)) or c.final or c.state != "AVAILABLE":
             continue
         below = c.beta + 1e-9 < floor
         if below != c.below_reservation:
@@ -1106,11 +1107,13 @@ def I29_the_posting_lock(w, cases=None):
     if not w.p.floating:
         return
     for c in _cases(w, cases):
-        if not c.is_root or c.plant is not None or c.index_at_lock is None:
+        market_plant = c.plant is not None and getattr(c, "plant_market", False)
+        if not c.is_root or (c.plant is not None and not market_plant) or c.index_at_lock is None:
             continue
         held = w.ledger.lock_record(c.requester, f"post:{c.id}")
         if c.state == "AVAILABLE":
-            want = c.beta * (1.0 + w.p.omega_rate * c.m_post) + c.phi_E + c.phi_F
+            # 2.6.0: a plant's all-in carries no fee — it pays none (nothing minted for it reaches Ω)
+            want = c.beta * (1.0 + (0.0 if market_plant else w.p.omega_rate * c.m_post)) + c.phi_E + c.phi_F
             if abs(held - want) > EPS or abs(c.posting_lock - want) > EPS:
                 _fail(f"I29 {c.id} holds {held} against its all-in maximum {want} (recorded {c.posting_lock})")
         elif held > EPS:
@@ -1151,6 +1154,70 @@ def _audit_events(w) -> dict:
         if cid in w.cases:
             _I10_event(e, _peek(w.cases, cid))
     return reimb
+
+
+def I39_the_plants_disguise(w, cases=None):
+    """2.6.0 §2.1 (I39): a plant lives a root's life — posted (its id minted then, in sequence with the roots around it), available,
+    awarded to a fresh plant-actor name on the market's report or at p_T past w_A, submitted at its drawn tick within (t_award, deadline];
+    its requester and actor names are fresh per plant and alias the two plant wallets; it pays no fee, its clock never runs, it is never
+    a troop's; a market plant is never built submitted."""
+    if not getattr(w.p, "plant_market", False):
+        return
+    L = w.ledger
+    by_req, by_act = {}, {}
+    for c in _cases(w, cases):
+        if c.plant is None:
+            continue
+        if not getattr(c, "plant_market", False):
+            _fail(f"I39 {c.id}: a plant built submitted under plant_market")
+        if not c.requester.startswith("plant_req:") or L.resolve(c.requester) != "OMEGA-REQ":
+            _fail(f"I39 {c.id}: the plant requester {c.requester} is not a fresh alias of the plant wallet")
+        if by_req.setdefault(c.requester, c.id) != c.id:
+            _fail(f"I39 {c.id}: two plants share the requester name {c.requester}")
+        if c.actor is not None:
+            if not c.actor.startswith("plant_act:") or L.resolve(c.actor) != "OMEGA-ACT":
+                _fail(f"I39 {c.id}: the plant actor {c.actor} is not a fresh alias of the plant wallet")
+            if by_act.setdefault(c.actor, c.id) != c.id:
+                _fail(f"I39 {c.id}: two plants share the actor name {c.actor}")
+            if c.t_award is None or c.t_award < c.t_post or c.deadline != c.t_award + c.tau:
+                _fail(f"I39 {c.id}: award {c.t_award}, posting {c.t_post}, deadline {c.deadline}, tau {c.tau}")
+            if c.plant_submit_at is None or not (c.t_award < c.plant_submit_at <= c.deadline):
+                _fail(f"I39 {c.id}: the submission tick {c.plant_submit_at} is not within (t_award, deadline]")
+            if c.state == "COMMITTED" and w.t > c.plant_submit_at:
+                _fail(f"I39 {c.id}: committed past its submission tick {c.plant_submit_at} at {w.t}")
+            if c.t_submit is not None and c.t_submit != c.plant_submit_at:
+                _fail(f"I39 {c.id}: submitted at {c.t_submit}, drawn {c.plant_submit_at}")
+        if c.omega > EPS:
+            _fail(f"I39 {c.id}: a plant paid a fee {c.omega}")
+        if c.troop_award:
+            _fail(f"I39 {c.id}: a plant delivered by a troop")
+        if w.p.service_clock and w._clock_runs(c):
+            _fail(f"I39 {c.id}: a plant's clock runs")
+        if c.state == "AVAILABLE" and c.t_award is not None:
+            _fail(f"I39 {c.id}: available with an award")
+
+
+def public_id(cid: str) -> str:
+    """2.6.0 §2.3 (I40): a case's identifier on the public surface — a hash of the engine's id; order carries nothing. Translated both
+    ways by `drivers.view.Public`; the engine, the record and the History's chain run on the creation counter."""
+    return "c" + hashlib.sha256(f"elef-public|{cid}".encode()).hexdigest()[:10]
+
+
+def I40_opaque_identifiers(w, cases=None):
+    """2.6.0 §2.3 (I40): the public identifiers are a bijection on the cases and carry no order — among the live cases the public ids
+    are distinct and, once there are a few, not in creation order."""
+    if not getattr(w.p, "plant_market", False):
+        return
+    seen, ids = {}, []
+    for c in _cases(w, cases):
+        pid = public_id(c.id)
+        if pid in seen and seen[pid] != c.id:
+            _fail(f"I40 public id {pid} names both {seen[pid]} and {c.id}")
+        seen[pid] = c.id
+        ids.append((int(c.id[1:]), pid))
+    ids.sort()
+    if len(ids) >= 12 and all(ids[i][1] < ids[i + 1][1] for i in range(len(ids) - 1)):
+        _fail("I40 the public identifiers follow the creation order")
 
 
 def check_all(w):
@@ -1209,6 +1276,8 @@ def check_all(w):
     I36_the_pots_grow_with_the_tree(w)
     I37_the_states_reservation(w)
     I38_the_missed_child(w)
+    I39_the_plants_disguise(w)
+    I40_opaque_identifiers(w)
     I16_history_is_authoritative(w)
 
 
@@ -1278,6 +1347,8 @@ def check_tick(w):
     I36_the_pots_grow_with_the_tree(w, cases)
     I37_the_states_reservation(w, cases)
     I38_the_missed_child(w, cases)
+    I39_the_plants_disguise(w, cases)
+    I40_opaque_identifiers(w, cases)
 
     w._events_checked = len(w.ledger.events)
     w._prune_working_set()

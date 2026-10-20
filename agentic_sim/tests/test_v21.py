@@ -26,7 +26,8 @@ ACTORS7 = ACTORS + ["G"]            # a seventh member for the wall test's seat
 def make_world(budget=1000.0, actors=ACTORS, duty=DUTY, **over):
     # 2.1.0 defaults (bank on); no emission, the service fee on, no plants, the service target far off, long turns
     # 2.2.0 (design revision 10) moved the rebate to the period's pool; these tests pin the 2.1.0 engine (rebate_pool=False)
-    kw = dict(E0=0.0, H=1e9, omega_rate=0.05, Omega0=0.0, duty_turn_reviews=10_000, duty_turn_ticks=100_000,
+    kw = dict(plant_market=False,   # 2.6.0: these tests build plants submitted — the 1.2.0 construction, the control
+              E0=0.0, H=1e9, omega_rate=0.05, Omega0=0.0, duty_turn_reviews=10_000, duty_turn_ticks=100_000,
               r_s=1.0, T_s=10_000, pi0=0.0, rebate_pool=False)
     kw.update(over)
     return World(Params(**kw), actors, humans={"H": budget}, on_duty=duty)

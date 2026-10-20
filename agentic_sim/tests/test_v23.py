@@ -24,7 +24,8 @@ DUTY = ["C", "D", "E", "F"]
 
 def make_world(budget=1000.0, actors=ACTORS, duty=DUTY, **over):
     # 2.3.0 defaults (the bank, the pool and the supply side on); no emission, the fee on, no plants unless asked, long turns
-    kw = dict(E0=0.0, H=1e9, omega_rate=0.05, Omega0=100.0, duty_turn_reviews=10_000, duty_turn_ticks=100_000,
+    kw = dict(plant_market=False,   # 2.6.0: these tests build plants submitted — the 1.2.0 construction, the control
+              E0=0.0, H=1e9, omega_rate=0.05, Omega0=100.0, duty_turn_reviews=10_000, duty_turn_ticks=100_000,
               r_s=1.0, T_s=10_000, pi0=0.0, period_ticks=60)
     kw.update(over)
     return World(Params(**kw), actors, humans={"H": budget}, on_duty=duty)

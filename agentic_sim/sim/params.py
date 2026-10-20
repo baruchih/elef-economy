@@ -169,6 +169,14 @@ class Params:
     # refused with no effect. False is 2.4.0: the cancellation at the deadline tick itself admitted, the guarantee released.
     missed_child: bool = True
 
+    # Design revision 14 (2.6.0): the plant's disguise. True: a plant goes through the market — posted as a root under a fresh
+    # plant-requester name (`post_plant`), its ceiling drawn from the trailing real roots', open to the free members, awarded to a
+    # fresh plant-actor name at the price and work ticks the market's selection reports (or at p_T past w_A, unbid), submitted after a
+    # draw from the trailing real deliveries' times — nothing a member observes about it set at its own moment; its names alias the two
+    # plant wallets; it pays no fee and enters neither B̄ nor P_t. False is 2.5.0: `create_plant`, built submitted (the control).
+    plant_market: bool = True
+    trailing_periods: int = 1     # the window of closed periods the plant's draws read (the knob: 1 / 2)
+
     def __post_init__(self):
         # 2.4.0 §2.3 (I33): the arrival float exists so that an arrival can post the reviewer's bond — a constraint on the parameters,
         # nominal, the index cancelling. A parameter set with F0 < G_V is refused at construction, not at arrival.

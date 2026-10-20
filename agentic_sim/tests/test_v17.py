@@ -30,7 +30,8 @@ SEAT = 3.0 + 5.0          # a troop review seat's: cost 3, bond 5
 def make_world(budget=1000.0, actors=ACTORS, duty=DUTY, **over):
     # 1.7.0 defaults (the troop account, the two-thirds cap); no emission, no service fee unless a test asks, no plants
     # (so the plant reserve is 0), the service target far off (so no rebate moves Ω in these figures), Ω 100, long turns
-    kw = dict(E0=0.0, H=1e9, omega_rate=0.0, Omega0=100.0, duty_turn_reviews=10_000, duty_turn_ticks=100_000,
+    kw = dict(plant_market=False,   # 2.6.0: these tests build plants submitted — the 1.2.0 construction, the control
+              E0=0.0, H=1e9, omega_rate=0.0, Omega0=100.0, duty_turn_reviews=10_000, duty_turn_ticks=100_000,
               r_s=1.0, T_s=10_000, pi0=0.0)
     kw.update(over)
     kw.setdefault("floating", False)   # 2.0.0: these are 1.x behaviours and figures — the backing, the reserves, the pay-in at award

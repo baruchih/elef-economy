@@ -68,7 +68,8 @@ def scenario(seed: int, ticks: int, audit_every: int = 0, record_dir=None) -> Wo
             if rng.random() < 0.35:
                 _try(w.post_root, req, rng.choice([10, 20, 30, 45]))
         for _ in range(w.plants_due()):                # 1.2.0: the orchestrator's plants at the rate the dial sets
-            _try(w.create_plant, rng.random() >= 0.75, rng.choice([10, 20, 30]))
+            truth, _B = rng.random() >= 0.75, rng.choice([10, 20, 30])
+            _try(w.post_plant, truth)                   # 2.6.0: the plant goes through the market (its ceiling the engine's draw)
         for c in list(w.cases.values()):
             if c.state != "AVAILABLE":
                 continue
@@ -188,12 +189,14 @@ def fingerprint(w: World) -> dict:
 # changed with the rule, as a change to settlement, the reserve or membership must, and was re-pinned once, at the
 # implementing commit.
 GOLDEN = {
-    1: {"head": "665c7a24ac51ba178ba915fb483642022e09e19f611478057c622e4a3836bea6", "entries": 9509,
-        "M": 119917.109725, "Res": 0.0,
-        "states": {"FINAL_N": 181, "VESTED": 68, "WITHDRAWN": 5, "CANCELLED": 1, "PENDING": 7, "AVAILABLE": 4, "COMMITTED": 1}},
-    2: {"head": "290686008df8f8f0a7e34f88bd315b5984028c9b4e9f7aa98df62575d501a99d", "entries": 8759,
-        "M": 120189.562921, "Res": 0.0,
-        "states": {"FINAL_N": 184, "VESTED": 56, "WITHDRAWN": 10, "CANCELLED": 1, "AVAILABLE": 4, "PENDING": 5, "SUBMITTED": 1, "COMMITTED": 1}},
+    # re-pinned once at 2.6.0 (design revision 14, the plant's disguise): the scenario's plants go through the market — posted, bid on,
+    # awarded on the report, submitted at a drawn tick — so every fingerprint moves; the previous pins (2.4.0) are in the History of this file
+    1: {"head": "67d26e66ddc975308cd39e1427567cc5f06242349cfd1b5ac43ad90288196d34", "entries": 8547,
+        "M": 120220.344393, "Res": 0.0,
+        "states": {"FINAL_N": 169, "VESTED": 55, "WITHDRAWN": 10, "PENDING": 1, "AVAILABLE": 20}},
+    2: {"head": "843ad30458e29c2ba90ac194e6aa86084f8b1d73868c4a85a44c7939206264c8", "entries": 9756,
+        "M": 120027.852558, "Res": 0.0,
+        "states": {"FINAL_N": 200, "VESTED": 61, "WITHDRAWN": 17, "PENDING": 4, "AVAILABLE": 5, "AWAITING_RESPONSE": 1, "SUBMITTED": 1, "COMMITTED": 3}},
 }
 
 

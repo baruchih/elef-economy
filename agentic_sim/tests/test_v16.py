@@ -32,7 +32,8 @@ CHECK = DELIVERY + 2 * SEAT   # §2.2: a delivery carries its inspection — 36
 def make_world(budget=1000.0, actors=ACTORS, duty=DUTY, **over):
     # no emission, no service fee (r_s set explicitly to 1 a tick late), no plants unless a test asks (so the plant
     # reserve is 0 and Ω's balance is the state's reach), Ω 100, long turns
-    kw = dict(E0=0.0, H=1e9, omega_rate=0.0, Omega0=100.0, duty_turn_reviews=10_000, duty_turn_ticks=100_000,
+    kw = dict(plant_market=False,   # 2.6.0: these tests build plants submitted — the 1.2.0 construction, the control
+              E0=0.0, H=1e9, omega_rate=0.0, Omega0=100.0, duty_turn_reviews=10_000, duty_turn_ticks=100_000,
               r_s=1.0, pi0=0.0, troop_account=False, duty_cap_frac=0.5)   # 1.7.0: the merged fund and the half cap
     kw.update(over)
     kw.setdefault("floating", False)   # 2.0.0: these are 1.x behaviours and figures — the backing, the reserves, the pay-in at award

@@ -5,19 +5,52 @@ This wrapper makes the convention checkable: a driver that holds a `Public` and 
 call exactly the operations listed here — the ones a participant or the orchestrator may take
 under the rules — and read what the rules let them read. Nothing here decides anything.
 
-Reads return the engine's own objects (cases, reviews, actors, wallets) for inspection; a driver
-that assigns to one of their fields has reached into the engine, and that is what review of the
-driver code checks for. Policies for reviewers get a `ReviewView` (`observe`), not a case.
+Reads return copies of the engine's objects (cases, reviews, events) with their case identifiers translated to the public
+surface's — since 2.6.0 (I40) a case's public identifier is a hash of the engine's, carrying no order, translated both ways here;
+actors and wallets come as the engine's own. A driver that assigns to a field of what it reads has reached into the engine, and
+that is what review of the driver code checks for. Policies for reviewers get a `ReviewView` (`observe`), not a case.
 """
 from __future__ import annotations
+import copy
 from typing import Iterable, Optional
 
 from sim import World, ReviewView
+from sim.invariants import public_id
+from sim.engine import RuleError
 
 
 class Public:
     def __init__(self, world: World):
         self._w = world
+        self._eng_of: dict[str, str] = {}      # public id -> engine id, for every id this surface has handed out
+
+    # -- identifiers (2.6.0 §2.3, I40): the public surface's ids are opaque; the engine's stay the counter ----------
+    def _pub(self, cid):
+        if cid is None:
+            return None
+        pid = public_id(cid)
+        self._eng_of[pid] = cid
+        return pid
+
+    def _eng(self, pid):
+        if pid is None:
+            return None
+        if pid in self._eng_of:
+            return self._eng_of[pid]
+        if pid in self._w.cases:                 # an engine id handed in (tests, the orchestrator's own bookkeeping): admitted
+            return pid
+        raise RuleError(f"unknown case {pid}")
+
+    def _pub_case(self, c):
+        k = copy.copy(c)
+        k.id, k.root, k.parent = self._pub(c.id), self._pub(c.root), self._pub(c.parent)
+        k.children = [self._pub(x) for x in c.children]
+        return k
+
+    def _pub_review(self, r):
+        k = copy.copy(r)
+        k.case = self._pub(r.case)
+        return k
 
     # -- time -----------------------------------------------------------------
     @property
@@ -33,14 +66,14 @@ class Public:
 
     # -- requester operations (§5, §6) ------------------------------------------
     def post_root(self, requester: str, beta: float) -> str:
-        return self._w.post_root(requester, beta)
+        return self._pub(self._w.post_root(requester, beta))
 
     def withdraw_unawarded(self, cid: str):
-        self._w.withdraw_unawarded(cid)
+        self._w.withdraw_unawarded(self._eng(cid))
 
     def raise_ceiling(self, cid: str, beta: float):
         """2.0.0 §2.1: a requester raises its own unawarded request's ceiling, locking the difference."""
-        self._w.raise_ceiling(cid, beta)
+        self._w.raise_ceiling(self._eng(cid), beta)
 
     def add_requester(self, name: str, wallet: float):
         """2.0.0 §2.1: a requester arrives with a wallet (a crowd's member)."""
@@ -60,41 +93,41 @@ class Public:
 
     def withdraw_pool_exhaustion(self, parent: str, nested: str):
         """§9.3: the parent exits a nested request unawarded past T_wait."""
-        self._w.withdraw_pool_exhaustion(parent, nested)
+        self._w.withdraw_pool_exhaustion(parent, self._eng(nested))
 
     def scenario_create(self, amount: float):
         """2.0.0 §8.3: the declared scenario operation — Ω creates a sum and pays the requesters (a money event)."""
         self._w.scenario_create(amount)
 
     def accept_explicit(self, cid: str, requester: str):
-        self._w.accept_explicit(cid, requester)
+        self._w.accept_explicit(self._eng(cid), requester)
 
     def dispute(self, cid: str, challenger: str, d: Optional[str] = None):
-        self._w.dispute(cid, challenger, d)
+        self._w.dispute(self._eng(cid), challenger, d)
 
     # -- orchestrator operations (§5.2, §8) --------------------------------------
     def award(self, cid: str, actor: str, B: float, tau: int):
-        self._w.award(cid, actor, B, tau)
+        self._w.award(self._eng(cid), actor, B, tau)
 
     def assign_initial(self, cid: str, reviewer: str) -> str:
-        return self._w.assign_initial(cid, reviewer)
+        return self._w.assign_initial(self._eng(cid), reviewer)
 
     def assign_audit(self, cid: str, reviewer: str) -> str:
-        return self._w.assign_audit(cid, reviewer)
+        return self._w.assign_audit(self._eng(cid), reviewer)
 
     def assign_appeal(self, cid: str, reviewer: str) -> str:
-        return self._w.assign_appeal(cid, reviewer)
+        return self._w.assign_appeal(self._eng(cid), reviewer)
 
     def rule(self, cid: str, outcome: str, objection: Optional[str] = None):
-        self._w.rule(cid, outcome, objection)
+        self._w.rule(self._eng(cid), outcome, objection)
 
     def roll_audit(self, cid: str):
         """1.4.0 §2.2: the driver's roll said yes — record the audit as an obligation of the case."""
-        self._w.roll_audit(cid)
+        self._w.roll_audit(self._eng(cid))
 
     def audit_odds(self, cid: str) -> float:
         """The odds to roll for a pending approval (1.3.0 §2.2 applied odds; 1 for the state's own work)."""
-        return self._w.audit_odds(cid)
+        return self._w.audit_odds(self._eng(cid))
 
     def is_troop(self, wid) -> bool:
         return self._w.is_troop(wid)
@@ -133,9 +166,10 @@ class Public:
         2.1.0: the refusals told by kind (the bank's books are `bank()`)."""
         w = self._w
         L = w.ledger
-        avail = [c for c in w._live_cases.values() if c.is_root and c.plant is None and c.state == "AVAILABLE"]
+        # 2.6.0 §2.1: a plant counts among the available roots the view reports (a count that left it out would name it)
+        avail = [c for c in w._live_cases.values() if c.is_root and (c.plant is None or c.plant_market) and c.state == "AVAILABLE"]
         B_bar = w.mean_awarded_price()
-        return {"P_t": w.price_level(), "P0": w.p.P0, "B_bar": B_bar, "index": L.index(), "v": L.v, "M": L.M,
+        return {"P_t": w.price_level(), "available_roots": len(avail), "P0": w.p.P0, "B_bar": B_bar, "index": L.index(), "v": L.v, "M": L.M,
                 "created": w.deficit_created, "retired": w.deficit_retired, "deficit": w.deficit, "deficit_peak": w.deficit_peak,
                 "deficit_since": w.deficit_since, "scenario_created": w.scenario_created,
                 "omega_unlocked": L.wallet(L.OMEGA).U, "omega_net": L.wallet(L.OMEGA).U - w.deficit,
@@ -207,7 +241,11 @@ class Public:
     # -- the orchestrator's planted work and its clock (1.2.0 §2.1–§2.3) -----------
     def create_plant(self, truth: bool, B: float) -> str:
         """A case whose fulfillment the orchestrator knows by construction, funded by Ω."""
-        return self._w.create_plant(truth, B)
+        return self._pub(self._w.create_plant(truth, B))
+
+    def post_plant(self, truth: bool) -> str:
+        """2.6.0 §2.1: the orchestrator posts a plant as a root under a fresh name; the market takes it from there."""
+        return self._pub(self._w.post_plant(truth))
 
     def plants_due(self) -> int:
         """Whole plants the plant rate calls for that have not been created."""
@@ -222,6 +260,9 @@ class Public:
         w = self._w
         return {"m": w.m_t, "pi": w.pi_t, "X_t": w.X_t, "plant_credit": w.plant_credit,
                 "plants_created": w.plants_created, "plant_shortfall": w.plant_shortfall,
+                # 2.6.0: the plant's life — live counters, the orchestrator's instrument (the published counts are the periods' records)
+                "plants_posted": w.plants_posted, "plants_awarded": w.plants_awarded, "plants_at_floor": w.plants_awarded_at_floor,
+                "plant_bids_lost": w.plant_bids_lost, "plant_market_ticks": w.plant_market_ticks, "plant_names": len(w.plant_names),
                 "eligibility_shortfall": w.eligibility_shortfall, "reserve_shortfall_now": w.reserve_shortfall_now,
                 "suspensions": w.suspensions, "alarms": w.alarms, "alarm_streak": w.alarm_streak,
                 "member_seats": w.member_seats, "readmissions": w.readmissions,
@@ -235,46 +276,48 @@ class Public:
 
     # -- actor operations (§5, §6, §9) -------------------------------------------
     def submit(self, cid: str):
-        self._w.submit(cid)
+        self._w.submit(self._eng(cid))
 
     def resubmit(self, cid: str):
-        self._w.resubmit(cid)
+        self._w.resubmit(self._eng(cid))
 
     def spend(self, actor: str, real_cost: float, cid: Optional[str] = None) -> float:
-        return self._w.spend(actor, real_cost, cid)
+        return self._w.spend(actor, real_cost, self._eng(cid))
 
     def respond(self, cid: str, action: str, d: Optional[str] = None):
-        self._w.respond(cid, action, d)
+        self._w.respond(self._eng(cid), action, d)
 
     def post_nested(self, parent: str, beta: float) -> str:
-        return self._w.post_nested(parent, beta)
+        return self._pub(self._w.post_nested(self._eng(parent), beta))
 
     def judge_nested(self, cid: str, verdict: str):
-        self._w.judge_nested(cid, verdict)
+        self._w.judge_nested(self._eng(cid), verdict)
 
     def cancel_nested(self, cid: str):
-        self._w.cancel_nested(cid)
+        self._w.cancel_nested(self._eng(cid))
 
     def volunteer(self, actor: str, flag: bool = True):
         self._w.volunteer(actor, flag)
 
     # -- reviewer operations (§7, §8, §14) ---------------------------------------
     def observe(self, reviewer: str, rid: str) -> ReviewView:
-        return self._w.observe(reviewer, rid)
+        v = copy.copy(self._w.observe(reviewer, rid))
+        v.case_id = self._pub(v.case_id)
+        return v
 
     def complete_review(self, rid: str, verdict: str, cost: float, objection: Optional[str] = None):
         self._w.complete_review(rid, verdict, cost, objection)
 
     # -- human operations (§15) ---------------------------------------------------
     def override(self, cid: str, human: str, outcome: str, objection: Optional[str] = None):
-        self._w.override(cid, human, outcome, objection)
+        self._w.override(self._eng(cid), human, outcome, objection)
 
     # -- reads --------------------------------------------------------------------
     def case(self, cid: str):
-        return self._w.cases[cid]
+        return self._pub_case(self._w.cases[self._eng(cid)])
 
     def review(self, rid: str):
-        return self._w.reviews[rid]
+        return self._pub_review(self._w.reviews[rid])
 
     def actor(self, aid: str):
         return self._w.actors[aid]
@@ -306,8 +349,13 @@ class Public:
                 "retired": self._w.deficit_retired}
 
     def events_since(self, n: int) -> list:
-        """The ledger's event copy from position n on — the public record of money movements."""
-        return self._w.ledger.events[n:]
+        """The ledger's event copy from position n on — the public record of money movements (case ids on the public surface)."""
+        out = []
+        for e in self._w.ledger.events[n:]:
+            k = copy.copy(e)
+            k.case = self._pub(e.case)
+            out.append(k)
+        return out
 
     def n_events(self) -> int:
         return len(self._w.ledger.events)

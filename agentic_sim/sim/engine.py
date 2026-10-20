@@ -294,6 +294,11 @@ class Case:
     plant_hseq: Optional[int] = None
     plant_outcome: Optional[str] = None    # stood | failure | spent
     plant_reveal_hseq: Optional[int] = None
+    # 2.6.0 §2.1: a plant living a root's life — posted, available, awarded on the market's report, submitted at its drawn tick
+    plant_market: bool = False
+    plant_submit_at: Optional[int] = None  # the plant actor's drawn submission tick (within (t_award, deadline])
+    plant_at_floor: bool = False           # awarded at p_T past w_A, unbid, at the summons pass's step
+    plant_report_by: Optional[str] = None  # the member whose selection the market reported — its bid lost
     member_at_award: bool = True           # 1.3.0 §2.1 / I22: the actor was a member when awarded
     # 2.0.0: the posting lock and its index (a root's first lock is its posting), the fee rate frozen with it, the
     # below-market flag, and the capacity case's record
@@ -449,6 +454,12 @@ class World:
         self.X_t: int = params.X
         self.plant_credit: float = 0.0
         self.plants_created = 0
+        # 2.6.0 §2.1: the plant's life in the market — the readings and the trailing distributions its draws read
+        self.plants_posted, self.plants_awarded, self.plants_awarded_at_floor, self.plant_bids_lost = 0, 0, 0, 0
+        self.plant_market_ticks = 0                      # Σ (t_award − t_post) over plants awarded: the time in the market
+        self.plant_names: set = set()                    # every fresh plant name minted (I39: no two plants share one)
+        self._trailing: list = []                        # the last closed periods' real roots: {"betas", "taus", "deliv"}
+        self._cur_trailing = {"betas": [], "taus": [], "deliv": []}
         self.plant_shortfall = 0                        # plants the rate called for that Ω could not fund
         self.eligibility_shortfall = 0                  # Σ over ticks of (X_t − actors on duty) when the pool was empty
         self.reserve_shortfall_now = 0
@@ -950,7 +961,7 @@ class World:
     def _mark_reservation(self, c: "Case", tick: int):
         """2.4.0 §2.2: a root request with β below the state's reservation carries the mark with its tick; a raise to or above
         clears it. Set at posting (the floor is a constant — no market price is needed) and re-read at every raise."""
-        below = c.is_root and c.plant is None and c.beta + 1e-9 < self._state_floor()
+        below = c.is_root and (c.plant is None or c.plant_market) and c.beta + 1e-9 < self._state_floor()   # 2.6.0: a market plant is marked as any root
         if below and not c.below_reservation:
             c.below_reservation, c.below_reservation_since = True, tick
             self.below_reservation_marked += 1
@@ -1244,6 +1255,11 @@ class World:
             D, K, GV, phi_E, phi_F = c.D, c.K, c.G_V, 0.0, 0.0     # frozen at posting
             if self.ledger.wallet(c.requester).U + 1e-9 < omega:
                 raise LedgerError(f"award: requester {c.requester} cannot fund ω {omega}")
+        if c.plant is not None and c.plant_market:
+            # 2.6.0 §2.1: the award is the market's report — the selection ran on the plant as on any root and reports its choice;
+            # the plant actor takes it at the reported price and work ticks, the member is not committed and learns nothing more
+            self._award_plant(c, B, tau, report_by=actor_id)
+            return
         # --- mutate
         c.D, c.K, c.G_V, c.phi_E, c.phi_F, c.omega, c.G = D, K, GV, phi_E, phi_F, omega, G
         c.G_award = G
@@ -1293,6 +1309,8 @@ class World:
             self.period["award_price_sum"] += B
             self.period["award_n"] += 1
             self._record_price(B)
+            self._cur_trailing["betas"].append(c.beta)   # 2.6.0: what a plant's draws read — the real roots' terms
+            self._cur_trailing["taus"].append(tau)
         a.committed = cid
         self._log(c, f"awarded to {actor_id} B={B} tau={tau} G={G}; deadline {c.deadline}")
 
@@ -1320,6 +1338,8 @@ class World:
         c = self._case(cid)
         if c.state != "COMMITTED":
             raise RuleError(f"submit: case {cid} is {c.state}")
+        if c.plant is not None and c.plant_market:
+            raise RuleError("submit: a plant's actor submits at its own drawn tick (2.6.0 §2.1); nobody submits for it")
         if self.t > c.deadline:
             raise RuleError("submit: past the delivery deadline (deadline is inclusive)")
         for ch in c.children:
@@ -1328,6 +1348,8 @@ class World:
                 raise RuleError(f"submit: nested {ch} has not reached its initial verdict (§9.1)")
         c.state, c.t_submit = "SUBMITTED", self.t
         c.seat_since = self.t                              # the initial seat is required from now (1.4.0 §2.2)
+        if c.is_root and c.plant is None and c.t_award is not None and not self.is_troop(c.actor):
+            self._cur_trailing["deliv"].append(self.t - c.t_award)   # 2.6.0: a real delivery's time, what a plant actor's draw reads
         self._log(c, "submitted")
 
     @staticmethod
@@ -2334,7 +2356,7 @@ class World:
 
     def _plant_notional(self, c: Case) -> bool:
         """1.3.0 §2.5: a plant's award and guarantee are Ω paying itself and tie up no balance."""
-        return c.plant is not None and self.p.net_plant_capital
+        return c.plant is not None and self.p.net_plant_capital and not c.plant_market   # 2.6.0: a market plant's money is real
 
     def _vest(self, c: Case, epw: float, upw: float = 0.0):
         if c.is_root and c.plant is None and c.clock_stopped_at is None:
@@ -2395,6 +2417,8 @@ class World:
                 self.ledger.mint("issuance", h, self.p.issuance, note="issuance")
                 self.issued += self.p.issuance
                 self.period["issued"] += self.p.issuance
+        if self.p.plant_market:
+            self._plant_submit_step(tick)                   # 2.6.0 §2.1: the plant actors' submissions, before the deadlines
         # step 2: deadlines (inclusive)
         for c in list(self._live_cases.values()):
             if c.state == "COMMITTED" and tick >= c.deadline:
@@ -2840,6 +2864,8 @@ class World:
         and could not be funded is the period's plant shortfall (§2.3)."""
         if not isinstance(truth, bool):
             raise RuleError("create_plant: truth is True (good) or False (bad)")
+        if self.p.plant_market:
+            raise RuleError("create_plant: under 2.6.0 a plant goes through the market — post_plant (the 1.2.0 construction is the control, plant_market=False)")
         B = amount(B, "B")
         idx = self.ledger.index()
         D, K, GV = self.p.D * idx, self.p.K * idx, self.p.G_V * idx
@@ -2894,6 +2920,125 @@ class World:
         self.plants_created += 1
         self.period["plants_created"] += 1
         return cid
+
+    def _plant_draw(self, key: str, salt: str, default):
+        """2.6.0 §2.1: a draw from the trailing real distribution `key` (the last `trailing_periods` closed periods' roots), by the
+        History's head — deterministic, seed-free; the default before the first closed period (the drivers' defaults)."""
+        pool = [x for per in self._trailing for x in per[key]]
+        if not pool:
+            return default
+        h = int(hashlib.sha256(f"{self.history.head}|{salt}".encode()).hexdigest()[:12], 16)
+        return pool[h % len(pool)]
+
+    def _plant_name(self, kind: str, cid: str) -> str:
+        name = f"plant_{kind}:{hashlib.sha256(f'{self.history.head}|{cid}|{kind}'.encode()).hexdigest()[:10]}"
+        self.plant_names.add(name)
+        return name
+
+    def post_plant(self, truth: bool) -> str:
+        """2.6.0 §2.1 (design revision 14): the orchestrator introduces a plant by posting it as a root request under a fresh
+        plant-requester name, with a ceiling drawn from the trailing real roots' and the pots the bank mints, the truth and the marker
+        sealed at posting. It is then available to the free members as any root is and waits as a real root waits; the award is the
+        market's report (`award`), or the state's price past w_A (`_summon_troops`); the plant actor submits at its drawn tick
+        (`_plant_submit_step`); from there 1.2.0 — adjudicated by truth, settled, its wallets' holdings destroyed at closure."""
+        if not self.p.plant_market:
+            raise RuleError("post_plant: plant_market is off — the plant is created submitted (create_plant, the 1.2.0 construction)")
+        if not isinstance(truth, bool):
+            raise RuleError("post_plant: truth is True (good) or False (bad)")
+        if not self.p.floating:
+            raise RuleError("post_plant: a plant's life in the market needs the price of work (2.0.0)")
+        beta = round(float(self._plant_draw("betas", f"beta{self._n_case + 1}", self.price_level())), 6)
+        idx = self.ledger.index()
+        D, K, GV = self.p.D * idx, self.p.K * idx, self.p.G_V * idx
+        phi_E, phi_F = self.p.phi_E_root * idx, self.p.phi_F_root * idx
+        m_post = self.m_t
+        all_in = beta + phi_E + phi_F                       # no ω: a plant pays no fee — nothing minted for it reaches Ω (2.1.0)
+        self._n_case += 1
+        cid = f"q{self._n_case}"
+        req = self._plant_name("req", cid)
+        self.ledger.aliases[req] = PLANT_REQ
+        c = Case(cid, root=cid, requester=req, is_root=True, beta=beta, t_post=self.t)
+        c.plant, c.plant_market = truth, True
+        c.plant_nonce = hashlib.sha256(f"{self.history.head}|{cid}".encode()).hexdigest()[:16]
+        c.plant_commit = hashlib.sha256(f"{cid}|{'good' if truth else 'bad'}|{c.plant_nonce}".encode()).hexdigest()
+        self.cases[cid] = c
+        self._live_cases[cid] = c
+        if self.bank_on:                                    # 2.1.0 §2.3: minted by the bank — the pots and the price (the cost of truth)
+            self.ledger.mint("mint_plant", PLANT_REQ, all_in, case=cid, note="mint_plant: the pots and the price")
+        else:
+            self._omega_ensure(all_in, None, "plant")
+            self.ledger.transfer(Ledger.OMEGA, PLANT_REQ, all_in, case=cid, note="plant: requester funded by Ω")
+        self.period["plant_out"] += all_in
+        c.D, c.K, c.G_V, c.phi_E, c.phi_F = D, K, GV, phi_E, phi_F
+        c.m_post, c.index_at_lock, c.posting_lock = m_post, idx, all_in
+        self._freeze(c)
+        self.ledger.lock(req, all_in, key=f"post:{cid}", case=cid, note="posting lock (all-in maximum)")
+        c.below_market = self.market_price_known() and beta + 1e-9 < self.mean_awarded_price()
+        if c.below_market:
+            self.below_market_flagged += 1
+            self.period["below_market"] += 1
+        self._mark_reservation(c, self.t)                   # a plant is a root in every other respect: the marks apply
+        self.history.append("plant_created", {"t": self.t, "case": cid, "commit": c.plant_commit})
+        c.plant_hseq = len(self.history.entries) - 1
+        self._log(c, f"posted root beta={beta}; all-in {all_in:g} locked at index {idx:g}, m {m_post:g}"
+                  + (f"; flagged below market (B̄ {self.mean_awarded_price():g})" if c.below_market else "")
+                  + (f"; marked below the state's reservation ({self.p.state_reservation:g})" if c.below_reservation else ""))
+        self.plant_credit -= 1.0
+        self.plants_created += 1
+        self.period["plants_created"] += 1
+        self.plants_posted += 1
+        self.period["plants_posted"] += 1
+        return cid
+
+    def _award_plant(self, c: Case, B: float, tau: int, report_by: Optional[str] = None, at_floor: bool = False):
+        """2.6.0 §2.1: the plant actor — a fresh name aliasing the plant wallet — takes the award at the market's reported price and
+        work ticks (or at p_T and τ_T past w_A); its guarantee is minted; the pots are drawn from the posting lock as any root's; no
+        fee is paid and the price enters neither B̄ nor P_t; the submission tick is a draw from the trailing real deliveries'."""
+        G = max(1.0, math.ceil(self.p.G_frac * B))
+        act = self._plant_name("act", c.id)
+        self.ledger.aliases[act] = PLANT_ACT
+        if self.bank_on:
+            self.ledger.mint("mint_plant", PLANT_ACT, G, case=c.id, note="mint_plant: the guarantee")
+        else:
+            self._omega_ensure(G, None, "plant")
+            self.ledger.transfer(Ledger.OMEGA, PLANT_ACT, G, case=c.id, note="plant: actor funded by Ω")
+        self.period["plant_out"] += G
+        c.omega, c.G, c.G_award = 0.0, G, G
+        c.B, c.tau, c.actor = B, tau, act
+        c.t_award, c.deadline = self.t, self.t + tau
+        c.plant_at_floor, c.plant_report_by, c.refused = at_floor, report_by, None
+        self.ledger.lock(act, G, key=f"G:{c.id}", case=c.id, note="guarantee")
+        self._release_posting_lock(c, "posting lock released at award")
+        self.ledger.fund_escrow(c.requester, c.id, B, note="delivery price")
+        self.ledger.fund_deposit(c.requester, c.id, c.phi_E, note="expense allowance")
+        if c.phi_F > 0:
+            self.ledger.fund_fee_pot(c.requester, c.id, c.phi_F, note="fee pot")
+        self._freeze(c)
+        c.state = "COMMITTED"
+        c.member_at_award = True
+        d = int(self._plant_draw("deliv", f"deliv{c.id}", tau))
+        c.plant_submit_at = self.t + max(1, min(d, tau))   # the plant actor's time to submission, within (0, τ]
+        self.plants_awarded += 1
+        self.period["plants_awarded"] += 1
+        self.plant_market_ticks += self.t - c.t_post
+        self.period["plant_market_ticks"] += self.t - c.t_post
+        if at_floor:
+            self.plants_awarded_at_floor += 1
+            self.period["plants_at_floor"] += 1
+        if report_by is not None:
+            self.plant_bids_lost += 1
+            self.period["plant_bids_lost"] += 1
+        self._log(c, f"awarded to {act} B={B} tau={tau} G={G}; deadline {c.deadline}")
+
+    def _plant_submit_step(self, tick: int):
+        """2.6.0 §2.1: the plant actor submits the known-truth result at its drawn tick — after the tick's submissions have been read,
+        before the deadlines; from here the plant is seated, reviewed and adjudicated as 1.2.0 has it."""
+        for c in list(self._live_cases.values()):
+            if c.plant is not None and c.plant_market and c.state == "COMMITTED" and c.plant_submit_at is not None \
+                    and tick >= c.plant_submit_at:
+                c.state, c.t_submit = "SUBMITTED", tick
+                c.seat_since = tick
+                self._log(c, "submitted")
 
     def plants_due(self) -> int:
         """How many plants the rate calls for that have not been created (whole plants)."""
@@ -3025,7 +3170,9 @@ class World:
                # 2.2.0: the rebate pool and the period's claims
                "claims": [], "claims_total": 0.0, "pool": 0.0, "rebates_forgone": 0.0, "omega_retained_period": 0.0,
                # 2.3.0: entry and exit, the pool's reviewer advances
-               "arrivals": 0, "admissions": 0, "admission_ticks": 0, "actor_departures": 0, "pool_advances": 0.0}
+               "arrivals": 0, "admissions": 0, "admission_ticks": 0, "actor_departures": 0, "pool_advances": 0.0,
+               # 2.6.0: the plant's life — posted, awarded (at the floor), the members' bids lost to plants, the time in the market
+               "plants_posted": 0, "plants_awarded": 0, "plants_at_floor": 0, "plant_bids_lost": 0, "plant_market_ticks": 0}
 
     def _maybe_end_period(self, tick: int):
         """Once per period — period_plants adjudicated plants or period_ticks ticks, whichever first —
@@ -3076,7 +3223,14 @@ class World:
             self.state_delivery_history.append((per["state_closed"], per["state_failed"]))
             if self.pool_on:                            # 2.2.0 §2.2: the close — the period's claims from the period's pool
                 self._settle_pool(tick)
+        # 2.6.0: the trailing window rolls at the close — the plant's draws read the last `trailing_periods` closed periods
+        self._trailing.append(self._cur_trailing)
+        self._trailing = self._trailing[-max(1, self.p.trailing_periods):]
+        self._cur_trailing = {"betas": [], "taus": [], "deliv": []}
         rec = {"t": tick, "start": per["start"], "plants": per["plants"], "bad": per["bad"],
+               # 2.6.0 §2.1: the plant counts, published at the close (a live count that moved the tick a root appeared would name it)
+               "plants_posted": per["plants_posted"], "plants_awarded": per["plants_awarded"], "plants_at_floor": per["plants_at_floor"],
+               "plant_bids_lost": per["plant_bids_lost"], "plant_market_ticks": per["plant_market_ticks"],
                "bad_approved": per["bad_approved"], "F_hat": None if F_hat is None else round(F_hat, 6),
                "m_before": round(m_old, 6), "m": round(self.m_t, 6), "pi": round(self.pi_t, 6), "X": self.X_t,
                "member_seats": self.member_seats,
@@ -3640,6 +3794,14 @@ class World:
         # the oldest request it can, so the oldest w_A-old requests, as many as there are free fundable members, are the
         # market's and the rest are the state's — summoned for, oldest first. (1.4.0–1.7.0 read the rule per tick: one
         # free member blocked every award summons that tick, however long the queue — run 9's 50/50 collapse.)
+        if self.p.plant_market:
+            # 2.6.0 §2.1: a plant no bid has taken by w_A goes to its plant actor at the state's price, as a real root would go to a
+            # troop — counted apart from the state's deliveries (it is not one); below the state's price it waits, as a real root does
+            for c in list(self._live_cases.values()):
+                if c.plant is not None and c.plant_market and c.state == "AVAILABLE" and tick - c.t_post + 1 >= self.p.w_A:
+                    pT = self._state_price(c.beta)
+                    if c.beta + 1e-9 >= pT:
+                        self._award_plant(c, min(pT, c.beta), self.p.tau_T, at_floor=True)
         waiting = [c for c in self._live_cases.values()
                    if c.plant is None and not any(a[3] == "override" for a in c.assessments)
                    and c.state == "AVAILABLE" and c.is_root and self.p.troops and c.requester in self.requesters

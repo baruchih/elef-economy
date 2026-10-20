@@ -2269,6 +2269,27 @@ goldens re-pinned once for the window.
 reading of the plant's ceiling (drawn as posted, raised as a requester's), or a design item; run 22's SE figures read 280 episodes (the same
 reading at 80). **Next:** 2.7.0 (the arrival loan) on its acceptance; Q1's learned line once more under it with appeals and re-arrival on; Q3.
 
+## 2.6.1 — the erratum and the one re-read (October 21, 2026)
+
+**What went in** (run 24 accepted; the rulings in Appendix S; code `ecada79d`; the spec `spec/agentic_economics_loop_spec_v2_6_1.md`, 2.6.0 in
+`spec/history/`; notes `results/studies/2.6.1-reread-notes-for-reviewer.md`). The posting correction recorded as the third conformance
+correction of the instrument, with the principle: at every step of a root's life the instrument takes for a plant — posting, raising,
+submission — the plant takes the step in the same pass a real root would, at a drawn position among the tick's real roots taking it, its
+parameters drawn from the trailing real roots' at that step; the award is the market's already. Erratum 2.6.1 (E5): the plant's ceiling drawn
+from the real roots' ceilings *as posted* (the window filled at `post_root`), and the plant requester raising it as the population's requesters
+raise theirs (`raise_ceiling` admits a market plant, the difference minted; the driver's raise step covers the plants; `plants_raised`), so the
+plant waits as a real root waits; I39 unchanged in substance. `test_v26` 19; goldens re-pinned once more; suite 330 + 32 in three modes.
+Calibration at care-cost ×4 recorded; truthful appeals the population from here; a requester dispute baseline owed before Q7.
+
+**The re-read** (one, as ruled: train 1–20, test 21–40, both populations). Under the erratum the plant requester raises as often as the
+population's (36 % against 34 %) and the plant's tail to w_A is gone; the one asymmetry left is the wallet — a requester's raise is refused when
+it cannot lock the difference, the plant's is minted — so a real root waits three ticks or more in 12 % of awards and a plant in 1 %.
+The probe on forty seeds: the case's fields add **+0.011 ± 0.002** beyond the context in the population from here
+(appeals on) and **+0.020 ± 0.003** with appeals off — not within two errors of zero, at or below 0.02: **closed at the construction's floor,
+recorded** (from 0.052 at run 22, 0.016–0.019 at run 24); the largest piece the time a root was seen available, the wallet asymmetry.
+
+**Next:** 2.7.0 (the arrival loan) on its acceptance; Q1's learned line once under it with appeals and re-arrival on; Q3 calibrated at ×4.
+
 ## Maps
 
 Two `_line` artifacts in project Agentic-OS (`c54120a6-aaff-40f7-8a9f-3667da542879`):

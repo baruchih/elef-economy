@@ -1,0 +1,95 @@
+{
+ "data": "results/redteam/Q2/offline-2.6.1-noappeal",
+ "model": "results/redteam/Q2/models/wm-2.6.1-noappeal.pt",
+ "policies": [
+  "careful",
+  "stamper",
+  "eps",
+  "random"
+ ],
+ "train_seeds": "1-20",
+ "test_seeds": "21-40",
+ "episodes_train": 80,
+ "episodes_test": 80,
+ "initial_only": false,
+ "train_decisions": 8425,
+ "test_decisions": 8666,
+ "plant_share_test": 0.1637433648742211,
+ "auc_latent": [
+  0.7224268057555929,
+  0.0063387386271427214,
+  0.009660012933024183
+ ],
+ "auc_raw_obs": [
+  0.7388208461852408,
+  0.0062902760064699765,
+  0.00867646468525228
+ ],
+ "auc_context_only": [
+  0.6430880052137926,
+  0.008037653630015785,
+  0.007667256636336689
+ ],
+ "auc_case_fields_only": [
+  0.6512673271620839,
+  0.007113395517616373,
+  0.013869545706265902
+ ],
+ "auc_gap_raw_minus_context": [
+  0.09573284097144819,
+  0.004933197489390632,
+  0.008632639747872504
+ ],
+ "fields_top": [
+  [
+   0.618,
+   "rv_responses_available",
+   0.618
+  ],
+  [
+   0.613,
+   "rv_gap",
+   0.387
+  ],
+  [
+   0.599,
+   "dial_pi",
+   0.599
+  ],
+  [
+   0.599,
+   "dial_m",
+   0.599
+  ],
+  [
+   0.585,
+   "members_free",
+   0.585
+  ],
+  [
+   0.573,
+   "own_plant_failures",
+   0.573
+  ],
+  [
+   0.56,
+   "own_overturned",
+   0.56
+  ],
+  [
+   0.558,
+   "own_plant_good_n",
+   0.558
+  ]
+ ],
+ "auc_seen_before": [
+  0.48675134023040617,
+  0.007945015514614589,
+  0.012637431460764473
+ ],
+ "auc_rv_gap": [
+  0.6019745430857005,
+  0.0072433441218180405,
+  0.014535098497079901
+ ]
+}

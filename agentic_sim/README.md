@@ -541,6 +541,17 @@ sweeps the take with the rebate pinned. In the engine:
 - **Tests.** `test_v17.py` (8); goldens re-pinned once; `test_v13`–`test_v16` pinned to the merged fund and the half cap.
   Reviewer tests untouched and passing.
 
+## The learned red team (October 20, 2026)
+
+`redteam/` is a separate package the suite never imports, run from the conda environment `elef-redteam` (Python 3.11, torch on MPS,
+gymnasium, stable-worldmodel): `env.py` the decision-event Gymnasium environment around the stamping driver with one actor's slot
+delegated to a policy (`--learner-slot on`; 0 care / 1 approve blind / 2 reject blind; the reward the change in lifetime real wealth; a
+careful policy reproduces the control run's slot actor to the decimal), `obs.py` the 44 named observation fields, `collect.py` the offline
+episodes, `model.py` LeWorldModel's recipe on the observation vector (`lewm/` vendored under MIT) with a wealth head and the
+stable-worldmodel cost contract, `train.py`, `probe.py` (the Q2 probe: a logistic reader of the latent, the raw observation, the context
+alone and the case's fields alone, AUC), `plan.py` (categorical CEM), `run_q.py` (the learned reviewer against careful, paired by seed),
+`online.py` (the plan-and-collect rounds). Results under `results/redteam/<question>/`.
+
 ## Design revision 14 — the plant's disguise (2.6.0, October 20, 2026)
 
 `Params.plant_market` (on; off is 2.5.0 and `--rules 2.5.0`, where `create_plant` builds a plant submitted — refused under the flag) is the

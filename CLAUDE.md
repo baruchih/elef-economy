@@ -79,6 +79,8 @@ spec/design_revisions/                       accepted design revisions, verbatim
 spec/history/                                v0.1 … v2.5.0 — superseded, kept for provenance only
 reviews/                                     R01–R10, one external review per version, with the reviewer's notes
 agentic_sim/                                 the engine, 40 invariants, 32 test files, runner, drivers, results
+agentic_sim/redteam/                         the learned red team (docs/red_team_brief.md, docs/red_team_build_plan.md): a separate package the suite never imports —
+                                             needs the conda environment `elef-redteam` (Python 3.11, torch on MPS, gymnasium, stable-worldmodel); le-wm vendored under MIT in redteam/lewm/
 docs/line_map_economic_loop_v1_0_1.txt       text export of the _line map of the loop (the live map is the source)
 docs/economy_2x_account.md                   the reviewer's consolidated account of 2.0.0 → 2.5.0 and runs 12–19 (verbatim), with the implementer's review beside it
 docs/red_team_brief.md                       the learned red team's brief (verbatim; LeWorldModel on the public view), with the implementer's review and build plan beside it
@@ -430,6 +432,19 @@ consolidated into one standalone spec with the accepted revision kept verbatim i
   `plant_bids_lost`, `plant_time_in_market_mean`, `plant_lag_mean`, `plant_names`, `available_roots`. `test_v26` (16); goldens re-pinned once (seed 1 again with the Appendix S ruling). The Q2 probe's correction: the orchestrator's
   instrument submits for the plant actor at its drawn tick in the members' submission step (`submit_plant`, refused before the tick; the
   engine's step the fallback) — the engine-side submission landed after the driver's seating and gave every plant a seating gap of one tick.
+- The learned red team (`agentic_sim/redteam/`, October 20, 2026; the brief and the build plan in `docs/`). Run it with
+  `/opt/homebrew/Caskroom/miniconda/base/envs/elef-redteam/bin/python -m redteam.<module>` from `agentic_sim/`; the project's Python has no torch and
+  the suite never imports the package. The learner is a driver: `--learner-slot on` makes the slot actor (the first careful id, the same actor the
+  tell-readers used) a `LEARNER` whose reviewing decisions come from `Stamping.learner(run, reviewer, view, r)` → 0 care (the careful signal at
+  its cost) / 1 approve blind / 2 reject blind — the truth is never shown to it. `redteam.env.ElefReviewerEnv` is the decision-event Gymnasium
+  environment (the driver in a worker thread, blocking at each decision; the reward the change in the learner's lifetime real wealth; a careful
+  policy reproduces the control run's slot to the decimal); `redteam.obs` the 44 named fields (the public view, the dial, own standing and
+  history, the ReviewView, the seen set; `hide` for Q1); `redteam.collect` the offline episodes (careful, stamper, ε, random → npz with the
+  plant label for the probe only); `redteam.model` LeWM's recipe on the vector (Embedder → ARPredictor with AdaLN on the one-hot action →
+  SIGReg) plus the wealth head, `get_cost` on stable-worldmodel's contract; `redteam.train`, `redteam.probe` (the logistic probe on the latent,
+  the raw observation, the context alone and the case's fields alone — AUC, chance 0.5), `redteam.plan` (categorical CEM, receding horizon;
+  the greedy head as the no-horizon control), `redteam.run_q` (the learned reviewer against careful, paired by seed), `redteam.online` (the
+  plan-and-collect rounds). Results under `results/redteam/<question>/`; notes in `results/studies/` as before.
 - Money is checked by invariant I1 (conservation) — never silently create or lose credits.
 
 ## Vocabulary (spec Appendix C has the full notation)

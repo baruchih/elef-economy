@@ -22,8 +22,10 @@ def auc(scores, labels):
     return float((ranks[y].sum() - n1 * (n1 + 1) / 2) / (n1 * n0))
 
 
-def auc_se(scores, labels, n_boot=1000, seed=0):
-    """The AUC with a bootstrap standard error over the decisions (resampled with replacement, the reviewer's instruction after run 22)."""
+def auc_se(scores, labels, groups=None, n_boot=1000, seed=0):
+    """The AUC with a bootstrap standard error (the reviewer's instruction after run 22): over the decisions resampled with replacement,
+    and, when `groups` (the decision's seed) is given, over the seeds resampled whole — the decisions of one run are not independent, so
+    the seed-level figure is the resolution the study has. Returns [auc, se_decisions, se_seeds]."""
     s, y = np.asarray(scores, float), np.asarray(labels, bool)
     a0 = auc(s, y)
     rng = np.random.default_rng(seed)
@@ -33,7 +35,20 @@ def auc_se(scores, labels, n_boot=1000, seed=0):
         v = auc(s[idx], y[idx])
         if v == v:
             bs.append(v)
-    return [a0, float(np.std(bs, ddof=1)) if len(bs) > 1 else float("nan")]
+    out = [a0, float(np.std(bs, ddof=1)) if len(bs) > 1 else float("nan")]
+    if groups is not None:
+        g = np.asarray(groups)
+        uniq = np.unique(g)
+        members = {u: np.flatnonzero(g == u) for u in uniq}
+        cs = []
+        for _ in range(n_boot):
+            pick = rng.choice(uniq, size=len(uniq), replace=True)
+            idx = np.concatenate([members[u] for u in pick])
+            v = auc(s[idx], y[idx])
+            if v == v:
+                cs.append(v)
+        out.append(float(np.std(cs, ddof=1)) if len(cs) > 1 else float("nan"))
+    return out
 
 
 def fit_logistic(X, y, epochs=300, lr=0.05, l2=1e-3):
@@ -74,10 +89,11 @@ def main(argv=None):
     Ztr, Zte = stack(tr, lambda e: latents(m, e["obs"])), stack(te, lambda e: latents(m, e["obs"]))
     Otr, Ote = stack(tr, lambda e: e["obs"]), stack(te, lambda e: e["obs"])
     ytr, yte = stack(tr, lambda e: e["is_plant"]), stack(te, lambda e: e["is_plant"])
+    gte = stack(te, lambda e: np.full(len(e["is_plant"]), e["seed"]))      # the decision's seed, for the seed-level bootstrap
     out = {"data": a.data, "model": a.model, "initial_only": a.initial_only, "train_decisions": int(len(ytr)), "test_decisions": int(len(yte)),
            "plant_share_test": float(yte.mean())}
-    out["auc_latent"] = auc_se(fit_logistic(Ztr, ytr)(Zte), yte)       # every AUC as [value, bootstrap SE]
-    out["auc_raw_obs"] = auc_se(fit_logistic(Otr, ytr)(Ote), yte)
+    out["auc_latent"] = auc_se(fit_logistic(Ztr, ytr)(Zte), yte, gte)       # every AUC as [value, SE over decisions, SE over seeds]
+    out["auc_raw_obs"] = auc_se(fit_logistic(Otr, ytr)(Ote), yte, gte)
     # the base-rate check: a probe on the context alone (the market, the dial, own standing — fields that move the plant RATE, not the case)
     # against a probe on the case's own fields (the ReviewView and the seen set); a leak is a separation the case's fields carry
     from redteam.obs import OBS_FIELDS
@@ -85,14 +101,14 @@ def main(argv=None):
     fields = list(enumerate(OBS_FIELDS[:width]))
     ctx = [i for i, f in fields if not (f.startswith("rv_") or f.startswith("seen_") or f == "my_bid_lost")]
     case = [i for i, f in fields if f.startswith("rv_") or f.startswith("seen_") or f == "my_bid_lost"]
-    out["auc_context_only"] = auc_se(fit_logistic(Otr[:, ctx], ytr)(Ote[:, ctx]), yte)
-    out["auc_case_fields_only"] = auc_se(fit_logistic(Otr[:, case], ytr)(Ote[:, case]), yte)
+    out["auc_context_only"] = auc_se(fit_logistic(Otr[:, ctx], ytr)(Ote[:, ctx]), yte, gte)
+    out["auc_case_fields_only"] = auc_se(fit_logistic(Otr[:, case], ytr)(Ote[:, case]), yte, gte)
     # the per-field view, the strongest first (|AUC − 0.5|)
     per = {f: auc(Ote[:, i], yte) for i, f in fields}
     out["fields_top"] = sorted(((round(max(v, 1 - v), 3), f, round(v, 3)) for f, v in per.items() if v == v), reverse=True)[:8]
     sb = IDX["seen_before"]
-    out["auc_seen_before"] = auc_se(-Ote[:, sb], yte)                    # unseen → more likely a plant, if the leak were there
-    out["auc_rv_gap"] = auc_se(-Ote[:, IDX["rv_gap"]], yte)
+    out["auc_seen_before"] = auc_se(-Ote[:, sb], yte, gte)                    # unseen → more likely a plant, if the leak were there
+    out["auc_rv_gap"] = auc_se(-Ote[:, IDX["rv_gap"]], yte, gte)
     print(json.dumps(out, indent=1))
     if a.out:
         json.dump(out, open(a.out, "w"), indent=1)

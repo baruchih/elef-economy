@@ -2097,7 +2097,7 @@ The reviewer's consolidated account of 2.0.0 → 2.5.0 and runs 12–19 is kept 
 implementer's review beside it (`docs/economy_2x_account-review.md`): an account under §19, nothing moving; four corrections of fact
 (§18.1's q7 is monetary behaviour and q10 constructibility; 2.0.0's deficit was retired as a rule by 2.1.0; the lagging auditor is zero in
 the quiet cells, not the drift wave or the cycler; the riots' loans peak in the tens since 2.2.0) and wording notes, every figure else
-verified against the notes. It reads the programme as at the marker set for the learned red team. **Next:** the brief for it, if that is
+verified against the notes; the author applied all of them the same day and the revised text is the one kept (the review's closing note records the diff). It reads the programme as at the marker set for the learned red team. **Next:** the brief for it, if that is
 the reviewer's next step.
 
 ## Maps

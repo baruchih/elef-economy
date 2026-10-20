@@ -2100,6 +2100,18 @@ the quiet cells, not the drift wave or the cycler; the riots' loans peak in the 
 verified against the notes; the author applied all of them the same day and the revised text is the one kept (the review's closing note records the diff). It reads the programme as at the marker set for the learned red team. **Next:** the brief for it, if that is
 the reviewer's next step.
 
+## The learned red team — the brief (October 20, 2026)
+
+The reviewer's brief for the learned red team is kept verbatim at `docs/red_team_brief.md`, the implementer's review beside it
+(`docs/red_team_brief-review.md`): a study brief under §19 — evaluations under the fixed rules, a win a finding for a revision drafted
+after. The question: is there an unfaithful strategy that still pays under 2.5.0 — the sleeper, telling plants apart (first, alone; a win
+halts the study), the selective cheat, collusion through the blind view, the delegation chain, money games, the customer; a second track
+on stability under learned bidding. The tool is LeWorldModel (a JEPA world model with SIGReg, planned by CEM) on stable-worldmodel; the
+review reads it as a world model and a planner with a learned wealth head as the cost, a decision event as the step, the truth bought
+through care only, and names Q2's leak surface in the plants' construction (same-tick seating, the price at P_t, the rate's rhythm).
+Build plan: `agentic_sim/redteam/` as a separate package the suite never imports, a conda environment at Python 3.11 with torch (MPS).
+**Next:** the reviewer's five decisions (environment, vendoring, the step, the cost of bad work, the cost head); then Q2 alone.
+
 ## Maps
 
 Two `_line` artifacts in project Agentic-OS (`c54120a6-aaff-40f7-8a9f-3667da542879`):

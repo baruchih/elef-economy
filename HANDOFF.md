@@ -2216,6 +2216,35 @@ convention separates and pays; oracle = freshname lose. **Q2 does not halt the s
 learner's three fixes before Q1 reads anything (the terminal value, a longer horizon, careful-centred exploration); the re-arrival move for a
 learner. **Next:** the reviewer's reading; then Q1 — the sleeper — with own odds visible and hidden.
 
+## Run 23 — Q1, the sleeper: the calibration, the pre-calibration learner, the learner with re-arrival (October 20, 2026)
+
+**What ran** (`results/redteam/Q1/`; code `b74fd348` the learner changes, `28aff6c3` the rulings, `055a1fd8` the hand-written references;
+notes `results/studies/rt-Q1-notes-for-reviewer.md`). The three learner changes named after run 22 (the terminal value `--value mc|td`,
+the horizon 16, ε from the careful policy); the reviewer's rulings after run 22 implemented (the calibration cell `--audit-roll off --pi0 0
+--dial off`; re-arrival allowed the learner `--learner-rearrive on`, a period-boundary decision and the 45th observation field, lifetime real
+wealth summed across identities; a bootstrap SE on every AUC; Appendix S). Six learned lines on the same budget (80 offline episodes, ten
+rounds, seeds 21–40 the evaluation): three pre-calibration (visible, hidden, the td value), the calibration, two with re-arrival (visible,
+hidden); the hand-written sleeper (`sleeper0.3/0.5/0.7`) and the hand-written harvester and leaver as references.
+
+**Findings.** *The calibration failed:* where a blind stamp costs nothing the learner ends −203 ± 142 against careful (seven seeds of twenty;
+the plain stamper +164 ± 158 — the cell's own win, which the learner did not find; it rejects blind 30% of the time, a move no cell prices
+because the population never appeals). By the reviewer's rule the learner has not learned and Q1's results are not findings — reported and
+labelled so. *The pre-calibration learner:* three no-wins outside noise on the wrong side (−723 ± 133, −473 ± 180, −499 ± 141), stamping in
+the pinned band and rejecting blind; not a sleeper. *The hand-written sleeper:* stamping below odds 0.5 is within noise of careful (−12 ± 23,
+29 false approvals, never suspended); below 0.7 costs a hundred. *Q1 with re-arrival, odds visible:* **+270 ± 89 on the brief's lifetime
+measure** (fifteen seeds of twenty), made of thirteen arrival floats a run (655 real minted for one slot; 14 identities, one suspension each,
+stamps at odds 0.99 — the pinned band); on its own earnings the learner is **373 ± 86 below** careful. The hidden line the same with fewer
+cycles, within noise (+47 ± 88). The hand-written references do not reach it: the harvester (stamp all, leave every boundary; 21 names, 992 of
+float) −113 ± 90 on forfeits; the leaver (careful, leave every boundary) +72 ± 29 but refused the leave at 11 boundaries of 12 — a live
+obligation stands; the learner's stamp buys the suspension that discharges them. What it points at, if the reviewer reads it as a finding, is 2.3.0's float — a grant a fresh name carries
+out by departing — not the taper. *Q2's probe with errors:* among initial reviews raw 0.679 ± 0.009 against context 0.629 ± 0.009; the
+case's fields alone 0.595 ± 0.006.
+
+**For the decision** (notes §7): the calibration verdict and the cell's resolution (the ideal policy clears by one SE at twenty seeds); the
+re-arrival number and whether a departed name's float is the actor's lifetime wealth; the appeal policy on the population before Q3 so a
+blind rejection costs what the rules say; the Q2 probe's gap, real at this resolution; the budget (five learned lines for one question).
+**Next:** the reviewer's reading; then Q3, the selective cheat, on the fixes the reviewer accepts.
+
 ## Maps
 
 Two `_line` artifacts in project Agentic-OS (`c54120a6-aaff-40f7-8a9f-3667da542879`):

@@ -567,7 +567,9 @@ review and leaves at every boundary (the cycler, carrying the float out each ret
 float alone). After run 23's acceptance: `--care-cost` (the careful reviewer's care cost as a multiple of the drawn {2, 3} credits; raised in
 the calibration cell only until the cell's ideal clears careful by three standard errors), truthful appeals the population's default from run
 24 (`--appeal-policy none` reproduces runs 1–23), and the plants' draws reading a rolling window of the last k real roots (the conformance
-item, Appendix S) — the engine's `_recent` beside `_trailing`, whose counts set k.
+item, Appendix S) — the engine's `_recent` beside `_trailing`, whose counts set k. Run 24's second correction, the driver's: the plants due
+are posted in the requesters' posting step before the tick's awards, at a drawn position among the postings (`plant_step`); posted after the
+award pass they waited a tick more than every real root and were seated first, the gap the Q2 probe read.
 
 After run 22's acceptance, the reviewer's rulings for the red team: **a calibration cell** before each question's learner reads anything —
 the driver's `--audit-roll off` (the roll never made; a declared implementation effect, in the manifest) with `--pi0 0 --dial off`, so a

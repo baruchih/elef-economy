@@ -1178,6 +1178,28 @@ class Stamping:
                         self.kind[aid] = richer
                         self.c["disposition_switches"] += 1
 
+    def plant_step(self, t: int, n: int | None = None):
+        """The plants the rate calls for (1.2.0 §2.1): under 2.6.0 posted as roots under fresh names, in the requesters' posting step
+        (before the tick's awards, at a drawn position among the tick's postings, as a real root is); under 2.5.0 and before created
+        submitted before the tick's assignments. `n` posts that many (one, at its drawn position); None posts all that are due."""
+        a, w = self.a, self.w
+        for _ in range(w.plants_due() if n is None else min(n, w.plants_due())):
+            truth = self.rng.random() >= a.beta_p            # bad with probability β_P
+            try:
+                if self.rev12:
+                    cid = w.post_plant(truth)                # 2.6.0 §2.1: posted as a root under a fresh name; the market takes it from here
+                else:
+                    cid = w.create_plant(truth, (w.market()["P_t"] if self.floating else a.beta))   # 2.0.0: a plant at the price level
+            except LedgerError:
+                self.c["plants_unfunded"] += 1               # Ω's working capital is the cap; the engine counts the shortfall
+                break
+            self.title_n += 1
+            self.tasks[cid] = Task(cid, f"plant #{self.title_n}", fulfilled=truth, plant=True)
+            self.active[cid] = True
+            self.c["plants_created"] += 1
+            if not truth:
+                self.c["plants_bad"] += 1
+
     def tick(self, t: int):
         a, w = self.a, self.w
         self.move_dispositions(t)
@@ -1197,8 +1219,20 @@ class Stamping:
                 self.c["shock_created"] += a.create_amount
             # the crowd arrives, posts, leaves
             self.crowd_step(t)
-            for r in self.requesters + (self.crowd if self.crowd_posting else []):
-                self.requester_posts(r, t)
+            posters = list(self.requesters + (self.crowd if self.crowd_posting else []))
+            if self.rev12:
+                # 2.6.0 §2.1 (run 24's conformance correction): the plants the rate calls for are posted in this step, where the requesters
+                # post — before the tick's awards — at a drawn position among the tick's postings. Posted after the award pass (as 1.2.0's
+                # created-submitted plant was), a plant waited a tick more than every real root by construction and reached its seat the
+                # oldest of the tick's submissions; posted last among the postings it reached it the youngest; the working set's order is
+                # the seating's, so either position was a tell in the seating gap the Q2 probe read.
+                posters += ["plant"] * w.plants_due()
+                self.rng.shuffle(posters)
+            for r in posters:
+                if r == "plant":
+                    self.plant_step(t, 1)
+                else:
+                    self.requester_posts(r, t)
             self.raise_below_market()
             self.read_marks(t)
             self.exit_step(t)                            # 2.3.0 §2.2: at a period boundary, below the reservation → depart
@@ -1442,24 +1476,13 @@ class Stamping:
                 except (RuleError, LedgerError):
                     self.c["parent_cancel_refused"] += 1
                     self.c["cancel_refused_at_deadline"] += 1    # 2.5.0 §9.3: nothing to cancel at the deadline; the lapse runs
-        # orchestrator: the plants the rate calls for (1.2.0 §2.1), created before this tick's
-        # assignments so they join the queue behind the real work submitted so far
-        for _ in range(w.plants_due()):
-            truth = self.rng.random() >= a.beta_p            # bad with probability β_P
-            try:
-                if self.rev12:
-                    cid = w.post_plant(truth)                # 2.6.0 §2.1: posted as a root under a fresh name; the market takes it from here
-                else:
-                    cid = w.create_plant(truth, (w.market()["P_t"] if self.floating else a.beta))   # 2.0.0: a plant at the price level
-            except LedgerError:
-                self.c["plants_unfunded"] += 1               # Ω's working capital is the cap; the engine counts the shortfall
-                break
-            self.title_n += 1
-            self.tasks[cid] = Task(cid, f"plant #{self.title_n}", fulfilled=truth, plant=True)
-            self.active[cid] = True
-            self.c["plants_created"] += 1
-            if not truth:
-                self.c["plants_bad"] += 1
+        # orchestrator: the plants the rate calls for (1.2.0 §2.1). Under 2.5.0 and before, a plant is created submitted here — before
+        # this tick's assignments, so it joins the queue behind the real work submitted so far. Under 2.6.0 the plant is a root in the
+        # market and is posted in the requesters' posting step instead (`plant_step`, run 24's conformance correction): posted here, after
+        # the award pass, it waited a tick more than every real root by construction, submitted a tick older, and the oldest-first seating
+        # gave it the seat first when seats were short — the gap the Q2 probe read.
+        if not self.rev12:
+            self.plant_step(t)
         # orchestrator: initial reviews, audits, appeal reviews, rulings
         for cid in list(self.active):
             c = w.case(cid)

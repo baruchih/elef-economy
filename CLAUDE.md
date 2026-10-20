@@ -436,6 +436,11 @@ consolidated into one standalone spec with the accepted revision kept verbatim i
   The conformance item after run 23 (Appendix S): the plant's draws (`_plant_draw`: the ceiling at posting, the time to submission at the
   award) read a **rolling window** of the last k real roots' terms (`_recent`), k the count the last `trailing_periods` closed periods hold
   (`_trailing`), not the closed periods' own box, whose contents changed only at a boundary and carried the period's rhythm into every plant.
+  Run 24's re-read found the ceiling was never the carrier: the case's separation sat in the seating gap, because the orchestrator's instrument
+  posted the plants after the tick's award pass (1.2.0's place for a created-submitted plant), so a plant waited a tick more than every real
+  root by construction and reached its seat the oldest of the tick's submissions under the working set's oldest-first seating. The
+  correction (the driver's `plant_step`): under 2.6.0 the plants due are posted in the requesters' posting step, before the awards, each at a
+  drawn position among the tick's postings; under 2.5.0 and before they are created submitted where they were.
 - The learned red team (`agentic_sim/redteam/`, October 20, 2026; the brief and the build plan in `docs/`). Run it with
   `/opt/homebrew/Caskroom/miniconda/base/envs/elef-redteam/bin/python -m redteam.<module>` from `agentic_sim/`; the project's Python has no torch and
   the suite never imports the package. The learner is a driver: `--learner-slot on` makes the slot actor (the first careful id, the same actor the

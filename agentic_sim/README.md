@@ -562,7 +562,9 @@ approval whenever its own applied odds read below the threshold, careful otherwi
 plain stamper when the odds are hidden), and the readings from the decision trace — the applied odds at the policy's blind approvals
 against its other decisions, its stamp rate by odds band, the slot's suspensions (`slot_suspensions`, a driver column), the ticks between
 its admissions, the false approvals passed per suspension — read from the engine at each decision, so the hidden cell (`--hide own_p_eff`)
-is read too.
+is read too. With re-arrival allowed (`--learner-rearrive on`), two hand-written references beside the learned one: `harvester` stamps every
+review and leaves at every boundary (the cycler, carrying the float out each return); `leaver` is careful and leaves at every boundary (the
+float alone).
 
 After run 22's acceptance, the reviewer's rulings for the red team: **a calibration cell** before each question's learner reads anything —
 the driver's `--audit-roll off` (the roll never made; a declared implementation effect, in the manifest) with `--pi0 0 --dial off`, so a

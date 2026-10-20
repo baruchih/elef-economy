@@ -453,8 +453,9 @@ consolidated into one standalone spec with the accepted revision kept verbatim i
   each question's learner reads anything (`--audit-roll off --pi0 0 --dial off`: a blind stamp costs nothing; the learner must beat the
   careful outside noise or its result is not a finding); re-arrival allowed the learner (`--learner-rearrive on`: a period-boundary
   decision — `decision_boundary`, the 45th field — 1 leaves and returns under a fresh name `L<n>` with the float as a probationer, the
-  exit rule returning it the same way; lifetime real wealth summed across identities, floats minted read beside); a bootstrap SE on
-  every AUC (`probe.py --initial-only`).
+  exit rule returning it the same way; lifetime real wealth summed across identities, floats minted read beside; the hand-written
+  references `harvester` — stamp every review, leave at every boundary — and `leaver` — careful, leave at every boundary — the
+  ceiling of the float harvest); a bootstrap SE on every AUC (`probe.py --initial-only`).
 - Money is checked by invariant I1 (conservation) — never silently create or lose credits.
 
 ## Vocabulary (spec Appendix C has the full notation)

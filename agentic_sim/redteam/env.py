@@ -127,7 +127,10 @@ def policy_careful(obs, rng): return 0
 def policy_stamper(obs, rng): return 0 if _boundary(obs) else 1
 def policy_eps(obs, rng, eps=0.2): return int(rng.integers(3)) if rng.random() < eps else 0
 def policy_random(obs, rng): return int(rng.integers(3))
-POLICIES = {"careful": policy_careful, "stamper": policy_stamper, "eps": policy_eps, "random": policy_random}
+def policy_harvester(obs, rng): return 1                       # the cycler written by hand: stamp every review, leave at every boundary (the float each return)
+def policy_leaver(obs, rng): return 1 if _boundary(obs) else 0  # the float alone: careful at every review, leave at every boundary
+POLICIES = {"careful": policy_careful, "stamper": policy_stamper, "eps": policy_eps, "random": policy_random,
+            "harvester": policy_harvester, "leaver": policy_leaver}
 
 
 # Q1's hand-written sleeper (the reference beside the learned one, within the convention: own audit odds are on the view): careful while

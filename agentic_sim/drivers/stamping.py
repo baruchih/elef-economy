@@ -111,6 +111,7 @@ from drivers.view import Public                                     # noqa: E402
 from drivers.results import RunRecorder                             # noqa: E402
 
 CAREFUL, STAMPER = "careful", "stamper"
+TELL = "tell"      # the learned red team's Q2, hand-written first: a reviewer that reads the view for a plant's tells and stamps the rest
 GRADES = ("human-explicit", "delegate-explicit", "procedural", "protocol-default", PLANT)
 
 PERMITTED = ["post_root (human H, β fixed)", "award (every free actor offers B = β, τ = work_ticks; S_θ argmax ρ, κ tie band)",
@@ -135,6 +136,9 @@ PERMITTED_200 = ["post_root (six requesters, β = min(β_max, a third of the unl
                  "one a tick while K_open (0: no limit) and the all-in fit; "
                  "the engine locks the all-in maximum at posting and refuses what does not fit — 2.0.0 §2.1)",
                  "raise_ceiling (a requester flagged below market raises to the market price when its wallet allows)",
+                 "the tell-reader (--tell-readers, Q2 of the learned red team's brief, hand-written first): a reviewer reads its own ReviewView "
+                 "(t_submit, cap, case id), its own assignment tick, and the ids of the roots it saw available as a free member, for a plant's "
+                 "tells; reviews carefully what reads as a plant, stamps F what reads as real; the truth is read after the verdict to score the tell",
                  "award at the bid (a member bids c_D (1 + m), m up on award and down after idle ticks; S_θ = ρ − λ B/β live; "
                  "or every offer at the ceiling under --bid ceiling)",
                  "spend (the actor burns its nominal effort c_D at submission — §4.6, used for the first time)",
@@ -255,6 +259,7 @@ class Stamping:
                             "kind": STAMPER if self.cost_rng.random() < a.entry_stampers else CAREFUL} for i in range(a.entry_pool)]
         self.arrived: list[str] = []
         self.departed: list[str] = []
+        self.depart_wealth_real: dict[str, float] = {}   # actor -> real wealth taken out at departure (the lifetime measure)
         self.wealth_at_boundary: dict[str, float] = {}
         self.below_reservation: dict[str, int] = {}
         self.periods_seen = 0
@@ -275,6 +280,19 @@ class Stamping:
         ids_c = [aid for aid in self.actors if self.kind[aid] == CAREFUL]
         self.state_rejecters = set(ids_c[: round(len(ids_c) * a.state_rejecters)]) if a.state_rejecters > 0 else set()
         # run 17 red team: greedy parents (careful actors that reject every child), lowball children (bid half, never deliver), cyclers
+        # red team Q2 (the brief of October 20, the reviewer's note): the hand-written tell-reader — careful actors that read the reviewer's
+        # view for a plant's tells (`--tell gap|cap|idage`, joined by +), review carefully what reads as a plant and stamp what reads as real
+        ids_t = [aid for aid in ids_c if aid not in self.state_rejecters]
+        self.tell_readers = set(ids_t[: round(len(ids_c) * a.tell_readers)]) if a.tell_readers > 0 else set()
+        for aid in self.tell_readers:
+            self.kind[aid] = TELL
+        self.careful_initial = [aid for aid in self.actors if self.kind[aid] == CAREFUL]   # the careful cohort at genesis (arrivals excluded)
+        # the slot: the actor that is (or, in a control run, would be) the single tell-reader — the same id, cost and tie-break position
+        # on the same seed, so a control run's slot is the paired comparison the brief's "same cost and split" asks for
+        self.tell_slot = ids_t[0] if ids_t else None
+        self.tells = {"gap", "cap", "idage"} if a.tell == "all" else set(a.tell.split("+"))   # `oracle`: the plant marker itself (declared non-conforming), the upper bound
+        self.id_seen_cummax: dict[int, int] = {}       # world tick -> the largest root id a free tell-reader had seen available by then
+        self._id_cummax = 0
         ids_g = list(reversed(ids_c))
         self.greedy = set(ids_g[: round(len(ids_g) * a.greedy_parents)]) if a.greedy_parents > 0 else set()
         self.farmers = set(ids_g[: round(len(ids_g) * a.farm_parents)]) if a.farm_parents > 0 else set()   # 2.5.0 §8.5: deadlines too short
@@ -336,6 +354,7 @@ class Stamping:
                   # 2.1.0: the marks and what the requesters did at them; the red team's readings
                   "marked_capacity": 0, "marked_credit": 0, "withdrawn_at_mark": 0, "reposted_after_mark": 0,
                   "state_rejections": 0, "troop_truth_redrawn": 0,
+                  "tell_plant_read_plant": 0, "tell_plant_read_real": 0, "tell_real_read_plant": 0, "tell_real_read_real": 0, "tell_false_approvals": 0,
                   # 2.3.0: the supply side
                   "arrivals": 0, "departures": 0, "departed_cost_sum": 0.0, "nested_posted": 0, "nested_awarded": 0, "nested_unaffordable": 0,
                   "nested_self_executed": 0, "nested_judged": 0, "nested_false_approvals": 0, "nested_false_rejections": 0,
@@ -369,7 +388,7 @@ class Stamping:
         self.title_n = 0
 
     # -- populations -------------------------------------------------------------
-    def verdict(self, reviewer: str, truth: bool) -> tuple[str, float]:
+    def verdict(self, reviewer: str, truth: bool, view=None, r=None) -> tuple[str, float]:
         """A stamper answers F at no cost. A careful reviewer answers the truth with probability a
         and pays its care cost, 2 or 3 credits of real resources — or as much of it as its unlocked
         credit can buy, when bonds locked in earlier reviews have left it short (the engine refuses
@@ -382,6 +401,16 @@ class Stamping:
                 if self.a.camouflage > 0 and self.rng.random() < self.a.camouflage:
                     return N, 0.0                # looks careful without looking (1.2.0 §8 red team)
                 return F, 0.0
+        if self.kind[reviewer] == TELL and view is not None:
+            # Q2: the tells are read from the view and the reader's own assignment alone; the truth is read afterwards to score the
+            # tell, never to decide. Read as a plant -> the careful path below; read as real work -> stamped, F at no cost.
+            plant_read = self.read_tells(view, r)
+            is_plant = self.tasks[view.case_id].plant
+            self.c[f"tell_{'plant' if is_plant else 'real'}_read_{'plant' if plant_read else 'real'}"] += 1
+            if not plant_read:
+                if not truth and not is_plant:
+                    self.c["tell_false_approvals"] += 1
+                return F, 0.0
         right = self.rng.random() < self.a.accuracy
         v = F if (truth == right) else N
         want = float(self.rng.randint(2, 3))
@@ -390,6 +419,26 @@ class Stamping:
             return v, want
         self.c["underfunded_careful_reviews"] += 1
         return v, max(0.0, math.floor(affordable * 100) / 100)
+
+    def read_tells(self, view, r) -> bool:
+        """Q2's hand-written tell-reader: does this assignment look like a plant? Three tells, any or all (`--tell-rule`):
+        `gap` — assigned the tick it was submitted (a plant is created submitted and seated at once; a real case queues when seats
+        are short); `cap` — the cap K is exactly K at this period's index (a plant locks at its creation; a root at its posting, a
+        period ago or more when the index has since moved); `idage` — the case's id is newer than every root this reader saw
+        available before the submission tick (a plant's id is minted at its submission, a real case's at its posting, at least a
+        tick earlier). Everything read is the reviewer's view, its own assignment, and what a free member sees of the market."""
+        if "oracle" in self.tells:                       # the upper bound: a perfect detector — reads the plant marker, declared non-conforming
+            return bool(self.tasks[view.case_id].plant)
+        votes = []
+        if "gap" in self.tells:
+            votes.append(view.t_submit is not None and r.t_assign - view.t_submit == 0)
+        if "cap" in self.tells:
+            votes.append(abs(view.cap - self.p.K * self.w.market()["index"]) < 1e-6)
+        if "idage" in self.tells:
+            n = int(view.case_id[1:])
+            before = [m for tk, m in self.id_seen_cummax.items() if tk < (view.t_submit if view.t_submit is not None else 0)]
+            votes.append(n > (max(before) if before else 0))
+        return (all(votes) if self.a.tell_rule == "all" else any(votes)) if votes else False
 
     def free_workers(self) -> list[str]:
         """Free, fundable, and — since 1.3.0 §2.1 — a member of the market; the engine refuses the rest. A decliner
@@ -542,10 +591,12 @@ class Stamping:
             else:
                 self.below_reservation[aid] = 0
             if self.below_reservation[aid] >= a.exit_patience:
+                wealth_real_now = w.wealth(aid) * real    # the brief's lifetime measure: what a departing actor takes out, in real terms
                 try:
                     w.depart(aid)
                 except RuleError:
                     continue                             # an obligation is live; it departs after
+                self.depart_wealth_real[aid] = wealth_real_now
                 self.actors.remove(aid)
                 self.departed.append(aid)
                 self.c["departures"] += 1
@@ -1057,6 +1108,12 @@ class Stamping:
                     w.withdraw_unawarded(cid)
                     self.c["withdrawn_unawarded"] += 1
                     self.active.pop(cid, None)
+        # Q2: what a free tell-reader sees of the market before this tick's awards — the ids of the roots available (the idage tell)
+        if self.tell_readers and any(aid in self.tell_readers for aid in self.free_members()):
+            avail_ids = [int(cid[1:]) for cid in self.active if cid not in self.nested_parent and w.case(cid).state == "AVAILABLE"]
+            if avail_ids:
+                self._id_cummax = max(self._id_cummax, max(avail_ids))
+            self.id_seen_cummax[w.t] = self._id_cummax
         # orchestrator awards
         for cid in sorted(self.active, key=lambda s: int(s[1:])):
             if w.case(cid).state != "AVAILABLE" or cid in self.nested_parent:
@@ -1176,7 +1233,7 @@ class Stamping:
                             self.c["troop_panel_seats"] += 1
                         continue
                     on_probation = w.actor(r.reviewer).probation
-                    v, cost = self.verdict(r.reviewer, self.tasks[cid].fulfilled)
+                    v, cost = self.verdict(r.reviewer, self.tasks[cid].fulfilled, view=view, r=r)
                     if r.reviewer in self.state_rejecters and w.is_troop(c.actor) and not self.tasks[cid].plant:
                         v = N                            # 2.1.0 §8.9 red team: rejects the state's work (reads the case's actor — declared)
                         self.c["state_rejections"] += 1
@@ -1468,7 +1525,7 @@ class Stamping:
     def row(self, t: int) -> dict:
         w = self.w
         row = {"t": t, "head": w.head()}
-        for kind in (CAREFUL, STAMPER):
+        for kind in ((CAREFUL, STAMPER, TELL) if self.tell_readers else (CAREFUL, STAMPER)):
             ids = [aid for aid in self.actors if self.kind[aid] == kind]
             n = max(1, len(ids))
             T = [self.tally[aid] for aid in ids]
@@ -1615,6 +1672,28 @@ class Stamping:
                     "lowball_empty_submitted": self.c["lowball_empty_submitted"], "lowball_empty_rejected": self.c["lowball_empty_rejected"],
                     "lowball_empty_approved": self.c["lowball_empty_approved"], "lowball_appeals": self.c["lowball_appeals"],
                     "farmers_n": len(self.farmers),
+                    # Q2 (the learned red team, hand-written first): the tell-reader's confusion table, its stamps caught and its standing
+                    "tell_n": sum(1 for x in self.tell_readers if x in self.actors), "tell_set": "+".join(sorted(self.tells)) if self.tell_readers else "",
+                    "tell_departed": sum(1 for x in self.tell_readers if x not in self.actors),
+                    "tell_wealth_real_lifetime": round(sum((w.wealth(x) * real) if x in self.actors else self.depart_wealth_real.get(x, 0.0) for x in self.tell_readers) / max(1, len(self.tell_readers)), 3) if self.tell_readers else "",
+                    "careful_wealth_real_lifetime": round(sum((w.wealth(x) * real) if x in self.actors else self.depart_wealth_real.get(x, 0.0) for x in self.careful_initial) / max(1, len(self.careful_initial)), 3),
+                    "careful_initial_departed": sum(1 for x in self.careful_initial if x not in self.actors),
+                    "slot_id": self.tell_slot or "",
+                    "slot_kind": (self.kind.get(self.tell_slot, "") if self.tell_slot else ""),
+                    "slot_wealth_real_lifetime": (round((w.wealth(self.tell_slot) * real) if self.tell_slot in self.actors else self.depart_wealth_real.get(self.tell_slot, 0.0), 3) if self.tell_slot else ""),
+                    "slot_departed": (int(self.tell_slot not in self.actors) if self.tell_slot else ""),
+                    "slot_awards": (self.tally[self.tell_slot].awards if self.tell_slot else ""),
+                    "slot_reviews": (self.tally[self.tell_slot].reviews if self.tell_slot else ""),
+                    "slot_rho": (round(w.actor(self.tell_slot).rho, 4) if self.tell_slot and self.tell_slot in self.actors else ""),
+                    "slot_cost": (round(self.c_d_of[self.tell_slot], 3) if self.tell_slot else ""),
+                    "tell_plant_read_plant": self.c["tell_plant_read_plant"], "tell_plant_read_real": self.c["tell_plant_read_real"],
+                    "tell_real_read_plant": self.c["tell_real_read_plant"], "tell_real_read_real": self.c["tell_real_read_real"],
+                    "tell_plant_pass_rate": round(self.c["tell_plant_read_plant"] / (self.c["tell_plant_read_plant"] + self.c["tell_plant_read_real"]), 4) if (self.c["tell_plant_read_plant"] + self.c["tell_plant_read_real"]) else "",
+                    "tell_real_stamp_rate": round(self.c["tell_real_read_real"] / (self.c["tell_real_read_real"] + self.c["tell_real_read_plant"]), 4) if (self.c["tell_real_read_real"] + self.c["tell_real_read_plant"]) else "",
+                    "tell_false_approvals": self.c["tell_false_approvals"],
+                    "tell_wealth_real": round(sum(w.wealth(x) for x in self.tell_readers if x in self.actors) / max(1, sum(1 for x in self.tell_readers if x in self.actors)) * real, 3) if self.tell_readers else "",
+                    "tell_suspended_now": sum(1 for x in self.tell_readers if x in self.actors if w.actor(x).suspended_until is not None) if self.tell_readers else "",
+                    "tell_plant_failures": sum(self.tally[x].plant_failures for x in self.tell_readers if x in self.actors) if self.tell_readers else "",
                     "refused_capacity_seats": mk["refused_capacity_seats"], "refused_capacity_awards": mk["refused_capacity_awards"],
                     "refused_capacity_waiting": mk["refused_capacity_waiting"], "capacity_wait_max": mk["capacity_wait_max"],
                     "careful_wealth_real": round(row["careful_wealth"] * real, 3), "stamper_wealth_real": round(row["stamper_wealth"] * real, 3),
@@ -1874,6 +1953,10 @@ def main(argv=None):
                          "admitted under both (a parent that will not wait)")
     ap.add_argument("--small-requests", type=int, default=0,
                     help="2.2.0 §8.5 red team: this many requesters post at the market price exactly with K_open tripled — many small requests to collect pro-rata rebates (expected: nothing beyond the capped claims)")
+    ap.add_argument("--tell-readers", type=float, default=0.0,
+                    help="Q2 (the learned red team, hand-written first): the share of careful actors that read the view for a plant's tells and stamp the rest")
+    ap.add_argument("--tell", default="gap+cap", help="the tells read, joined by +: gap (assigned the tick it was submitted), cap (K at this period's index), idage (the id newer than every root seen available before the submission tick); all (the three, any); oracle (the plant marker itself — declared non-conforming, the upper bound a perfect detector earns)")
+    ap.add_argument("--tell-rule", choices=["any", "all"], default="any", help="a plant is read when any tell fires, or only when all do")
     ap.add_argument("--state-rejecters", type=float, default=0.0,
                     help="2.1.0 §8.9 red team: the share of careful actors that reject every delivery of the state's (reads the case's actor — declared non-conforming)")
     ap.add_argument("--n-t", type=int, default=40, help="N_T, the most troops ELEF can field at once (0 = unbounded, the control)")
@@ -2042,7 +2125,7 @@ def main(argv=None):
                      ticks_per_s=round(a.ticks / run_s, 1), determinism=determinism, final=summary, **audit)
     print(f"{name}: {run_s:.1f}s, {a.ticks / run_s:.0f} ticks/s; {audit['full_audit']} in {audit['full_audit_s']}s; "
           f"results in {os.path.relpath(out)}")
-    for kind in (CAREFUL, STAMPER):
+    for kind in ((CAREFUL, STAMPER, TELL) if a.tell_readers > 0 else (CAREFUL, STAMPER)):
         print(f"  {kind:8s} n={final[kind + '_n']:2d} wealth={final[kind + '_wealth']:8.2f} delivery={final[kind + '_delivery']:8.2f} "
               f"fees={final[kind + '_fees']:7.2f} (fixed {final[kind + '_fee_fixed']:6.2f}, haircut {final[kind + '_fee_haircut']:5.2f}) "
               f"costs={final[kind + '_costs']:6.2f} bonds_lost={final[kind + '_bonds_forfeited']:6.2f} "
@@ -2077,7 +2160,7 @@ def main(argv=None):
     print(f"  accounts (1.7.0): uplift fund={final['duty_fund']} troop account={final['troop_account']} troop surplus to Ω={final['troop_surplus']} "
           f"Ω fee income={final['omega_fee_income']} advances made/repaid={final['advances_made']}/{final['advances_repaid']} "
           f"rebates paid={final['rebates_paid']} liabilities paid={final['liabilities_paid']} liability={final['omega_liability']}")
-    for kind in (CAREFUL, STAMPER):
+    for kind in ((CAREFUL, STAMPER, TELL) if a.tell_readers > 0 else (CAREFUL, STAMPER)):
         print(f"  {kind:8s} plant reviews={final[kind + '_plant_reviews']:6.2f} failures={final[kind + '_plant_failures']:5.2f} "
               f"a_hat={final[kind + '_a_hat']:.3f} suspended={final[kind + '_suspended']} duty-eligible={final[kind + '_duty_eligible']} "
               f"panel-eligible={final[kind + '_panel_eligible']}")

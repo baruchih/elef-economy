@@ -2153,6 +2153,29 @@ the view's id translation and counts; `test_v26` (12); suite 323 + 32; goldens r
 readers `seen`, `post`, `price`, `losttie` beside the four of run 20, `freshname` outside the convention, `--tie-break`, `--genesis-duty`,
 `--trailing-periods`, the plant readings. **Next:** run 21 — §8 on run 20's seeds.
 
+## Run 21 — the plant's disguise under 2.6.0, §8 (October 20, 2026)
+
+**What ran** (`results/studies/2.6.0-disguise/`, 660 runs at drivers `c3c12b77`, engine `7c948b41`; notes
+`results/studies/2.6.0-disguise-notes-for-reviewer.md`): the ten tell-readers (gap, cap, idage, seen, post, price, losttie, all; oracle and
+freshname outside the convention) at one reader in eight careful actors on seeds 21–40 and 1–20 with controls, paired by seed against the same
+actor reviewing carefully; run 16's entry cell, run 18's patient cell at the floor, run 19's lowballer cell and the crowd with the pool against
+`--rules 2.5.0`; the knobs (the trailing window of two, the tie-break by id, the earlier orderings). A first pass ran on a view returning copies
+— stale to a driver that reads before it acts (no member audit was ever seated; the 2.5.0 control did not reproduce run 20) — and was discarded;
+the view returns live read-only proxies since `c3c12b77`, and the 2.5.0 control reproduces the previous driver tick for tick.
+
+**Findings.** *The tells are gone:* the id's age (= the seen set = the posting interval) passes 66–71% of plants and fails more plants than it
+stamps real work, −303 ± 130 and −560 ± 146 real against itself careful; gap, price and losttie are plain stampers, suspended and gone; cap and
+all are careful in all but name, within noise; oracle = freshname, a third poorer, the audit's price as in run 20 — the fresh name is the complete
+tell outside the convention, where a strategy does not read. *The economy does not notice beyond the market's attention:* price, honesty, the
+plant record and the honest's wealth within noise in the entry cell, the crowd and the lowballer cell; members lose 470–635 bids a run to plants,
+the state's share of deliveries halves at entry (1.3% → 0.5%), plants reach reviewers four ticks later (lag 5.4 against 1.5), and where members
+are scarce most plants go to their actor at p_T (294 of 361 in the patient cell). *Two readings outside noise:* the lowballer cell's nested false
+approvals (1.2 → 2.45) and the patient cell's time to membership (135 → 169). *The knobs move nothing.*
+
+**For the decision** (notes §5): Hypothesis 1 holds and the §7.6 test has its instrument; the attention's cost as measured; the two readings
+and a lag-pinning cell to separate them; plants at p_T under scarcity as a reading for Q1; the proxy as a conformance correction of the surface.
+**Next:** the reviewer's reading; then the environment (`agentic_sim/redteam/`) and Q2's learned probe on the repaired construction, or Q1.
+
 ## Maps
 
 Two `_line` artifacts in project Agentic-OS (`c54120a6-aaff-40f7-8a9f-3667da542879`):

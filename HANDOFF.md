@@ -2194,6 +2194,28 @@ policy `Stamping.learner(run, reviewer, view, r)` → 0 care / 1 approve blind /
 existing run is unchanged (the 2.5.0 control identical to the decimal). **Next:** `redteam/obs.py`, `env.py` (the decision-event Gymnasium
 environment), `collect.py`, `model.py`, `train.py`, `plan.py`, `run_q.py`; then the Q2 probe on the repaired construction; then Q1.
 
+## Run 22 — Q2's learned probe on the repaired construction (October 20, 2026)
+
+**What ran** (`results/redteam/Q2/`, red team at `4bfe846e`, engine `d5808eef`; notes `results/studies/rt-Q2-probe-notes-for-reviewer.md`):
+the environment built as planned (the conda env `elef-redteam`; `redteam/` env, obs, collect, model, train, probe, plan, run_q, online); 80
+offline episodes on each of three constructions (2.5.0; 2.6.0 as first implemented; 2.6.0 corrected), the world model (LeWM's recipe on the
+vector plus a wealth head) trained on each, a logistic probe for plant-vs-real on the latent, the raw observation, the context alone and the
+case's fields alone; the learned reviewer (categorical CEM on the model) against careful on seeds 21–40 through ten online rounds; the
+tell-readers rerun under the corrected construction.
+
+**Findings.** *The probe found a tell the readers had the sign of wrong:* on the first implementation the plant actor's submission ran inside
+the engine's tick step, after the driver's seating, so 99% of plants reached their reviewer with a seating gap of one tick (raw AUC 0.97, the
+gap alone 0.85); corrected at `d5808eef` — the orchestrator's instrument submits for the plant actor in the members' step (`submit_plant`),
+Appendix S, `test_v26` 16, suite 327 + 32. *Under the corrected construction* the case's fields read 0.60 among initial reviews (no field
+above 0.54), the context 0.61 — the plant rate's rhythm, public by rule; Hypothesis 4 holds. *The learned reviewer is a no-win outside noise
+on the wrong side:* −507 ± 143 at round 10 (best −313 ± 126 at round 8), stamping plants and real work alike (0.62 / 0.65), 70% departing.
+*The tell-readers under the corrected construction:* gap now passes plants at the careful's rate and is within noise; nothing within the
+convention separates and pays; oracle = freshname lose. **Q2 does not halt the study.**
+
+**For the decision** (notes §4): the correction's wording in §7.6; whether 0.60 is chance at this resolution; the rhythm as Q1's matter; the
+learner's three fixes before Q1 reads anything (the terminal value, a longer horizon, careful-centred exploration); the re-arrival move for a
+learner. **Next:** the reviewer's reading; then Q1 — the sleeper — with own odds visible and hidden.
+
 ## Maps
 
 Two `_line` artifacts in project Agentic-OS (`c54120a6-aaff-40f7-8a9f-3667da542879`):

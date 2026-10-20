@@ -18,7 +18,7 @@ from redteam.model import device
 def main(argv=None):
     ap = argparse.ArgumentParser()
     ap.add_argument("--data", required=True); ap.add_argument("--models", required=True); ap.add_argument("--evals", required=True)
-    ap.add_argument("--rounds", type=int, default=6); ap.add_argument("--eps", type=float, default=0.1)
+    ap.add_argument("--rounds", type=int, default=6); ap.add_argument("--eps", type=float, default=0.1); ap.add_argument("--first-round", type=int, default=1)
     ap.add_argument("--train-seeds", default="1-20"); ap.add_argument("--eval-seeds", default="21-40"); ap.add_argument("--eval-every", type=int, default=2)
     ap.add_argument("--epochs", type=int, default=40); ap.add_argument("--horizon", type=int, default=8); ap.add_argument("--start", default=None, help="the model to start from")
     ap.add_argument("--hide", default=""); ap.add_argument("--ticks", type=int, default=1000)
@@ -32,7 +32,7 @@ def main(argv=None):
         T.main(["--data", a.data, "--out", model_path, "--seeds", a.train_seeds, "--epochs", str(a.epochs), "--horizon", str(a.horizon)])
     env = ElefReviewerEnv(cell, ticks=a.ticks, hide=hide)
     log = []
-    for k in range(1, a.rounds + 1):
+    for k in range(a.first_round, a.first_round + a.rounds):
         t0 = time.time()
         m, _ = T.load_model(model_path); m.to(device())
         pol = LearnedPolicy(m, horizon=a.horizon)
@@ -48,7 +48,7 @@ def main(argv=None):
         model_path = os.path.join(a.models, f"wm-online-{k}.pt")
         T.main(["--data", a.data, "--out", model_path, "--seeds", a.train_seeds, "--epochs", str(a.epochs), "--horizon", str(a.horizon)])
         rec = {"round": k, "train_lifetime_mean": float(np.nanmean(lifetimes)), "seconds": round(time.time() - t0, 1)}
-        if k % a.eval_every == 0 or k == a.rounds:
+        if k % a.eval_every == 0 or k == a.first_round + a.rounds - 1:
             out = os.path.join(a.evals, f"round-{k}")
             Q.main(["--model", model_path, "--out", out, "--seeds", a.eval_seeds, "--policies", "learned,careful", "--horizon", str(a.horizon),
                     "--hide", a.hide, "--ticks", str(a.ticks), "--"] + cell)
@@ -58,7 +58,7 @@ def main(argv=None):
                            "plant_stamp_rate": s["learned"]["plant_stamp_rate"], "real_stamp_rate": s["learned"]["real_stamp_rate"]}
         log.append(rec)
         print(json.dumps(rec, default=float), flush=True)
-        json.dump(log, open(os.path.join(a.evals, "online-log.json"), "w"), indent=1, default=float)
+        json.dump(log, open(os.path.join(a.evals, f"online-log-{a.first_round}.json" if a.first_round > 1 else "online-log.json"), "w"), indent=1, default=float)
     env.close()
 
 

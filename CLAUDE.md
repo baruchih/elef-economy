@@ -72,6 +72,7 @@ spec/history/                                v0.1 … v2.4.0 — superseded, kep
 reviews/                                     R01–R10, one external review per version, with the reviewer's notes
 agentic_sim/                                 the engine, 38 invariants, 31 test files, runner, drivers, results
 docs/line_map_economic_loop_v1_0_1.txt       text export of the _line map of the loop (the live map is the source)
+docs/economy_2x_account.md                   the reviewer's consolidated account of 2.0.0 → 2.5.0 and runs 12–19 (verbatim), with the implementer's review beside it
 HANDOFF.md                                   status, history table, open questions, proposed next step
 ```
 

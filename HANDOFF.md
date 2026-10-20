@@ -2091,6 +2091,15 @@ the deadline and the lapse is intended — the rule's words leave it to the pare
 chain's: a parent-side problem the panel catches at its rate, not the missed-child rule's. **2.5.0 stands.** No appendix note, no errata.
 **Next:** the reviewer's next candidate, if any.
 
+## The 2.x account (October 20, 2026)
+
+The reviewer's consolidated account of 2.0.0 → 2.5.0 and runs 12–19 is kept verbatim at `docs/economy_2x_account.md`, with the
+implementer's review beside it (`docs/economy_2x_account-review.md`): an account under §19, nothing moving; four corrections of fact
+(§18.1's q7 is monetary behaviour and q10 constructibility; 2.0.0's deficit was retired as a rule by 2.1.0; the lagging auditor is zero in
+the quiet cells, not the drift wave or the cycler; the riots' loans peak in the tens since 2.2.0) and wording notes, every figure else
+verified against the notes. It reads the programme as at the marker set for the learned red team. **Next:** the brief for it, if that is
+the reviewer's next step.
+
 ## Maps
 
 Two `_line` artifacts in project Agentic-OS (`c54120a6-aaff-40f7-8a9f-3667da542879`):

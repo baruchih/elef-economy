@@ -2245,6 +2245,30 @@ re-arrival number and whether a departed name's float is the actor's lifetime we
 blind rejection costs what the rules say; the Q2 probe's gap, real at this resolution; the budget (five learned lines for one question).
 **Next:** the reviewer's reading; then Q3, the selective cheat, on the fixes the reviewer accepts.
 
+## Run 24 — the appeals baseline, the calibration cell's cost, the rolling window and the plant's posting (October 20–21, 2026)
+
+**What ran** (the rulings after run 23, Appendix S; code `09622b85` the rulings, `64b82232` the posting correction and the probe's instruments;
+notes `results/studies/2.6.0-run24-notes-for-reviewer.md`). Three evaluations under fixed rules: run 16's world with appeals on against off,
+twenty seeds (`results/studies/2.6.0-appeals/`); the calibration cell's ideal (the plain stamper) against careful at care-cost scales 2–4 on
+seeds 21–40 (`results/redteam/calibration/`); the plant's draws on a rolling window of the last k real roots and Q2's probe re-read with
+paired errors and a per-field ablation (`results/redteam/Q2/offline-2.6.0-rolling*`, `models/probe-2.6.0-*-se80*`, `-se160-*`).
+
+**Findings.** *Appeals:* 96 % of false rejections overturned, final N 599 → 510, vested +43, careful richer in real terms (+86 ± 39) with its
+forfeits doubled, court fees to Ω about 2 D a run (zero through run 23); nothing else moves. Truthful appeals are the population's default from
+here (`--appeal-policy none` reproduces runs 1–23). *The calibration cell is set at care-cost 4:* the ideal clears careful by 5.8 SE (+718 ± 123);
+at 3 by 2.0. *The window closed nothing:* the case's separation sat in the seating gap (`rv_gap` the one field adding beyond the context) because
+the orchestrator's instrument posted the plants after the tick's award pass, so a plant waited a tick more than every real root (1.13 against
+0.41) and was seated first as the oldest of the tick's submissions (4.4 % seated later against 16.2 %). Corrected in the driver: the plants due are
+posted in the requesters' step at a drawn position among the tick's postings (posted last they were the youngest and seated last — the tell
+reversed). *On the corrected construction the criterion is not met at a third of the distance:* the case's fields add +0.016 ± 0.004 (appeals
+off) and +0.019 ± 0.005 (on) at twenty test seeds, from +0.052; no field above +0.007 alone; the largest piece is the time a root was seen
+available — the plant requester never raises its ceiling while 35 % of real roots are raised. Suite 328 + 32 in three modes at both commits;
+goldens re-pinned once for the window.
+
+**For the decision** (notes §5): record or undo the posting correction; the residual 0.02 — accept as the construction's floor, or a conformance
+reading of the plant's ceiling (drawn as posted, raised as a requester's), or a design item; run 22's SE figures read 280 episodes (the same
+reading at 80). **Next:** 2.7.0 (the arrival loan) on its acceptance; Q1's learned line once more under it with appeals and re-arrival on; Q3.
+
 ## Maps
 
 Two `_line` artifacts in project Agentic-OS (`c54120a6-aaff-40f7-8a9f-3667da542879`):

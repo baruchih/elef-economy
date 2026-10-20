@@ -452,7 +452,7 @@ class Stamping:
                 return F, 0.0
         right = self.rng.random() < self.a.accuracy
         v = F if (truth == right) else N
-        want = float(self.rng.randint(2, 3))
+        want = float(self.rng.randint(2, 3)) * self.a.care_cost   # the care cost: uniform {2, 3} credits, scaled (the calibration cell's knob)
         affordable = (self.w.unlocked(reviewer) if self.floating else self.w.unlocked(reviewer) * self.w.money()["v"]) - 1e-6   # 2.0.0: credits
         if affordable >= want:
             return v, want
@@ -2039,9 +2039,13 @@ def build_parser():
     ap.add_argument("--dispute-policy", choices=["none", "truthful", "half", "always"], default="none",
                     help="H's response to a pending F: none; truthful = dispute when the work truly failed; half = the same "
                          "with probability 0.5; always = dispute every pending F (H pays D)")
-    ap.add_argument("--appeal-policy", choices=["none", "truthful", "always"], default="none",
-                    help="the actor's response to an N: none = accept; truthful = appeal when the work is truly fulfilled; "
+    ap.add_argument("--appeal-policy", choices=["none", "truthful", "always"], default="truthful",
+                    help="the actor's response to an N: none = accept (the population's default through run 23); truthful = appeal when "
+                         "the work is truly fulfilled (the default from run 24, the reviewer's ruling after run 23); "
                          "always = appeal every N (the court fee D is paid when the actor can fund it)")
+    ap.add_argument("--care-cost", type=float, default=1.0,
+                    help="the careful reviewer's care cost as a multiple of the drawn {2, 3} credits (1.0 the population's; raised in the "
+                         "calibration cell only, so the cell's ideal clears careful by three standard errors — the ruling after run 23)")
     ap.add_argument("--band", type=float, default=0.05, help="the κ tie band of selection (§5.2)")
     ap.add_argument("--gv", type=float, default=5.0, help="G^V, the reviewer bond")
     ap.add_argument("--fee", type=float, default=2.0, help="f, the ordinary-review fee (1.1.0 §4.3); appeal/audit pay 1.5 f")
@@ -2196,7 +2200,7 @@ def main(argv=None):
                                                "awards": "oldest request first (case-id order) — conformance, I26"},
                                 "dispositions": {"stamper_fraction": a.stampers,
                                                  "assignment": dict(sorted(run.kind.items())),
-                                                 "careful": {"accuracy": a.accuracy, "cost": "uniform {2, 3} credits, or what unlocked "
+                                                 "careful": {"accuracy": a.accuracy, "care_cost_scale": a.care_cost, "cost": "uniform {2, 3} credits, or what unlocked "
                                                                                            "credit can buy (counted as underfunded)"},
                                                  "stamper": {"verdict": "F" if a.camouflage == 0 else f"F, N w.p. {a.camouflage} (camouflage)",
                                                              "cost": 0,

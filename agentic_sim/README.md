@@ -142,7 +142,7 @@ tests/test_v26.py                   design revision 14 (2.6.0): the plant's disg
                                     capacity and credit refusals on the p_T path and the pinned draw (the ruling after run 21); submit_plant at the
                                     drawn tick and not before (the Q2 probe's correction) — 16
 
-Run: `python3 run_tests.py` — 327 pass, 0 fail, 32 expected failures, each with a stated reason (one original,
+Run: `python3 run_tests.py` — 328 pass, 0 fail, 32 expected failures, each with a stated reason (one original,
 four superseded by the view contract, nineteen on the withdrawn reopening path, one superseded by design
 revision 1, one by design revision 2, two by design revisions 10 and 11 — a service fee pooled until the close and the pool's advance move the reimbursement figures they pin — two by design revision 11 — the parent's pots make three children unaffordable on a float of 50, and the root's allowance is no longer exhausted by a nested review — two by design revision 8 — the backing's v_t and the pay-in refused at posting; the three 1.x figures 2.0.0's moving index broke pass again under 2.1.0's index per period). With pytest: `python3 -m pytest tests -q` reports 259 passed, 31 xfailed; the
 runner expands pytest parametrization as pytest does, including multi-argument and stacked marks. (Spec Appendix D
@@ -564,7 +564,10 @@ against its other decisions, its stamp rate by odds band, the slot's suspensions
 its admissions, the false approvals passed per suspension — read from the engine at each decision, so the hidden cell (`--hide own_p_eff`)
 is read too. With re-arrival allowed (`--learner-rearrive on`), two hand-written references beside the learned one: `harvester` stamps every
 review and leaves at every boundary (the cycler, carrying the float out each return); `leaver` is careful and leaves at every boundary (the
-float alone).
+float alone). After run 23's acceptance: `--care-cost` (the careful reviewer's care cost as a multiple of the drawn {2, 3} credits; raised in
+the calibration cell only until the cell's ideal clears careful by three standard errors), truthful appeals the population's default from run
+24 (`--appeal-policy none` reproduces runs 1–23), and the plants' draws reading a rolling window of the last k real roots (the conformance
+item, Appendix S) — the engine's `_recent` beside `_trailing`, whose counts set k.
 
 After run 22's acceptance, the reviewer's rulings for the red team: **a calibration cell** before each question's learner reads anything —
 the driver's `--audit-roll off` (the roll never made; a declared implementation effect, in the manifest) with `--pi0 0 --dial off`, so a

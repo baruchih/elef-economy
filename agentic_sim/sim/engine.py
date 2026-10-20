@@ -459,8 +459,9 @@ class World:
         self.plant_market_ticks = 0                      # Σ (t_award − t_post) over plants awarded: the time in the market
         self.plant_names: set = set()                    # every fresh plant name minted (I39: no two plants share one)
         self.plants_refused_capacity, self.plants_refused_credit = 0, 0   # the p_T path's refusals (Appendix S ruling after run 21)
-        self._trailing: list = []                        # the last closed periods' real roots: {"betas", "taus", "deliv"}
+        self._trailing: list = []                        # the last closed periods' real roots: {"betas", "taus", "deliv"} — their counts are k
         self._cur_trailing = {"betas": [], "taus": [], "deliv": []}
+        self._recent = {"betas": [], "taus": [], "deliv": []}   # every real root's terms in order; a plant's draw reads the last k (Appendix S, after run 23)
         self.plant_shortfall = 0                        # plants the rate called for that Ω could not fund
         self.eligibility_shortfall = 0                  # Σ over ticks of (X_t − actors on duty) when the pool was empty
         self.reserve_shortfall_now = 0
@@ -1312,6 +1313,8 @@ class World:
             self._record_price(B)
             self._cur_trailing["betas"].append(c.beta)   # 2.6.0: what a plant's draws read — the real roots' terms
             self._cur_trailing["taus"].append(tau)
+            self._recent["betas"].append(c.beta)
+            self._recent["taus"].append(tau)
         a.committed = cid
         self._log(c, f"awarded to {actor_id} B={B} tau={tau} G={G}; deadline {c.deadline}")
 
@@ -1351,6 +1354,7 @@ class World:
         c.seat_since = self.t                              # the initial seat is required from now (1.4.0 §2.2)
         if c.is_root and c.plant is None and c.t_award is not None and not self.is_troop(c.actor):
             self._cur_trailing["deliv"].append(self.t - c.t_award)   # 2.6.0: a real delivery's time, what a plant actor's draw reads
+            self._recent["deliv"].append(self.t - c.t_award)
         self._log(c, "submitted")
 
     @staticmethod
@@ -2923,9 +2927,12 @@ class World:
         return cid
 
     def _plant_draw(self, key: str, salt: str, default):
-        """2.6.0 §2.1: a draw from the trailing real distribution `key` (the last `trailing_periods` closed periods' roots), by the
-        History's head — deterministic, seed-free; the default before the first closed period (the drivers' defaults)."""
-        pool = [x for per in self._trailing for x in per[key]]
+        """2.6.0 §2.1: a draw from the trailing real distribution `key`, by the History's head — deterministic, seed-free; the default
+        before the first closed period (the drivers' defaults). The window is rolling (the conformance item after run 23, Appendix S): the
+        last k real roots' terms, k the count the last `trailing_periods` closed periods hold — not the closed periods' own box, whose
+        contents changed only at a boundary and so carried the period's rhythm into every plant's terms."""
+        k = sum(len(per[key]) for per in self._trailing)
+        pool = self._recent[key][-k:] if k > 0 else []
         if not pool:
             return default
         h = int(hashlib.sha256(f"{self.history.head}|{salt}".encode()).hexdigest()[:12], 16)
@@ -3244,6 +3251,9 @@ class World:
         self._trailing.append(self._cur_trailing)
         self._trailing = self._trailing[-max(1, self.p.trailing_periods):]
         self._cur_trailing = {"betas": [], "taus": [], "deliv": []}
+        for key in self._recent:                        # the rolling list need hold no more than the window's width k
+            k = sum(len(per[key]) for per in self._trailing)
+            self._recent[key] = self._recent[key][-max(1, k):]
         rec = {"t": tick, "start": per["start"], "plants": per["plants"], "bad": per["bad"],
                # 2.6.0 §2.1: the plant counts, published at the close (a live count that moved the tick a root appeared would name it)
                "plants_posted": per["plants_posted"], "plants_awarded": per["plants_awarded"], "plants_at_floor": per["plants_at_floor"],

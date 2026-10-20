@@ -160,6 +160,26 @@ def test_the_draws_read_the_trailing_real_roots_after_a_closed_period():
     assert w.cases[p].plant_submit_at == w.t + 3                  # the plant actor's time to submission, the real deliveries'
 
 
+def test_the_draws_read_a_rolling_window_of_the_last_k_real_roots_not_the_closed_periods_box():
+    """The conformance item after run 23 (Appendix S): k is the count the last closed period holds; the window is the last k real roots,
+    the current period's included, so a root awarded today enters as the oldest leaves — the box's contents no longer change only at a
+    boundary."""
+    w = make_world(period_ticks=10, period_plants=10_000)
+    for beta in (24, 30):
+        q = w.post_root("H", beta)
+        w.award(q, "A" if beta == 24 else "B", beta - 4, 9)
+    w.advance(12)                                                 # the period closes with two real roots: k = 2
+    assert [len(per["betas"]) for per in w._trailing] == [2]
+    q = w.post_root("H", 40)
+    w.award(q, "A", 36, 9)                                        # a root of the current period (A free again after the lapse): the window is now β 30, 40 — 24 has left
+    drawn = set()
+    for _ in range(12):
+        p = w.post_plant(True)
+        drawn.add(w.cases[p].beta)
+    assert drawn <= {30.0, 40.0} and len(drawn) == 2, drawn       # both of the window, never the box's 24
+    check_all(w)
+
+
 # ---------------------------------------------------------------- §2.3 opaque identifiers, the view
 
 def test_the_public_surface_translates_identifiers_both_ways_and_they_carry_no_order():

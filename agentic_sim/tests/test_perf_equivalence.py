@@ -193,12 +193,15 @@ GOLDEN = {
     # awarded on the report, submitted at a drawn tick — so every fingerprint moves; the previous pins (2.4.0) are in the History of this file
     # seed 1 re-pinned with the Appendix S ruling after run 21 (the same day, the same revision): the p_T path follows the summons pass's
     # refusals, and this scenario refuses nineteen plants for credit; seed 2 meets no refusal and is unchanged
-    1: {"head": "9e3fbbd157e3016205a533466d37531f0d506bd92f7fd0095bcea9388b393507", "entries": 8979,
-        "M": 120321.776243, "Res": 0.0,
-        "states": {"FINAL_N": 178, "VESTED": 55, "WITHDRAWN": 10, "PENDING": 3, "SUBMITTED": 4, "AVAILABLE": 5}},
-    2: {"head": "843ad30458e29c2ba90ac194e6aa86084f8b1d73868c4a85a44c7939206264c8", "entries": 9756,
-        "M": 120027.852558, "Res": 0.0,
-        "states": {"FINAL_N": 200, "VESTED": 61, "WITHDRAWN": 17, "PENDING": 4, "AVAILABLE": 5, "AWAITING_RESPONSE": 1, "SUBMITTED": 1, "COMMITTED": 3}},
+    # (9e3fbbd1… / 8979 and 843ad304… / 9756). Both re-pinned once more with the conformance item after run 23 (the same day): the plant's
+    # draws read a rolling window of the last k real roots, k the closed period's count, not the closed period's own box, so every plant's
+    # ceiling and time to submission may differ and the whole path moves.
+    1: {"head": "381b09c50b7f83d2044da36109ad571376d56c880bfa4c026833d617557a3a53", "entries": 9161,
+        "M": 120202.351381, "Res": 0.0,
+        "states": {"FINAL_N": 189, "VESTED": 55, "WITHDRAWN": 6, "PENDING": 2, "AVAILABLE": 12, "COMMITTED": 3}},
+    2: {"head": "12bbf75751c8fe1e1ec20b422c74ee81d3d6c3ea482749cba531a38fc0a32dce", "entries": 10302,
+        "M": 120250.324989, "Res": 0.0,
+        "states": {"FINAL_N": 217, "VESTED": 52, "WITHDRAWN": 12, "SUBMITTED": 3, "PENDING": 6, "AVAILABLE": 3, "COMMITTED": 1}},
 }
 
 

@@ -91,12 +91,13 @@ HANDOFF.md                                   status, history table, open questio
 
 ```
 cd agentic_sim
-python3 run_tests.py        # expected: 327 passed, 0 failed, 32 expected failures
+python3 run_tests.py        # expected: 328 passed, 0 failed, 32 expected failures
 python3 -S run_tests.py     # same, with no site-packages
 python3 run_tests.py --record   # same, every World in record mode
-python3 -m pytest tests -q  # expected: 327 passed, 32 xfailed, 0 xpassed (conftest mirrors the runner; pytest is not installed here)
+python3 -m pytest tests -q  # expected: 328 passed, 32 xfailed, 0 xpassed (conftest mirrors the runner; pytest is not installed here)
 python3 -m drivers.load_run --actors 200 --ticks 10000 --on-duty 40 --tasks 30 --record-dir /path  # throughput run
 python3 -m drivers.stamping --actors 20 --ticks 1000 --stampers 0.6 --seed 1   # §18.1 q1 under 2.1.0: six requesters with wallets, members bidding, the state at its expected cost on the bank's loans under N_T 40
+python3 -m drivers.stamping --entry-pool 20 --stampers 0.6 --appeal-policy none --seed 1   # runs 1–23's population: no appeals (truthful appeals are the default from run 24, the ruling after run 23)
 python3 -m drivers.stamping --entry-pool 20 --stampers 0.6 --seed 1   # 2.6.0: run 16's cell with the plants going through the market (posted, bid on, awarded on the report, submitted at a drawn tick); --rules 2.5.0 the control (plants built submitted); --tie-break id / --genesis-duty lowest the ordering controls; --trailing-periods 2 the window knob
 python3 -m drivers.stamping --entry-pool 20 --stampers 0.6 --tell-readers 0.125 --tell idage --seed 21   # the red team's Q2, hand-written: one tell-reader in eight careful actors; --tell gap|cap|idage|seen|post|price|losttie|all (any) within the convention, oracle (the marker) and freshname (the record's awardee) outside it, declared
 python3 -m drivers.stamping --entry-pool 20 --stampers 0.6 --ceiling-policy patient --patient-ticks 10 --seed 1   # 2.4.0 §8.2: patient customers against the floor (raising to max(B̄, the floor) read from the view); --state-reservation 0 the control (the 2.3.0 state), 4 / 12 the sweep; patient-blind run 17's policy
@@ -429,9 +430,12 @@ consolidated into one standalone spec with the accepted revision kept verbatim i
   loop reads the awarded actor after the report (`plant_bids_lost`); the plant's submission left to the engine; `--tie-break draw|id`, `--genesis-duty
   draw|lowest`, `--trailing-periods`; the tell-readers' observations per reader (`seen`, `my_bid`, `lost_bid`) and the tells `gap`, `cap`, `idage`, `seen`,
   `post`, `price`, `losttie`, `all`, with `oracle` and `freshname` outside the convention; the readings `plants_posted/awarded/at_floor`,
-  `plant_bids_lost`, `plant_time_in_market_mean`, `plant_lag_mean`, `plant_names`, `available_roots`. `test_v26` (16); goldens re-pinned once (seed 1 again with the Appendix S ruling). The Q2 probe's correction: the orchestrator's
+  `plant_bids_lost`, `plant_time_in_market_mean`, `plant_lag_mean`, `plant_names`, `available_roots`. `test_v26` (17); goldens re-pinned once (seed 1 again with the Appendix S ruling; both again with the rolling window). The Q2 probe's correction: the orchestrator's
   instrument submits for the plant actor at its drawn tick in the members' submission step (`submit_plant`, refused before the tick; the
   engine's step the fallback) — the engine-side submission landed after the driver's seating and gave every plant a seating gap of one tick.
+  The conformance item after run 23 (Appendix S): the plant's draws (`_plant_draw`: the ceiling at posting, the time to submission at the
+  award) read a **rolling window** of the last k real roots' terms (`_recent`), k the count the last `trailing_periods` closed periods hold
+  (`_trailing`), not the closed periods' own box, whose contents changed only at a boundary and carried the period's rhythm into every plant.
 - The learned red team (`agentic_sim/redteam/`, October 20, 2026; the brief and the build plan in `docs/`). Run it with
   `/opt/homebrew/Caskroom/miniconda/base/envs/elef-redteam/bin/python -m redteam.<module>` from `agentic_sim/`; the project's Python has no torch and
   the suite never imports the package. The learner is a driver: `--learner-slot on` makes the slot actor (the first careful id, the same actor the
@@ -455,7 +459,12 @@ consolidated into one standalone spec with the accepted revision kept verbatim i
   decision — `decision_boundary`, the 45th field — 1 leaves and returns under a fresh name `L<n>` with the float as a probationer, the
   exit rule returning it the same way; lifetime real wealth summed across identities, floats minted read beside; the hand-written
   references `harvester` — stamp every review, leave at every boundary — and `leaver` — careful, leave at every boundary — the
-  ceiling of the float harvest); a bootstrap SE on every AUC (`probe.py --initial-only`).
+  ceiling of the float harvest); a bootstrap SE on every AUC (`probe.py --initial-only`). After run 23's acceptance (October 20, 2026;
+  Appendix S): the re-arrival result is Q1's finding and it is 2.3.0's float (2.7.0, the arrival loan, the reviewer's draft to follow);
+  an uncalibrated learner's no-wins are not findings, a win stands; the calibration cell's care cost is raised in that cell only
+  (`--care-cost`, a multiple of the drawn {2, 3}) until the cell's ideal clears careful by three SE, the calibration once per learner version;
+  truthful appeals are the population's default from run 24 (`--appeal-policy truthful`; `none` reproduces runs 1–23); the plants' draws read a
+  rolling window (the conformance item above) and Q2's probe is re-read with errors.
 - Money is checked by invariant I1 (conservation) — never silently create or lose credits.
 
 ## Vocabulary (spec Appendix C has the full notation)

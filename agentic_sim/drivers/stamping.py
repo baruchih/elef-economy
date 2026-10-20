@@ -1264,7 +1264,11 @@ class Stamping:
                             pass
                 continue                                 # §8.7 red team: the lowball child never delivers — it misses (or submits empty)
             if c.state == "COMMITTED" and self.tasks[cid].plant and self.rev12:
-                continue                                 # 2.6.0 §2.1: the plant actor submits at its drawn tick — the engine's step
+                # 2.6.0 §7.6 (the Q2 probe's correction): the orchestrator's instrument submits for the plant actor at its drawn tick, in
+                # this step — the same step a member's submission takes — so the plant reaches its seat with a real case's gap
+                if c.plant_submit_at is not None and w.t >= c.plant_submit_at:
+                    w.submit_plant(cid)
+                continue
             if c.state == "COMMITTED" and t >= c.t_award + min(a.work_ticks, c.tau) and cid not in self.parent_waiting:
                 if self.floating and not w.is_troop(c.actor):
                     # 2.0.0 §2.2: the actor's effort, burned at submission (§4.6) — what its unlocked credit can pay of it

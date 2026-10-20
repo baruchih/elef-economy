@@ -265,3 +265,27 @@ def test_the_submission_draw_can_be_pinned_for_the_lag_cell():
     p2 = w2.post_plant(True)
     w2.award(p2, "A", 15, 4)
     assert w2.cases[p2].plant_submit_at == w2.cases[p2].deadline
+
+
+# ---------------------------------------------------------------- the Q2 probe's correction: the plant's submission in the members' step
+
+def test_the_orchestrators_instrument_submits_for_the_plant_actor_at_its_tick_and_not_before():
+    w = make_world(plant_submit_fixed=3)
+    p = w.post_plant(False)
+    w.award(p, "A", 15, 5)
+    c = w.cases[p]
+    assert c.plant_submit_at == 3
+    with pytest.raises(RuleError):
+        w.submit_plant(p)                                             # before the drawn tick
+    q = w.post_root("H", 30); w.award(q, "B", 20, 4)
+    with pytest.raises(RuleError):
+        w.submit_plant(q)                                             # not a plant
+    w.advance(3)
+    w.submit_plant(p)                                                 # at the tick, in the members' submission step
+    assert c.state == "SUBMITTED" and c.t_submit == 3 and c.seat_since == 3
+    with pytest.raises(RuleError):
+        w.submit_plant(p)                                             # not twice
+    I39_the_plants_disguise(w)
+    w.advance(4)                                                      # the engine's step finds nothing left to do
+    assert c.state == "SUBMITTED" and c.t_submit == 3
+    check_all(w)

@@ -271,6 +271,10 @@ class Public:
         """2.6.0 §2.1: the orchestrator posts a plant as a root under a fresh name; the market takes it from there."""
         return self._pub(self._w.post_plant(truth))
 
+    def submit_plant(self, cid: str):
+        """2.6.0 §7.6: the orchestrator's instrument submits for the plant actor at its drawn tick, in the members' submission step."""
+        self._w.submit_plant(self._eng(cid))
+
     def plants_due(self) -> int:
         """Whole plants the plant rate calls for that have not been created."""
         return self._w.plants_due()

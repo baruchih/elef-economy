@@ -3031,15 +3031,31 @@ class World:
             self.period["plant_bids_lost"] += 1
         self._log(c, f"awarded to {act} B={B} tau={tau} G={G}; deadline {c.deadline}")
 
+    def _plant_do_submit(self, c: Case, tick: int):
+        c.state, c.t_submit = "SUBMITTED", tick
+        c.seat_since = tick
+        self._log(c, "submitted")
+
+    def submit_plant(self, cid: str):
+        """2.6.0 §7.6 (the conformance correction the Q2 probe found, Appendix S): the orchestrator's instrument submits for the plant actor
+        at its drawn tick, in the same step a member's submission takes — so the plant reaches its seat with the gap a real case has. Refused
+        before the drawn tick; the engine's own step (`_plant_submit_step`) is the fallback for an orchestrator that does not call it."""
+        c = self._case(cid)
+        if c.plant is None or not c.plant_market:
+            raise RuleError("submit_plant: not a plant in the market")
+        if c.state != "COMMITTED":
+            raise RuleError(f"submit_plant: case {cid} is {c.state}")
+        if c.plant_submit_at is None or self.t < c.plant_submit_at:
+            raise RuleError(f"submit_plant: the plant actor submits at its drawn tick {c.plant_submit_at}, not at {self.t}")
+        self._plant_do_submit(c, self.t)
+
     def _plant_submit_step(self, tick: int):
-        """2.6.0 §2.1: the plant actor submits the known-truth result at its drawn tick — after the tick's submissions have been read,
-        before the deadlines; from here the plant is seated, reviewed and adjudicated as 1.2.0 has it."""
+        """2.6.0 §2.1: the plant actor's submission at its drawn tick, the engine's fallback — after the tick's submissions have been read,
+        before the deadlines — for a plant the orchestrator's instrument did not submit (`submit_plant`)."""
         for c in list(self._live_cases.values()):
             if c.plant is not None and c.plant_market and c.state == "COMMITTED" and c.plant_submit_at is not None \
                     and tick >= c.plant_submit_at:
-                c.state, c.t_submit = "SUBMITTED", tick
-                c.seat_since = tick
-                self._log(c, "submitted")
+                self._plant_do_submit(c, tick)
 
     def plants_due(self) -> int:
         """How many plants the rate calls for that have not been created (whole plants)."""

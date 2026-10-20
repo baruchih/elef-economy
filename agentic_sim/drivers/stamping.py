@@ -308,6 +308,7 @@ class Stamping:
             self.learner_id = self.tell_slot
             self.kind[self.learner_id] = LEARNER
         self.learner_decisions = 0
+        self.readers = set(self.tell_readers) | ({self.learner_id} if self.learner_id else set())   # who keeps a seen set and its bids
         self.tells = {"gap", "cap", "idage", "seen", "post", "price", "losttie"} if a.tell == "all" else set(a.tell.split("+"))   # `oracle` / `freshname`: outside the convention (declared)
         self.seen: dict[tuple, tuple] = {}            # (reader, case) -> (world tick first seen available, its ceiling, P_t then)
         self.my_bid: dict[tuple, float] = {}          # (reader, case) -> the reader's bid
@@ -1159,8 +1160,8 @@ class Stamping:
                     self.active.pop(cid, None)
         # Q2: what a free tell-reader sees of the market before this tick's awards — the roots available, when first seen, at what
         # ceiling, against the index then (the seen set; the idage, post and price tells read it)
-        if self.tell_readers:
-            free_readers = [aid for aid in self.free_members() if aid in self.tell_readers]
+        if self.readers:
+            free_readers = [aid for aid in self.free_members() if aid in self.readers]
             if free_readers:
                 P_now = w.market()["P_t"]
                 for cid in self.active:
@@ -1187,18 +1188,18 @@ class Stamping:
                 actor, bid = self.select_bid(bids, beta)
                 tau = a.work_ticks + (a.nested_tau if a.delegation == "on" and self.rev11 else 0)   # 2.3.0: room for a child
                 for aid_b, bid_b in bids:
-                    if aid_b in self.tell_readers:
+                    if aid_b in self.readers:
                         self.my_bid[(aid_b, cid)] = bid_b    # Q2's readers: what the reader bid, to read a lost bid later
                 w.award(cid, actor, bid, tau)
                 if w.case(cid).actor != actor:
                     # 2.6.0 §2.1: the award was the market's report on a plant — the plant actor took it; the member's bid is lost
                     self.c["plant_bids_lost"] += 1
                     for aid_b, _ in bids:
-                        if aid_b in self.tell_readers:
+                        if aid_b in self.readers:
                             self.lost_bid[(aid_b, cid)] = w.t
                     continue
                 for aid_b, _ in bids:
-                    if aid_b in self.tell_readers and aid_b != actor:
+                    if aid_b in self.readers and aid_b != actor:
                         self.lost_bid[(aid_b, cid)] = w.t
                 self.parent_awards[actor] = self.parent_awards.get(actor, 0) + 1
                 self.margin[actor] = round(self.margin[actor] + a.margin_up, 6)

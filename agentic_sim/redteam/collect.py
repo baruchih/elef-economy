@@ -1,0 +1,57 @@
+"""Offline trajectories for the world model (the build plan: careful, stamper, careful with ε = 0.2 random actions, uniform random, on
+seeds 1–20 by default). One file per (policy, seed) under <out>/<policy>-seed<N>.npz: obs (T, D), action (T,), reward (T,), is_plant (T,),
+fulfilled (T,), t (T,) and the episode's lifetime real wealth. Usage: python -m redteam.collect --out results/redteam/Q2/offline
+[--seeds 1-20] [--policies careful,stamper,eps,random] [--rules 2.6.0] -- <cell args>"""
+from __future__ import annotations
+import argparse, json, os, sys, time
+import numpy as np
+
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+from redteam.env import ElefReviewerEnv, POLICIES
+
+
+def rollout(env, policy, seed, rng):
+    obs, info = env.reset(seed=seed)
+    O, A, R, P, F, T = [], [], [], [], [], []
+    done = info.get("terminal", False)
+    while not done:
+        a = policy(obs, rng)
+        O.append(obs); A.append(a); P.append(info.get("is_plant", False)); F.append(info.get("fulfilled", True)); T.append(info.get("t", 0))
+        obs, r, done, _, info = env.step(a)
+        R.append(r)
+    return (np.array(O, dtype=np.float32).reshape(-1, obs.shape[-1]), np.array(A, dtype=np.int64), np.array(R, dtype=np.float32),
+            np.array(P, dtype=bool), np.array(F, dtype=bool), np.array(T, dtype=np.int64), info)
+
+
+def main(argv=None):
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--out", required=True)
+    ap.add_argument("--seeds", default="1-20")
+    ap.add_argument("--policies", default="careful,stamper,eps,random")
+    ap.add_argument("--ticks", type=int, default=1000)
+    ap.add_argument("--hide", default="", help="observation fields zeroed (comma-separated), e.g. own_p_eff for Q1's hidden-odds cell")
+    ap.add_argument("cell", nargs=argparse.REMAINDER, help="the stamping driver's cell arguments after --")
+    a = ap.parse_args(argv)
+    cell = [x for x in a.cell if x != "--"]
+    lo, hi = (int(x) for x in a.seeds.split("-")) if "-" in a.seeds else (int(a.seeds), int(a.seeds))
+    os.makedirs(a.out, exist_ok=True)
+    env = ElefReviewerEnv(cell, ticks=a.ticks, hide=tuple(x for x in a.hide.split(",") if x))
+    summary = []
+    t0 = time.time()
+    for name in a.policies.split(","):
+        pol = POLICIES[name]
+        for seed in range(lo, hi + 1):
+            rng = np.random.default_rng(seed * 1000 + hash(name) % 997)
+            O, A, R, P, F, T, info = rollout(env, pol, seed, rng)
+            np.savez_compressed(os.path.join(a.out, f"{name}-seed{seed}.npz"), obs=O, action=A, reward=R, is_plant=P, fulfilled=F, t=T,
+                                lifetime=info.get("lifetime_real_wealth", float("nan")), seed=seed, policy=name)
+            summary.append({"policy": name, "seed": seed, "decisions": int(len(A)), "lifetime_real_wealth": info.get("lifetime_real_wealth"),
+                            "plants": int(P.sum()), "error": info.get("error")})
+            print(f"{name} seed {seed}: {len(A)} decisions, lifetime {info.get('lifetime_real_wealth', float('nan')):.1f}, plants {int(P.sum())}" + (f" ERROR {info['error']}" if info.get("error") else ""), flush=True)
+    env.close()
+    json.dump({"cell": cell, "ticks": a.ticks, "hide": a.hide, "seconds": round(time.time() - t0, 1), "episodes": summary},
+              open(os.path.join(a.out, "summary.json"), "w"), indent=1)
+
+
+if __name__ == "__main__":
+    main()

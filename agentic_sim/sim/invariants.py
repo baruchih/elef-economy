@@ -1191,6 +1191,10 @@ def I39_the_plants_disguise(w, cases=None):
             _fail(f"I39 {c.id}: a plant paid a fee {c.omega}")
         if c.troop_award:
             _fail(f"I39 {c.id}: a plant delivered by a troop")
+        if c.actor is not None and c.actor in w.troops:
+            _fail(f"I39 {c.id}: a plant's actor holds a place in N_T")
+        if c.refused not in (None, "capacity", "credit"):
+            _fail(f"I39 {c.id}: an unknown mark {c.refused}")
         if w.p.service_clock and w._clock_runs(c):
             _fail(f"I39 {c.id}: a plant's clock runs")
         if c.state == "AVAILABLE" and c.t_award is not None:

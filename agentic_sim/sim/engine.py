@@ -458,6 +458,7 @@ class World:
         self.plants_posted, self.plants_awarded, self.plants_awarded_at_floor, self.plant_bids_lost = 0, 0, 0, 0
         self.plant_market_ticks = 0                      # Σ (t_award − t_post) over plants awarded: the time in the market
         self.plant_names: set = set()                    # every fresh plant name minted (I39: no two plants share one)
+        self.plants_refused_capacity, self.plants_refused_credit = 0, 0   # the p_T path's refusals (Appendix S ruling after run 21)
         self._trailing: list = []                        # the last closed periods' real roots: {"betas", "taus", "deliv"}
         self._cur_trailing = {"betas": [], "taus": [], "deliv": []}
         self.plant_shortfall = 0                        # plants the rate called for that Ω could not fund
@@ -3016,8 +3017,8 @@ class World:
         self._freeze(c)
         c.state = "COMMITTED"
         c.member_at_award = True
-        d = int(self._plant_draw("deliv", f"deliv{c.id}", tau))
-        c.plant_submit_at = self.t + max(1, min(d, tau))   # the plant actor's time to submission, within (0, τ]
+        d = self.p.plant_submit_fixed if self.p.plant_submit_fixed > 0 else int(self._plant_draw("deliv", f"deliv{c.id}", tau))
+        c.plant_submit_at = self.t + max(1, min(d, tau))   # the plant actor's time to submission, within (0, τ] (pinned by the knob)
         self.plants_awarded += 1
         self.period["plants_awarded"] += 1
         self.plant_market_ticks += self.t - c.t_post
@@ -3800,8 +3801,26 @@ class World:
             for c in list(self._live_cases.values()):
                 if c.plant is not None and c.plant_market and c.state == "AVAILABLE" and tick - c.t_post + 1 >= self.p.w_A:
                     pT = self._state_price(c.beta)
-                    if c.beta + 1e-9 >= pT:
-                        self._award_plant(c, min(pT, c.beta), self.p.tau_T, at_floor=True)
+                    if c.beta + 1e-9 < pT:
+                        continue                            # below the state's price: waits, as a real root does
+                    # Appendix S (the ruling after run 21): the p_T path follows the summons pass, refusals included — a plant is marked
+                    # refused for capacity or credit as a real root would be, told, and waits; it takes no place in N_T and draws no loan
+                    if self._capacity_refuses(2):
+                        c.refused_capacity += 1
+                        c.capacity_wait_max = max(c.capacity_wait_max, tick - c.t_post + 1)
+                        if not c.capacity_told:
+                            self._log(c, f"refused for capacity: {self._places_held()} of N_T = {self.p.N_T} places held; told; waited {tick - c.t_post + 1} seating steps")
+                        self._mark_refused(c, "capacity", tick)
+                        self.plants_refused_capacity += 1
+                        continue
+                    if self.bank_on and self.debt > self._debt_bound() + 1e-9:
+                        c.refused_credit += 1
+                        if c.refused != "credit":
+                            self._log(c, f"refused for credit: the state's debt {self.debt:g} is above the wall {self._debt_bound():g}; told")
+                        self._mark_refused(c, "credit", tick)
+                        self.plants_refused_credit += 1
+                        continue
+                    self._award_plant(c, min(pT, c.beta), self.p.tau_T, at_floor=True)
         waiting = [c for c in self._live_cases.values()
                    if c.plant is None and not any(a[3] == "override" for a in c.assessments)
                    and c.state == "AVAILABLE" and c.is_root and self.p.troops and c.requester in self.requesters

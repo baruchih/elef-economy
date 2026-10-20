@@ -287,6 +287,7 @@ class Public:
                 # 2.6.0: the plant's life — live counters, the orchestrator's instrument (the published counts are the periods' records)
                 "plants_posted": w.plants_posted, "plants_awarded": w.plants_awarded, "plants_at_floor": w.plants_awarded_at_floor,
                 "plant_bids_lost": w.plant_bids_lost, "plant_market_ticks": w.plant_market_ticks, "plant_names": len(w.plant_names),
+                "plants_refused_capacity": w.plants_refused_capacity, "plants_refused_credit": w.plants_refused_credit,
                 "eligibility_shortfall": w.eligibility_shortfall, "reserve_shortfall_now": w.reserve_shortfall_now,
                 "suspensions": w.suspensions, "alarms": w.alarms, "alarm_streak": w.alarm_streak,
                 "member_seats": w.member_seats, "readmissions": w.readmissions,

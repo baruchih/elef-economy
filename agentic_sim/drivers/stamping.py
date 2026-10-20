@@ -239,7 +239,7 @@ class Stamping:
                    duty_cap_frac={"half": 0.5, "twothirds": 2.0 / 3.0, "threequarters": 0.75, "all": 1.0}[a.duty_cap],
                    state_reservation=(a.state_reservation if a.state_reservation is not None else (8.0 if a.rules in ("2.4.0", "2.5.0", "2.6.0") else 0.0)),
                    missed_child=(a.rules in ("2.5.0", "2.6.0")),
-                   plant_market=rev12, trailing_periods=a.trailing_periods,
+                   plant_market=rev12, trailing_periods=a.trailing_periods, plant_submit_fixed=a.plant_submit,
                    plant_reserve_life=(0 if a.plant_reserve == "period" else 15),
                    troop_account=(rev7 and a.accounts == "on"), omega_rate=a.omega_rate, r_s=a.r_s, T_susp=a.t_susp,
                    theta_panel=a.theta_panel, n_P=a.record_window,
@@ -1738,6 +1738,7 @@ class Stamping:
                     "plant_time_in_market_mean": round(dl["plant_market_ticks"] / dl["plants_awarded"], 3) if dl["plants_awarded"] else "",
                     "plant_lag_mean": round(self.c["plant_lag_sum"] / self.c["plant_lag_n"], 3) if self.c["plant_lag_n"] else "",
                     "plant_names": dl["plant_names"], "available_roots": mk["available_roots"],
+                    "plants_refused_capacity": dl["plants_refused_capacity"], "plants_refused_credit": dl["plants_refused_credit"],
                     # Q2 (the learned red team, hand-written first): the tell-reader's confusion table, its stamps caught and its standing
                     "tell_n": sum(1 for x in self.tell_readers if x in self.actors), "tell_set": "+".join(sorted(self.tells)) if self.tell_readers else "",
                     "tell_departed": sum(1 for x in self.tell_readers if x not in self.actors),
@@ -2026,6 +2027,7 @@ def main(argv=None):
     ap.add_argument("--tie-break", choices=["draw", "id"], default=None, help="2.6.0 §2.3: the tie after κ broken by a seeded draw (the default under 2.6.0) or by the lowest id (the control, the earlier rules' default)")
     ap.add_argument("--genesis-duty", choices=["draw", "lowest"], default=None, help="2.6.0 §2.3: the genesis duty reserve by a seeded draw (the default under 2.6.0) or the lowest-id actors (the control)")
     ap.add_argument("--trailing-periods", type=int, default=1, help="2.6.0: the closed periods a plant's draws read (1; the knob 2)")
+    ap.add_argument("--plant-submit", type=int, default=0, help="2.6.0: pin the plant actor's time to submission (0: the draw from the trailing real deliveries'; 1 the lag-pinning cell)")
     ap.add_argument("--state-rejecters", type=float, default=0.0,
                     help="2.1.0 §8.9 red team: the share of careful actors that reject every delivery of the state's (reads the case's actor — declared non-conforming)")
     ap.add_argument("--n-t", type=int, default=40, help="N_T, the most troops ELEF can field at once (0 = unbounded, the control)")

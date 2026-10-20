@@ -415,7 +415,10 @@ consolidated into one standalone spec with the accepted revision kept verbatim i
   before the first), the all-in β + φ^E + φ^F minted (no ω: a plant pays no fee) and locked as a posting lock, the marker sealed (`plant_created` at the
   posting, I20), the marks applied; `award(cid, member, B, τ)` on a plant is the market's report — `_award_plant` commits a fresh `plant_act:<hash>` (alias of
   `PLANT_ACT`) at B and τ, mints and locks G, draws the pots from the posting lock, records no price (neither B̄ nor P_t), commits no member; a plant unbid
-  for w_A goes to its actor at p_T and τ_T in `_summon_troops` (`plant_at_floor`, counted apart from the troops); `_plant_submit_step` submits at
+  for w_A goes to its actor at p_T and τ_T in `_summon_troops` (`plant_at_floor`, counted apart from the troops) — the path follows the summons pass,
+  refusals included (the Appendix S ruling after run 21): a plant the pass would refuse for capacity or credit is marked and told as a root would be
+  and waits, no place in N_T, no loan (`plants_refused_capacity/credit`); `Params.plant_submit_fixed` pins the submission draw (`--plant-submit`, the
+  lag-pinning cell); `_plant_submit_step` submits at
   `plant_submit_at` = t_award + a draw within (0, τ] before the deadlines, and `submit` on a plant is refused; from there 1.2.0 (`_adjudicate_plant`,
   the wallets' holdings destroyed at closure). `_plant_notional` is False for a market plant (its locks are real: I15, I21, I29, I37 amended); I39, I40 per
   tick and in the full audit. The view translates case ids both ways (`sim.invariants.public_id`, copies of cases, reviews, events and the ReviewView),

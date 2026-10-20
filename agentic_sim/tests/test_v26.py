@@ -225,3 +225,43 @@ def test_plant_market_off_is_2_5_0_create_plant_built_submitted_and_post_plant_r
     w2 = make_world()
     with pytest.raises(RuleError):
         w2.create_plant(False, 20)                                # under 2.6.0 a plant goes through the market
+
+
+# ---------------------------------------------------------------- Appendix S, the ruling after run 21: the p_T path follows the summons pass
+
+def test_a_plant_unbid_by_w_A_is_refused_for_capacity_as_a_root_would_be_and_takes_no_place_in_N_T():
+    w = make_world(w_A=3, N_T=1)                                  # a delivery needs two places: the state refuses every award
+    p = w.post_plant(True)
+    w.advance(8)
+    c = w.cases[p]
+    assert c.state == "AVAILABLE" and c.actor is None
+    assert c.refused == "capacity" and c.refused_capacity >= 1 and c.capacity_told and c.refused_at is not None
+    assert w._places_held() == 0 and w.plants_refused_capacity >= 1 and w.plants_awarded_at_floor == 0 and not w.troops
+    I39_the_plants_disguise(w)
+    check_all(w)
+
+
+def test_a_plant_unbid_by_w_A_is_refused_for_credit_above_the_wall_and_served_once_the_debt_is_within_it():
+    w = make_world(w_A=3, period_ticks=10, period_plants=10_000, debt_bound_periods=1)
+    w.advance(12)                                                 # a period closed: the wall is that period's fee income
+    assert w._debt_bound() < float("inf")
+    p = w.post_plant(False)
+    w._debt_bound = lambda: -1.0                                  # the wall below the debt (0): the pass refuses every delivery for credit
+    w.advance(w.t + 4)
+    c = w.cases[p]
+    assert c.state == "AVAILABLE" and c.refused == "credit" and c.refused_credit >= 1 and w.plants_refused_credit >= 1
+    del w._debt_bound                                             # the wall back where the rule puts it
+    w.advance(w.t + 1)
+    assert c.state == "COMMITTED" and c.plant_at_floor and c.refused is None   # served at p_T, the mark off
+    check_all(w)
+
+
+def test_the_submission_draw_can_be_pinned_for_the_lag_cell():
+    w = make_world(plant_submit_fixed=2)
+    p = w.post_plant(True)
+    w.award(p, "A", 15, 5)
+    assert w.cases[p].plant_submit_at == w.cases[p].t_award + 2
+    w2 = make_world(plant_submit_fixed=9)                         # never past the deadline
+    p2 = w2.post_plant(True)
+    w2.award(p2, "A", 15, 4)
+    assert w2.cases[p2].plant_submit_at == w2.cases[p2].deadline

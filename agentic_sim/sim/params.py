@@ -176,6 +176,7 @@ class Params:
     # plant wallets; it pays no fee and enters neither B̄ nor P_t. False is 2.5.0: `create_plant`, built submitted (the control).
     plant_market: bool = True
     trailing_periods: int = 1     # the window of closed periods the plant's draws read (the knob: 1 / 2)
+    plant_submit_fixed: int = 0   # 0: the plant actor's time to submission is the draw; n > 0 pins it (within (0, τ]) — the lag-pinning cell
 
     def __post_init__(self):
         # 2.4.0 §2.3 (I33): the arrival float exists so that an arrival can post the reviewer's bond — a constraint on the parameters,

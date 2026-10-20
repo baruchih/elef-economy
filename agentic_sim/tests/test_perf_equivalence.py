@@ -191,9 +191,11 @@ def fingerprint(w: World) -> dict:
 GOLDEN = {
     # re-pinned once at 2.6.0 (design revision 14, the plant's disguise): the scenario's plants go through the market — posted, bid on,
     # awarded on the report, submitted at a drawn tick — so every fingerprint moves; the previous pins (2.4.0) are in the History of this file
-    1: {"head": "67d26e66ddc975308cd39e1427567cc5f06242349cfd1b5ac43ad90288196d34", "entries": 8547,
-        "M": 120220.344393, "Res": 0.0,
-        "states": {"FINAL_N": 169, "VESTED": 55, "WITHDRAWN": 10, "PENDING": 1, "AVAILABLE": 20}},
+    # seed 1 re-pinned with the Appendix S ruling after run 21 (the same day, the same revision): the p_T path follows the summons pass's
+    # refusals, and this scenario refuses nineteen plants for credit; seed 2 meets no refusal and is unchanged
+    1: {"head": "9e3fbbd157e3016205a533466d37531f0d506bd92f7fd0095bcea9388b393507", "entries": 8979,
+        "M": 120321.776243, "Res": 0.0,
+        "states": {"FINAL_N": 178, "VESTED": 55, "WITHDRAWN": 10, "PENDING": 3, "SUBMITTED": 4, "AVAILABLE": 5}},
     2: {"head": "843ad30458e29c2ba90ac194e6aa86084f8b1d73868c4a85a44c7939206264c8", "entries": 9756,
         "M": 120027.852558, "Res": 0.0,
         "states": {"FINAL_N": 200, "VESTED": 61, "WITHDRAWN": 17, "PENDING": 4, "AVAILABLE": 5, "AWAITING_RESPONSE": 1, "SUBMITTED": 1, "COMMITTED": 3}},

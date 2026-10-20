@@ -2084,7 +2084,12 @@ parents approve it and build on it (nested false approvals 18.8 against 2.85). N
 
 **For the decision** (notes §5): the parent's choice under 2.5.0 between `eve` and the lapse — the rule's words leave it to the parent; the
 guarantee floor as the next candidate if 2 a miss does not deter (it did not stop lowballing here); the empty result as a parent-side problem
-caught at the panel's rate. **Next:** the reviewer's reading.
+caught at the panel's rate.
+
+**The reviewer's reply (October 20).** Run 19 accepted as recorded; nothing in the rules moves. The parent's choice between the tick before
+the deadline and the lapse is intended — the rule's words leave it to the parent. The guarantee floor is not pursued. The empty result is the
+chain's: a parent-side problem the panel catches at its rate, not the missed-child rule's. **2.5.0 stands.** No appendix note, no errata.
+**Next:** the reviewer's next candidate, if any.
 
 ## Maps
 

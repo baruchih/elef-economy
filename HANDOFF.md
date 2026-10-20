@@ -2110,7 +2110,8 @@ on stability under learned bidding. The tool is LeWorldModel (a JEPA world model
 review reads it as a world model and a planner with a learned wealth head as the cost, a decision event as the step, the truth bought
 through care only, and names Q2's leak surface in the plants' construction (same-tick seating, the price at P_t, the rate's rhythm).
 Build plan: `agentic_sim/redteam/` as a separate package the suite never imports, a conda environment at Python 3.11 with torch (MPS).
-**Next:** the reviewer's five decisions (environment, vendoring, the step, the cost of bad work, the cost head); then Q2 alone.
+The five decisions were taken as proposed on October 20 (all ok); the build plan sent to the reviewer is `docs/red_team_build_plan.md`.
+**Next:** the build — `agentic_sim/redteam/`, then Q2 alone.
 
 ## Maps
 

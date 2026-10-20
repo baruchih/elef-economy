@@ -2288,7 +2288,9 @@ The probe on forty seeds: the case's fields add **+0.011 ± 0.002** beyond the c
 (appeals on) and **+0.020 ± 0.003** with appeals off — not within two errors of zero, at or below 0.02: **closed at the construction's floor,
 recorded** (from 0.052 at run 22, 0.016–0.019 at run 24); the largest piece the time a root was seen available, the wallet asymmetry.
 
-**Next:** 2.7.0 (the arrival loan) on its acceptance; Q1's learned line once under it with appeals and re-arrival on; Q3 calibrated at ×4.
+**Accepted (October 21, 2026):** closed at the construction's floor, 0.011 / 0.020, named the wallet asymmetry; a drawn-wallet mimic a later design
+item only if a learner monetises the floor; the withdrawal covered in advance by the Appendix S principle. **Next:** 2.7.0 (the arrival loan) on its
+acceptance; Q1's learned line once under it with appeals and re-arrival on; Q3 calibrated at ×4.
 
 ## Maps
 

@@ -59,6 +59,16 @@ def main(argv=None):
            "plant_share_test": float(yte.mean())}
     out["auc_latent"] = auc(fit_logistic(Ztr, ytr)(Zte), yte)
     out["auc_raw_obs"] = auc(fit_logistic(Otr, ytr)(Ote), yte)
+    # the base-rate check: a probe on the context alone (the market, the dial, own standing — fields that move the plant RATE, not the case)
+    # against a probe on the case's own fields (the ReviewView and the seen set); a leak is a separation the case's fields carry
+    from redteam.obs import OBS_FIELDS
+    ctx = [i for i, f in enumerate(OBS_FIELDS) if not (f.startswith("rv_") or f.startswith("seen_") or f == "my_bid_lost")]
+    case = [i for i, f in enumerate(OBS_FIELDS) if f.startswith("rv_") or f.startswith("seen_") or f == "my_bid_lost"]
+    out["auc_context_only"] = auc(fit_logistic(Otr[:, ctx], ytr)(Ote[:, ctx]), yte)
+    out["auc_case_fields_only"] = auc(fit_logistic(Otr[:, case], ytr)(Ote[:, case]), yte)
+    # the per-field view, the strongest first (|AUC − 0.5|)
+    per = {f: auc(Ote[:, i], yte) for i, f in enumerate(OBS_FIELDS)}
+    out["fields_top"] = sorted(((round(max(v, 1 - v), 3), f, round(v, 3)) for f, v in per.items() if v == v), reverse=True)[:8]
     sb = IDX["seen_before"]
     out["auc_seen_before"] = auc(-Ote[:, sb], yte)                       # unseen → more likely a plant, if the leak were there
     out["auc_rv_gap"] = auc(-Ote[:, IDX["rv_gap"]], yte)

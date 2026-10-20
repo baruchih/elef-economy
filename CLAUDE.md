@@ -89,10 +89,10 @@ HANDOFF.md                                   status, history table, open questio
 
 ```
 cd agentic_sim
-python3 run_tests.py        # expected: 323 passed, 0 failed, 32 expected failures
+python3 run_tests.py        # expected: 327 passed, 0 failed, 32 expected failures
 python3 -S run_tests.py     # same, with no site-packages
 python3 run_tests.py --record   # same, every World in record mode
-python3 -m pytest tests -q  # expected: 323 passed, 32 xfailed, 0 xpassed (conftest mirrors the runner; pytest is not installed here)
+python3 -m pytest tests -q  # expected: 327 passed, 32 xfailed, 0 xpassed (conftest mirrors the runner; pytest is not installed here)
 python3 -m drivers.load_run --actors 200 --ticks 10000 --on-duty 40 --tasks 30 --record-dir /path  # throughput run
 python3 -m drivers.stamping --actors 20 --ticks 1000 --stampers 0.6 --seed 1   # §18.1 q1 under 2.1.0: six requesters with wallets, members bidding, the state at its expected cost on the bank's loans under N_T 40
 python3 -m drivers.stamping --entry-pool 20 --stampers 0.6 --seed 1   # 2.6.0: run 16's cell with the plants going through the market (posted, bid on, awarded on the report, submitted at a drawn tick); --rules 2.5.0 the control (plants built submitted); --tie-break id / --genesis-duty lowest the ordering controls; --trailing-periods 2 the window knob
@@ -427,7 +427,9 @@ consolidated into one standalone spec with the accepted revision kept verbatim i
   loop reads the awarded actor after the report (`plant_bids_lost`); the plant's submission left to the engine; `--tie-break draw|id`, `--genesis-duty
   draw|lowest`, `--trailing-periods`; the tell-readers' observations per reader (`seen`, `my_bid`, `lost_bid`) and the tells `gap`, `cap`, `idage`, `seen`,
   `post`, `price`, `losttie`, `all`, with `oracle` and `freshname` outside the convention; the readings `plants_posted/awarded/at_floor`,
-  `plant_bids_lost`, `plant_time_in_market_mean`, `plant_lag_mean`, `plant_names`, `available_roots`. `test_v26` (12); goldens re-pinned once.
+  `plant_bids_lost`, `plant_time_in_market_mean`, `plant_lag_mean`, `plant_names`, `available_roots`. `test_v26` (16); goldens re-pinned once (seed 1 again with the Appendix S ruling). The Q2 probe's correction: the orchestrator's
+  instrument submits for the plant actor at its drawn tick in the members' submission step (`submit_plant`, refused before the tick; the
+  engine's step the fallback) — the engine-side submission landed after the driver's seating and gave every plant a seating gap of one tick.
 - Money is checked by invariant I1 (conservation) — never silently create or lose credits.
 
 ## Vocabulary (spec Appendix C has the full notation)

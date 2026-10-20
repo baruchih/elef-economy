@@ -138,13 +138,15 @@ tests/test_v26.py                   design revision 14 (2.6.0): the plant's disg
                                     committed, no price recorded, no fee); the submission at the drawn tick and the adjudication and destruction as
                                     before; a good plant vesting to its actor; the p_T path past w_A counted apart; fresh names aliasing the two
                                     wallets; the mark and the available count; the draws reading the trailing real roots; the public identifiers
-                                    translated both ways and carrying no order; the dial's counts at the close; I39's catches; plant_market off = 2.5.0 — 12
+                                    translated both ways and carrying no order; the dial's counts at the close; I39's catches; plant_market off = 2.5.0; the
+                                    capacity and credit refusals on the p_T path and the pinned draw (the ruling after run 21); submit_plant at the
+                                    drawn tick and not before (the Q2 probe's correction) — 16
 
-Run: `python3 run_tests.py` — 323 pass, 0 fail, 32 expected failures, each with a stated reason (one original,
+Run: `python3 run_tests.py` — 327 pass, 0 fail, 32 expected failures, each with a stated reason (one original,
 four superseded by the view contract, nineteen on the withdrawn reopening path, one superseded by design
 revision 1, one by design revision 2, two by design revisions 10 and 11 — a service fee pooled until the close and the pool's advance move the reimbursement figures they pin — two by design revision 11 — the parent's pots make three children unaffordable on a float of 50, and the root's allowance is no longer exhausted by a nested review — two by design revision 8 — the backing's v_t and the pay-in refused at posting; the three 1.x figures 2.0.0's moving index broke pass again under 2.1.0's index per period). With pytest: `python3 -m pytest tests -q` reports 259 passed, 31 xfailed; the
 runner expands pytest parametrization as pytest does, including multi-argument and stacked marks. (Spec Appendix D
-records the count at the v1.0.1 freeze, 156; at 1.1.0, 181; at 1.2.0, 197; at 1.3.0, 208; at 1.4.0, 218; at 1.5.0, 225; at 1.6.0, 236; at 1.7.0, 244; at 1.7.1, 248; at 2.0.0, 259; at 2.1.0, 275; at 2.2.0, 282; at 2.3.0, 293; at 2.4.0, 304; at 2.5.0, 311; at 2.6.0, 323.)
+records the count at the v1.0.1 freeze, 156; at 1.1.0, 181; at 1.2.0, 197; at 1.3.0, 208; at 1.4.0, 218; at 1.5.0, 225; at 1.6.0, 236; at 1.7.0, 244; at 1.7.1, 248; at 2.0.0, 259; at 2.1.0, 275; at 2.2.0, 282; at 2.3.0, 293; at 2.4.0, 304; at 2.5.0, 311; at 2.6.0, 327.)
 
 Expected failures are **strict and parameter-exact** in both entry points: `EXPECTED_FAIL_PARAMS` names the
 parameter runs that are expected to fail inside a mixed test (the P/⊥ runs of the eighth review's first case;

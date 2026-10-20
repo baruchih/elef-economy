@@ -650,7 +650,7 @@ class Stamping:
         for cid in list(self.active):
             c = w.case(cid)
             if not c.is_root or c.state != "COMMITTED" or w.is_troop(c.actor) or cid in self.deleg_considered \
-                    or c.children or t - c.t_award > 2:        # the world's clock runs a tick behind the driver's
+                    or c.children or t - c.t_award > 2 or self.tasks[cid].plant:   # the world's clock runs a tick behind the driver's; a plant never delegates
                 continue
             self.deleg_considered.add(cid)
             parent = c.actor

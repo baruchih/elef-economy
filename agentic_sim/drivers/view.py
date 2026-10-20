@@ -5,10 +5,11 @@ This wrapper makes the convention checkable: a driver that holds a `Public` and 
 call exactly the operations listed here — the ones a participant or the orchestrator may take
 under the rules — and read what the rules let them read. Nothing here decides anything.
 
-Reads return copies of the engine's objects (cases, reviews, events) with their case identifiers translated to the public
-surface's — since 2.6.0 (I40) a case's public identifier is a hash of the engine's, carrying no order, translated both ways here;
-actors and wallets come as the engine's own. A driver that assigns to a field of what it reads has reached into the engine, and
-that is what review of the driver code checks for. Policies for reviewers get a `ReviewView` (`observe`), not a case.
+Reads return live, read-only proxies of the engine's cases and reviews — every field as the engine holds it now — with their
+case identifiers translated to the public surface's: since 2.6.0 (I40) a case's public identifier is a hash of the engine's,
+carrying no order, translated both ways here. Events and the ReviewView come as translated copies; actors and wallets as the
+engine's own. Assigning to a proxy's field is refused: a driver reads, it never reaches in. Policies for reviewers get a
+`ReviewView` (`observe`), not a case.
 """
 from __future__ import annotations
 import copy
@@ -17,6 +18,33 @@ from typing import Iterable, Optional
 from sim import World, ReviewView
 from sim.invariants import public_id
 from sim.engine import RuleError
+
+
+class _Proxy:
+    """A live, read-only view of an engine object: every attribute is read from the object as it stands now, with the id fields
+    the surface translates passed through `_pub`; writes are refused (the convention made checkable)."""
+    __slots__ = ("_o", "_tr")
+
+    def __init__(self, o, tr):
+        object.__setattr__(self, "_o", o)
+        object.__setattr__(self, "_tr", tr)
+
+    def __getattr__(self, name):
+        v = getattr(self._o, name)
+        f = self._tr.get(name)
+        return f(v) if f else v
+
+    def __setattr__(self, name, value):
+        raise AttributeError(f"the public surface is read-only ({name}): a driver reads the engine, it never reaches in")
+
+    def __eq__(self, other):
+        return isinstance(other, _Proxy) and self._o is other._o
+
+    def __hash__(self):
+        return id(self._o)
+
+    def __repr__(self):
+        return f"<public view of {self._o!r}>"
 
 
 class Public:
@@ -42,15 +70,11 @@ class Public:
         raise RuleError(f"unknown case {pid}")
 
     def _pub_case(self, c):
-        k = copy.copy(c)
-        k.id, k.root, k.parent = self._pub(c.id), self._pub(c.root), self._pub(c.parent)
-        k.children = [self._pub(x) for x in c.children]
-        return k
+        pub = self._pub
+        return _Proxy(c, {"id": pub, "root": pub, "parent": pub, "children": lambda xs: [pub(x) for x in xs]})
 
     def _pub_review(self, r):
-        k = copy.copy(r)
-        k.case = self._pub(r.case)
-        return k
+        return _Proxy(r, {"case": self._pub})
 
     # -- time -----------------------------------------------------------------
     @property

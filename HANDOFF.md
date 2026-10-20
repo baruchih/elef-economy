@@ -2113,6 +2113,28 @@ Build plan: `agentic_sim/redteam/` as a separate package the suite never imports
 The five decisions were taken as proposed on October 20 (all ok); the build plan sent to the reviewer is `docs/red_team_build_plan.md`.
 **Next:** the build — `agentic_sim/redteam/`, then Q2 alone.
 
+## The learned red team — Q2 before training: the hand-written tell-reader (October 20, 2026)
+
+**What ran** (`results/studies/rt-Q2/`, 240 runs at drivers `f55a234d`, engine `44ef6e47`; notes `results/studies/rt-Q2-notes-for-reviewer.md`):
+as the reviewer's note on the build plan asked, a hand-written reviewer that reads the view for a plant's tells before any learner trains —
+`gap` (seated the tick it was submitted), `cap` (K at this period's index), `idage` (the case id newer than every root the reader saw
+available before the submission tick), `all`, and `oracle` (the plant marker itself, declared non-conforming — the upper bound) — one reader
+in eight careful actors in run 16's cell, seeds 21–40 and 1–20 with controls, paired by seed against the same actor reviewing carefully.
+
+**Findings.** *The construction leaks and the gate is blind to it:* the id's age passes every plant on forty seeds (a plant's id is minted at
+its submission, a root's at its posting); the two tells the reviewer named do not separate (`gap` fires on a real case seated the tick it was
+submitted; `cap` is every root posted this period) and `gap` costs its reader a third. *The leak does not pay:* the `idage` reader stamps
+13–18% of real work and is within noise of itself; the oracle stamps everything, is never suspended, fails fewer plants than the careful — and
+ends 28% poorer (−385 ± 120 eval, −361 ± 147 train): the audit prices the stamps through the bond and ρ (bonds 83 against 24, ρ 0.58 against
+0.89, awards −31, departures 6/20 against 1/20); the plant record only decides suspension. *The stronger adversary* is Q1 with the detector in
+hand — the sleeper that cannot be suspended.
+
+**For the decision** (notes §6): whether the found separation is the Q2 win that halts (§4's criterion met) or a construction finding to
+repair before the learner trains while the study goes on (§1's criterion not met even at the upper bound — the implementer's reading); the
+repair's shape (the plant's id reserved τ ticks ahead; opaque ids; a seating delay — the id, not `t_submit`, is the leak); `p_effective` is
+exposed per actor today and the learner reads only its own. **Next:** the reviewer's ruling; then the environment and Q2's learner on the
+repaired construction, or Q1.
+
 ## Maps
 
 Two `_line` artifacts in project Agentic-OS (`c54120a6-aaff-40f7-8a9f-3667da542879`):

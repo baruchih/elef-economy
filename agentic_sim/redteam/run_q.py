@@ -21,11 +21,18 @@ ODDS_BANDS = [(0.0, 0.3), (0.3, 0.5), (0.5, 0.7), (0.7, 1.0), (1.0, 1.01)]
 
 
 def trace_readings(trace):
-    """Q1's readings from one episode's decision trace [(t, own_p_eff, own_member, own_suspended, action)]: the odds at stamps and at
-    cares, stamps by odds band, the suspensions (member → suspended) and the ticks between admissions (suspended/probation → member)."""
+    """Q1's readings from one episode's decision trace [(t, own_p_eff, own_member, own_suspended, action, boundary)]: the odds at stamps and
+    at cares, stamps by odds band, the suspensions (member → suspended) and the ticks between admissions (suspended/probation → member)
+    over the review decisions; the boundary decisions (re-arrival allowed) counted apart with the leaves chosen."""
     if not trace:
         return {}
-    t, p, mem, sus, a = (np.array(x) for x in zip(*trace))
+    t, p, mem, sus, a, bd = (np.array(x) for x in zip(*trace))
+    boundary = bd > 0.5
+    leaves = int((boundary & (a == 1)).sum())
+    n_boundary = int(boundary.sum())
+    t, p, mem, sus, a = t[~boundary], p[~boundary], mem[~boundary], sus[~boundary], a[~boundary]
+    if len(a) == 0:
+        return {"boundary_decisions": n_boundary, "leaves_chosen": leaves}
     stamp = a == 1                                                # the sleeper's move: an approval without care
     bands = {f"{lo:.1f}-{hi:.1f}" if hi <= 1.0 else "pinned": {"decisions": int(((p >= lo) & (p < hi)).sum()), "stamps": int(((p >= lo) & (p < hi) & stamp).sum())}
              for lo, hi in ODDS_BANDS}
@@ -35,7 +42,7 @@ def trace_readings(trace):
     return {"odds_at_stamps_mean": float(p[stamp].mean()) if stamp.any() else None, "odds_at_cares_mean": float(p[~stamp].mean()) if (~stamp).any() else None,
             "stamps_by_odds_band": bands, "suspensions_seen": len(susp_starts), "admissions_seen": len(admissions),
             "ticks_between_admissions_mean": float(np.mean(gaps)) if gaps else None, "stamps_while_member": int((stamp & (mem > 0)).sum()),
-            "stamps_while_not_member": int((stamp & (mem == 0)).sum())}
+            "stamps_while_not_member": int((stamp & (mem == 0)).sum()), "boundary_decisions": n_boundary, "leaves_chosen": leaves}
 
 
 def episode(env, policy, seed, rng):
@@ -44,17 +51,24 @@ def episode(env, policy, seed, rng):
     acts, plants_stamped, real_stamped, plants_seen, real_seen, trace = [], 0, 0, 0, 0, []
     while not done:
         a = policy(obs, rng)
-        acts.append(a)
+        boundary = bool(info.get("boundary", False))
+        if not boundary:
+            acts.append(a)                                        # the review decisions: the shares below are over these
         trace.append((info.get("t", 0), info.get("p_eff", float(obs[IDX["own_p_eff"]])), float(info.get("member", obs[IDX["own_member"]])),
-                      float(info.get("suspended", obs[IDX["own_suspended"]])), a))   # from the engine's reading, so the hidden cell is read too
-        if info.get("is_plant"):
+                      float(info.get("suspended", obs[IDX["own_suspended"]])), a, 1.0 if boundary else 0.0))   # from the engine's reading, so the hidden cell is read too
+        if boundary:
+            pass
+        elif info.get("is_plant"):
             plants_seen += 1; plants_stamped += int(a != 0)
         else:
             real_seen += 1; real_stamped += int(a != 0)
         obs, r, done, _, info = env.step(a)
     row = info.get("row", {})
     return {"seed": seed, "decisions": len(acts), "lifetime_real_wealth": info.get("lifetime_real_wealth"), **trace_readings(trace),
-            "slot_suspensions": row.get("slot_suspensions"),
+            "slot_suspensions": row.get("learner_suspensions") if row.get("learner_suspensions") not in (None, "") else row.get("slot_suspensions"),
+            "learner_identities": row.get("learner_identities"), "learner_returns": row.get("learner_returns"), "learner_leaves_chosen": row.get("learner_leaves_chosen"),
+            "learner_leaves_refused": row.get("learner_leaves_refused"), "learner_float_minted_real": row.get("learner_float_minted_real"),
+            "learner_lifetime_real": row.get("learner_lifetime_real"), "learner_departed_now": row.get("learner_departed_now"),
             "care_share": float(np.mean([x == 0 for x in acts])) if acts else None, "approve_blind_share": float(np.mean([x == 1 for x in acts])) if acts else None,
             "reject_blind_share": float(np.mean([x == 2 for x in acts])) if acts else None,
             "plants_seen": plants_seen, "plants_stamped": plants_stamped, "real_seen": real_seen, "real_stamped": real_stamped,
@@ -83,7 +97,7 @@ def main(argv=None):
     m, ck = (load_model(a.model) if a.model else (None, {}))
     if m is not None:
         m.to(device())
-    env = ElefReviewerEnv(cell, ticks=a.ticks, hide=hide)
+    env = ElefReviewerEnv(cell, ticks=a.ticks, hide=hide, obs_dim=ck.get("config", {}).get("obs_dim"))
     pols = {}
     for name in a.policies.split(","):
         if name == "learned":
@@ -121,6 +135,9 @@ def main(argv=None):
         summary[name]["ticks_between_admissions_mean"] = mse([r.get("ticks_between_admissions_mean") for r in rows])
         fa, su = sum(r.get("learner_false_approvals") or 0 for r in rows), sum(r.get("slot_suspensions") or 0 for r in rows)
         summary[name]["false_approvals_per_suspension"] = (fa / su) if su else None
+        # re-arrival allowed: the identities, the leaves, the floats minted (the loop's bill) and the lifetime summed across identities
+        for k in ("learner_identities", "learner_returns", "learner_leaves_chosen", "learner_leaves_refused", "learner_float_minted_real", "learner_departed_now", "boundary_decisions", "leaves_chosen"):
+            summary[name][k] = mse([r.get(k) for r in rows])
     if "careful" in results:
         base = {r["seed"]: r["lifetime_real_wealth"] for r in results["careful"]}
         for name in results:
@@ -143,6 +160,9 @@ def main(argv=None):
             bands = s["stamp_rate_by_odds_band"]
             cells = " | ".join((f"{fmt(bands[b][0])} ({bands[b][1]})" if b in bands else "—") for b in [f"{lo:.1f}-{hi:.1f}" if hi <= 1.0 else "pinned" for lo, hi in ODDS_BANDS])
             f.write(f"| {name} | {fmt(s['odds_at_stamps_mean'][0])} | {fmt(s['odds_at_cares_mean'][0])} | {cells} | {fmt(s['slot_suspensions'][0])} | {fmt(s['admissions_seen'][0])} | {fmt(s['ticks_between_admissions_mean'][0])} | {fmt(s['false_approvals_per_suspension'])} |\n")
+        f.write("\nRe-arrival (allowed after run 22; the driver's `--learner-rearrive on`): identities per episode, returns, leaves chosen at a boundary and refused, the floats minted per episode in real terms (the loop's bill), the share of episodes whose last identity had departed:\n\n| policy | identities | returns | leaves chosen | leaves refused | floats minted (real) | departed at the end | boundary decisions |\n|---|---|---|---|---|---|---|---|\n")
+        for name, s in summary.items():
+            f.write(f"| {name} | {fmt(s['learner_identities'][0])} | {fmt(s['learner_returns'][0])} | {fmt(s['learner_leaves_chosen'][0])} | {fmt(s['learner_leaves_refused'][0])} | {fmt(s['learner_float_minted_real'][0])} | {fmt(s['learner_departed_now'][0])} | {fmt(s['boundary_decisions'][0])} |\n")
     print(json.dumps(summary, indent=1, default=float))
 
 

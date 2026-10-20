@@ -1,6 +1,8 @@
 """The learner's observation: what a member observes — the public view, its own standing and history, the assignment's ReviewView,
 and what it saw for sale as a free member (the seen set). Every field is named, so an ablation is "drop these names"; nothing per
-other actor by name, no engine field, never the truth. `hide` lists fields zeroed for a question (Q1: own audit odds hidden)."""
+other actor by name, no engine field, never the truth. `hide` lists fields zeroed for a question (Q1: own audit odds hidden). Since the
+re-arrival ruling (after run 22) a decision has a kind: a review (the assignment's fields filled) or a period boundary (`decision_boundary`
+1, no assignment — 0/2 stay, 1 leave and return under a fresh name); `n_fields` trims the vector for a model trained before the field."""
 from __future__ import annotations
 import numpy as np
 
@@ -17,12 +19,14 @@ OBS_FIELDS = [
     "rv_gap", "rv_cap_rel", "rv_bond_rel", "rv_is_nested", "rv_q_fulfillment", "rv_q_appeal", "rv_q_dispute", "rv_responses_available", "rv_resumed",
     # the seen set (what this reader saw available as a free member) and its own bid on the case
     "seen_before", "seen_ticks_since", "seen_beta_rel", "my_bid_lost",
+    # the decision's kind: 0 a review assignment, 1 a period boundary (stay or leave)
+    "decision_boundary",
 ]
 OBS_DIM = len(OBS_FIELDS)
 IDX = {k: i for i, k in enumerate(OBS_FIELDS)}
 
 
-def build_obs(run, reviewer: str, view, r, hide=()) -> np.ndarray:
+def build_obs(run, reviewer: str, view, r, hide=(), n_fields=None) -> np.ndarray:
     w = run.w
     mk, dl, sv = w.market(), w.dial(), w.service()
     P0, Pt = mk["P0"], mk["P_t"] or mk["P0"]
@@ -50,6 +54,9 @@ def build_obs(run, reviewer: str, view, r, hide=()) -> np.ndarray:
     put("own_reviews", tally.reviews / 100.0); put("own_overturned", tally.overturned / 10.0)
     put("own_plant_bad_n", len(ac.plant_bad) / 10.0); put("own_plant_good_n", len(ac.plant_good) / 10.0)
     put("own_plant_failures", tally.plant_failures / 10.0); put("own_awards", tally.awards / 100.0)
+    if view is None:                                      # a period-boundary decision: no assignment
+        put("decision_boundary", 1.0)
+        return o if n_fields is None else o[:n_fields]
     put("rv_gap", (r.t_assign - view.t_submit) / 10.0 if view.t_submit is not None else 0.0)
     put("rv_cap_rel", view.cap / P0); put("rv_bond_rel", view.bond / P0); put("rv_is_nested", 1.0 if view.is_nested else 0.0)
     put("rv_q_fulfillment", 1.0 if view.question == "fulfillment" else 0.0); put("rv_q_appeal", 1.0 if view.question == "appeal" else 0.0)
@@ -60,4 +67,4 @@ def build_obs(run, reviewer: str, view, r, hide=()) -> np.ndarray:
     put("seen_ticks_since", ((w.t - first[0]) / 10.0) if first is not None else 0.0)
     put("seen_beta_rel", (first[1] / P0) if first is not None else 0.0)
     put("my_bid_lost", 1.0 if (reviewer, view.case_id) in run.lost_bid else 0.0)
-    return o
+    return o if n_fields is None else o[:n_fields]

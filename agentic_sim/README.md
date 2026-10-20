@@ -564,6 +564,17 @@ against its other decisions, its stamp rate by odds band, the slot's suspensions
 its admissions, the false approvals passed per suspension — read from the engine at each decision, so the hidden cell (`--hide own_p_eff`)
 is read too.
 
+After run 22's acceptance, the reviewer's rulings for the red team: **a calibration cell** before each question's learner reads anything —
+the driver's `--audit-roll off` (the roll never made; a declared implementation effect, in the manifest) with `--pi0 0 --dial off`, so a
+blind stamp costs nothing and the learner must beat the careful there outside noise, else its result is not a finding; **re-arrival allowed
+the learner** — `--learner-rearrive on`: at each period boundary the learner with no live obligation is asked a decision of a second kind
+(the observation's `decision_boundary` field, 45 fields now; 0/2 stay, 1 leave — depart taking its wealth out and arrive at once under a
+fresh name `L<n>` with the float and a probationer's standing, the slot following), a departure by the exit rule returning it the same
+way; its lifetime real wealth summed across its identities (`learner_lifetime_real`, `learner_identities`, `learner_returns`,
+`learner_leaves_chosen/refused`, `learner_float_minted(_real)`, `learner_suspensions`), the hand-written dispositions staying at a
+boundary; **a bootstrap standard error on every AUC** (`probe.py`, `auc_se`; `--initial-only` restricts to the initial reviews). A model
+trained before the boundary field reads the observation trimmed to its width (`ElefReviewerEnv(obs_dim=…)`, set from the checkpoint).
+
 ## Design revision 14 — the plant's disguise (2.6.0, October 20, 2026)
 
 `Params.plant_market` (on; off is 2.5.0 and `--rules 2.5.0`, where `create_plant` builds a plant submitted — refused under the flag) is the

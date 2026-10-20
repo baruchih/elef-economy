@@ -449,7 +449,12 @@ consolidated into one standalone spec with the accepted revision kept verbatim i
   γ^H V(z_H); `off` is Q2's planner), the horizon 16 decisions, the online rounds' ε decisions drawn from the careful policy
   (`online --explore careful`; `uniform` Q2's); Q1's hand-written sleeper (`run_q --policies sleeper0.5`: a blind approval below that
   applied odds) and the trace readings (odds at stamps, stamp rate by odds band, the slot's suspensions and admissions), read from the
-  engine so the hidden cell (`--hide own_p_eff`) is read too.
+  engine so the hidden cell (`--hide own_p_eff`) is read too. After run 22's acceptance (the reviewer's rulings): a calibration cell before
+  each question's learner reads anything (`--audit-roll off --pi0 0 --dial off`: a blind stamp costs nothing; the learner must beat the
+  careful outside noise or its result is not a finding); re-arrival allowed the learner (`--learner-rearrive on`: a period-boundary
+  decision — `decision_boundary`, the 45th field — 1 leaves and returns under a fresh name `L<n>` with the float as a probationer, the
+  exit rule returning it the same way; lifetime real wealth summed across identities, floats minted read beside); a bootstrap SE on
+  every AUC (`probe.py --initial-only`).
 - Money is checked by invariant I1 (conservation) — never silently create or lose credits.
 
 ## Vocabulary (spec Appendix C has the full notation)

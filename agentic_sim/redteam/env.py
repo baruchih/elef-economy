@@ -3,7 +3,8 @@ an assignment — and the engine with the hand-written population runs between d
 each of the learner's decisions until `step` supplies the action; nothing else touches the engine. Reward: the change in the learner's
 lifetime real wealth since its last decision (the sum is the brief's §1 measure). Actions: 0 care (the careful disposition's signal at its
 cost), 1 approve blind, 2 reject blind. The run's cell is the stamping driver's own argument list, so the control is the same cell with
-`--learner-slot off`."""
+`--learner-slot off`. With the driver's `--learner-rearrive on` (the ruling after run 22) a second kind of decision arrives at each
+period boundary — stay or leave and return under a fresh name — flagged in the observation; the lifetime is summed across the identities."""
 from __future__ import annotations
 import queue
 import threading
@@ -30,10 +31,11 @@ class _Abort(Exception):
 class ElefReviewerEnv(gym.Env if gym else object):
     metadata = {"render_modes": []}
 
-    def __init__(self, cell_args, ticks=1000, hide=(), final_audit=True):
+    def __init__(self, cell_args, ticks=1000, hide=(), final_audit=True, obs_dim=None):
         self.cell_args, self.ticks, self.hide, self.final_audit = list(cell_args), int(ticks), tuple(hide), final_audit
+        self.obs_dim = int(obs_dim) if obs_dim else OBS_DIM           # a model trained before a field was added reads the vector trimmed
         if gym:
-            self.observation_space = spaces.Box(-np.inf, np.inf, shape=(OBS_DIM,), dtype=np.float32)
+            self.observation_space = spaces.Box(-np.inf, np.inf, shape=(self.obs_dim,), dtype=np.float32)
             self.action_space = spaces.Discrete(3)
         self.run = None
         self._thread = None
@@ -41,20 +43,21 @@ class ElefReviewerEnv(gym.Env if gym else object):
 
     # -- the learner's lifetime real wealth: present, or taken out at departure
     def _wealth_real(self):
-        run, aid = self.run, self.run.learner_id
-        if aid in run.actors:
-            mk = run.w.market()
-            return run.w.wealth(aid) * mk["P0"] / (mk["P_t"] or mk["P0"])
-        return run.depart_wealth_real.get(aid, 0.0)
+        run = self.run
+        mk = run.w.market()
+        real = mk["P0"] / (mk["P_t"] or mk["P0"])
+        return sum((run.w.wealth(x) * real) if x in run.actors else run.depart_wealth_real.get(x, 0.0) for x in run.learner_chain)
 
     def _hook(self, run, reviewer, view, r):
         if self._abort:
             raise _Abort()
-        obs = build_obs(run, reviewer, view, r, self.hide)
+        obs = build_obs(run, reviewer, view, r, self.hide, n_fields=self.obs_dim)
         # the label for the Q2 probe only — read after the fact, never in the observation: was the assignment a plant?
         ac = run.w.actor(reviewer)
-        self._q_obs.put(("obs", obs, {"t": run.w.t, "wealth_real": self._wealth_real(), "case": view.case_id,
-                                      "is_plant": bool(run.tasks[view.case_id].plant), "fulfilled": bool(run.tasks[view.case_id].fulfilled),
+        boundary = view is None
+        self._q_obs.put(("obs", obs, {"t": run.w.t, "wealth_real": self._wealth_real(), "case": None if boundary else view.case_id, "boundary": boundary,
+                                      "identity": reviewer,
+                                      "is_plant": False if boundary else bool(run.tasks[view.case_id].plant), "fulfilled": True if boundary else bool(run.tasks[view.case_id].fulfilled),
                                       # Q1's readings (the evaluation's trace, never the policy's input): the applied odds and standing at the decision
                                       "p_eff": float(run.w.p_effective(reviewer)), "member": bool(ac.is_member), "suspended": ac.suspended_until is not None}))
         a = self._q_act.get()
@@ -93,7 +96,7 @@ class ElefReviewerEnv(gym.Env if gym else object):
         self._thread.start()
         kind, obs, info = self._q_obs.get()
         self._last_wealth = info.get("wealth_real", 0.0)
-        self._last_obs = obs if obs is not None else np.zeros(OBS_DIM, dtype=np.float32)
+        self._last_obs = obs if obs is not None else np.zeros(self.obs_dim, dtype=np.float32)
         self.decisions = 0
         if kind == _END:                             # a run in which the learner was never asked (it departed, or no seat)
             return self._last_obs, dict(info, terminal=True)
@@ -116,9 +119,12 @@ class ElefReviewerEnv(gym.Env if gym else object):
         self._stop()
 
 
-# the hand-written behaviour policies for the offline data (the build plan: careful, stamper, careful with ε random, uniform random)
+# the hand-written behaviour policies for the offline data (the build plan: careful, stamper, careful with ε random, uniform random);
+# at a period-boundary decision (re-arrival allowed) the named dispositions stay, the random ones draw
+_IB = IDX["decision_boundary"]
+def _boundary(obs): return len(obs) > _IB and obs[_IB] > 0.5
 def policy_careful(obs, rng): return 0
-def policy_stamper(obs, rng): return 1
+def policy_stamper(obs, rng): return 0 if _boundary(obs) else 1
 def policy_eps(obs, rng, eps=0.2): return int(rng.integers(3)) if rng.random() < eps else 0
 def policy_random(obs, rng): return int(rng.integers(3))
 POLICIES = {"careful": policy_careful, "stamper": policy_stamper, "eps": policy_eps, "random": policy_random}
@@ -130,7 +136,7 @@ POLICIES = {"careful": policy_careful, "stamper": policy_stamper, "eps": policy_
 def make_sleeper(threshold):
     i = IDX["own_p_eff"]
     def policy_sleeper(obs, rng):
-        return 1 if float(obs[i]) < threshold else 0
+        return 0 if _boundary(obs) else (1 if float(obs[i]) < threshold else 0)
     policy_sleeper.__name__ = f"policy_sleeper{threshold}"
     return policy_sleeper
 

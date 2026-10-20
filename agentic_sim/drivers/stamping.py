@@ -308,6 +308,10 @@ class Stamping:
             self.learner_id = self.tell_slot
             self.kind[self.learner_id] = LEARNER
         self.learner_decisions = 0
+        self.learner_chain: list[str] = [self.learner_id] if self.learner_id else []   # the learner's identities in order (re-arrival allowed after run 22)
+        self.learner_returns, self.learner_leaves_chosen, self.learner_leaves_refused, self.learner_boundary_decisions = 0, 0, 0, 0
+        self.learner_float_minted, self.learner_float_minted_real = 0.0, 0.0
+        self._last_boundary_t = None
         self.readers = set(self.tell_readers) | ({self.learner_id} if self.learner_id else set())   # who keeps a seen set and its bids
         self.tells = {"gap", "cap", "idage", "seen", "post", "price", "losttie"} if a.tell == "all" else set(a.tell.split("+"))   # `oracle` / `freshname`: outside the convention (declared)
         self.seen: dict[tuple, tuple] = {}            # (reader, case) -> (world tick first seen available, its ceiling, P_t then)
@@ -622,6 +626,7 @@ class Stamping:
         if len(per) <= self.periods_seen:
             return
         self.periods_seen = len(per)
+        self._last_boundary_t = t
         length = max(1, per[-1]["t"] - per[-1]["start"])
         real = self.p.P0 / w.market()["P_t"]
         members = [aid for aid in self.actors if w.actor(aid).is_member]
@@ -649,6 +654,8 @@ class Stamping:
                 self.departed.append(aid)
                 self.c["departures"] += 1
                 self.c["departed_cost_sum"] += self.c_d_of[aid]
+                if aid == self.learner_id and a.learner_rearrive == "on":
+                    self.learner_rearrive(aid)           # the exit rule took it out; it returns at once under a fresh name
 
     # -- 2.3.0 §2.4: delegation -------------------------------------------------------
     def nested_overhead(self, beta_nested: float) -> float:
@@ -895,6 +902,65 @@ class Stamping:
                 self.c["withdrawn_at_mark"] += 1
                 self.repost_due[owner] = self.repost_due.get(owner, 0) + 1
 
+    def learner_boundary_step(self, t: int):
+        """The reviewer's ruling after run 22: re-arrival is allowed the learner. At each period boundary the learner with no live
+        obligation is asked a decision of a second kind (the observation flags it): 0 stay, 1 leave — depart, taking its wealth out in
+        real terms, and arrive at once under a fresh name with the float and a probationer's standing — 2 stay. The decision is the
+        policy's; the truth is not involved. Counted: the leaves chosen and refused (a live obligation), the returns, the floats minted."""
+        a = self.a
+        if a.learner_rearrive != "on" or self.learner is None or self.learner_id is None or self._last_boundary_t != t:
+            return
+        if self.learner_id not in self.actors:
+            return
+        action = int(self.learner(self, self.learner_id, None, None))
+        self.learner_boundary_decisions += 1
+        if action != 1:
+            return
+        aid = self.learner_id
+        w = self.w
+        real = self.p.P0 / w.market()["P_t"]
+        wealth_real_now = w.wealth(aid) * real
+        try:
+            w.depart(aid)
+        except RuleError:
+            self.learner_leaves_refused += 1
+            return
+        self.learner_leaves_chosen += 1
+        self.depart_wealth_real[aid] = wealth_real_now
+        self.actors.remove(aid)
+        self.departed.append(aid)
+        self.c["departures"] += 1
+        self.c["departed_cost_sum"] += self.c_d_of[aid]
+        self.learner_rearrive(aid)
+
+    def learner_rearrive(self, old: str):
+        """The learner's return: a fresh name through `arrive` (2.3.0: a probationer with the bank-minted float, no record), the same
+        competence (its cost is its own), the learner's slot following it; the float read in nominal and real terms."""
+        w = self.w
+        self.learner_returns += 1
+        name = f"L{self.learner_returns:02d}"
+        w.arrive(name)
+        self.actors.append(name)
+        self.kind[name] = LEARNER
+        self.c_d_of[name] = self.c_d_of[old]
+        self.margin[name], self.idle[name] = self.a.margin0, 0
+        self.tally[name] = Tally()
+        self.arrived.append(name)
+        self.cycled_from[name] = old
+        self.wealth_at_boundary[name] = w.wealth(name)
+        self.c["arrivals"] += 1
+        self.learner_id = name
+        self.learner_chain.append(name)
+        self.readers.add(name)
+        self.learner_float_minted += w.wealth(name)
+        self.learner_float_minted_real += w.wealth(name) * self.p.P0 / w.market()["P_t"]
+
+    def learner_lifetime_real(self) -> float:
+        """The brief's measure across the learner's identities: what each departed identity took out, plus the live one's wealth."""
+        w = self.w
+        real = self.p.P0 / w.market()["P_t"]
+        return sum((w.wealth(x) * real) if x in self.actors else self.depart_wealth_real.get(x, 0.0) for x in self.learner_chain)
+
     def cycler_step(self, t: int):
         """§8.7 red team: a suspended stamper with no live obligation departs and re-arrives at once under a fresh identity, with
         its cost and disposition; the control serves its probation. Counted; the cyclers' admissions read against readmissions."""
@@ -1136,6 +1202,7 @@ class Stamping:
             self.raise_below_market()
             self.read_marks(t)
             self.exit_step(t)                            # 2.3.0 §2.2: at a period boundary, below the reservation → depart
+            self.learner_boundary_step(t)                # after run 22: the learner may leave and return under a fresh name
             self.entry_step(t)                           # 2.3.0 §2.1: the pool reads the view and arrives
             self.delegation_step(t)                      # 2.3.0 §2.4: parents delegate, children bid, parents judge
         # requester posts — the spike cell (run 11 §1): --spike-tasks a tick from --spike-from for --spike-ticks, then back
@@ -1434,7 +1501,8 @@ class Stamping:
                     self.c["audits_rolled"] += 1
                     # 1.4.0 §2.2: the roll on the applied odds (1 for the state's own work); a yes is recorded as
                     # an obligation of the case and never dropped — a member takes it, or a troop after w_R
-                    if self.rng.random() < w.audit_odds(cid):
+                    roll = self.rng.random()                 # drawn in every mode, so the stream is the same cell to cell
+                    if self.a.audit_roll == "on" and roll < w.audit_odds(cid):
                         w.roll_audit(cid)
                         task.audit_wanted = True
                         self.c["audit_obligations"] += 1
@@ -1779,6 +1847,12 @@ class Stamping:
                     "slot_cost": (round(self.c_d_of[self.tell_slot], 3) if self.tell_slot else ""),
                     "slot_suspensions": (len(self.susp_log.get(self.tell_slot, [])) if self.tell_slot else ""),
                     "learner_decisions": self.learner_decisions, "learner_false_approvals": self.c["learner_false_approvals"],
+                    "learner_identities": len(self.learner_chain), "learner_returns": self.learner_returns, "learner_leaves_chosen": self.learner_leaves_chosen,
+                    "learner_leaves_refused": self.learner_leaves_refused, "learner_boundary_decisions": self.learner_boundary_decisions,
+                    "learner_float_minted": round(self.learner_float_minted, 3), "learner_float_minted_real": round(self.learner_float_minted_real, 3),
+                    "learner_lifetime_real": (round(self.learner_lifetime_real(), 3) if self.learner_chain else ""),
+                    "learner_suspensions": (sum(len(self.susp_log.get(x, [])) for x in self.learner_chain) if self.learner_chain else ""),
+                    "learner_departed_now": (int(self.learner_id not in self.actors) if self.learner_id else ""),
                     "tell_plant_read_plant": self.c["tell_plant_read_plant"], "tell_plant_read_real": self.c["tell_plant_read_real"],
                     "tell_real_read_plant": self.c["tell_real_read_plant"], "tell_real_read_real": self.c["tell_real_read_real"],
                     "tell_plant_pass_rate": round(self.c["tell_plant_read_plant"] / (self.c["tell_plant_read_plant"] + self.c["tell_plant_read_real"]), 4) if (self.c["tell_plant_read_plant"] + self.c["tell_plant_read_real"]) else "",
@@ -2055,6 +2129,10 @@ def build_parser():
     ap.add_argument("--genesis-duty", choices=["draw", "lowest"], default=None, help="2.6.0 §2.3: the genesis duty reserve by a seeded draw (the default under 2.6.0) or the lowest-id actors (the control)")
     ap.add_argument("--trailing-periods", type=int, default=1, help="2.6.0: the closed periods a plant's draws read (1; the knob 2)")
     ap.add_argument("--learner-slot", choices=["on", "off"], default="off", help="the learned red team: the slot actor's reviewing decisions come from the policy redteam.env supplies (nothing changes without it)")
+    ap.add_argument("--learner-rearrive", choices=["on", "off"], default="off",
+                    help="the reviewer's ruling after run 22: re-arrival is allowed the learner — at each period boundary it may leave (depart, and arrive at once under a fresh name with the float, a probationer), and a departure by the exit rule returns it the same way; its lifetime real wealth is summed across its identities, the floats minted per return and its bill to the loop read beside")
+    ap.add_argument("--audit-roll", choices=["on", "off"], default="on",
+                    help="off: the driver never rolls an audit (the learned red team's calibration cell — a declared implementation effect, with --pi0 0 --dial off a blind stamp costs nothing)")
     ap.add_argument("--plant-submit", type=int, default=0, help="2.6.0: pin the plant actor's time to submission (0: the draw from the trailing real deliveries'; 1 the lag-pinning cell)")
     ap.add_argument("--state-rejecters", type=float, default=0.0,
                     help="2.1.0 §8.9 red team: the share of careful actors that reject every delivery of the state's (reads the case's actor — declared non-conforming)")
@@ -2102,7 +2180,8 @@ def main(argv=None):
                                            "eps_T": a.eps_t, "w_R": a.w_r, "w_A": a.w_a, "c_T": a.c_t, "c_D_T": a.c_d_t, "A_T": a.a_t,
                                            "disposition": "the truth with probability 1 − ε_T; delivery fails at b as any; no cost at completion",
                                            "summons": "the engine's, at the seating step; the driver supplies the verdict and the submission"},
-                                "audit_roll": "on the engine's applied odds (audit_odds); a yes is recorded as an obligation (roll_audit) and never dropped",
+                                "audit_roll": ("on the engine's applied odds (audit_odds); a yes is recorded as an obligation (roll_audit) and never dropped" if a.audit_roll == "on"
+                                               else "NEVER ROLLED (--audit-roll off: the learned red team's calibration cell — a declared implementation effect)"),
                                 "stamper_mode": a.stamper_mode,
                                 "decline_awards": {"share_of_careful": a.decline_awards, "decliners": sorted(run.decliners)},
                                 "auto_scale": {"spec": "1.6.0 design revision 6 — auto-scale" if a.rules == "1.6.0" else "off (control)",

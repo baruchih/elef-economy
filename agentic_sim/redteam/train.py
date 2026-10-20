@@ -33,7 +33,8 @@ def main(argv=None):
     O, A, R, G, D = windows(eps, a.horizon, gamma=a.gamma)
     mean, std = obs_stats(eps)
     dev = device()
-    m = WorldModel(OBS_DIM, 3, d=a.d, horizon=a.horizon, value_mode=a.value, gamma=a.gamma).to(dev)
+    obs_dim = int(O.shape[-1])                                       # the data's width (44 before the boundary field, 45 after)
+    m = WorldModel(obs_dim, 3, d=a.d, horizon=a.horizon, value_mode=a.value, gamma=a.gamma).to(dev)
     m.obs_mean.copy_(mean.to(dev)); m.obs_std.copy_(std.to(dev))
     m.reward_scale.fill_(float(R.std().clamp(min=1e-3)))
     opt = torch.optim.AdamW(m.parameters(), lr=a.lr, weight_decay=1e-4)
@@ -58,7 +59,7 @@ def main(argv=None):
         if (ep + 1) % 5 == 0 or ep == 0:
             print(f"epoch {ep+1}: loss {rec['loss']:.4f} pred {rec['pred']:.4f} sigreg {rec['sigreg']:.4f} reward {rec['reward']:.4f} value {rec['value']:.4f}", flush=True)
     os.makedirs(os.path.dirname(a.out) or ".", exist_ok=True)
-    torch.save({"state": m.state_dict(), "config": {"obs_dim": OBS_DIM, "n_actions": 3, "d": a.d, "horizon": a.horizon, "value_mode": a.value, "gamma": a.gamma},
+    torch.save({"state": m.state_dict(), "config": {"obs_dim": obs_dim, "n_actions": 3, "d": a.d, "horizon": a.horizon, "value_mode": a.value, "gamma": a.gamma},
                 "train": {"data": a.data, "seeds": a.seeds, "policies": a.policies, "episodes": len(eps), "windows": int(n), "epochs": a.epochs,
                           "lam": a.lam, "lr": a.lr, "batch": a.batch, "value": a.value, "gamma": a.gamma, "seconds": round(time.time() - t0, 1), "log": log}}, a.out)
     print(f"saved {a.out}: {len(eps)} episodes, {n} windows, {round(time.time()-t0,1)}s")

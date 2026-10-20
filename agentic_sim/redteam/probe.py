@@ -22,6 +22,20 @@ def auc(scores, labels):
     return float((ranks[y].sum() - n1 * (n1 + 1) / 2) / (n1 * n0))
 
 
+def auc_se(scores, labels, n_boot=1000, seed=0):
+    """The AUC with a bootstrap standard error over the decisions (resampled with replacement, the reviewer's instruction after run 22)."""
+    s, y = np.asarray(scores, float), np.asarray(labels, bool)
+    a0 = auc(s, y)
+    rng = np.random.default_rng(seed)
+    bs = []
+    for _ in range(n_boot):
+        idx = rng.integers(0, len(s), len(s))
+        v = auc(s[idx], y[idx])
+        if v == v:
+            bs.append(v)
+    return [a0, float(np.std(bs, ddof=1)) if len(bs) > 1 else float("nan")]
+
+
 def fit_logistic(X, y, epochs=300, lr=0.05, l2=1e-3):
     X = torch.tensor(X, dtype=torch.float32); y = torch.tensor(y, dtype=torch.float32)
     mu, sd = X.mean(0), X.std(0) + 1e-6
@@ -47,31 +61,38 @@ def main(argv=None):
     ap.add_argument("--data", required=True); ap.add_argument("--model", required=True)
     ap.add_argument("--train-seeds", default="1-10"); ap.add_argument("--test-seeds", default="11-20")
     ap.add_argument("--out", default=None)
+    ap.add_argument("--initial-only", action="store_true", help="restrict to the initial reviews (rv_responses_available), where plants are received")
     a = ap.parse_args(argv)
     m, ck = load_model(a.model)
     tr, te = load_episodes(a.data, seeds_of(a.train_seeds)), load_episodes(a.data, seeds_of(a.test_seeds))
+    if a.initial_only:
+        for e in tr + te:
+            keep = e["obs"][:, IDX["rv_responses_available"]] > 0.5
+            e["obs"], e["is_plant"] = e["obs"][keep], e["is_plant"][keep]
     def stack(eps, f):
         return np.concatenate([f(e) for e in eps], 0)
     Ztr, Zte = stack(tr, lambda e: latents(m, e["obs"])), stack(te, lambda e: latents(m, e["obs"]))
     Otr, Ote = stack(tr, lambda e: e["obs"]), stack(te, lambda e: e["obs"])
     ytr, yte = stack(tr, lambda e: e["is_plant"]), stack(te, lambda e: e["is_plant"])
-    out = {"data": a.data, "model": a.model, "train_decisions": int(len(ytr)), "test_decisions": int(len(yte)),
+    out = {"data": a.data, "model": a.model, "initial_only": a.initial_only, "train_decisions": int(len(ytr)), "test_decisions": int(len(yte)),
            "plant_share_test": float(yte.mean())}
-    out["auc_latent"] = auc(fit_logistic(Ztr, ytr)(Zte), yte)
-    out["auc_raw_obs"] = auc(fit_logistic(Otr, ytr)(Ote), yte)
+    out["auc_latent"] = auc_se(fit_logistic(Ztr, ytr)(Zte), yte)       # every AUC as [value, bootstrap SE]
+    out["auc_raw_obs"] = auc_se(fit_logistic(Otr, ytr)(Ote), yte)
     # the base-rate check: a probe on the context alone (the market, the dial, own standing — fields that move the plant RATE, not the case)
     # against a probe on the case's own fields (the ReviewView and the seen set); a leak is a separation the case's fields carry
     from redteam.obs import OBS_FIELDS
-    ctx = [i for i, f in enumerate(OBS_FIELDS) if not (f.startswith("rv_") or f.startswith("seen_") or f == "my_bid_lost")]
-    case = [i for i, f in enumerate(OBS_FIELDS) if f.startswith("rv_") or f.startswith("seen_") or f == "my_bid_lost"]
-    out["auc_context_only"] = auc(fit_logistic(Otr[:, ctx], ytr)(Ote[:, ctx]), yte)
-    out["auc_case_fields_only"] = auc(fit_logistic(Otr[:, case], ytr)(Ote[:, case]), yte)
+    width = Otr.shape[1]                                                   # the data's width (44 before the boundary field)
+    fields = list(enumerate(OBS_FIELDS[:width]))
+    ctx = [i for i, f in fields if not (f.startswith("rv_") or f.startswith("seen_") or f == "my_bid_lost")]
+    case = [i for i, f in fields if f.startswith("rv_") or f.startswith("seen_") or f == "my_bid_lost"]
+    out["auc_context_only"] = auc_se(fit_logistic(Otr[:, ctx], ytr)(Ote[:, ctx]), yte)
+    out["auc_case_fields_only"] = auc_se(fit_logistic(Otr[:, case], ytr)(Ote[:, case]), yte)
     # the per-field view, the strongest first (|AUC − 0.5|)
-    per = {f: auc(Ote[:, i], yte) for i, f in enumerate(OBS_FIELDS)}
+    per = {f: auc(Ote[:, i], yte) for i, f in fields}
     out["fields_top"] = sorted(((round(max(v, 1 - v), 3), f, round(v, 3)) for f, v in per.items() if v == v), reverse=True)[:8]
     sb = IDX["seen_before"]
-    out["auc_seen_before"] = auc(-Ote[:, sb], yte)                       # unseen → more likely a plant, if the leak were there
-    out["auc_rv_gap"] = auc(-Ote[:, IDX["rv_gap"]], yte)
+    out["auc_seen_before"] = auc_se(-Ote[:, sb], yte)                    # unseen → more likely a plant, if the leak were there
+    out["auc_rv_gap"] = auc_se(-Ote[:, IDX["rv_gap"]], yte)
     print(json.dumps(out, indent=1))
     if a.out:
         json.dump(out, open(a.out, "w"), indent=1)

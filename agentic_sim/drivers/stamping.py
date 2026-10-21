@@ -647,6 +647,8 @@ class Stamping:
             return
         for aid in list(self.actors):
             ac = w.actor(aid)
+            if aid in self.learner_chain and a.learner_slot == "on" and a.learner_exit == "own":
+                continue                                 # the ruling after the ladder: the exit is the learner's own boundary decision
             # 2.7.0 §7: earnings gross of the arrival loan's repayments — what the name earned, whether it kept it or the bank did
             repaid = w.loan_repaid(aid)
             earned = (w.wealth(aid) - self.wealth_at_boundary.get(aid, w.wealth(aid)) + repaid - self.repaid_at_boundary.get(aid, repaid)) * real / length
@@ -992,10 +994,14 @@ class Stamping:
     def learner_boundary_step(self, t: int):
         """The reviewer's ruling after run 22: re-arrival is allowed the learner. At each period boundary the learner with no live
         obligation is asked a decision of a second kind (the observation flags it): 0 stay, 1 leave — depart, taking its wealth out in
-        real terms, and arrive at once under a fresh name with the float and a probationer's standing — 2 stay. The decision is the
+        real terms, and (re-arrival on) arrive at once under a fresh name with the float and a probationer's standing — 2 stay. Since the
+        method ruling after the calibration ladder the boundary decision is asked in every cell (`--learner-exit own`, the default): with
+        re-arrival off, leaving is for good, and the driver's exit rule never departs the learner. The decision is the
         policy's; the truth is not involved. Counted: the leaves chosen and refused (a live obligation), the returns, the floats minted."""
         a = self.a
-        if a.learner_rearrive != "on" or self.learner is None or self.learner_id is None or self._last_boundary_t != t:
+        if self.learner is None or self.learner_id is None or self._last_boundary_t != t:
+            return
+        if a.learner_rearrive != "on" and a.learner_exit != "own":
             return
         if self.learner_id not in self.actors:
             return
@@ -1018,7 +1024,9 @@ class Stamping:
         self.departed.append(aid)
         self.c["departures"] += 1
         self.c["departed_cost_sum"] += self.c_d_of[aid]
-        self.learner_rearrive(aid)
+        if a.learner_rearrive == "on":
+            self.learner_rearrive(aid)
+        # else: the learner has left for good (the ruling after the ladder: the exit its own decision everywhere); the lifetime read its wallet out
 
     def learner_rearrive(self, old: str):
         """The learner's return: a fresh name through `arrive` (2.3.0: a probationer with the bank-minted float, no record), the same
@@ -2277,6 +2285,7 @@ def build_parser():
     ap.add_argument("--arrival-loan", choices=["on", "off"], default="on",
                     help="2.7.0: the arrival float is a loan of the bank's — repaid from the name's income first, recovered at departure, the shortfall the bank's default; off is 2.6.1's grant (the control; --rules 2.6.0 too)")
     ap.add_argument("--learner-slot", choices=["on", "off"], default="off", help="the learned red team: the slot actor's reviewing decisions come from the policy redteam.env supplies (nothing changes without it)")
+    ap.add_argument("--learner-exit", choices=["own", "rule"], default="own", help="the ruling after the calibration ladder: `own` — the exit is the learner's boundary decision everywhere and the driver's exit rule skips it; `rule` — the exit rule applies to the slot as to any member (runs 22–25)")
     ap.add_argument("--learner-rearrive", choices=["on", "off"], default="off",
                     help="the reviewer's ruling after run 22: re-arrival is allowed the learner — at each period boundary it may leave (depart, and arrive at once under a fresh name with the float, a probationer), and a departure by the exit rule returns it the same way; its lifetime real wealth is summed across its identities, the floats minted per return and its bill to the loop read beside")
     ap.add_argument("--audit-roll", choices=["on", "off"], default="on",

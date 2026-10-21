@@ -62,7 +62,7 @@ def main(argv=None):
                 explore = lambda obs, r: 0 if r.random() < a.eps else pol(obs, r)
             O, A, R, P, F, Tk, info = rollout(env, explore, seed, rng)
             np.savez_compressed(os.path.join(a.data, f"online{k}-seed{seed}.npz"), obs=O, action=A, reward=R, is_plant=P, fulfilled=F, t=Tk,
-                                lifetime=info.get("lifetime_real_wealth", float("nan")), seed=seed, policy=f"online{k}")
+                                realized=info.get("realized_rewards", R), lifetime=info.get("lifetime_real_wealth", float("nan")), seed=seed, policy=f"online{k}")
             lifetimes.append(info.get("lifetime_real_wealth", float("nan")))
         model_path = os.path.join(a.models, f"{stem}-{k}.pt")
         fit(a.data, model_path)

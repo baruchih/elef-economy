@@ -51,6 +51,7 @@ def episode(env, policy, seed, rng):
     done = info.get("terminal", False)
     acts, plants_stamped, real_stamped, plants_seen, real_seen, trace = [], 0, 0, 0, 0, []
     diag = []                                                     # per review decision: (action, predicted r per action, planner cost per first action, realized r)
+    review_idx, k_all = [], 0                                     # the review decisions' positions among all decisions (the attributed reward is per decision)
     while not done:
         a = policy(obs, rng)
         boundary = bool(info.get("boundary", False))
@@ -68,9 +69,15 @@ def episode(env, policy, seed, rng):
         obs, r, done, _, info = env.step(a)
         if not boundary:
             diag.append((a, pred["pred_r"] if pred else None, (pred["plan_cost"] or None) if pred else None, float(r)))
+            review_idx.append(k_all)
+        k_all += 1
+    attr = info.get("attributed")
+    if attr is not None and len(attr) == k_all:
+        diag = [d + (float(attr[k]),) for d, k in zip(diag, review_idx)]
     row = info.get("row", {})
     return {"seed": seed, "decisions": len(acts), "lifetime_real_wealth": info.get("lifetime_real_wealth"), **trace_readings(trace),
-            "pred_vs_realized": pred_vs_realized(diag),
+            "pred_vs_realized": pred_vs_realized(diag), "attributed_sum": float(np.sum(attr)) if attr is not None else None,
+            "attribution": info.get("attribution"),
             "slot_suspensions": row.get("learner_suspensions") if row.get("learner_suspensions") not in (None, "") else row.get("slot_suspensions"),
             "learner_identities": row.get("learner_identities"), "learner_returns": row.get("learner_returns"), "learner_leaves_chosen": row.get("learner_leaves_chosen"),
             "learner_leaves_refused": row.get("learner_leaves_refused"), "learner_float_minted_real": row.get("learner_float_minted_real"),
@@ -95,6 +102,7 @@ def pred_vs_realized(diag):
         pr = [d[1][k] for d in diag if d[1] is not None]
         pc = [d[2][k] for d in diag if d[2] is not None and len(d[2]) > k]
         out[str(k)] = {"n": len(taken), "realized_mean": float(np.mean([d[3] for d in taken])) if taken else None,
+                       "attributed_mean": float(np.mean([d[4] for d in taken])) if taken and all(len(d) > 4 for d in taken) else None,
                        "pred_r_mean": float(np.mean(pr)) if pr else None, "pred_r_taken_mean": float(np.mean([d[1][k] for d in taken if d[1] is not None])) if taken and pr else None,
                        "plan_cost_mean": float(np.mean(pc)) if pc else None}
     return out
@@ -110,7 +118,8 @@ def pool_pred_vs_realized(rows):
             pairs = [(d[key], w) for d, w in zip(ds, weights) if d[key] is not None and w]
             return float(sum(v * w for v, w in pairs) / sum(w for _, w in pairs)) if pairs else None
         dec = [sum(x["n"] for x in r["pred_vs_realized"].values()) for r in rows if r.get("pred_vs_realized")]
-        out[k] = {"n": n, "realized_mean": wmean("realized_mean", [d["n"] for d in ds]), "pred_r_mean": wmean("pred_r_mean", dec),
+        out[k] = {"n": n, "realized_mean": wmean("realized_mean", [d["n"] for d in ds]), "attributed_mean": wmean("attributed_mean", [d["n"] for d in ds]),
+                  "pred_r_mean": wmean("pred_r_mean", dec),
                   "pred_r_taken_mean": wmean("pred_r_taken_mean", [d["n"] for d in ds]), "plan_cost_mean": wmean("plan_cost_mean", dec)}
     return out
 

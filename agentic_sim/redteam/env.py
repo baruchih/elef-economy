@@ -1,8 +1,11 @@
 """The decision-event environment (the build plan, decision 3): one step is one decision of the learner's — here a reviewer's answer on
 an assignment — and the engine with the hand-written population runs between decisions. The driver runs in a worker thread and blocks at
 each of the learner's decisions until `step` supplies the action; nothing else touches the engine. Reward: the change in the learner's
-lifetime real wealth since its last decision (the sum is the brief's §1 measure). Actions: 0 care (the careful disposition's signal at its
-cost), 1 approve blind, 2 reject blind. The run's cell is the stamping driver's own argument list, so the control is the same cell with
+lifetime real wealth since its last decision (the sum is the brief's §1 measure — the evaluation). The *training* reward, since the
+reviewer's method ruling after the calibration ladder (October 21, 2026), is the attributed one: what the decision caused on its own case,
+credited back when it lands, the suspension's forgone income charged to the plant failures that bought it, the index's revaluation out
+(`redteam.attrib`; the terminal info carries `attributed` per decision beside `realized`, and the collectors store both). Actions: 0 care
+(the careful disposition's signal at its cost), 1 approve blind, 2 reject blind. The run's cell is the stamping driver's own argument list, so the control is the same cell with
 `--learner-slot off`. With the driver's `--learner-rearrive on` (the ruling after run 22) a second kind of decision arrives at each
 period boundary — stay or leave and return under a fresh name — flagged in the observation; the lifetime is summed across the identities."""
 from __future__ import annotations
@@ -20,6 +23,7 @@ from drivers import stamping
 from drivers.stamping import Stamping
 from sim import check_all
 from .obs import build_obs, OBS_DIM, IDX
+from .attrib import attribute
 
 _END = "end"
 
@@ -31,8 +35,9 @@ class _Abort(Exception):
 class ElefReviewerEnv(gym.Env if gym else object):
     metadata = {"render_modes": []}
 
-    def __init__(self, cell_args, ticks=1000, hide=(), final_audit=True, obs_dim=None):
+    def __init__(self, cell_args, ticks=1000, hide=(), final_audit=True, obs_dim=None, work_side=False):
         self.cell_args, self.ticks, self.hide, self.final_audit = list(cell_args), int(ticks), tuple(hide), final_audit
+        self.work_side = bool(work_side)          # the ruling after the ladder: the learner's own work attributed too (Q3 on)
         self.obs_dim = int(obs_dim) if obs_dim else OBS_DIM           # a model trained before a field was added reads the vector trimmed
         if gym:
             self.observation_space = spaces.Box(-np.inf, np.inf, shape=(self.obs_dim,), dtype=np.float32)
@@ -104,9 +109,15 @@ class ElefReviewerEnv(gym.Env if gym else object):
         self._last_wealth = info.get("wealth_real", 0.0)
         self._last_obs = obs if obs is not None else np.zeros(self.obs_dim, dtype=np.float32)
         self.decisions = 0
+        self._marks, self._decisions, self._pending = [self._mark(info)], [], info
         if kind == _END:                             # a run in which the learner was never asked (it departed, or no seat)
-            return self._last_obs, dict(info, terminal=True)
+            return self._last_obs, dict(info, terminal=True, attributed=[], realized=[])
         return obs, info
+
+    @staticmethod
+    def _mark(info, prev=None):
+        return (info.get("t", 0), info.get("n_events", prev[1] if prev else 0), info.get("case"), bool(info.get("boundary", False)),
+                info.get("real_factor", prev[4] if prev else 1.0), info.get("wealth_real", prev[5] if prev else 0.0))
 
     def step(self, action):
         self._q_act.put(int(action))
@@ -115,8 +126,17 @@ class ElefReviewerEnv(gym.Env if gym else object):
         wealth = info.get("wealth_real", self._last_wealth)
         reward = wealth - self._last_wealth
         self._last_wealth = wealth
+        # the decision just taken, for the attributed training reward (the ruling after the ladder): its case and identity, the action
+        pd = self._pending
+        self._decisions.append({"identity": pd.get("identity"), "case": pd.get("case"), "is_plant": bool(pd.get("is_plant", False)),
+                                "fulfilled": bool(pd.get("fulfilled", True)), "action": int(action), "realized": float(reward)})
+        self._marks.append(self._mark(info, self._marks[-1])); self._pending = info
         if kind == _END:
             info = dict(info, decisions=self.decisions, lifetime_real_wealth=wealth)
+            if not info.get("error") and not info.get("aborted") and self.run is not None:
+                attributed, summ = attribute(self.run, self._marks, self._decisions, work_side=self.work_side)
+                info["attributed"], info["attribution"] = [float(x) for x in attributed], summ
+            info["realized"] = [d["realized"] for d in self._decisions]
             return self._last_obs, float(reward), True, False, info
         self._last_obs = obs
         return obs, float(reward), False, False, info

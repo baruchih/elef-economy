@@ -24,50 +24,7 @@ import numpy as np
 from redteam.env import ElefReviewerEnv
 from redteam.run_q import policy_of, seeds_of
 
-SOURCES = ("care_cost", "reimbursement", "review_fee", "bond_lost", "delivery_price", "effort_cost", "guarantee_lost", "court_fee", "emission", "uplift",
-           "revaluation", "other")
-REVIEW_SIDE = ("care_cost", "reimbursement", "review_fee", "bond_lost")                         # what the review decision causes
-WORK_SIDE = ("delivery_price", "effort_cost", "guarantee_lost", "court_fee", "emission", "uplift")   # the slot actor's other life, uncaused by the decision
-EXCLUDED = ("lock", "release", "departure", "arrival", "arrival_repayment")   # W unchanged, or the lifetime measure carries it another way
-
-
-def classify(e, names) -> tuple[str, float] | None:
-    """(source, signed nominal change to the names' wealth W) for a ledger event, or None when it does not touch W."""
-    if e.kind in EXCLUDED:
-        return None
-    src_in, dst_in = e.src in names, e.dst in names
-    if not (src_in or dst_in) or (src_in and dst_in):
-        return None
-    sign = 1.0 if dst_in else -1.0
-    n = e.note or ""
-    k = e.kind
-    if k == "purchase" and n.startswith("review"):
-        s = "care_cost"
-    elif k == "purchase":
-        s = "effort_cost"                                      # the slot actor's own work: "execution"
-    elif (k == "deposit_out" and ("reimburse" in n or "deferred" in n)) or (k == "transfer" and "advance" in n and dst_in):
-        s = "reimbursement"                                    # from the allowance, deferred, or Ω's advance
-    elif k == "feepot_out" and n.endswith("review fee"):
-        s = "review_fee"
-    elif k == "burn_bond" and "bond:" in n:
-        s = "bond_lost"
-    elif k == "forfeit_to" and "court fee" in n:
-        s = "bond_lost" if src_in else "court_fee"             # the reviewer's bond paying the appellant's fee; the slot's own fee coming back
-    elif k == "transfer" and "court fee" in n:
-        s = "court_fee"                                        # the slot appealing a verdict on its own work
-    elif k == "escrow_out" and "delivery price" in n:
-        s = "delivery_price"
-    elif k == "forfeit_to" and "forfeit:" in n:
-        s = "guarantee_lost"
-    elif k == "burn_bond" and "rej:" in n:
-        s = "court_fee"
-    elif k == "fee_out" and "emission share" in n:
-        s = "emission"
-    elif k == "transfer" and "duty uplift" in n:
-        s = "uplift"
-    else:
-        s = "other"
-    return s, sign * float(e.amount)
+from redteam.attrib import SOURCES, REVIEW_SIDE, WORK_SIDE, classify   # the classifier shared with the attributed training reward
 
 
 def episode(env, policy, seed, rng):

@@ -1,6 +1,7 @@
 """Offline trajectories for the world model (the build plan: careful, stamper, careful with ε = 0.2 random actions, uniform random, on
-seeds 1–20 by default). One file per (policy, seed) under <out>/<policy>-seed<N>.npz: obs (T, D), action (T,), reward (T,), is_plant (T,),
-fulfilled (T,), t (T,) and the episode's lifetime real wealth. Usage: python -m redteam.collect --out results/redteam/Q2/offline
+seeds 1–20 by default). One file per (policy, seed) under <out>/<policy>-seed<N>.npz: obs (T, D), action (T,), reward (T,) — the attributed training reward since the
+ruling after the ladder, the realized change beside it as realized (T,) — is_plant (T,), fulfilled (T,), t (T,) and the episode's lifetime
+real wealth. Usage: python -m redteam.collect --out results/redteam/Q2/offline
 [--seeds 1-20] [--policies careful,stamper,eps,random] [--rules 2.6.0] -- <cell args>"""
 from __future__ import annotations
 import argparse, json, os, sys, time
@@ -19,7 +20,12 @@ def rollout(env, policy, seed, rng):
         O.append(obs); A.append(a); P.append(info.get("is_plant", False)); F.append(info.get("fulfilled", True)); T.append(info.get("t", 0))
         obs, r, done, _, info = env.step(a)
         R.append(r)
-    return (np.array(O, dtype=np.float32).reshape(-1, obs.shape[-1]), np.array(A, dtype=np.int64), np.array(R, dtype=np.float32),
+    # the ruling after the ladder: the training reward is the attributed one (the realized kept beside it as `realized`)
+    R_real = np.array(R, dtype=np.float32)
+    attr = info.get("attributed")
+    R_use = np.array(attr, dtype=np.float32) if attr is not None and len(attr) == len(R) else R_real
+    info = dict(info, realized_rewards=R_real)
+    return (np.array(O, dtype=np.float32).reshape(-1, obs.shape[-1]), np.array(A, dtype=np.int64), R_use,
             np.array(P, dtype=bool), np.array(F, dtype=bool), np.array(T, dtype=np.int64), info)
 
 
@@ -44,7 +50,7 @@ def main(argv=None):
             rng = np.random.default_rng(seed * 1000 + hash(name) % 997)
             O, A, R, P, F, T, info = rollout(env, pol, seed, rng)
             np.savez_compressed(os.path.join(a.out, f"{name}-seed{seed}.npz"), obs=O, action=A, reward=R, is_plant=P, fulfilled=F, t=T,
-                                lifetime=info.get("lifetime_real_wealth", float("nan")), seed=seed, policy=name)
+                                realized=info.get("realized_rewards", R), lifetime=info.get("lifetime_real_wealth", float("nan")), seed=seed, policy=name)
             summary.append({"policy": name, "seed": seed, "decisions": int(len(A)), "lifetime_real_wealth": info.get("lifetime_real_wealth"),
                             "plants": int(P.sum()), "error": info.get("error")})
             print(f"{name} seed {seed}: {len(A)} decisions, lifetime {info.get('lifetime_real_wealth', float('nan')):.1f}, plants {int(P.sum())}" + (f" ERROR {info['error']}" if info.get("error") else ""), flush=True)

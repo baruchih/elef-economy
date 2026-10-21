@@ -2367,6 +2367,16 @@ award — under the exit rule it left; it is the economy's rule); and the leaver
 careful reference (read with or without the exit rule; nothing moves either way); whether the boundary decision wants a training signal of its own
 before the re-arrival line runs on this version; the leaver.
 
+**The ruling after the v2 calibration (October 21, 2026), implemented at 5405403a (notes §12; suite 342 + 32 in three modes):** (a) clears, the version
+calibrated; (c) before Q1 the attribution's principle extended to the boundary decision — every event of a name's life to exactly one decision: a case's
+to the decision on that case, a period's events no decision claims (the slot's work side) to the boundary decision that kept the name there, a departure
+zero (the first period's events, before any boundary decision, reported apart); the leaver in the offline set; ε at boundaries leaving or staying
+equally; **learner version 3**, one calibration on the same budget, then Q1's line and Q3 on it (in flight, `results/redteam/Q1/calibration-v3/` then
+`rearrive-v3/`); (b) the careful reference read without the exit rule, the broke seeds in the mean at ~0, noted; (b, d) **"members idle for want of a
+bond"** (`idle_for_bond_ticks`, `idle_for_bond_names`: free members whose unlocked balance is below G^V at the index) a standing reading in every cell
+from here — the member's bond loan the named candidate if it ever reads outside noise in a real cell, not drafted. The old version's Q1 line recorded,
+no finding.
+
 ## Maps
 
 Two `_line` artifacts in project Agentic-OS (`c54120a6-aaff-40f7-8a9f-3667da542879`):

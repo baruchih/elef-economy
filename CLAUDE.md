@@ -525,7 +525,14 @@ consolidated into one standalone spec with the accepted revision kept verbatim i
   if the direct policy clears and the model does not, the model is at fault; if neither, the reward once more before any question. **Read
   October 21, 2026 (notes §11): both clear as the stamper** — the world model +561 ± 167, the direct +534 ± 160 against the careful, the ideal +733 ± 119;
   the gap the boundary decision (2–3 self-departures in 20, no attributed reward either way); the careful reference now goes broke and sits on 2 seeds
-  (below G^V after the ×4 care cost and forfeited guarantees; under the exit rule it left). Q1's re-arrival line on the old version: no finding by the rule.
+  (below G^V after the ×4 care cost and forfeited guarantees; under the exit rule it left). Q1's re-arrival line on the old version: no finding by the rule. **The ruling after it (October 21, 2026; 5405403a): learner version 3** — the
+  attribution's principle extended so every event of a name's life goes to exactly one decision (a case's to its decision; a period's unclaimed events —
+  the slot's work side — to the boundary decision that kept the name there; a departure zero; the first period's reported apart as `pre_boundary_real`),
+  the leaver in the offline set, ε at boundaries leaving or staying equally (`collect`, `policy_eps`, `online --explore careful`); one calibration on the
+  same budget then Q1's line and Q3 on it (`results/redteam/Q1/calibration-v3/`, `rearrive-v3/`). The careful reference is read without the exit rule
+  (broke seeds in the mean at ~0). **The standing reading in every cell from here: members idle for want of a bond** — `idle_for_bond_ticks` (Σ over
+  ticks of free members whose unlocked balance is below G^V at the index) and `idle_for_bond_names` in the driver's row and run_q's eval; the member's
+  bond loan is the named candidate if it ever reads outside noise in a real cell — not drafted.
 - Money is checked by invariant I1 (conservation) — never silently create or lose credits.
 
 ## Vocabulary (spec Appendix C has the full notation)

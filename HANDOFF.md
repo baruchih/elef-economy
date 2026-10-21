@@ -2412,7 +2412,17 @@ gate behind the final (`rearrive-v4/`; notes §16): **no win** — the instrumen
 stamp 42% of resubmissions (never a plant; +0.7 real a decision, ~+20 a lifetime, under the noise). No sleeper (the stamp rate flat across the odds bands). On the first
 reviews plants and real cases are stamped alike (−0.003 ± 0.003 per seed; run_q's plant/real rates run over every seat and so read the resubmissions, a readout item);
 Q2's probe on the version 4 model: the paired gap raw − context +0.011 ± 0.001, 2.6.1's figure. The leaver and careful runs are the old version's to the decimal (same
-seeds), so the leaver's +100 ± 40 is not a new read. Next on the instrument: Q3 (not built) on the reviewer's go; the dispute baseline before Q7.
+seeds), so the leaver's +100 ± 40 is not a new read.
+
+**The ruling after run 26 (October 22, 2026), implemented (notes §17):** version 4 is the instrument, its boundary residual a known fault not changed (the one-step boundary read
+the named setting if a re-arrival cell ever needs it); Q1 closed as a no-win; the plant-blind seats a standing reading in every learned line and the plant/real stamp rates read on the
+initial reviews alone (conformance, `redteam.run_q`); the resubmission plant a design item not drafted. **Q3 built and in flight** — the learned deliverer (`--learner-role deliverer`):
+the slot actor as a worker whose quality is the policy's choice at each submission (deliver well: fulfilled, the effort burned; deliver badly: unfulfilled at zero effort — a choice, not a
+rate; the population's draw unchanged), reviewing as the population's actor at its slot, the exit its own, no re-arrival; the case's events attributed to the submission's decision;
+two actions through the stack; `obs.build_obs_work`. The calibration first (`results/redteam/Q3/calibration-v4/`: every reviewer a stamper, the roll off, no plants, the dial off; the
+ideal the zero-effort delivery, +1,541 ± 113 real over the careful deliverer on seeds 21–40 — 13.6 SE, no effort-cost knob needed; the world model and the direct beside the careful and
+the zero), then Q3's line in run 24's population by the gate (`line-v4/`: above the careful by 2 SE, within 3 SE of the ideal; the reading the reviewer's) — the brief's §4 readings in
+run_q's deliverer table. The dispute baseline before Q7.
 
 ## Maps
 

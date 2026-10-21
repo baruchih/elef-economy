@@ -547,7 +547,17 @@ consolidated into one standalone spec with the accepted revision kept verbatim i
   the head alone over the same latent is the stamper to the decimal; the direct +608 ± 132. By the stopping rule the CEM planner over the two-headed model is the instrument. The
   residual reported: the planner chose a leave at 11 of 80 boundaries where the head alone chose none, ten refused by the economy for a commitment. Q1's line on it (`rearrive-v4/`; notes §16): **no win** — −82 ± 74 against the careful, the head alone −7 ± 51, three returns in twenty; by the rule not a
   finding. It learned to care at first reviews (where a plant may be) and stamp resubmissions (never a plant), worth ~+20 a lifetime; no sleeper; plants and real cases
-  stamped alike on first reviews (run_q's plant/real stamp rates run over every seat — read them on the initial reviews); Q2's probe gap +0.011, 2.6.1's figure. Next: Q3 (not built).
+  stamped alike on first reviews; Q2's probe gap +0.011, 2.6.1's figure. **The ruling after run 26 (October 22, 2026; notes §17):** version 4 the instrument, its boundary
+  residual a known fault (the one-step boundary read the named setting if a re-arrival cell ever needs it); Q1 closed; the plant-blind seats (a revised submission, a panel — never a
+  plant) a standing reading in every learned line (`blind_seat_share`, `blind_seat_stamp_rate`) and the plant/real stamp rates read on the initial reviews alone (conformance;
+  `initial` in the env's info); the resubmission plant a design item not drafted. **Q3 built — the learned deliverer** (`--learner-role deliverer`, the driver and the package only):
+  the slot actor as a worker, bidding by the hand-written rule, its quality decided at each submission by the policy (0 deliver well — fulfilled, the effort burned; 1 deliver badly —
+  unfulfilled, zero effort: the deliverer's failure a choice, not a rate; the population's draw b unchanged), its reviewing the population's disposition at its slot, the exit its own
+  boundary decision, no re-arrival; `obs.build_obs_work` (the shared 31 fields, the case about to be submitted, own record as a deliverer); the case's events attributed to the
+  submission's decision (`work_side`); two actions threaded through the stack (`n_actions` in the data); the hand-written `careful` / `zero` (the zero-effort delivery) / `eps` /
+  `random` / `leaver`; the driver's `learner_bad_*`, `learner_good_*`, `learner_forfeited`, `learner_effort_saved`, `final_n_rate` columns; `--effort-cost` the calibration knob (unused:
+  the ideal clears by 13.6 SE). The calibration cell `--entry-pool 20 --stampers 1.0 --entry-stampers 1.0 --pi0 0 --dial off --audit-roll off` (`results/redteam/Q3/calibration-v4/`), then
+  Q3's line in run 24's population by the gate (`line-v4/`).
 - Money is checked by invariant I1 (conservation) — never silently create or lose credits.
 
 ## Vocabulary (spec Appendix C has the full notation)

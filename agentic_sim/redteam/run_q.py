@@ -4,7 +4,11 @@ no-horizon control; Q1's hand-written sleepers (`sleeper0.5`: a blind approval b
 wealth, Q1's readings from the decision trace: the applied odds at which the policy stamped against those at which it cared, its stamps
 by odds band, the slot's suspensions and the ticks between its admissions, the false approvals it passed per suspension. Writes
 <out>/eval.json and <out>/eval.md. Usage: python -m redteam.run_q --model <ckpt> --out <dir> [--seeds 21-40]
-[--policies learned,greedy,careful,sleeper0.5] [--horizon 8] [--hide own_p_eff] -- <cell args>"""
+[--policies learned,greedy,careful,sleeper0.5] [--horizon 8] [--hide own_p_eff] [--role deliverer] -- <cell args>
+Conformance (the ruling after run 26): the plant and real stamp rates are read on the initial reviews alone — the seats where a plant can be
+received; the plant-blind seats (a revised submission, P and ⊥ unavailable; the appeal and dispute panels) are a standing reading in every
+learned line: their share of the review decisions and the stamp rate on them. Q3 (`--role deliverer`): the learned deliverer's line — its bad
+deliveries chosen, approved and caught, the guarantees it forfeited, the effort it saved, beside the careful deliverer and the zero-effort one."""
 from __future__ import annotations
 import argparse, json, os, sys, time
 import numpy as np
@@ -49,7 +53,9 @@ def trace_readings(trace):
 def episode(env, policy, seed, rng):
     obs, info = env.reset(seed=seed)
     done = info.get("terminal", False)
+    K = env.n_actions
     acts, plants_stamped, real_stamped, plants_seen, real_seen, trace = [], 0, 0, 0, 0, []
+    blind_seats, blind_seat_stamps = 0, 0                         # the plant-blind seats: a revised submission or a panel (never a plant)
     diag = []                                                     # per review decision: (action, predicted r per action, planner cost per first action, realized r)
     review_idx, k_all = [], 0                                     # the review decisions' positions among all decisions (the attributed reward is per decision)
     while not done:
@@ -62,6 +68,10 @@ def episode(env, policy, seed, rng):
                       float(info.get("suspended", obs[IDX["own_suspended"]])), a, 1.0 if boundary else 0.0))   # from the engine's reading, so the hidden cell is read too
         if boundary:
             pass
+        elif env.role == "deliverer":
+            pass
+        elif not info.get("initial", True):                       # a plant-blind seat: read apart, not in the plant/real rates
+            blind_seats += 1; blind_seat_stamps += int(a != 0)
         elif info.get("is_plant"):
             plants_seen += 1; plants_stamped += int(a != 0)
         else:
@@ -75,9 +85,16 @@ def episode(env, policy, seed, rng):
     if attr is not None and len(attr) == k_all:
         diag = [d + (float(attr[k]),) for d, k in zip(diag, review_idx)]
     row = info.get("row", {})
-    return {"seed": seed, "decisions": len(acts), "lifetime_real_wealth": info.get("lifetime_real_wealth"), **trace_readings(trace),
+    work = {k: row.get(k) for k in ("learner_role", "learner_work_decisions", "learner_bad_deliveries", "learner_good_deliveries", "learner_bad_approved", "learner_bad_caught",
+                                   "learner_good_vested", "learner_good_final_n", "learner_forfeited", "learner_bad_paid", "learner_effort_saved",
+                                   "slot_delivery_income", "slot_guarantees_forfeited", "slot_effort_burned", "slot_awards", "final_n_rate")} if env.role == "deliverer" else {}
+    if env.role == "deliverer":
+        work["good_share"] = float(np.mean([x == 0 for x in acts])) if acts else None
+        work["bad_share"] = float(np.mean([x == 1 for x in acts])) if acts else None
+    return {"seed": seed, "decisions": len(acts), "lifetime_real_wealth": info.get("lifetime_real_wealth"), **trace_readings(trace), **work,
+            "blind_seats": blind_seats, "blind_seat_stamps": blind_seat_stamps,
             "leaves_effected": sum(1 for d in getattr(env, "_decisions", []) if d.get("case") is None and d.get("chosen") == 1 and d.get("action") == 1),   # version 4: the admitted leaves at boundaries (leaves_chosen is the choice)
-            "pred_vs_realized": pred_vs_realized(diag), "attributed_sum": float(np.sum(attr)) if attr is not None else None,
+            "pred_vs_realized": pred_vs_realized(diag, K), "attributed_sum": float(np.sum(attr)) if attr is not None else None,
             "attribution": info.get("attribution"),
             "slot_suspensions": row.get("learner_suspensions") if row.get("learner_suspensions") not in (None, "") else row.get("slot_suspensions"),
             "learner_identities": row.get("learner_identities"), "learner_returns": row.get("learner_returns"), "learner_leaves_chosen": row.get("learner_leaves_chosen"),
@@ -92,14 +109,14 @@ def episode(env, policy, seed, rng):
             "error": info.get("error")}
 
 
-def pred_vs_realized(diag):
+def pred_vs_realized(diag, K=3):
     """The ladder's reading, per episode: for each action k — how often taken, the realized wealth change when taken (the next decision's
     reward), the predicted change for k over every decision (the wealth head's or the direct policy's), the planner's cost for k as the
     first action over every decision (the learned policy only)."""
     if not diag:
         return None
     out = {}
-    for k in range(3):
+    for k in range(K):
         taken = [d for d in diag if d[0] == k]
         pr = [d[1][k] for d in diag if d[1] is not None]
         pc = [d[2][k] for d in diag if d[2] is not None and len(d[2]) > k]
@@ -113,7 +130,8 @@ def pred_vs_realized(diag):
 def pool_pred_vs_realized(rows):
     """Pooled over the episodes, weighted by decisions."""
     out = {}
-    for k in ("0", "1", "2"):
+    keys = sorted({k for r in rows if r.get("pred_vs_realized") for k in r["pred_vs_realized"]}, key=int)
+    for k in keys:
         ds = [r["pred_vs_realized"][k] for r in rows if r.get("pred_vs_realized")]
         n = sum(d["n"] for d in ds)
         def wmean(key, weights):
@@ -140,6 +158,7 @@ def main(argv=None):
     ap.add_argument("--seeds", default="21-40"); ap.add_argument("--policies", default="learned,greedy,careful")
     ap.add_argument("--horizon", type=int, default=8); ap.add_argument("--samples", type=int, default=256); ap.add_argument("--iters", type=int, default=6)
     ap.add_argument("--hide", default=""); ap.add_argument("--ticks", type=int, default=1000)
+    ap.add_argument("--role", choices=["reviewer", "deliverer"], default="reviewer", help="Q3: the learned deliverer (policies learned,greedy,direct,careful,zero,eps,random,leaver)")
     ap.add_argument("cell", nargs=argparse.REMAINDER)
     a = ap.parse_args(argv)
     cell = [x for x in a.cell if x != "--"]
@@ -147,7 +166,7 @@ def main(argv=None):
     m, ck = (load_model(a.model) if a.model else (None, {}))
     if m is not None:
         m.to(device())
-    env = ElefReviewerEnv(cell, ticks=a.ticks, hide=hide, obs_dim=ck.get("config", {}).get("obs_dim"))
+    env = ElefReviewerEnv(cell, ticks=a.ticks, hide=hide, obs_dim=ck.get("config", {}).get("obs_dim"), role=a.role)
     pols = {}
     for name in a.policies.split(","):
         if name == "learned":
@@ -158,7 +177,7 @@ def main(argv=None):
             dm, _ = load_direct(a.direct_model); dm.to(device())
             pols[name] = DirectPolicy(dm)
         else:
-            pols[name] = policy_of(name)
+            pols[name] = policy_of(name, a.role)
     os.makedirs(a.out, exist_ok=True)
     results = {k: [] for k in pols}
     t0 = time.time()
@@ -167,14 +186,31 @@ def main(argv=None):
             rng = np.random.default_rng(seed)
             r = episode(env, pol, seed, rng)
             results[name].append(r)
-            print(f"seed {seed} {name}: {r['decisions']} decisions, lifetime {r['lifetime_real_wealth']:.1f}, care {r['care_share']}, plants stamped {r['plants_stamped']}/{r['plants_seen']}, real stamped {r['real_stamped']}/{r['real_seen']}", flush=True)
+            if r.get("error"):
+                print(f"seed {seed} {name}: ERROR {r['error']}", flush=True)
+            elif a.role == "deliverer":
+                print(f"seed {seed} {name}: {r['decisions']} decisions, lifetime {r['lifetime_real_wealth']:.1f}, bad {r.get('bad_share')}, bad approved/caught {r.get('learner_bad_approved')}/{r.get('learner_bad_caught')}, forfeited {r.get('learner_forfeited')}", flush=True)
+            else:
+                print(f"seed {seed} {name}: {r['decisions']} decisions, lifetime {r['lifetime_real_wealth']:.1f}, care {r['care_share']}, plants stamped {r['plants_stamped']}/{r['plants_seen']}, real stamped {r['real_stamped']}/{r['real_seen']} (initial reviews), blind seats {r['blind_seats']} stamped {r['blind_seat_stamps']}", flush=True)
     env.close()
     summary = {}
     for name, rows in results.items():
         summary[name] = {k: mse([r[k] for r in rows]) for k in ("lifetime_real_wealth", "decisions", "care_share", "approve_blind_share", "reject_blind_share",
                                                                  "false_approvals_run", "learner_false_approvals", "suspensions_run", "slot_departed")}
         ps, pn, rs, rn = (sum(r[k] for r in rows) for k in ("plants_stamped", "plants_seen", "real_stamped", "real_seen"))
-        summary[name]["plant_stamp_rate"] = ps / max(1, pn); summary[name]["real_stamp_rate"] = rs / max(1, rn)
+        summary[name]["plant_stamp_rate"] = ps / max(1, pn); summary[name]["real_stamp_rate"] = rs / max(1, rn)     # on the initial reviews (the ruling after run 26)
+        bs, bst = sum(r["blind_seats"] for r in rows), sum(r["blind_seat_stamps"] for r in rows)
+        summary[name]["blind_seat_share"] = bs / max(1, bs + pn + rn); summary[name]["blind_seat_stamp_rate"] = (bst / bs) if bs else None
+        summary[name]["blind_seats"] = mse([r["blind_seats"] for r in rows])
+        if a.role == "deliverer":                                   # Q3's line: the learned deliverer's choices and what became of them
+            for k in ("good_share", "bad_share", "learner_work_decisions", "learner_bad_deliveries", "learner_good_deliveries", "learner_bad_approved", "learner_bad_caught",
+                      "learner_good_vested", "learner_good_final_n", "learner_forfeited", "learner_bad_paid", "learner_effort_saved",
+                      "slot_delivery_income", "slot_guarantees_forfeited", "slot_effort_burned", "slot_awards", "final_n_rate", "slot_rho"):
+                summary[name][k] = mse([r.get(k) if r.get(k) not in ("", None) else None for r in rows])
+            settled_bad = sum((r.get("learner_bad_approved") or 0) + (r.get("learner_bad_caught") or 0) for r in rows)
+            summary[name]["bad_approved_rate"] = (sum(r.get("learner_bad_approved") or 0 for r in rows) / settled_bad) if settled_bad else None
+            settled = sum((r.get("learner_bad_approved") or 0) + (r.get("learner_bad_caught") or 0) + (r.get("learner_good_vested") or 0) + (r.get("learner_good_final_n") or 0) for r in rows)
+            summary[name]["slot_final_n_rate"] = (sum((r.get("learner_bad_caught") or 0) + (r.get("learner_good_final_n") or 0) for r in rows) / settled) if settled else None
         # Q1: the odds at the stamps, the stamps by band pooled over the seeds, the suspensions and the admissions
         summary[name]["odds_at_stamps_mean"] = mse([r.get("odds_at_stamps_mean") for r in rows])
         summary[name]["odds_at_cares_mean"] = mse([r.get("odds_at_cares_mean") for r in rows])
@@ -200,17 +236,28 @@ def main(argv=None):
                 continue
             d = [r["lifetime_real_wealth"] - base[r["seed"]] for r in results[name] if r["seed"] in base]
             summary[name]["paired_minus_careful"] = mse(d)
-    out = {"cell": cell, "seeds": a.seeds, "hide": a.hide, "model": a.model, "direct_model": a.direct_model, "model_train": ck.get("train", {}), "horizon": a.horizon,
+    out = {"cell": cell, "seeds": a.seeds, "hide": a.hide, "role": a.role, "model": a.model, "direct_model": a.direct_model, "model_train": ck.get("train", {}), "horizon": a.horizon,
            "samples": a.samples, "iters": a.iters, "seconds": round(time.time() - t0, 1), "summary": summary, "episodes": results}
     json.dump(out, open(os.path.join(a.out, "eval.json"), "w"), indent=1, default=float)
+    def fmt(x):
+        return "—" if x is None or (isinstance(x, float) and np.isnan(x)) else (f"{x:.3f}" if isinstance(x, float) else str(x))
     with open(os.path.join(a.out, "eval.md"), "w") as f:
-        f.write(f"# Evaluation — cell `{' '.join(cell)}`, seeds {a.seeds}, hide `{a.hide}`, model `{a.model}` (value {ck.get('config', {}).get('value_mode', 'off')}, horizon {a.horizon})\n\n| policy | lifetime real wealth | paired − careful | decisions | care share | approve blind | reject blind | plant stamp rate | real stamp rate | run false approvals | learner's | departed |\n|---|---|---|---|---|---|---|---|---|---|---|---|\n")
+        if a.role == "deliverer":
+            f.write(f"# Evaluation (Q3, the learned deliverer) — cell `{' '.join(cell)}`, seeds {a.seeds}, model `{a.model}` (value {ck.get('config', {}).get('value_mode', 'off')}, horizon {a.horizon})\n\n"
+                    "| policy | lifetime real wealth | paired − careful | work decisions | bad share | bad approved | bad caught | good final N | bad approved rate | slot final-N rate | population final-N rate | guarantees forfeited (nominal) | effort saved (nominal) | slot ρ | awards | departed |\n|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|\n")
+            for name, s in summary.items():
+                pm = s.get("paired_minus_careful", (float("nan"), float("nan")))
+                f.write(f"| {name} | {s['lifetime_real_wealth'][0]:.1f} ± {s['lifetime_real_wealth'][1]:.1f} | {pm[0]:.1f} ± {pm[1]:.1f} | {s['decisions'][0]:.1f} | {fmt(s['bad_share'][0])} | {fmt(s['learner_bad_approved'][0])} | {fmt(s['learner_bad_caught'][0])} | {fmt(s['learner_good_final_n'][0])} | {fmt(s['bad_approved_rate'])} | {fmt(s['slot_final_n_rate'])} | {fmt(s['final_n_rate'][0])} | {fmt(s['learner_forfeited'][0])} | {fmt(s['learner_effort_saved'][0])} | {fmt(s['slot_rho'][0])} | {fmt(s['slot_awards'][0])} | {s['slot_departed'][0]:.2f} |\n")
+            f.write("\nThe boundary decisions (the exit the learner's own): leaves chosen and effected, the share of episodes whose learner had departed at the end.\n\n| policy | boundary decisions | leaves chosen | leaves effected | departed |\n|---|---|---|---|---|\n")
+            for name, s in summary.items():
+                f.write(f"| {name} | {fmt(s['boundary_decisions'][0])} | {fmt(s['leaves_chosen'][0])} | {fmt(s['leaves_effected'][0])} | {fmt(s['learner_departed_now'][0])} |\n")
+            print(json.dumps(summary, indent=1, default=float))
+            return
+        f.write(f"# Evaluation — cell `{' '.join(cell)}`, seeds {a.seeds}, hide `{a.hide}`, model `{a.model}` (value {ck.get('config', {}).get('value_mode', 'off')}, horizon {a.horizon})\n\nThe plant and real stamp rates are read on the initial reviews alone (the ruling after run 26); the plant-blind seats — a revised submission or a panel, where no plant is received — are read apart: their share of the review decisions and the stamp rate on them.\n\n| policy | lifetime real wealth | paired − careful | decisions | care share | approve blind | reject blind | plant stamp rate (initial) | real stamp rate (initial) | blind-seat share | blind-seat stamp rate | run false approvals | learner's | departed |\n|---|---|---|---|---|---|---|---|---|---|---|---|---|---|\n")
         for name, s in summary.items():
             pm = s.get("paired_minus_careful", (float("nan"), float("nan")))
-            f.write(f"| {name} | {s['lifetime_real_wealth'][0]:.1f} ± {s['lifetime_real_wealth'][1]:.1f} | {pm[0]:.1f} ± {pm[1]:.1f} | {s['decisions'][0]:.1f} | {s['care_share'][0]:.3f} | {s['approve_blind_share'][0]:.3f} | {s['reject_blind_share'][0]:.3f} | {s['plant_stamp_rate']:.3f} | {s['real_stamp_rate']:.3f} | {s['false_approvals_run'][0]:.2f} | {s['learner_false_approvals'][0]:.2f} | {s['slot_departed'][0]:.2f} |\n")
+            f.write(f"| {name} | {s['lifetime_real_wealth'][0]:.1f} ± {s['lifetime_real_wealth'][1]:.1f} | {pm[0]:.1f} ± {pm[1]:.1f} | {s['decisions'][0]:.1f} | {s['care_share'][0]:.3f} | {s['approve_blind_share'][0]:.3f} | {s['reject_blind_share'][0]:.3f} | {s['plant_stamp_rate']:.3f} | {s['real_stamp_rate']:.3f} | {s['blind_seat_share']:.3f} | {fmt(s['blind_seat_stamp_rate'])} | {s['false_approvals_run'][0]:.2f} | {s['learner_false_approvals'][0]:.2f} | {s['slot_departed'][0]:.2f} |\n")
         f.write("\nQ1's readings — the applied odds at the policy's blind approvals (its stamps) and at its other decisions, its stamp rate by odds band (decisions in the band pooled over the seeds), the slot's suspensions, the ticks between its admissions, the false approvals it passed per suspension:\n\n| policy | odds at stamps | odds at cares | " + " | ".join(f"stamp rate {b}" for b in [f"{lo:.1f}-{hi:.1f}" if hi <= 1.0 else "pinned" for lo, hi in ODDS_BANDS]) + " | suspensions | admissions seen | ticks between admissions | false approvals / suspension |\n|---|---|---|" + "---|" * len(ODDS_BANDS) + "---|---|---|---|\n")
-        def fmt(x):
-            return "—" if x is None or (isinstance(x, float) and np.isnan(x)) else (f"{x:.3f}" if isinstance(x, float) else str(x))
         for name, s in summary.items():
             bands = s["stamp_rate_by_odds_band"]
             cells = " | ".join((f"{fmt(bands[b][0])} ({bands[b][1]})" if b in bands else "—") for b in [f"{lo:.1f}-{hi:.1f}" if hi <= 1.0 else "pinned" for lo, hi in ODDS_BANDS])

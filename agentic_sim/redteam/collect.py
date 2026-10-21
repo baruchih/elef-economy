@@ -8,7 +8,7 @@ import argparse, json, os, sys, time
 import numpy as np
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
-from redteam.env import ElefReviewerEnv, policy_of
+from redteam.env import ElefReviewerEnv, policy_of, default_policies
 
 
 def rollout(env, policy, seed, rng):
@@ -34,7 +34,8 @@ def main(argv=None):
     ap = argparse.ArgumentParser()
     ap.add_argument("--out", required=True)
     ap.add_argument("--seeds", default="1-20")
-    ap.add_argument("--policies", default="careful,stamper,eps,random,leaver")   # version 3: the leaver in the offline set
+    ap.add_argument("--policies", default=None, help="by role: careful,stamper,eps,random,leaver (the reviewer; version 3 added the leaver) / careful,zero,eps,random,leaver (Q3's deliverer)")
+    ap.add_argument("--role", choices=["reviewer", "deliverer"], default="reviewer", help="Q3: `deliverer` — the slot's quality decisions (0 well, 1 badly at zero effort)")
     ap.add_argument("--ticks", type=int, default=1000)
     ap.add_argument("--hide", default="", help="observation fields zeroed (comma-separated), e.g. own_p_eff for Q1's hidden-odds cell")
     ap.add_argument("cell", nargs=argparse.REMAINDER, help="the stamping driver's cell arguments after --")
@@ -42,21 +43,22 @@ def main(argv=None):
     cell = [x for x in a.cell if x != "--"]
     lo, hi = (int(x) for x in a.seeds.split("-")) if "-" in a.seeds else (int(a.seeds), int(a.seeds))
     os.makedirs(a.out, exist_ok=True)
-    env = ElefReviewerEnv(cell, ticks=a.ticks, hide=tuple(x for x in a.hide.split(",") if x))
+    env = ElefReviewerEnv(cell, ticks=a.ticks, hide=tuple(x for x in a.hide.split(",") if x), role=a.role)
     summary = []
     t0 = time.time()
-    for name in a.policies.split(","):
-        pol = policy_of(name)
+    for name in (a.policies or default_policies(a.role)).split(","):
+        pol = policy_of(name, a.role)
         for seed in range(lo, hi + 1):
             rng = np.random.default_rng(seed * 1000 + hash(name) % 997)
             O, A, R, P, F, T, info = rollout(env, pol, seed, rng)
             np.savez_compressed(os.path.join(a.out, f"{name}-seed{seed}.npz"), obs=O, action=A, chosen=info["action_chosen"], reward=R, is_plant=P, fulfilled=F, t=T,
-                                realized=info.get("realized_rewards", R), lifetime=info.get("lifetime_real_wealth", float("nan")), seed=seed, policy=name)
+                                realized=info.get("realized_rewards", R), lifetime=info.get("lifetime_real_wealth", float("nan")), seed=seed, policy=name,
+                                role=a.role, n_actions=env.n_actions)
             summary.append({"policy": name, "seed": seed, "decisions": int(len(A)), "lifetime_real_wealth": info.get("lifetime_real_wealth"),
                             "plants": int(P.sum()), "error": info.get("error")})
             print(f"{name} seed {seed}: {len(A)} decisions, lifetime {info.get('lifetime_real_wealth', float('nan')):.1f}, plants {int(P.sum())}" + (f" ERROR {info['error']}" if info.get("error") else ""), flush=True)
     env.close()
-    json.dump({"cell": cell, "ticks": a.ticks, "hide": a.hide, "seconds": round(time.time() - t0, 1), "episodes": summary},
+    json.dump({"cell": cell, "ticks": a.ticks, "hide": a.hide, "role": a.role, "n_actions": env.n_actions, "seconds": round(time.time() - t0, 1), "episodes": summary},
               open(os.path.join(a.out, "summary.json"), "w"), indent=1)
 
 

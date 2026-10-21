@@ -10,7 +10,11 @@ credited back when it lands, the suspension's forgone income charged to the plan
 period boundary — stay or leave and return under a fresh name — flagged in the observation; the lifetime is summed across the identities.
 Version 4 (the ruling after version 3's calibration): a leave the economy refuses (a live commitment at the boundary) is recorded as the action
 effected, a stay — the step's info carries `action_effected` beside `action_chosen`, and the collectors store the effected action as the
-decision's and the choice beside it — so the training data separates an admitted leave (nothing follows) from a stay (the period's work)."""
+decision's and the choice beside it — so the training data separates an admitted leave (nothing follows) from a stay (the period's work).
+Q3 (`role="deliverer"`): the learner is the slot actor as a deliverer — it reviews as the population's actor at its slot does, and a decision
+arrives at each of its submissions: 0 deliver well (the work fulfilled, the effort burned), 1 deliver badly (unfulfilled, zero effort) — two
+actions; the boundary decision as before (0 stay, 1 leave for good). The observation is `obs.build_obs_work`; the training reward attributes the
+case's events (the price, the effort, a guarantee forfeited) to the submission's decision (`work_side` on)."""
 from __future__ import annotations
 import queue
 import threading
@@ -25,7 +29,7 @@ except ImportError:  # the project's own Python has no gymnasium; the environmen
 from drivers import stamping
 from drivers.stamping import Stamping
 from sim import check_all
-from .obs import build_obs, OBS_DIM, IDX
+from .obs import build_obs, build_obs_work, OBS_DIM, IDX
 from .attrib import attribute
 
 _END = "end"
@@ -38,13 +42,16 @@ class _Abort(Exception):
 class ElefReviewerEnv(gym.Env if gym else object):
     metadata = {"render_modes": []}
 
-    def __init__(self, cell_args, ticks=1000, hide=(), final_audit=True, obs_dim=None, work_side=False):
+    def __init__(self, cell_args, ticks=1000, hide=(), final_audit=True, obs_dim=None, work_side=None, role="reviewer"):
+        assert role in ("reviewer", "deliverer")
+        self.role = role
+        self.n_actions = 3 if role == "reviewer" else 2
         self.cell_args, self.ticks, self.hide, self.final_audit = list(cell_args), int(ticks), tuple(hide), final_audit
-        self.work_side = bool(work_side)          # the ruling after the ladder: the learner's own work attributed too (Q3 on)
+        self.work_side = bool(work_side) if work_side is not None else (role == "deliverer")   # the learner's own work attributed (Q3)
         self.obs_dim = int(obs_dim) if obs_dim else OBS_DIM           # a model trained before a field was added reads the vector trimmed
         if gym:
             self.observation_space = spaces.Box(-np.inf, np.inf, shape=(self.obs_dim,), dtype=np.float32)
-            self.action_space = spaces.Discrete(3)
+            self.action_space = spaces.Discrete(self.n_actions)
         self.run = None
         self._thread = None
         self._seed = 0
@@ -64,16 +71,37 @@ class ElefReviewerEnv(gym.Env if gym else object):
     def _hook(self, run, reviewer, view, r):
         if self._abort:
             raise _Abort()
-        obs = build_obs(run, reviewer, view, r, self.hide, n_fields=self.obs_dim)
+        boundary = view is None
+        obs = (build_obs_work(run, reviewer, None, self.hide, n_fields=self.obs_dim) if (boundary and self.role == "deliverer")
+               else build_obs(run, reviewer, view, r, self.hide, n_fields=self.obs_dim))
         # the label for the Q2 probe only — read after the fact, never in the observation: was the assignment a plant?
         ac = run.w.actor(reviewer)
-        boundary = view is None
         self._q_obs.put(("obs", obs, {"t": run.w.t, "wealth_real": self._wealth_real(), "case": None if boundary else view.case_id, "boundary": boundary,
                                       "n_events": run.w.n_events(), "real_factor": self._real(),   # the ledger's position and the index at the observation (redteam.timing)
-                                      "identity": reviewer,
+                                      "identity": reviewer, "kind": "boundary" if boundary else "review",
+                                      "initial": False if boundary else bool(view.responses_available),   # an initial review of an unrevised submission — where a plant can be
                                       "is_plant": False if boundary else bool(run.tasks[view.case_id].plant), "fulfilled": True if boundary else bool(run.tasks[view.case_id].fulfilled),
                                       # Q1's readings (the evaluation's trace, never the policy's input): the applied odds and standing at the decision
                                       "p_eff": float(run.w.p_effective(reviewer)), "member": bool(ac.is_member), "suspended": ac.suspended_until is not None}))
+        a = self._q_act.get()
+        if a is None:
+            raise _Abort()
+        return a
+
+    def _hook_work(self, run, actor, c):
+        """Q3: the learned deliverer's quality decision at a submission — the observation is its own case and its standing; the truth is set by
+        the action, never shown. Recorded with the case, so the attribution credits the case's events (the price, the effort, a guarantee
+        forfeited, a court fee) to this decision."""
+        if self._abort:
+            raise _Abort()
+        obs = build_obs_work(run, actor, c, self.hide, n_fields=self.obs_dim)
+        ac = run.w.actor(actor)
+        self._q_obs.put(("obs", obs, {"t": run.w.t, "wealth_real": self._wealth_real(), "case": c.id, "boundary": False, "kind": "work", "initial": False,
+                                      "n_events": run.w.n_events(), "real_factor": self._real(), "identity": actor,
+                                      "is_plant": False, "fulfilled": True,
+                                      "price": float(c.B), "bond": float(c.G_award if c.G_award is not None else c.G), "nested": not c.is_root,
+                                      "cost": float(run.cost_now(actor)),
+                                      "p_eff": float(run.w.p_effective(actor)), "member": bool(ac.is_member), "suspended": ac.suspended_until is not None}))
         a = self._q_act.get()
         if a is None:
             raise _Abort()
@@ -102,9 +130,10 @@ class ElefReviewerEnv(gym.Env if gym else object):
             super().reset(seed=seed)
         self._stop()
         self._seed = int(seed) if seed is not None else self._seed + 1
-        a = stamping.parse_args(self.cell_args + ["--seed", str(self._seed), "--ticks", str(self.ticks), "--learner-slot", "on"])
+        a = stamping.parse_args(self.cell_args + ["--seed", str(self._seed), "--ticks", str(self.ticks), "--learner-slot", "on", "--learner-role", self.role])
         self.run = Stamping(a)
         self.run.learner = self._hook
+        self.run.learner_work = self._hook_work
         self._q_obs, self._q_act, self._abort = queue.Queue(), queue.Queue(), False
         self._thread = threading.Thread(target=self._drive, daemon=True)
         self._thread.start()
@@ -166,6 +195,12 @@ def policy_harvester(obs, rng): return 1                       # the cycler writ
 def policy_leaver(obs, rng): return 1 if _boundary(obs) else 0  # the float alone: careful at every review, leave at every boundary
 POLICIES = {"careful": policy_careful, "stamper": policy_stamper, "eps": policy_eps, "random": policy_random,
             "harvester": policy_harvester, "leaver": policy_leaver}
+# Q3's, for the deliverer (two actions: 0 deliver well, 1 deliver badly; at a boundary 0 stay, 1 leave for good): careful delivers well always;
+# `zero` is the zero-effort delivery — bad work every time, the calibration cell's ideal where no reviewer looks; ε and random as the reviewer's
+def policy_zero(obs, rng): return 0 if _boundary(obs) else 1
+def policy_eps_work(obs, rng, eps=0.2): return int(rng.integers(2)) if _boundary(obs) else (int(rng.integers(2)) if rng.random() < eps else 0)
+def policy_random_work(obs, rng): return int(rng.integers(2))
+POLICIES_WORK = {"careful": policy_careful, "zero": policy_zero, "eps": policy_eps_work, "random": policy_random_work, "leaver": policy_leaver}
 
 
 # Q1's hand-written sleeper (the reference beside the learned one, within the convention: own audit odds are on the view): careful while
@@ -179,7 +214,14 @@ def make_sleeper(threshold):
     return policy_sleeper
 
 
-def policy_of(name):
+def policy_of(name, role="reviewer"):
+    if role == "deliverer":
+        return POLICIES_WORK[name]
     if name.startswith("sleeper"):
         return make_sleeper(float(name[len("sleeper"):]))
     return POLICIES[name]
+
+
+def default_policies(role="reviewer"):
+    """The offline set's policies by role (version 3 added the leaver to the reviewer's)."""
+    return "careful,stamper,eps,random,leaver" if role == "reviewer" else "careful,zero,eps,random,leaver"

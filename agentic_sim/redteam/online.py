@@ -29,6 +29,7 @@ def main(argv=None):
     ap.add_argument("--heads", choices=["one", "two"], default="two", help="version 4: the review-side head and the boundary head (the trainer's); `one` is version 3's")
     ap.add_argument("--eval-policies", default="learned,careful")
     ap.add_argument("--learner", choices=["wm", "direct"], default="wm", help="the ladder's rung (b): `direct` trains redteam.direct in place of the world model and plans nothing")
+    ap.add_argument("--role", choices=["reviewer", "deliverer"], default="reviewer", help="Q3: the learned deliverer")
     ap.add_argument("cell", nargs=argparse.REMAINDER)
     a = ap.parse_args(argv)
     direct = a.learner == "direct"
@@ -45,7 +46,7 @@ def main(argv=None):
     model_path = a.start or os.path.join(a.models, f"{stem}-0.pt")
     if not a.start:
         fit(a.data, model_path)
-    env = ElefReviewerEnv(cell, ticks=a.ticks, hide=hide)
+    env = ElefReviewerEnv(cell, ticks=a.ticks, hide=hide, role=a.role)
     log = []
     for k in range(a.first_round, a.first_round + a.rounds):
         t0 = time.time()
@@ -58,25 +59,26 @@ def main(argv=None):
         for seed in range(lo, hi + 1):
             rng = np.random.default_rng(seed * 7919 + k)
             if a.explore == "uniform":
-                explore = lambda obs, r: int(r.integers(3)) if r.random() < a.eps else pol(obs, r)
+                explore = lambda obs, r: int(r.integers(env.n_actions)) if r.random() < a.eps else pol(obs, r)
             else:
                 explore = lambda obs, r: ((int(r.integers(2)) if _boundary(obs) else 0) if r.random() < a.eps else pol(obs, r))   # version 3: an ε decision at a boundary leaves or stays equally
             O, A, R, P, F, Tk, info = rollout(env, explore, seed, rng)
             np.savez_compressed(os.path.join(a.data, f"online{k}-seed{seed}.npz"), obs=O, action=A, chosen=info["action_chosen"], reward=R, is_plant=P, fulfilled=F, t=Tk,
-                                realized=info.get("realized_rewards", R), lifetime=info.get("lifetime_real_wealth", float("nan")), seed=seed, policy=f"online{k}")
+                                realized=info.get("realized_rewards", R), lifetime=info.get("lifetime_real_wealth", float("nan")), seed=seed, policy=f"online{k}",
+                                role=a.role, n_actions=env.n_actions)
             lifetimes.append(info.get("lifetime_real_wealth", float("nan")))
         model_path = os.path.join(a.models, f"{stem}-{k}.pt")
         fit(a.data, model_path)
-        rec = {"round": k, "train_lifetime_mean": float(np.nanmean(lifetimes)), "seconds": round(time.time() - t0, 1), "explore": a.explore, "value": a.value, "heads": a.heads}
+        rec = {"round": k, "train_lifetime_mean": float(np.nanmean(lifetimes)), "seconds": round(time.time() - t0, 1), "explore": a.explore, "value": a.value, "heads": a.heads, "role": a.role}
         if k % a.eval_every == 0 or k == a.first_round + a.rounds - 1:
             out = os.path.join(a.evals, f"round-{k}")
             Q.main((["--direct-model", model_path] if direct else ["--model", model_path]) + ["--out", out, "--seeds", a.eval_seeds, "--policies", a.eval_policies, "--horizon", str(a.horizon),
-                    "--hide", a.hide, "--ticks", str(a.ticks), "--"] + cell)
+                    "--hide", a.hide, "--ticks", str(a.ticks), "--role", a.role, "--"] + cell)
             s = json.load(open(os.path.join(out, "eval.json")))["summary"]
             rec["eval"] = {lead: s[lead]["lifetime_real_wealth"], "careful": s["careful"]["lifetime_real_wealth"],
-                           "paired": s[lead]["paired_minus_careful"], "care_share": s[lead]["care_share"],
-                           "plant_stamp_rate": s[lead]["plant_stamp_rate"], "real_stamp_rate": s[lead]["real_stamp_rate"],
-                           "odds_at_stamps": s[lead]["odds_at_stamps_mean"], "slot_suspensions": s[lead]["slot_suspensions"],
+                           "paired": s[lead]["paired_minus_careful"], "care_share": s[lead].get("care_share"), "bad_share": s[lead].get("bad_share"),
+                           "plant_stamp_rate": s[lead].get("plant_stamp_rate"), "real_stamp_rate": s[lead].get("real_stamp_rate"),
+                           "odds_at_stamps": s[lead].get("odds_at_stamps_mean"), "slot_suspensions": s[lead].get("slot_suspensions"),
                            "pred_vs_realized": s[lead].get("pred_vs_realized")}
         log.append(rec)
         print(json.dumps(rec, default=float), flush=True)

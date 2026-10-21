@@ -12,7 +12,7 @@ import torch
 from torch import nn
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
-from redteam.data import load_episodes, obs_stats
+from redteam.data import load_episodes, obs_stats, n_actions_of
 from redteam.model import device
 from redteam.train import seeds_of
 
@@ -48,7 +48,8 @@ def main(argv=None):
     R = torch.tensor(np.concatenate([e["reward"] for e in eps]), dtype=torch.float32)
     mean, std = obs_stats(eps)
     dev = device()
-    m = DirectModel(int(X.shape[-1]), 3, d=a.d).to(dev)
+    K = n_actions_of(eps)
+    m = DirectModel(int(X.shape[-1]), K, d=a.d).to(dev)
     m.obs_mean.copy_(mean.to(dev)); m.obs_std.copy_(std.to(dev)); m.reward_scale.fill_(float(R.std().clamp(min=1e-3)))
     opt = torch.optim.AdamW(m.parameters(), lr=a.lr, weight_decay=1e-4)
     sched = torch.optim.lr_scheduler.CosineAnnealingLR(opt, T_max=a.epochs)
@@ -69,9 +70,9 @@ def main(argv=None):
     with torch.no_grad():                      # the fit's reading: the mean predicted change per action over the data, against the realized by action taken
         Q = m.q(X.to(dev)).cpu()
         by_action = {int(k): {"n": int((A == k).sum()), "realized_mean": float(R[A == k].mean()) if (A == k).any() else None,
-                              "predicted_mean": float(Q[:, k].mean())} for k in range(3)}
+                              "predicted_mean": float(Q[:, k].mean())} for k in range(K)}
     os.makedirs(os.path.dirname(a.out) or ".", exist_ok=True)
-    torch.save({"state": m.state_dict(), "config": {"obs_dim": int(X.shape[-1]), "n_actions": 3, "d": a.d},
+    torch.save({"state": m.state_dict(), "config": {"obs_dim": int(X.shape[-1]), "n_actions": K, "d": a.d},
                 "train": {"data": a.data, "seeds": a.seeds, "policies": a.policies, "episodes": len(eps), "decisions": int(n), "epochs": a.epochs,
                           "lr": a.lr, "batch": a.batch, "seconds": round(time.time() - t0, 1), "by_action": by_action, "log": log}}, a.out)
     print(f"saved {a.out}: {len(eps)} episodes, {n} decisions, {round(time.time()-t0,1)}s; by action {by_action}")

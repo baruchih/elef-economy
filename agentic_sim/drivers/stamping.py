@@ -177,6 +177,7 @@ class Task:
     disputed: bool = False       # H disputed the pending F (the dispute run)
     plant: bool = False          # the orchestrator's planted work (1.2.0)
     probation_false_approval: bool = False   # a probationer approved truly failed work (1.3.0: audited at 1)
+    learner_work: Optional[int] = None       # Q3 (the learned deliverer): the slot's quality decision on this case — 0 good, 1 bad (zero effort)
 
 
 @dataclass
@@ -304,13 +305,16 @@ class Stamping:
         self.careful_initial = [aid for aid in self.actors if self.kind[aid] == CAREFUL]   # the careful cohort at genesis (arrivals excluded)
         # the slot: the actor that is (or, in a control run, would be) the single tell-reader — the same id, cost and tie-break position
         # on the same seed, so a control run's slot is the paired comparison the brief's "same cost and split" asks for
-        self.tell_slot = ids_t[0] if ids_t else None
+        self.tell_slot = ids_t[0] if ids_t else (self.actors[0] if (a.learner_slot == "on" and self.actors) else None)   # Q3's calibration: every reviewer a stamper — the slot the first actor
         # the learned red team (redteam.env): the slot actor's reviewing decisions come from a policy — `self.learner(run, reviewer, view, r)`
         # returns 0 (care: the careful disposition's signal at its cost), 1 (approve blind), 2 (reject blind); the truth is never shown to it
         self.learner = None
+        self.learner_work = None                      # Q3: the slot's quality decision at each of its submissions — `self.learner_work(run, actor, case)` → 0 good, 1 bad
         self.learner_id = None
+        self.learner_review_kind = CAREFUL            # the slot's reviewing disposition when the learner is a deliverer (the population's at that slot)
         if a.learner_slot == "on" and self.tell_slot is not None:
             self.learner_id = self.tell_slot
+            self.learner_review_kind = self.kind[self.learner_id]
             self.kind[self.learner_id] = LEARNER
         self.learner_decisions = 0
         self.learner_chain: list[str] = [self.learner_id] if self.learner_id else []   # the learner's identities in order (re-arrival allowed after run 22)
@@ -397,6 +401,9 @@ class Stamping:
                   "state_rejections": 0, "troop_truth_redrawn": 0,
                   "tell_plant_read_plant": 0, "tell_plant_read_real": 0, "tell_real_read_plant": 0, "tell_real_read_real": 0, "tell_false_approvals": 0,
                   "plant_bids_lost": 0, "plant_lag_sum": 0, "plant_lag_n": 0, "learner_false_approvals": 0,
+                  # Q3 — the learned deliverer (--learner-role deliverer): its quality decisions and what became of them
+                  "learner_work_decisions": 0, "learner_bad_deliveries": 0, "learner_good_deliveries": 0, "learner_bad_approved": 0, "learner_bad_caught": 0,
+                  "learner_good_vested": 0, "learner_good_final_n": 0, "learner_forfeited": 0.0, "learner_bad_paid": 0.0, "learner_effort_saved": 0.0,
                   # 2.3.0: the supply side
                   "arrivals": 0, "departures": 0, "departed_cost_sum": 0.0, "nested_posted": 0, "nested_awarded": 0, "nested_unaffordable": 0, "accomplice_unaffordable": 0,
                   "nested_self_executed": 0, "nested_judged": 0, "nested_false_approvals": 0, "nested_false_rejections": 0,
@@ -436,14 +443,17 @@ class Stamping:
         credit can buy, when bonds locked in earlier reviews have left it short (the engine refuses
         an unaffordable purchase whole). Accuracy is a parameter of the disposition, not of the
         money spent; the shortfall is counted as `underfunded_careful_reviews`."""
-        if self.kind[reviewer] == STAMPER:
+        kind = self.kind[reviewer]
+        if kind == LEARNER and self.a.learner_role == "deliverer":
+            kind = self.learner_review_kind          # Q3: the learned deliverer reviews as the population's actor at its slot does
+        if kind == STAMPER:
             if self.a.stamper_mode == "reformer" and self.w.actor(reviewer).probation:
                 pass                             # a reformer reviews carefully while on probation (1.3.0 §8 red team) ...
             else:
                 if self.a.camouflage > 0 and self.rng.random() < self.a.camouflage:
                     return N, 0.0                # looks careful without looking (1.2.0 §8 red team)
                 return F, 0.0
-        if self.kind[reviewer] == LEARNER and view is not None and self.learner is not None:
+        if kind == LEARNER and view is not None and self.learner is not None:
             action = int(self.learner(self, reviewer, view, r))
             self.learner_decisions += 1
             if action == 1:
@@ -453,7 +463,7 @@ class Stamping:
             if action == 2:
                 return N, 0.0
             # 0: care — the careful path below (the signal at accuracy a, the care cost)
-        if self.kind[reviewer] == TELL and view is not None:
+        if kind == TELL and view is not None:
             # Q2: the tells are read from the view and the reader's own assignment alone; the truth is read afterwards to score the
             # tell, never to decide. Read as a plant -> the careful path below; read as real work -> stamped, F at no cost.
             plant_read = self.read_tells(view, r)
@@ -573,7 +583,7 @@ class Stamping:
 
     def cost_now(self, aid: str) -> float:
         """An actor's effort cost in force: its own, scaled by the adaptive reservation when that variant is on."""
-        return round(self.c_d_of[aid] * (self.c_d_now / self.a.c_d), 6)
+        return round(self.c_d_of[aid] * (self.c_d_now / self.a.c_d) * self.a.effort_cost, 6)
 
     def bid_of(self, aid: str, beta: float) -> float:
         """2.0.0 §2.2: c_D (1 + m), or the ceiling under --bid ceiling (the 1.x behaviour); 2.3.0: the actor's own c_D."""
@@ -1476,7 +1486,18 @@ class Stamping:
                     # 2.0.0 §2.2: the actor's effort, burned at submission (§4.6) — what its unlocked credit can pay of it
                     # 2.3.0: the actor's own cost; a parent that delegated and was served pays its care, not the work
                     delegated = c.is_root and c.children and cid not in self.parent_self_exec
-                    want = 0.0 if delegated else self.cost_now(c.actor)
+                    work = None
+                    if self.kind.get(c.actor) == LEARNER and a.learner_role == "deliverer" and self.learner_work is not None:
+                        # Q3 — the quality dial (the brief §3: the deliverer's failure is a choice, not a rate): 0 deliver well — the work fulfilled, the
+                        # effort burned; 1 deliver badly — unfulfilled, nothing burned (the zero-effort delivery). The truth is set here, never shown
+                        work = int(self.learner_work(self, c.actor, c))
+                        self.c["learner_work_decisions"] += 1
+                        self.tasks[cid].learner_work = work
+                        self.tasks[cid].fulfilled = (work != 1)
+                        self.c["learner_bad_deliveries" if work == 1 else "learner_good_deliveries"] += 1
+                        if work == 1:
+                            self.c["learner_effort_saved"] = round(self.c["learner_effort_saved"] + self.cost_now(c.actor), 6)
+                    want = 0.0 if (delegated or work == 1) else self.cost_now(c.actor)
                     have = max(0.0, math.floor((w.unlocked(c.actor) - 1e-6) * 100) / 100)
                     pay = min(want, have)
                     if pay > 0:
@@ -1760,6 +1781,14 @@ class Stamping:
                 continue
             if c.state in ("VESTED", "FINAL_N"):
                 correct = (c.outcome_or_verdict() == F) == task.fulfilled
+                if task.learner_work is not None:                      # Q3: what became of the learned deliverer's choice
+                    if c.state == "VESTED":
+                        self.c["learner_bad_approved" if task.learner_work == 1 else "learner_good_vested"] += 1
+                        if task.learner_work == 1:
+                            self.c["learner_bad_paid"] = round(self.c["learner_bad_paid"] + c.B, 6)
+                    else:
+                        self.c["learner_bad_caught" if task.learner_work == 1 else "learner_good_final_n"] += 1
+                        self.c["learner_forfeited"] = round(self.c["learner_forfeited"] + (c.G_award if c.G_award is not None else c.G), 6)
                 if c.state == "VESTED":
                     self.c["vested"] += 1
                     if w.is_troop(c.actor):
@@ -1993,6 +2022,16 @@ class Stamping:
                     "slot_cost": (round(self.c_d_of[self.tell_slot], 3) if self.tell_slot else ""),
                     "slot_suspensions": (len(self.susp_log.get(self.tell_slot, [])) if self.tell_slot else ""),
                     "learner_decisions": self.learner_decisions, "learner_false_approvals": self.c["learner_false_approvals"],
+                    # Q3: the learned deliverer's line — its quality decisions, what became of them, the guarantees it forfeited, the effort it saved
+                    "learner_role": (self.a.learner_role if self.learner_id else ""), "learner_work_decisions": self.c["learner_work_decisions"],
+                    "learner_bad_deliveries": self.c["learner_bad_deliveries"], "learner_good_deliveries": self.c["learner_good_deliveries"],
+                    "learner_bad_approved": self.c["learner_bad_approved"], "learner_bad_caught": self.c["learner_bad_caught"],
+                    "learner_good_vested": self.c["learner_good_vested"], "learner_good_final_n": self.c["learner_good_final_n"],
+                    "learner_forfeited": round(self.c["learner_forfeited"], 3), "learner_bad_paid": round(self.c["learner_bad_paid"], 3), "learner_effort_saved": round(self.c["learner_effort_saved"], 3),
+                    "slot_delivery_income": (round(self.tally[self.tell_slot].delivery, 3) if self.tell_slot else ""),
+                    "slot_guarantees_forfeited": (round(self.tally[self.tell_slot].guarantees_forfeited, 3) if self.tell_slot else ""),
+                    "slot_effort_burned": (round(self.tally[self.tell_slot].costs, 3) if self.tell_slot else ""),
+                    "final_n_rate": round(self.c["final_n"] / (self.c["vested"] + self.c["final_n"]), 4) if (self.c["vested"] + self.c["final_n"]) else "",
                     "learner_identities": len(self.learner_chain), "learner_returns": self.learner_returns, "learner_leaves_chosen": self.learner_leaves_chosen,
                     "learner_leaves_refused": self.learner_leaves_refused, "learner_boundary_decisions": self.learner_boundary_decisions,
                     "learner_float_minted": round(self.learner_float_minted, 3), "learner_float_minted_real": round(self.learner_float_minted_real, 3),
@@ -2297,6 +2336,10 @@ def build_parser():
     ap.add_argument("--arrival-loan", choices=["on", "off"], default="on",
                     help="2.7.0: the arrival float is a loan of the bank's — repaid from the name's income first, recovered at departure, the shortfall the bank's default; off is 2.6.1's grant (the control; --rules 2.6.0 too)")
     ap.add_argument("--learner-slot", choices=["on", "off"], default="off", help="the learned red team: the slot actor's reviewing decisions come from the policy redteam.env supplies (nothing changes without it)")
+    ap.add_argument("--learner-role", choices=["reviewer", "deliverer"], default="reviewer",
+                    help="Q3 (the learned deliverer): `deliverer` — the slot reviews as the population's actor at its slot does, and its quality decision "
+                         "at each submission comes from the policy (0 deliver well, the effort burned; 1 deliver badly at zero effort); `reviewer` is Q1/Q2's")
+    ap.add_argument("--effort-cost", type=float, default=1.0, help="Q3's calibration knob: a multiple on every actor's effort cost (as --care-cost is on the care cost)")
     ap.add_argument("--learner-exit", choices=["own", "rule"], default="own", help="the ruling after the calibration ladder: `own` — the exit is the learner's boundary decision everywhere and the driver's exit rule skips it; `rule` — the exit rule applies to the slot as to any member (runs 22–25)")
     ap.add_argument("--learner-rearrive", choices=["on", "off"], default="off",
                     help="the reviewer's ruling after run 22: re-arrival is allowed the learner — at each period boundary it may leave (depart, and arrive at once under a fresh name with the float, a probationer), and a departure by the exit rule returns it the same way; its lifetime real wealth is summed across its identities, the floats minted per return and its bill to the loop read beside")

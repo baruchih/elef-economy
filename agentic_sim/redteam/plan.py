@@ -8,8 +8,9 @@ import torch
 
 
 class CategoricalCEM:
-    def __init__(self, model, horizon=8, n_actions=3, samples=256, iters=6, topk=32, smoothing=0.3, seed=0, device=None):
-        self.m, self.H, self.K, self.S, self.iters, self.topk, self.smooth = model, horizon, n_actions, samples, iters, topk, smoothing
+    def __init__(self, model, horizon=8, n_actions=None, samples=256, iters=6, topk=32, smoothing=0.3, seed=0, device=None):
+        K = n_actions or getattr(model, "n_actions", 3)                 # the model's action count (3 the reviewer's, 2 Q3's deliverer)
+        self.m, self.H, self.K, self.S, self.iters, self.topk, self.smooth = model, horizon, K, samples, iters, topk, smoothing
         self.rng = np.random.default_rng(seed)
         self.dev = device or next(model.parameters()).device
 

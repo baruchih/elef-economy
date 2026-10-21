@@ -2,7 +2,11 @@
 and what it saw for sale as a free member (the seen set). Every field is named, so an ablation is "drop these names"; nothing per
 other actor by name, no engine field, never the truth. `hide` lists fields zeroed for a question (Q1: own audit odds hidden). Since the
 re-arrival ruling (after run 22) a decision has a kind: a review (the assignment's fields filled) or a period boundary (`decision_boundary`
-1, no assignment — 0/2 stay, 1 leave and return under a fresh name); `n_fields` trims the vector for a model trained before the field."""
+1, no assignment — 0/2 stay, 1 leave and return under a fresh name); `n_fields` trims the vector for a model trained before the field.
+Q3 (the learned deliverer): a second vector of the same width, `OBS_FIELDS_WORK` — the market, the dial and own standing as the reviewer's
+(the first 31 fields), then the case the learner is about to submit (its price, ceiling, bond, nesting, the wait before its award, the work
+ticks, the slack to the deadline, the fee) and its own record as a deliverer (deliveries settled, its bad deliveries approved and caught, its
+guarantees forfeited, its live awards); `build_obs_work` fills it; the boundary decision reads the shared part with the flag, as the reviewer's does."""
 from __future__ import annotations
 import numpy as np
 
@@ -24,20 +28,30 @@ OBS_FIELDS = [
 ]
 OBS_DIM = len(OBS_FIELDS)
 IDX = {k: i for i, k in enumerate(OBS_FIELDS)}
+N_SHARED = IDX["rv_gap"]                                   # the market, the dial and own standing — common to both roles' vectors
+OBS_FIELDS_WORK = OBS_FIELDS[:N_SHARED] + [
+    # Q3 — the case about to be submitted (the learner's own case: the record's fields about one's own cases are within the convention)
+    "wk_price_rel", "wk_ceiling_rel", "wk_bond_rel", "wk_is_nested", "wk_wait_ticks", "wk_tau", "wk_slack", "wk_fee_rel", "wk_price_over_market",
+    # own record as a deliverer (own outcomes: the brief's "its awards, verdicts, audits received, outcomes")
+    "wk_own_settled", "wk_own_bad_approved", "wk_own_bad_caught", "wk_own_forfeited",
+    "decision_boundary",
+]
+assert len(OBS_FIELDS_WORK) == OBS_DIM
+IDX_WORK = {k: i for i, k in enumerate(OBS_FIELDS_WORK)}
+FIELDS_BY_ROLE = {"reviewer": OBS_FIELDS, "deliverer": OBS_FIELDS_WORK}
 
 
-def build_obs(run, reviewer: str, view, r, hide=(), n_fields=None) -> np.ndarray:
+def _shared(run, actor: str, o, put, idx):
+    """The fields common to both roles: the market from the public view, the dial's state and the period's position, own standing and history."""
     w = run.w
+    reviewer = actor                                      # the fields below were written for the reviewer; they read any member's own standing
     mk, dl, sv = w.market(), w.dial(), w.service()
     P0, Pt = mk["P0"], mk["P_t"] or mk["P0"]
     real = P0 / Pt
-    ac = w.actor(reviewer)
-    tally = run.tally[reviewer]
+    ac = w.actor(actor)
+    tally = run.tally[actor]
     per = dl["period"]
     ttm = mk.get("time_to_membership") or 0.0
-    o = np.zeros(OBS_DIM, dtype=np.float32)
-    def put(k, v):
-        o[IDX[k]] = 0.0 if (v is None or k in hide) else float(v)
     put("P_t_rel", Pt / P0); put("B_bar_rel", (mk["B_bar"] or Pt) / P0); put("state_price_rel", mk["state_price"] / P0)
     put("members_total", mk["members_total"] / 20.0); put("members_free", mk["members_free"] / 20.0); put("probationers", mk["probationers"] / 20.0)
     put("available_roots", mk["available_roots"] / 20.0); put("below_market_waiting", mk["below_market_waiting"] / 20.0)
@@ -54,6 +68,15 @@ def build_obs(run, reviewer: str, view, r, hide=(), n_fields=None) -> np.ndarray
     put("own_reviews", tally.reviews / 100.0); put("own_overturned", tally.overturned / 10.0)
     put("own_plant_bad_n", len(ac.plant_bad) / 10.0); put("own_plant_good_n", len(ac.plant_good) / 10.0)
     put("own_plant_failures", tally.plant_failures / 10.0); put("own_awards", tally.awards / 100.0)
+    return mk, P0, Pt, real
+
+
+def build_obs(run, reviewer: str, view, r, hide=(), n_fields=None) -> np.ndarray:
+    o = np.zeros(OBS_DIM, dtype=np.float32)
+    def put(k, v):
+        o[IDX[k]] = 0.0 if (v is None or k in hide) else float(v)
+    mk, P0, Pt, real = _shared(run, reviewer, o, put, IDX)
+    w = run.w
     if view is None:                                      # a period-boundary decision: no assignment
         put("decision_boundary", 1.0)
         return o if n_fields is None else o[:n_fields]
@@ -67,4 +90,28 @@ def build_obs(run, reviewer: str, view, r, hide=(), n_fields=None) -> np.ndarray
     put("seen_ticks_since", ((w.t - first[0]) / 10.0) if first is not None else 0.0)
     put("seen_beta_rel", (first[1] / P0) if first is not None else 0.0)
     put("my_bid_lost", 1.0 if (reviewer, view.case_id) in run.lost_bid else 0.0)
+    return o if n_fields is None else o[:n_fields]
+
+
+def build_obs_work(run, actor: str, c, hide=(), n_fields=None) -> np.ndarray:
+    """Q3: the learned deliverer's observation at a submission — the shared fields, then its own case and its own record as a deliverer.
+    `c` is the case as the view returns it (the learner's own); None is a period-boundary decision."""
+    o = np.zeros(OBS_DIM, dtype=np.float32)
+    def put(k, v):
+        o[IDX_WORK[k]] = 0.0 if (v is None or k in hide) else float(v)
+    mk, P0, Pt, real = _shared(run, actor, o, put, IDX_WORK)
+    w = run.w
+    if c is None:
+        put("decision_boundary", 1.0)
+        return o if n_fields is None else o[:n_fields]
+    put("wk_price_rel", c.B / P0); put("wk_ceiling_rel", c.beta / P0); put("wk_bond_rel", (c.G_award if c.G_award is not None else c.G) / P0)
+    put("wk_is_nested", 0.0 if c.is_root else 1.0)
+    put("wk_wait_ticks", ((c.t_award - c.t_post) / 10.0) if c.t_award is not None else 0.0); put("wk_tau", c.tau / 10.0)
+    put("wk_slack", ((c.deadline - w.t) / 10.0) if c.deadline is not None else 0.0)
+    put("wk_fee_rel", c.omega / P0)                    # the case's fee as set at its posting
+    put("wk_price_over_market", c.B / (mk["B_bar"] or Pt))
+    cc = run.c
+    put("wk_own_settled", (cc["learner_bad_approved"] + cc["learner_bad_caught"] + cc["learner_good_vested"] + cc["learner_good_final_n"]) / 20.0)
+    put("wk_own_bad_approved", cc["learner_bad_approved"] / 10.0); put("wk_own_bad_caught", cc["learner_bad_caught"] / 10.0)
+    put("wk_own_forfeited", cc["learner_forfeited"] * real / 100.0)
     return o if n_fields is None else o[:n_fields]

@@ -15,8 +15,16 @@ def load_episodes(root, seeds=None, policies=None):
         if policies is not None and policy not in policies:
             continue
         eps.append({"obs": z["obs"], "action": z["action"], "reward": z["reward"], "is_plant": z["is_plant"], "fulfilled": z["fulfilled"],
-                    "t": z["t"], "seed": seed, "policy": policy, "lifetime": float(z["lifetime"])})
+                    "t": z["t"], "seed": seed, "policy": policy, "lifetime": float(z["lifetime"]),
+                    "n_actions": int(z["n_actions"]) if "n_actions" in z.files else 3, "role": str(z["role"]) if "role" in z.files else "reviewer"})
     return eps
+
+
+def n_actions_of(eps):
+    """The action count the episodes were collected under (3 for the reviewer, 2 for Q3's deliverer; one value across the set)."""
+    ks = {e.get("n_actions", 3) for e in eps}
+    assert len(ks) == 1, ks
+    return ks.pop()
 
 
 def returns_to_go(rewards, gamma):

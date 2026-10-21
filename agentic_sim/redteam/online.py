@@ -13,7 +13,7 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")
 from redteam import train as T, run_q as Q
 from redteam.env import ElefReviewerEnv, _boundary
 from redteam.collect import rollout
-from redteam.plan import LearnedPolicy
+from redteam.plan import LearnedPolicy, GreedyPolicy
 from redteam.model import device
 
 
@@ -30,6 +30,7 @@ def main(argv=None):
     ap.add_argument("--eval-policies", default="learned,careful")
     ap.add_argument("--learner", choices=["wm", "direct"], default="wm", help="the ladder's rung (b): `direct` trains redteam.direct in place of the world model and plans nothing")
     ap.add_argument("--role", choices=["reviewer", "deliverer"], default="reviewer", help="Q3: the learned deliverer")
+    ap.add_argument("--plan", choices=["cem", "greedy"], default="cem", help="the collecting policy on the world model: the CEM planner, or the head alone over the latent (version 4's stopping rule)")
     ap.add_argument("cell", nargs=argparse.REMAINDER)
     a = ap.parse_args(argv)
     direct = a.learner == "direct"
@@ -53,7 +54,7 @@ def main(argv=None):
         if direct:
             m, _ = load_direct(model_path); m.to(device()); pol = DirectPolicy(m)
         else:
-            m, _ = T.load_model(model_path); m.to(device()); pol = LearnedPolicy(m, horizon=a.horizon)
+            m, _ = T.load_model(model_path); m.to(device()); pol = GreedyPolicy(m) if a.plan == "greedy" else LearnedPolicy(m, horizon=a.horizon)
         lo, hi = (int(x) for x in a.train_seeds.split("-"))
         lifetimes = []
         for seed in range(lo, hi + 1):
@@ -69,7 +70,7 @@ def main(argv=None):
             lifetimes.append(info.get("lifetime_real_wealth", float("nan")))
         model_path = os.path.join(a.models, f"{stem}-{k}.pt")
         fit(a.data, model_path)
-        rec = {"round": k, "train_lifetime_mean": float(np.nanmean(lifetimes)), "seconds": round(time.time() - t0, 1), "explore": a.explore, "value": a.value, "heads": a.heads, "role": a.role}
+        rec = {"round": k, "train_lifetime_mean": float(np.nanmean(lifetimes)), "seconds": round(time.time() - t0, 1), "explore": a.explore, "value": a.value, "heads": a.heads, "role": a.role, "plan": a.plan}
         if k % a.eval_every == 0 or k == a.first_round + a.rounds - 1:
             out = os.path.join(a.evals, f"round-{k}")
             Q.main((["--direct-model", model_path] if direct else ["--model", model_path]) + ["--out", out, "--seeds", a.eval_seeds, "--policies", a.eval_policies, "--horizon", str(a.horizon),

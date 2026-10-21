@@ -2421,8 +2421,11 @@ the slot actor as a worker whose quality is the policy's choice at each submissi
 rate; the population's draw unchanged), reviewing as the population's actor at its slot, the exit its own, no re-arrival; the case's events attributed to the submission's decision;
 two actions through the stack; `obs.build_obs_work`. The calibration first (`results/redteam/Q3/calibration-v4/`: every reviewer a stamper, the roll off, no plants, the dial off; the
 ideal the zero-effort delivery, +1,541 ± 113 real over the careful deliverer on seeds 21–40 — 13.6 SE, no effort-cost knob needed; the world model and the direct beside the careful and
-the zero), then Q3's line in run 24's population by the gate (`line-v4/`: above the careful by 2 SE, within 3 SE of the ideal; the reading the reviewer's) — the brief's §4 readings in
-run_q's deliverer table. The dispute baseline before Q7.
+the zero). **The calibration read (notes §18):** the head alone over the latent and the direct are the ideal to the decimal on every seed (+1,541 ± 113 over the careful
+deliverer, 0 ± 0 against the zero-effort one); the CEM planner takes 93% of the gain (+1,441 ± 111; −100 ± 11 against the ideal, paired — one good delivery in fourteen, the
+elites' spread as at the boundary) and fails the gate. By version 4's stopping rule the head alone is the planner where the CEM does not clear, so Q3's line runs under it
+(`online --plan greedy`, the CEM beside in the final; the implementer's application of the rule, the reviewer's to overrule): `results/redteam/Q3/line-v4/`, run 24's
+population, no re-arrival — the brief's §4 readings in run_q's deliverer table. The dispute baseline before Q7.
 
 ## Maps
 

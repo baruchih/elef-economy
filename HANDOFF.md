@@ -2323,6 +2323,25 @@ fallback stands if admissions ever move outside noise); the appeals note a note 
 accomplice route closed unless Q1's learner is admitted with a loan outstanding. Order: Q1's line (calibration verdict first), then Q3 in the appealing
 population.
 
+**The calibration verdict (October 21, 2026; notes §6; ab72f206): failed, accepted.** Run 23's learner version in the cell at care-cost ×4 (appeals
+on) reads −282 ± 194 against the careful where the ideal, the stamper, reads +748 ± 194; care share 0.31 where a blind stamp is free; the rounds wandered
+−316 to +307. No question runs on this learner again until a learner clears the calibration; the re-arrival line in flight reads by the rule (a win
+stands, a no-win is not a finding). **The reviewer's diagnostic ladder** (notes §7; the instruments at ed6bf533 — `redteam.direct`, `online --learner
+direct`, `run_q --direct-model`, the pred-against-realized reading): same budget each in the cell — (a) the wealth head alone, greedy: −320 ± 184; the
+verdict's model re-planned at horizons 1 and 2: +324 ± 197, +330 ± 204 (the best rungs, 2 SE short of the ideal); (b) the direct policy with no world
+model: **−780 ± 185**, the worst rung and the only one outside noise; (c) the world model trained and planned at horizon 1: −108 ± 208, at horizon 2:
+−25 ± 231 (its second round read +605 before decaying). **Nothing clears the ideal**, so by the ruling the environment's reward timing was examined
+before any learner (`redteam.timing`, notes §8, `results/redteam/Q1/calibration-2.7.0/timing/`): the per-decision reward decomposed exactly from the
+ledger's events — the decision's own effect is 4 real a decision (care −8.9 + 4.9 reimbursed + 1.8 fee against the stamp's 1.8) against a per-window
+reward SD of 60–80, of which 88–94% sits in the one window in ten longer than five ticks where the slot's own deliveries land and the rest in the
+index's step revaluing the wallet; the review fee lands 3.6–4.7 decisions (8–10 ticks) later, in its own window 8–28% of the time; and the driver's
+exit rule ends the episode after a lean period in 25% of careful runs, 10% of stamper runs, 40–75% of the learned ones, at ~1,300 real each — the
+largest term in every paired read, unobserved by the learner. The head rates a blind rejection at 8.6 against a realized 1.9 (its bond lands a
+decision later), and every rung rejects blind 9–34% of the time in a population that appeals every false rejection. **For the reviewer's ruling
+(method points):** (i) attribute the training reward to the decision's own case (the lifetime stays the measure); (ii) the slot exempt from the exit
+rule in the calibration cell, or the exit its own boundary decision; (iii) both and one re-run of the calibration on the same budget. Until then no
+learner runs; the hand-written side continues; Q3 waits on a calibrated learner.
+
 ## Maps
 
 Two `_line` artifacts in project Agentic-OS (`c54120a6-aaff-40f7-8a9f-3667da542879`):

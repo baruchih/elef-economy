@@ -1,0 +1,5317 @@
+{
+ "cell": [
+  "--entry-pool",
+  "20",
+  "--stampers",
+  "0.6",
+  "--pi0",
+  "0",
+  "--dial",
+  "off",
+  "--audit-roll",
+  "off",
+  "--care-cost",
+  "4"
+ ],
+ "seeds": "21-40",
+ "hide": "",
+ "model": null,
+ "direct_model": "results/redteam/Q1/calibration-2.7.0-direct/models/direct-online-4.pt",
+ "model_train": {},
+ "horizon": 8,
+ "samples": 256,
+ "iters": 6,
+ "seconds": 413.7,
+ "summary": {
+  "direct": {
+   "lifetime_real_wealth": [
+    395.9855794059421,
+    110.44955464470688
+   ],
+   "decisions": [
+    57.1,
+    10.765172890781692
+   ],
+   "care_share": [
+    0.18994896252589952,
+    0.02433534914585858
+   ],
+   "approve_blind_share": [
+    0.454650178731304,
+    0.03435294267580623
+   ],
+   "reject_blind_share": [
+    0.3554008587427964,
+    0.02842006811017996
+   ],
+   "false_approvals_run": [
+    192.0,
+    4.928435216598726
+   ],
+   "learner_false_approvals": [
+    3.65,
+    0.6931051412607652
+   ],
+   "suspensions_run": [
+    0.0,
+    0.0
+   ],
+   "slot_departed": [
+    0.65,
+    0.10942433098048311
+   ],
+   "plant_stamp_rate": 0.0,
+   "real_stamp_rate": 0.7513134851138353,
+   "odds_at_stamps_mean": [
+    1.0,
+    0.0
+   ],
+   "odds_at_cares_mean": [
+    1.0,
+    0.0
+   ],
+   "stamp_rate_by_odds_band": {
+    "0.0-0.3": [
+     null,
+     0
+    ],
+    "0.3-0.5": [
+     null,
+     0
+    ],
+    "0.5-0.7": [
+     null,
+     0
+    ],
+    "0.7-1.0": [
+     null,
+     0
+    ],
+    "pinned": [
+     0.3555166374781086,
+     1142
+    ]
+   },
+   "slot_suspensions": [
+    0.0,
+    0.0
+   ],
+   "admissions_seen": [
+    0.0,
+    0.0
+   ],
+   "ticks_between_admissions_mean": [
+    NaN,
+    NaN
+   ],
+   "false_approvals_per_suspension": null,
+   "learner_identities": [
+    1.0,
+    0.0
+   ],
+   "learner_returns": [
+    0.0,
+    0.0
+   ],
+   "learner_leaves_chosen": [
+    0.0,
+    0.0
+   ],
+   "learner_leaves_refused": [
+    0.0,
+    0.0
+   ],
+   "learner_float_minted_real": [
+    0.0,
+    0.0
+   ],
+   "learner_departed_now": [
+    0.65,
+    0.10942433098048311
+   ],
+   "boundary_decisions": [
+    0.0,
+    0.0
+   ],
+   "leaves_chosen": [
+    0.0,
+    0.0
+   ],
+   "pred_vs_realized": {
+    "0": {
+     "n": 284,
+     "realized_mean": 10.90397059005221,
+     "pred_r_mean": 3.751875967126594,
+     "pred_r_taken_mean": 17.500376091141934,
+     "plan_cost_mean": null
+    },
+    "1": {
+     "n": 406,
+     "realized_mean": 7.827019066133479,
+     "pred_r_mean": 2.853194047868555,
+     "pred_r_taken_mean": 15.25053933835382,
+     "plan_cost_mean": null
+    },
+    "2": {
+     "n": 452,
+     "realized_mean": 1.6119534506500488,
+     "pred_r_mean": 3.6490697295180907,
+     "pred_r_taken_mean": 3.3327867297988294,
+     "plan_cost_mean": null
+    }
+   },
+   "paired_minus_careful": [
+    -684.36759708932,
+    199.94035756781267
+   ]
+  },
+  "careful": {
+   "lifetime_real_wealth": [
+    1080.353176495262,
+    158.1227606711962
+   ],
+   "decisions": [
+    74.75,
+    8.113949975845692
+   ],
+   "care_share": [
+    1.0,
+    0.0
+   ],
+   "approve_blind_share": [
+    0.0,
+    0.0
+   ],
+   "reject_blind_share": [
+    0.0,
+    0.0
+   ],
+   "false_approvals_run": [
+    197.45,
+    5.404420705116759
+   ],
+   "learner_false_approvals": [
+    0.0,
+    0.0
+   ],
+   "suspensions_run": [
+    0.0,
+    0.0
+   ],
+   "slot_departed": [
+    0.25,
+    0.09933992677987828
+   ],
+   "plant_stamp_rate": 0.0,
+   "real_stamp_rate": 0.0,
+   "odds_at_stamps_mean": [
+    NaN,
+    NaN
+   ],
+   "odds_at_cares_mean": [
+    1.0,
+    0.0
+   ],
+   "stamp_rate_by_odds_band": {
+    "0.0-0.3": [
+     null,
+     0
+    ],
+    "0.3-0.5": [
+     null,
+     0
+    ],
+    "0.5-0.7": [
+     null,
+     0
+    ],
+    "0.7-1.0": [
+     null,
+     0
+    ],
+    "pinned": [
+     0.0,
+     1495
+    ]
+   },
+   "slot_suspensions": [
+    0.0,
+    0.0
+   ],
+   "admissions_seen": [
+    0.0,
+    0.0
+   ],
+   "ticks_between_admissions_mean": [
+    NaN,
+    NaN
+   ],
+   "false_approvals_per_suspension": null,
+   "learner_identities": [
+    1.0,
+    0.0
+   ],
+   "learner_returns": [
+    0.0,
+    0.0
+   ],
+   "learner_leaves_chosen": [
+    0.0,
+    0.0
+   ],
+   "learner_leaves_refused": [
+    0.0,
+    0.0
+   ],
+   "learner_float_minted_real": [
+    0.0,
+    0.0
+   ],
+   "learner_departed_now": [
+    0.25,
+    0.09933992677987828
+   ],
+   "boundary_decisions": [
+    0.0,
+    0.0
+   ],
+   "leaves_chosen": [
+    0.0,
+    0.0
+   ],
+   "pred_vs_realized": {
+    "0": {
+     "n": 1495,
+     "realized_mean": 13.83976741799682,
+     "pred_r_mean": null,
+     "pred_r_taken_mean": null,
+     "plan_cost_mean": null
+    },
+    "1": {
+     "n": 0,
+     "realized_mean": null,
+     "pred_r_mean": null,
+     "pred_r_taken_mean": null,
+     "plan_cost_mean": null
+    },
+    "2": {
+     "n": 0,
+     "realized_mean": null,
+     "pred_r_mean": null,
+     "pred_r_taken_mean": null,
+     "plan_cost_mean": null
+    }
+   }
+  },
+  "stamper": {
+   "lifetime_real_wealth": [
+    1827.9793620732078,
+    151.8821046251469
+   ],
+   "decisions": [
+    92.05,
+    6.2329662618253145
+   ],
+   "care_share": [
+    0.0,
+    0.0
+   ],
+   "approve_blind_share": [
+    1.0,
+    0.0
+   ],
+   "reject_blind_share": [
+    0.0,
+    0.0
+   ],
+   "false_approvals_run": [
+    203.5,
+    7.386509751959274
+   ],
+   "learner_false_approvals": [
+    16.7,
+    1.5929119313548479
+   ],
+   "suspensions_run": [
+    0.0,
+    0.0
+   ],
+   "slot_departed": [
+    0.1,
+    0.06882472016116853
+   ],
+   "plant_stamp_rate": 0.0,
+   "real_stamp_rate": 1.0,
+   "odds_at_stamps_mean": [
+    1.0,
+    0.0
+   ],
+   "odds_at_cares_mean": [
+    NaN,
+    NaN
+   ],
+   "stamp_rate_by_odds_band": {
+    "0.0-0.3": [
+     null,
+     0
+    ],
+    "0.3-0.5": [
+     null,
+     0
+    ],
+    "0.5-0.7": [
+     null,
+     0
+    ],
+    "0.7-1.0": [
+     null,
+     0
+    ],
+    "pinned": [
+     1.0,
+     1841
+    ]
+   },
+   "slot_suspensions": [
+    0.0,
+    0.0
+   ],
+   "admissions_seen": [
+    0.0,
+    0.0
+   ],
+   "ticks_between_admissions_mean": [
+    NaN,
+    NaN
+   ],
+   "false_approvals_per_suspension": null,
+   "learner_identities": [
+    1.0,
+    0.0
+   ],
+   "learner_returns": [
+    0.0,
+    0.0
+   ],
+   "learner_leaves_chosen": [
+    0.0,
+    0.0
+   ],
+   "learner_leaves_refused": [
+    0.0,
+    0.0
+   ],
+   "learner_float_minted_real": [
+    0.0,
+    0.0
+   ],
+   "learner_departed_now": [
+    0.1,
+    0.06882472016116853
+   ],
+   "boundary_decisions": [
+    0.0,
+    0.0
+   ],
+   "leaves_chosen": [
+    0.0,
+    0.0
+   ],
+   "pred_vs_realized": {
+    "0": {
+     "n": 0,
+     "realized_mean": null,
+     "pred_r_mean": null,
+     "pred_r_taken_mean": null,
+     "plan_cost_mean": null
+    },
+    "1": {
+     "n": 1841,
+     "realized_mean": 19.360660511387376,
+     "pred_r_mean": null,
+     "pred_r_taken_mean": null,
+     "plan_cost_mean": null
+    },
+    "2": {
+     "n": 0,
+     "realized_mean": null,
+     "pred_r_mean": null,
+     "pred_r_taken_mean": null,
+     "plan_cost_mean": null
+    }
+   },
+   "paired_minus_careful": [
+    747.6261855779455,
+    193.58564149889625
+   ]
+  }
+ },
+ "episodes": {
+  "direct": [
+   {
+    "seed": 21,
+    "decisions": 98,
+    "lifetime_real_wealth": 965.8211002447307,
+    "odds_at_stamps_mean": 1.0,
+    "odds_at_cares_mean": 1.0,
+    "stamps_by_odds_band": {
+     "0.0-0.3": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.3-0.5": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.5-0.7": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.7-1.0": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "pinned": {
+      "decisions": 98,
+      "stamps": 37
+     }
+    },
+    "suspensions_seen": 0,
+    "admissions_seen": 0,
+    "ticks_between_admissions_mean": null,
+    "stamps_while_member": 37,
+    "stamps_while_not_member": 0,
+    "boundary_decisions": 0,
+    "leaves_chosen": 0,
+    "pred_vs_realized": {
+     "0": {
+      "n": 29,
+      "realized_mean": 21.615611109443567,
+      "pred_r_mean": 4.347382590022622,
+      "pred_r_taken_mean": 17.566400881471306,
+      "plan_cost_mean": null
+     },
+     "1": {
+      "n": 37,
+      "realized_mean": 5.661135903845701,
+      "pred_r_mean": 0.8577199718173669,
+      "pred_r_taken_mean": 16.094992194626784,
+      "plan_cost_mean": null
+     },
+     "2": {
+      "n": 32,
+      "realized_mean": 2.4845734258930094,
+      "pred_r_mean": 3.2858417139065508,
+      "pred_r_taken_mean": 3.3163770493119955,
+      "plan_cost_mean": null
+     }
+    },
+    "slot_suspensions": 0,
+    "learner_identities": 1,
+    "learner_returns": 0,
+    "learner_leaves_chosen": 0,
+    "learner_leaves_refused": 0,
+    "learner_float_minted_real": 0.0,
+    "learner_lifetime_real": 965.821,
+    "learner_departed_now": 0,
+    "care_share": 0.29591836734693877,
+    "approve_blind_share": 0.37755102040816324,
+    "reject_blind_share": 0.32653061224489793,
+    "plants_seen": 0,
+    "plants_stamped": 0,
+    "real_seen": 98,
+    "real_stamped": 69,
+    "false_approvals_run": 177,
+    "learner_false_approvals": 11,
+    "slot_departed": 0,
+    "slot_rho": 0.8039,
+    "slot_plant_failures": 0.0,
+    "suspensions_run": 0,
+    "error": null
+   },
+   {
+    "seed": 22,
+    "decisions": 14,
+    "lifetime_real_wealth": 69.23877832838895,
+    "odds_at_stamps_mean": 1.0,
+    "odds_at_cares_mean": 1.0,
+    "stamps_by_odds_band": {
+     "0.0-0.3": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.3-0.5": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.5-0.7": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.7-1.0": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "pinned": {
+      "decisions": 14,
+      "stamps": 6
+     }
+    },
+    "suspensions_seen": 0,
+    "admissions_seen": 0,
+    "ticks_between_admissions_mean": null,
+    "stamps_while_member": 6,
+    "stamps_while_not_member": 0,
+    "boundary_decisions": 0,
+    "leaves_chosen": 0,
+    "pred_vs_realized": {
+     "0": {
+      "n": 3,
+      "realized_mean": -4.1873978648658055,
+      "pred_r_mean": 0.5904302767344883,
+      "pred_r_taken_mean": 13.78876781463623,
+      "plan_cost_mean": null
+     },
+     "1": {
+      "n": 6,
+      "realized_mean": 6.119437304921142,
+      "pred_r_mean": 3.406781260157004,
+      "pred_r_taken_mean": 10.118116100629171,
+      "plan_cost_mean": null
+     },
+     "2": {
+      "n": 5,
+      "realized_mean": -0.9831303813080978,
+      "pred_r_mean": 5.208495680774961,
+      "pred_r_taken_mean": 2.7299981474876405,
+      "plan_cost_mean": null
+     }
+    },
+    "slot_suspensions": 0,
+    "learner_identities": 1,
+    "learner_returns": 0,
+    "learner_leaves_chosen": 0,
+    "learner_leaves_refused": 0,
+    "learner_float_minted_real": 0.0,
+    "learner_lifetime_real": 69.239,
+    "learner_departed_now": 1,
+    "care_share": 0.21428571428571427,
+    "approve_blind_share": 0.42857142857142855,
+    "reject_blind_share": 0.35714285714285715,
+    "plants_seen": 0,
+    "plants_stamped": 0,
+    "real_seen": 14,
+    "real_stamped": 11,
+    "false_approvals_run": 185,
+    "learner_false_approvals": 1,
+    "slot_departed": 1,
+    "slot_rho": "",
+    "slot_plant_failures": 0.0,
+    "suspensions_run": 0,
+    "error": null
+   },
+   {
+    "seed": 23,
+    "decisions": 32,
+    "lifetime_real_wealth": 134.39114249743653,
+    "odds_at_stamps_mean": 1.0,
+    "odds_at_cares_mean": 1.0,
+    "stamps_by_odds_band": {
+     "0.0-0.3": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.3-0.5": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.5-0.7": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.7-1.0": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "pinned": {
+      "decisions": 32,
+      "stamps": 19
+     }
+    },
+    "suspensions_seen": 0,
+    "admissions_seen": 0,
+    "ticks_between_admissions_mean": null,
+    "stamps_while_member": 19,
+    "stamps_while_not_member": 0,
+    "boundary_decisions": 0,
+    "leaves_chosen": 0,
+    "pred_vs_realized": {
+     "0": {
+      "n": 2,
+      "realized_mean": -5.000000000000002,
+      "pred_r_mean": -4.706860130419955,
+      "pred_r_taken_mean": 8.36583137512207,
+      "plan_cost_mean": null
+     },
+     "1": {
+      "n": 19,
+      "realized_mean": 6.316835757556688,
+      "pred_r_mean": 1.8100612303242087,
+      "pred_r_taken_mean": 6.3822774353780245,
+      "plan_cost_mean": null
+     },
+     "2": {
+      "n": 11,
+      "realized_mean": -1.18575789964914,
+      "pred_r_mean": 0.21426384476944804,
+      "pred_r_taken_mean": -0.673798227852041,
+      "plan_cost_mean": null
+     }
+    },
+    "slot_suspensions": 0,
+    "learner_identities": 1,
+    "learner_returns": 0,
+    "learner_leaves_chosen": 0,
+    "learner_leaves_refused": 0,
+    "learner_float_minted_real": 0.0,
+    "learner_lifetime_real": 134.391,
+    "learner_departed_now": 1,
+    "care_share": 0.0625,
+    "approve_blind_share": 0.59375,
+    "reject_blind_share": 0.34375,
+    "plants_seen": 0,
+    "plants_stamped": 0,
+    "real_seen": 32,
+    "real_stamped": 30,
+    "false_approvals_run": 172,
+    "learner_false_approvals": 2,
+    "slot_departed": 1,
+    "slot_rho": "",
+    "slot_plant_failures": 0.0,
+    "suspensions_run": 0,
+    "error": null
+   },
+   {
+    "seed": 24,
+    "decisions": 42,
+    "lifetime_real_wealth": 151.99412506597346,
+    "odds_at_stamps_mean": 1.0,
+    "odds_at_cares_mean": 1.0,
+    "stamps_by_odds_band": {
+     "0.0-0.3": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.3-0.5": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.5-0.7": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.7-1.0": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "pinned": {
+      "decisions": 42,
+      "stamps": 20
+     }
+    },
+    "suspensions_seen": 0,
+    "admissions_seen": 0,
+    "ticks_between_admissions_mean": null,
+    "stamps_while_member": 20,
+    "stamps_while_not_member": 0,
+    "boundary_decisions": 0,
+    "leaves_chosen": 0,
+    "pred_vs_realized": {
+     "0": {
+      "n": 8,
+      "realized_mean": 6.277372940039383,
+      "pred_r_mean": 5.039879976993515,
+      "pred_r_taken_mean": 29.792604979127645,
+      "plan_cost_mean": null
+     },
+     "1": {
+      "n": 20,
+      "realized_mean": 4.003060561984731,
+      "pred_r_mean": 7.687714422188167,
+      "pred_r_taken_mean": 9.979677110910416,
+      "plan_cost_mean": null
+     },
+     "2": {
+      "n": 14,
+      "realized_mean": -2.0204335495740158,
+      "pred_r_mean": 3.3378702008298466,
+      "pred_r_taken_mean": 2.4239580588681355,
+      "plan_cost_mean": null
+     }
+    },
+    "slot_suspensions": 0,
+    "learner_identities": 1,
+    "learner_returns": 0,
+    "learner_leaves_chosen": 0,
+    "learner_leaves_refused": 0,
+    "learner_float_minted_real": 0.0,
+    "learner_lifetime_real": 151.994,
+    "learner_departed_now": 1,
+    "care_share": 0.19047619047619047,
+    "approve_blind_share": 0.47619047619047616,
+    "reject_blind_share": 0.3333333333333333,
+    "plants_seen": 0,
+    "plants_stamped": 0,
+    "real_seen": 42,
+    "real_stamped": 34,
+    "false_approvals_run": 194,
+    "learner_false_approvals": 4,
+    "slot_departed": 1,
+    "slot_rho": "",
+    "slot_plant_failures": 0.0,
+    "suspensions_run": 0,
+    "error": null
+   },
+   {
+    "seed": 25,
+    "decisions": 130,
+    "lifetime_real_wealth": 726.2967323589494,
+    "odds_at_stamps_mean": 1.0,
+    "odds_at_cares_mean": 1.0,
+    "stamps_by_odds_band": {
+     "0.0-0.3": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.3-0.5": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.5-0.7": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.7-1.0": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "pinned": {
+      "decisions": 130,
+      "stamps": 25
+     }
+    },
+    "suspensions_seen": 0,
+    "admissions_seen": 0,
+    "ticks_between_admissions_mean": null,
+    "stamps_while_member": 25,
+    "stamps_while_not_member": 0,
+    "boundary_decisions": 0,
+    "leaves_chosen": 0,
+    "pred_vs_realized": {
+     "0": {
+      "n": 45,
+      "realized_mean": 13.63750657064636,
+      "pred_r_mean": 6.083393225131126,
+      "pred_r_taken_mean": 15.240738243526883,
+      "plan_cost_mean": null
+     },
+     "1": {
+      "n": 25,
+      "realized_mean": 3.479734079292732,
+      "pred_r_mean": 1.067731052178603,
+      "pred_r_taken_mean": 17.57256516933441,
+      "plan_cost_mean": null
+     },
+     "2": {
+      "n": 60,
+      "realized_mean": -0.2767645550409186,
+      "pred_r_mean": 3.851060297454779,
+      "pred_r_taken_mean": 3.0399243929733832,
+      "plan_cost_mean": null
+     }
+    },
+    "slot_suspensions": 0,
+    "learner_identities": 1,
+    "learner_returns": 0,
+    "learner_leaves_chosen": 0,
+    "learner_leaves_refused": 0,
+    "learner_float_minted_real": 0.0,
+    "learner_lifetime_real": 726.297,
+    "learner_departed_now": 0,
+    "care_share": 0.34615384615384615,
+    "approve_blind_share": 0.19230769230769232,
+    "reject_blind_share": 0.46153846153846156,
+    "plants_seen": 0,
+    "plants_stamped": 0,
+    "real_seen": 130,
+    "real_stamped": 85,
+    "false_approvals_run": 206,
+    "learner_false_approvals": 2,
+    "slot_departed": 0,
+    "slot_rho": 0.7059,
+    "slot_plant_failures": 0.0,
+    "suspensions_run": 0,
+    "error": null
+   },
+   {
+    "seed": 26,
+    "decisions": 12,
+    "lifetime_real_wealth": 65.77099806141071,
+    "odds_at_stamps_mean": 1.0,
+    "odds_at_cares_mean": 1.0,
+    "stamps_by_odds_band": {
+     "0.0-0.3": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.3-0.5": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.5-0.7": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.7-1.0": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "pinned": {
+      "decisions": 12,
+      "stamps": 6
+     }
+    },
+    "suspensions_seen": 0,
+    "admissions_seen": 0,
+    "ticks_between_admissions_mean": null,
+    "stamps_while_member": 6,
+    "stamps_while_not_member": 0,
+    "boundary_decisions": 0,
+    "leaves_chosen": 0,
+    "pred_vs_realized": {
+     "0": {
+      "n": 2,
+      "realized_mean": -10.596058276624571,
+      "pred_r_mean": 0.6166458676258723,
+      "pred_r_taken_mean": 33.39194583892822,
+      "plan_cost_mean": null
+     },
+     "1": {
+      "n": 6,
+      "realized_mean": 7.107774076655654,
+      "pred_r_mean": 1.0975939774264891,
+      "pred_r_taken_mean": 4.522148589293162,
+      "plan_cost_mean": null
+     },
+     "2": {
+      "n": 4,
+      "realized_mean": -1.4208824613185183,
+      "pred_r_mean": 3.917382669945558,
+      "pred_r_taken_mean": 2.6770882606506348,
+      "plan_cost_mean": null
+     }
+    },
+    "slot_suspensions": 0,
+    "learner_identities": 1,
+    "learner_returns": 0,
+    "learner_leaves_chosen": 0,
+    "learner_leaves_refused": 0,
+    "learner_float_minted_real": 0.0,
+    "learner_lifetime_real": 65.771,
+    "learner_departed_now": 1,
+    "care_share": 0.16666666666666666,
+    "approve_blind_share": 0.5,
+    "reject_blind_share": 0.3333333333333333,
+    "plants_seen": 0,
+    "plants_stamped": 0,
+    "real_seen": 12,
+    "real_stamped": 10,
+    "false_approvals_run": 224,
+    "learner_false_approvals": 2,
+    "slot_departed": 1,
+    "slot_rho": "",
+    "slot_plant_failures": 0.0,
+    "suspensions_run": 0,
+    "error": null
+   },
+   {
+    "seed": 27,
+    "decisions": 134,
+    "lifetime_real_wealth": 1129.153010500221,
+    "odds_at_stamps_mean": 1.0,
+    "odds_at_cares_mean": 1.0,
+    "stamps_by_odds_band": {
+     "0.0-0.3": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.3-0.5": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.5-0.7": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.7-1.0": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "pinned": {
+      "decisions": 134,
+      "stamps": 42
+     }
+    },
+    "suspensions_seen": 0,
+    "admissions_seen": 0,
+    "ticks_between_admissions_mean": null,
+    "stamps_while_member": 42,
+    "stamps_while_not_member": 0,
+    "boundary_decisions": 0,
+    "leaves_chosen": 0,
+    "pred_vs_realized": {
+     "0": {
+      "n": 48,
+      "realized_mean": 10.980186344275216,
+      "pred_r_mean": 16.318216853288572,
+      "pred_r_taken_mean": 22.208555730680626,
+      "plan_cost_mean": null
+     },
+     "1": {
+      "n": 42,
+      "realized_mean": 12.19625357268536,
+      "pred_r_mean": 12.562955008180284,
+      "pred_r_taken_mean": 39.413745871966796,
+      "plan_cost_mean": null
+     },
+     "2": {
+      "n": 44,
+      "realized_mean": 0.905941270959671,
+      "pred_r_mean": 6.314332676856821,
+      "pred_r_taken_mean": 4.437941582873464,
+      "plan_cost_mean": null
+     }
+    },
+    "slot_suspensions": 0,
+    "learner_identities": 1,
+    "learner_returns": 0,
+    "learner_leaves_chosen": 0,
+    "learner_leaves_refused": 0,
+    "learner_float_minted_real": 0.0,
+    "learner_lifetime_real": 1129.153,
+    "learner_departed_now": 0,
+    "care_share": 0.3582089552238806,
+    "approve_blind_share": 0.31343283582089554,
+    "reject_blind_share": 0.3283582089552239,
+    "plants_seen": 0,
+    "plants_stamped": 0,
+    "real_seen": 134,
+    "real_stamped": 86,
+    "false_approvals_run": 175,
+    "learner_false_approvals": 10,
+    "slot_departed": 0,
+    "slot_rho": 0.8333,
+    "slot_plant_failures": 0.0,
+    "suspensions_run": 0,
+    "error": null
+   },
+   {
+    "seed": 28,
+    "decisions": 112,
+    "lifetime_real_wealth": 1211.041604306846,
+    "odds_at_stamps_mean": 1.0,
+    "odds_at_cares_mean": 1.0,
+    "stamps_by_odds_band": {
+     "0.0-0.3": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.3-0.5": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.5-0.7": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.7-1.0": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "pinned": {
+      "decisions": 112,
+      "stamps": 32
+     }
+    },
+    "suspensions_seen": 0,
+    "admissions_seen": 0,
+    "ticks_between_admissions_mean": null,
+    "stamps_while_member": 32,
+    "stamps_while_not_member": 0,
+    "boundary_decisions": 0,
+    "leaves_chosen": 0,
+    "pred_vs_realized": {
+     "0": {
+      "n": 24,
+      "realized_mean": 12.73271788266414,
+      "pred_r_mean": 0.9153405893594027,
+      "pred_r_taken_mean": 14.49970262994369,
+      "plan_cost_mean": null
+     },
+     "1": {
+      "n": 32,
+      "realized_mean": 11.084399244989282,
+      "pred_r_mean": -3.442519614273416,
+      "pred_r_taken_mean": 12.77720508724451,
+      "plan_cost_mean": null
+     },
+     "2": {
+      "n": 56,
+      "realized_mean": 9.18614325505803,
+      "pred_r_mean": 3.024425041337963,
+      "pred_r_taken_mean": 3.239832184493675,
+      "plan_cost_mean": null
+     }
+    },
+    "slot_suspensions": 0,
+    "learner_identities": 1,
+    "learner_returns": 0,
+    "learner_leaves_chosen": 0,
+    "learner_leaves_refused": 0,
+    "learner_float_minted_real": 0.0,
+    "learner_lifetime_real": 1211.042,
+    "learner_departed_now": 0,
+    "care_share": 0.21428571428571427,
+    "approve_blind_share": 0.2857142857142857,
+    "reject_blind_share": 0.5,
+    "plants_seen": 0,
+    "plants_stamped": 0,
+    "real_seen": 112,
+    "real_stamped": 88,
+    "false_approvals_run": 167,
+    "learner_false_approvals": 7,
+    "slot_departed": 0,
+    "slot_rho": 0.7647,
+    "slot_plant_failures": 0.0,
+    "suspensions_run": 0,
+    "error": null
+   },
+   {
+    "seed": 29,
+    "decisions": 14,
+    "lifetime_real_wealth": 71.88362827334383,
+    "odds_at_stamps_mean": 1.0,
+    "odds_at_cares_mean": 1.0,
+    "stamps_by_odds_band": {
+     "0.0-0.3": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.3-0.5": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.5-0.7": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.7-1.0": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "pinned": {
+      "decisions": 14,
+      "stamps": 8
+     }
+    },
+    "suspensions_seen": 0,
+    "admissions_seen": 0,
+    "ticks_between_admissions_mean": null,
+    "stamps_while_member": 8,
+    "stamps_while_not_member": 0,
+    "boundary_decisions": 0,
+    "leaves_chosen": 0,
+    "pred_vs_realized": {
+     "0": {
+      "n": 1,
+      "realized_mean": -3.2330728100094888,
+      "pred_r_mean": -6.478763120515006,
+      "pred_r_taken_mean": 32.156490325927734,
+      "plan_cost_mean": null
+     },
+     "1": {
+      "n": 8,
+      "realized_mean": 3.764587635419165,
+      "pred_r_mean": 0.7243990461741175,
+      "pred_r_taken_mean": 5.652889830991626,
+      "plan_cost_mean": null
+     },
+     "2": {
+      "n": 5,
+      "realized_mean": -1.0,
+      "pred_r_mean": 1.672161374773298,
+      "pred_r_taken_mean": 1.0824879169464112,
+      "plan_cost_mean": null
+     }
+    },
+    "slot_suspensions": 0,
+    "learner_identities": 1,
+    "learner_returns": 0,
+    "learner_leaves_chosen": 0,
+    "learner_leaves_refused": 0,
+    "learner_float_minted_real": 0.0,
+    "learner_lifetime_real": 71.884,
+    "learner_departed_now": 1,
+    "care_share": 0.07142857142857142,
+    "approve_blind_share": 0.5714285714285714,
+    "reject_blind_share": 0.35714285714285715,
+    "plants_seen": 0,
+    "plants_stamped": 0,
+    "real_seen": 14,
+    "real_stamped": 13,
+    "false_approvals_run": 188,
+    "learner_false_approvals": 1,
+    "slot_departed": 1,
+    "slot_rho": "",
+    "slot_plant_failures": 0.0,
+    "suspensions_run": 0,
+    "error": null
+   },
+   {
+    "seed": 30,
+    "decisions": 23,
+    "lifetime_real_wealth": 135.5807699935559,
+    "odds_at_stamps_mean": 1.0,
+    "odds_at_cares_mean": 1.0,
+    "stamps_by_odds_band": {
+     "0.0-0.3": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.3-0.5": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.5-0.7": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.7-1.0": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "pinned": {
+      "decisions": 23,
+      "stamps": 12
+     }
+    },
+    "suspensions_seen": 0,
+    "admissions_seen": 0,
+    "ticks_between_admissions_mean": null,
+    "stamps_while_member": 12,
+    "stamps_while_not_member": 0,
+    "boundary_decisions": 0,
+    "leaves_chosen": 0,
+    "pred_vs_realized": {
+     "0": {
+      "n": 5,
+      "realized_mean": -2.691750143287534,
+      "pred_r_mean": 3.874918916951055,
+      "pred_r_taken_mean": 10.911017560958863,
+      "plan_cost_mean": null
+     },
+     "1": {
+      "n": 12,
+      "realized_mean": 8.826710143383904,
+      "pred_r_mean": 8.93495164487673,
+      "pred_r_taken_mean": 17.817336479822796,
+      "plan_cost_mean": null
+     },
+     "2": {
+      "n": 6,
+      "realized_mean": -1.1468335017688804,
+      "pred_r_mean": 3.7835834557595462,
+      "pred_r_taken_mean": 4.826941549777985,
+      "plan_cost_mean": null
+     }
+    },
+    "slot_suspensions": 0,
+    "learner_identities": 1,
+    "learner_returns": 0,
+    "learner_leaves_chosen": 0,
+    "learner_leaves_refused": 0,
+    "learner_float_minted_real": 0.0,
+    "learner_lifetime_real": 135.581,
+    "learner_departed_now": 1,
+    "care_share": 0.21739130434782608,
+    "approve_blind_share": 0.5217391304347826,
+    "reject_blind_share": 0.2608695652173913,
+    "plants_seen": 0,
+    "plants_stamped": 0,
+    "real_seen": 23,
+    "real_stamped": 18,
+    "false_approvals_run": 190,
+    "learner_false_approvals": 2,
+    "slot_departed": 1,
+    "slot_rho": "",
+    "slot_plant_failures": 0.0,
+    "suspensions_run": 0,
+    "error": null
+   },
+   {
+    "seed": 31,
+    "decisions": 18,
+    "lifetime_real_wealth": 137.85905068452422,
+    "odds_at_stamps_mean": 1.0,
+    "odds_at_cares_mean": 1.0,
+    "stamps_by_odds_band": {
+     "0.0-0.3": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.3-0.5": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.5-0.7": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.7-1.0": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "pinned": {
+      "decisions": 18,
+      "stamps": 12
+     }
+    },
+    "suspensions_seen": 0,
+    "admissions_seen": 0,
+    "ticks_between_admissions_mean": null,
+    "stamps_while_member": 12,
+    "stamps_while_not_member": 0,
+    "boundary_decisions": 0,
+    "leaves_chosen": 0,
+    "pred_vs_realized": {
+     "0": {
+      "n": 2,
+      "realized_mean": 1.4605712108404454,
+      "pred_r_mean": 3.1272012442350388,
+      "pred_r_taken_mean": 17.657886505126953,
+      "plan_cost_mean": null
+     },
+     "1": {
+      "n": 12,
+      "realized_mean": 6.720184821424252,
+      "pred_r_mean": 7.2389162859569,
+      "pred_r_taken_mean": 12.453389585018158,
+      "plan_cost_mean": null
+     },
+     "2": {
+      "n": 4,
+      "realized_mean": 1.0739226014380776,
+      "pred_r_mean": 3.2652538865804672,
+      "pred_r_taken_mean": 1.816983450204134,
+      "plan_cost_mean": null
+     }
+    },
+    "slot_suspensions": 0,
+    "learner_identities": 1,
+    "learner_returns": 0,
+    "learner_leaves_chosen": 0,
+    "learner_leaves_refused": 0,
+    "learner_float_minted_real": 0.0,
+    "learner_lifetime_real": 137.859,
+    "learner_departed_now": 1,
+    "care_share": 0.1111111111111111,
+    "approve_blind_share": 0.6666666666666666,
+    "reject_blind_share": 0.2222222222222222,
+    "plants_seen": 0,
+    "plants_stamped": 0,
+    "real_seen": 18,
+    "real_stamped": 16,
+    "false_approvals_run": 201,
+    "learner_false_approvals": 1,
+    "slot_departed": 1,
+    "slot_rho": "",
+    "slot_plant_failures": 0.0,
+    "suspensions_run": 0,
+    "error": null
+   },
+   {
+    "seed": 32,
+    "decisions": 31,
+    "lifetime_real_wealth": 86.7213308500442,
+    "odds_at_stamps_mean": 1.0,
+    "odds_at_cares_mean": 1.0,
+    "stamps_by_odds_band": {
+     "0.0-0.3": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.3-0.5": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.5-0.7": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.7-1.0": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "pinned": {
+      "decisions": 31,
+      "stamps": 11
+     }
+    },
+    "suspensions_seen": 0,
+    "admissions_seen": 0,
+    "ticks_between_admissions_mean": null,
+    "stamps_while_member": 11,
+    "stamps_while_not_member": 0,
+    "boundary_decisions": 0,
+    "leaves_chosen": 0,
+    "pred_vs_realized": {
+     "0": {
+      "n": 4,
+      "realized_mean": 9.65907797868472,
+      "pred_r_mean": -2.022479910042978,
+      "pred_r_taken_mean": 23.332481637597084,
+      "plan_cost_mean": null
+     },
+     "1": {
+      "n": 11,
+      "realized_mean": -0.8365478023194513,
+      "pred_r_mean": 2.6083752109158422,
+      "pred_r_taken_mean": 9.817065672440963,
+      "plan_cost_mean": null
+     },
+     "2": {
+      "n": 16,
+      "realized_mean": 0.45544029755120485,
+      "pred_r_mean": 2.395937938641216,
+      "pred_r_taken_mean": 2.592394925726694,
+      "plan_cost_mean": null
+     }
+    },
+    "slot_suspensions": 0,
+    "learner_identities": 1,
+    "learner_returns": 0,
+    "learner_leaves_chosen": 0,
+    "learner_leaves_refused": 0,
+    "learner_float_minted_real": 0.0,
+    "learner_lifetime_real": 86.721,
+    "learner_departed_now": 1,
+    "care_share": 0.12903225806451613,
+    "approve_blind_share": 0.3548387096774194,
+    "reject_blind_share": 0.5161290322580645,
+    "plants_seen": 0,
+    "plants_stamped": 0,
+    "real_seen": 31,
+    "real_stamped": 27,
+    "false_approvals_run": 158,
+    "learner_false_approvals": 0,
+    "slot_departed": 1,
+    "slot_rho": "",
+    "slot_plant_failures": 0.0,
+    "suspensions_run": 0,
+    "error": null
+   },
+   {
+    "seed": 33,
+    "decisions": 127,
+    "lifetime_real_wealth": 389.09322961777883,
+    "odds_at_stamps_mean": 1.0,
+    "odds_at_cares_mean": 1.0,
+    "stamps_by_odds_band": {
+     "0.0-0.3": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.3-0.5": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.5-0.7": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.7-1.0": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "pinned": {
+      "decisions": 127,
+      "stamps": 29
+     }
+    },
+    "suspensions_seen": 0,
+    "admissions_seen": 0,
+    "ticks_between_admissions_mean": null,
+    "stamps_while_member": 29,
+    "stamps_while_not_member": 0,
+    "boundary_decisions": 0,
+    "leaves_chosen": 0,
+    "pred_vs_realized": {
+     "0": {
+      "n": 35,
+      "realized_mean": 4.597748776120213,
+      "pred_r_mean": 1.7243432273545602,
+      "pred_r_taken_mean": 15.17926835332598,
+      "plan_cost_mean": null
+     },
+     "1": {
+      "n": 29,
+      "realized_mean": 3.3778890784518825,
+      "pred_r_mean": -0.6005384441406474,
+      "pred_r_taken_mean": 12.014339025678305,
+      "plan_cost_mean": null
+     },
+     "2": {
+      "n": 63,
+      "realized_mean": 1.534835542515346,
+      "pred_r_mean": 4.442807565157221,
+      "pred_r_taken_mean": 4.516535682781112,
+      "plan_cost_mean": null
+     }
+    },
+    "slot_suspensions": 0,
+    "learner_identities": 1,
+    "learner_returns": 0,
+    "learner_leaves_chosen": 0,
+    "learner_leaves_refused": 0,
+    "learner_float_minted_real": 0.0,
+    "learner_lifetime_real": 389.093,
+    "learner_departed_now": 0,
+    "care_share": 0.2755905511811024,
+    "approve_blind_share": 0.2283464566929134,
+    "reject_blind_share": 0.49606299212598426,
+    "plants_seen": 0,
+    "plants_stamped": 0,
+    "real_seen": 127,
+    "real_stamped": 92,
+    "false_approvals_run": 197,
+    "learner_false_approvals": 5,
+    "slot_departed": 0,
+    "slot_rho": 0.7059,
+    "slot_plant_failures": 0.0,
+    "suspensions_run": 0,
+    "error": null
+   },
+   {
+    "seed": 34,
+    "decisions": 20,
+    "lifetime_real_wealth": 109.46093399203151,
+    "odds_at_stamps_mean": 1.0,
+    "odds_at_cares_mean": 1.0,
+    "stamps_by_odds_band": {
+     "0.0-0.3": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.3-0.5": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.5-0.7": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.7-1.0": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "pinned": {
+      "decisions": 20,
+      "stamps": 12
+     }
+    },
+    "suspensions_seen": 0,
+    "admissions_seen": 0,
+    "ticks_between_admissions_mean": null,
+    "stamps_while_member": 12,
+    "stamps_while_not_member": 0,
+    "boundary_decisions": 0,
+    "leaves_chosen": 0,
+    "pred_vs_realized": {
+     "0": {
+      "n": 1,
+      "realized_mean": -12.0,
+      "pred_r_mean": -3.0822137162089347,
+      "pred_r_taken_mean": 6.160851001739502,
+      "plan_cost_mean": null
+     },
+     "1": {
+      "n": 12,
+      "realized_mean": 6.2038547121649215,
+      "pred_r_mean": 2.7189314901828765,
+      "pred_r_taken_mean": 9.267871975898743,
+      "plan_cost_mean": null
+     },
+     "2": {
+      "n": 7,
+      "realized_mean": -0.42647465056393435,
+      "pred_r_mean": 2.68755356669426,
+      "pred_r_taken_mean": 2.9815050193241666,
+      "plan_cost_mean": null
+     }
+    },
+    "slot_suspensions": 0,
+    "learner_identities": 1,
+    "learner_returns": 0,
+    "learner_leaves_chosen": 0,
+    "learner_leaves_refused": 0,
+    "learner_float_minted_real": 0.0,
+    "learner_lifetime_real": 109.461,
+    "learner_departed_now": 1,
+    "care_share": 0.05,
+    "approve_blind_share": 0.6,
+    "reject_blind_share": 0.35,
+    "plants_seen": 0,
+    "plants_stamped": 0,
+    "real_seen": 20,
+    "real_stamped": 19,
+    "false_approvals_run": 183,
+    "learner_false_approvals": 3,
+    "slot_departed": 1,
+    "slot_rho": "",
+    "slot_plant_failures": 0.0,
+    "suspensions_run": 0,
+    "error": null
+   },
+   {
+    "seed": 35,
+    "decisions": 22,
+    "lifetime_real_wealth": 149.61223928341698,
+    "odds_at_stamps_mean": 1.0,
+    "odds_at_cares_mean": 1.0,
+    "stamps_by_odds_band": {
+     "0.0-0.3": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.3-0.5": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.5-0.7": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.7-1.0": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "pinned": {
+      "decisions": 22,
+      "stamps": 17
+     }
+    },
+    "suspensions_seen": 0,
+    "admissions_seen": 0,
+    "ticks_between_admissions_mean": null,
+    "stamps_while_member": 17,
+    "stamps_while_not_member": 0,
+    "boundary_decisions": 0,
+    "leaves_chosen": 0,
+    "pred_vs_realized": {
+     "0": {
+      "n": 2,
+      "realized_mean": -5.1922584858874465,
+      "pred_r_mean": -0.3312351293861866,
+      "pred_r_taken_mean": 7.487320899963379,
+      "plan_cost_mean": null
+     },
+     "1": {
+      "n": 17,
+      "realized_mean": 6.284803149698926,
+      "pred_r_mean": 4.434839216145602,
+      "pred_r_taken_mean": 6.392819085541894,
+      "plan_cost_mean": null
+     },
+     "2": {
+      "n": 3,
+      "realized_mean": 2.8575089034367047,
+      "pred_r_mean": 1.4722425855050625,
+      "pred_r_taken_mean": 1.5641626119613647,
+      "plan_cost_mean": null
+     }
+    },
+    "slot_suspensions": 0,
+    "learner_identities": 1,
+    "learner_returns": 0,
+    "learner_leaves_chosen": 0,
+    "learner_leaves_refused": 0,
+    "learner_float_minted_real": 0.0,
+    "learner_lifetime_real": 149.612,
+    "learner_departed_now": 1,
+    "care_share": 0.09090909090909091,
+    "approve_blind_share": 0.7727272727272727,
+    "reject_blind_share": 0.13636363636363635,
+    "plants_seen": 0,
+    "plants_stamped": 0,
+    "real_seen": 22,
+    "real_stamped": 20,
+    "false_approvals_run": 255,
+    "learner_false_approvals": 1,
+    "slot_departed": 1,
+    "slot_rho": "",
+    "slot_plant_failures": 0.0,
+    "suspensions_run": 0,
+    "error": null
+   },
+   {
+    "seed": 36,
+    "decisions": 132,
+    "lifetime_real_wealth": 153.10565076542287,
+    "odds_at_stamps_mean": 1.0,
+    "odds_at_cares_mean": 1.0,
+    "stamps_by_odds_band": {
+     "0.0-0.3": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.3-0.5": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.5-0.7": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.7-1.0": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "pinned": {
+      "decisions": 132,
+      "stamps": 31
+     }
+    },
+    "suspensions_seen": 0,
+    "admissions_seen": 0,
+    "ticks_between_admissions_mean": null,
+    "stamps_while_member": 31,
+    "stamps_while_not_member": 0,
+    "boundary_decisions": 0,
+    "leaves_chosen": 0,
+    "pred_vs_realized": {
+     "0": {
+      "n": 17,
+      "realized_mean": -0.8089079589758355,
+      "pred_r_mean": -3.0215209860241776,
+      "pred_r_taken_mean": 13.31924856410307,
+      "plan_cost_mean": null
+     },
+     "1": {
+      "n": 31,
+      "realized_mean": 3.0878374556242867,
+      "pred_r_mean": -3.303852532962055,
+      "pred_r_taken_mean": 10.386401760962702,
+      "plan_cost_mean": null
+     },
+     "2": {
+      "n": 84,
+      "realized_mean": 0.4395278326626094,
+      "pred_r_mean": 4.008599245864334,
+      "pred_r_taken_mean": 4.512787072786263,
+      "plan_cost_mean": null
+     }
+    },
+    "slot_suspensions": 0,
+    "learner_identities": 1,
+    "learner_returns": 0,
+    "learner_leaves_chosen": 0,
+    "learner_leaves_refused": 0,
+    "learner_float_minted_real": 0.0,
+    "learner_lifetime_real": 153.106,
+    "learner_departed_now": 0,
+    "care_share": 0.12878787878787878,
+    "approve_blind_share": 0.23484848484848486,
+    "reject_blind_share": 0.6363636363636364,
+    "plants_seen": 0,
+    "plants_stamped": 0,
+    "real_seen": 132,
+    "real_stamped": 115,
+    "false_approvals_run": 191,
+    "learner_false_approvals": 5,
+    "slot_departed": 0,
+    "slot_rho": 0.6667,
+    "slot_plant_failures": 0.0,
+    "suspensions_run": 0,
+    "error": null
+   },
+   {
+    "seed": 37,
+    "decisions": 23,
+    "lifetime_real_wealth": 89.14256359375747,
+    "odds_at_stamps_mean": 1.0,
+    "odds_at_cares_mean": 1.0,
+    "stamps_by_odds_band": {
+     "0.0-0.3": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.3-0.5": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.5-0.7": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.7-1.0": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "pinned": {
+      "decisions": 23,
+      "stamps": 12
+     }
+    },
+    "suspensions_seen": 0,
+    "admissions_seen": 0,
+    "ticks_between_admissions_mean": null,
+    "stamps_while_member": 12,
+    "stamps_while_not_member": 0,
+    "boundary_decisions": 0,
+    "leaves_chosen": 0,
+    "pred_vs_realized": {
+     "0": {
+      "n": 1,
+      "realized_mean": 48.13961245448928,
+      "pred_r_mean": -7.662227931229965,
+      "pred_r_taken_mean": 16.52173614501953,
+      "plan_cost_mean": null
+     },
+     "1": {
+      "n": 12,
+      "realized_mean": -0.49565392886540227,
+      "pred_r_mean": 2.0520128141278806,
+      "pred_r_taken_mean": 6.990378970901172,
+      "plan_cost_mean": null
+     },
+     "2": {
+      "n": 10,
+      "realized_mean": -0.3049201714346982,
+      "pred_r_mean": 1.5344947550607764,
+      "pred_r_taken_mean": 2.651582646369934,
+      "plan_cost_mean": null
+     }
+    },
+    "slot_suspensions": 0,
+    "learner_identities": 1,
+    "learner_returns": 0,
+    "learner_leaves_chosen": 0,
+    "learner_leaves_refused": 0,
+    "learner_float_minted_real": 0.0,
+    "learner_lifetime_real": 89.143,
+    "learner_departed_now": 1,
+    "care_share": 0.043478260869565216,
+    "approve_blind_share": 0.5217391304347826,
+    "reject_blind_share": 0.43478260869565216,
+    "plants_seen": 0,
+    "plants_stamped": 0,
+    "real_seen": 23,
+    "real_stamped": 22,
+    "false_approvals_run": 188,
+    "learner_false_approvals": 1,
+    "slot_departed": 1,
+    "slot_rho": "",
+    "slot_plant_failures": 0.0,
+    "suspensions_run": 0,
+    "error": null
+   },
+   {
+    "seed": 38,
+    "decisions": 41,
+    "lifetime_real_wealth": 264.6646005416716,
+    "odds_at_stamps_mean": 1.0,
+    "odds_at_cares_mean": 1.0,
+    "stamps_by_odds_band": {
+     "0.0-0.3": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.3-0.5": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.5-0.7": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.7-1.0": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "pinned": {
+      "decisions": 41,
+      "stamps": 20
+     }
+    },
+    "suspensions_seen": 0,
+    "admissions_seen": 0,
+    "ticks_between_admissions_mean": null,
+    "stamps_while_member": 20,
+    "stamps_while_not_member": 0,
+    "boundary_decisions": 0,
+    "leaves_chosen": 0,
+    "pred_vs_realized": {
+     "0": {
+      "n": 9,
+      "realized_mean": -8.386558997208803,
+      "pred_r_mean": 7.648711533989848,
+      "pred_r_taken_mean": 7.37935604651769,
+      "plan_cost_mean": null
+     },
+     "1": {
+      "n": 20,
+      "realized_mean": 13.552314470359239,
+      "pred_r_mean": 11.837480295176913,
+      "pred_r_taken_mean": 23.280325618386268,
+      "plan_cost_mean": null
+     },
+     "2": {
+      "n": 12,
+      "realized_mean": 2.2211564257805065,
+      "pred_r_mean": 4.2009147888094915,
+      "pred_r_taken_mean": 2.9541938696056604,
+      "plan_cost_mean": null
+     }
+    },
+    "slot_suspensions": 0,
+    "learner_identities": 1,
+    "learner_returns": 0,
+    "learner_leaves_chosen": 0,
+    "learner_leaves_refused": 0,
+    "learner_float_minted_real": 0.0,
+    "learner_lifetime_real": 264.665,
+    "learner_departed_now": 1,
+    "care_share": 0.21951219512195122,
+    "approve_blind_share": 0.4878048780487805,
+    "reject_blind_share": 0.2926829268292683,
+    "plants_seen": 0,
+    "plants_stamped": 0,
+    "real_seen": 41,
+    "real_stamped": 32,
+    "false_approvals_run": 196,
+    "learner_false_approvals": 5,
+    "slot_departed": 1,
+    "slot_rho": "",
+    "slot_plant_failures": 0.0,
+    "suspensions_run": 0,
+    "error": null
+   },
+   {
+    "seed": 39,
+    "decisions": 16,
+    "lifetime_real_wealth": 97.6627561391809,
+    "odds_at_stamps_mean": 1.0,
+    "odds_at_cares_mean": 1.0,
+    "stamps_by_odds_band": {
+     "0.0-0.3": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.3-0.5": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.5-0.7": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.7-1.0": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "pinned": {
+      "decisions": 16,
+      "stamps": 8
+     }
+    },
+    "suspensions_seen": 0,
+    "admissions_seen": 0,
+    "ticks_between_admissions_mean": null,
+    "stamps_while_member": 8,
+    "stamps_while_not_member": 0,
+    "boundary_decisions": 0,
+    "leaves_chosen": 0,
+    "pred_vs_realized": {
+     "0": {
+      "n": 3,
+      "realized_mean": 1.0980669739357178,
+      "pred_r_mean": -2.9914231188595295,
+      "pred_r_taken_mean": 4.236545483271281,
+      "plan_cost_mean": null
+     },
+     "1": {
+      "n": 8,
+      "realized_mean": 5.923663306487682,
+      "pred_r_mean": 1.1236642487347126,
+      "pred_r_taken_mean": 6.7036453783512115,
+      "plan_cost_mean": null
+     },
+     "2": {
+      "n": 5,
+      "realized_mean": -0.6041502469055416,
+      "pred_r_mean": 1.818933006376028,
+      "pred_r_taken_mean": 4.356196713447571,
+      "plan_cost_mean": null
+     }
+    },
+    "slot_suspensions": 0,
+    "learner_identities": 1,
+    "learner_returns": 0,
+    "learner_leaves_chosen": 0,
+    "learner_leaves_refused": 0,
+    "learner_float_minted_real": 0.0,
+    "learner_lifetime_real": 97.663,
+    "learner_departed_now": 1,
+    "care_share": 0.1875,
+    "approve_blind_share": 0.5,
+    "reject_blind_share": 0.3125,
+    "plants_seen": 0,
+    "plants_stamped": 0,
+    "real_seen": 16,
+    "real_stamped": 13,
+    "false_approvals_run": 219,
+    "learner_false_approvals": 3,
+    "slot_departed": 1,
+    "slot_rho": "",
+    "slot_plant_failures": 0.0,
+    "suspensions_run": 0,
+    "error": null
+   },
+   {
+    "seed": 40,
+    "decisions": 101,
+    "lifetime_real_wealth": 1781.217343020157,
+    "odds_at_stamps_mean": 1.0,
+    "odds_at_cares_mean": 1.0,
+    "stamps_by_odds_band": {
+     "0.0-0.3": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.3-0.5": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.5-0.7": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.7-1.0": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "pinned": {
+      "decisions": 101,
+      "stamps": 47
+     }
+    },
+    "suspensions_seen": 0,
+    "admissions_seen": 0,
+    "ticks_between_admissions_mean": null,
+    "stamps_while_member": 47,
+    "stamps_while_not_member": 0,
+    "boundary_decisions": 0,
+    "leaves_chosen": 0,
+    "pred_vs_realized": {
+     "0": {
+      "n": 43,
+      "realized_mean": 20.732153826488975,
+      "pred_r_mean": 8.605362358069655,
+      "pred_r_taken_mean": 21.111203767532526,
+      "plan_cost_mean": null
+     },
+     "1": {
+      "n": 47,
+      "realized_mean": 17.872165054720256,
+      "pred_r_mean": 6.723314991091738,
+      "pred_r_taken_mean": 14.342072096276791,
+      "plan_cost_mean": null
+     },
+     "2": {
+      "n": 11,
+      "realized_mean": 0.35070853720716594,
+      "pred_r_mean": 2.3082117828918567,
+      "pred_r_taken_mean": -5.975299856879494,
+      "plan_cost_mean": null
+     }
+    },
+    "slot_suspensions": 0,
+    "learner_identities": 1,
+    "learner_returns": 0,
+    "learner_leaves_chosen": 0,
+    "learner_leaves_refused": 0,
+    "learner_float_minted_real": 0.0,
+    "learner_lifetime_real": 1781.217,
+    "learner_departed_now": 0,
+    "care_share": 0.42574257425742573,
+    "approve_blind_share": 0.46534653465346537,
+    "reject_blind_share": 0.10891089108910891,
+    "plants_seen": 0,
+    "plants_stamped": 0,
+    "real_seen": 101,
+    "real_stamped": 58,
+    "false_approvals_run": 174,
+    "learner_false_approvals": 7,
+    "slot_departed": 0,
+    "slot_rho": 0.8824,
+    "slot_plant_failures": 0.0,
+    "suspensions_run": 0,
+    "error": null
+   }
+  ],
+  "careful": [
+   {
+    "seed": 21,
+    "decisions": 99,
+    "lifetime_real_wealth": 1974.5415729570261,
+    "odds_at_stamps_mean": null,
+    "odds_at_cares_mean": 1.0,
+    "stamps_by_odds_band": {
+     "0.0-0.3": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.3-0.5": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.5-0.7": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.7-1.0": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "pinned": {
+      "decisions": 99,
+      "stamps": 0
+     }
+    },
+    "suspensions_seen": 0,
+    "admissions_seen": 0,
+    "ticks_between_admissions_mean": null,
+    "stamps_while_member": 0,
+    "stamps_while_not_member": 0,
+    "boundary_decisions": 0,
+    "leaves_chosen": 0,
+    "pred_vs_realized": {
+     "0": {
+      "n": 99,
+      "realized_mean": 19.439813868252788,
+      "pred_r_mean": null,
+      "pred_r_taken_mean": null,
+      "plan_cost_mean": null
+     },
+     "1": {
+      "n": 0,
+      "realized_mean": null,
+      "pred_r_mean": null,
+      "pred_r_taken_mean": null,
+      "plan_cost_mean": null
+     },
+     "2": {
+      "n": 0,
+      "realized_mean": null,
+      "pred_r_mean": null,
+      "pred_r_taken_mean": null,
+      "plan_cost_mean": null
+     }
+    },
+    "slot_suspensions": 0,
+    "learner_identities": 1,
+    "learner_returns": 0,
+    "learner_leaves_chosen": 0,
+    "learner_leaves_refused": 0,
+    "learner_float_minted_real": 0.0,
+    "learner_lifetime_real": 1974.542,
+    "learner_departed_now": 0,
+    "care_share": 1.0,
+    "approve_blind_share": 0.0,
+    "reject_blind_share": 0.0,
+    "plants_seen": 0,
+    "plants_stamped": 0,
+    "real_seen": 99,
+    "real_stamped": 0,
+    "false_approvals_run": 215,
+    "learner_false_approvals": 0,
+    "slot_departed": 0,
+    "slot_rho": 0.902,
+    "slot_plant_failures": 0.0,
+    "suspensions_run": 0,
+    "error": null
+   },
+   {
+    "seed": 22,
+    "decisions": 95,
+    "lifetime_real_wealth": 1558.1595104106568,
+    "odds_at_stamps_mean": null,
+    "odds_at_cares_mean": 1.0,
+    "stamps_by_odds_band": {
+     "0.0-0.3": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.3-0.5": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.5-0.7": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.7-1.0": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "pinned": {
+      "decisions": 95,
+      "stamps": 0
+     }
+    },
+    "suspensions_seen": 0,
+    "admissions_seen": 0,
+    "ticks_between_admissions_mean": null,
+    "stamps_while_member": 0,
+    "stamps_while_not_member": 0,
+    "boundary_decisions": 0,
+    "leaves_chosen": 0,
+    "pred_vs_realized": {
+     "0": {
+      "n": 95,
+      "realized_mean": 15.875363267480598,
+      "pred_r_mean": null,
+      "pred_r_taken_mean": null,
+      "plan_cost_mean": null
+     },
+     "1": {
+      "n": 0,
+      "realized_mean": null,
+      "pred_r_mean": null,
+      "pred_r_taken_mean": null,
+      "plan_cost_mean": null
+     },
+     "2": {
+      "n": 0,
+      "realized_mean": null,
+      "pred_r_mean": null,
+      "pred_r_taken_mean": null,
+      "plan_cost_mean": null
+     }
+    },
+    "slot_suspensions": 0,
+    "learner_identities": 1,
+    "learner_returns": 0,
+    "learner_leaves_chosen": 0,
+    "learner_leaves_refused": 0,
+    "learner_float_minted_real": 0.0,
+    "learner_lifetime_real": 1558.16,
+    "learner_departed_now": 0,
+    "care_share": 1.0,
+    "approve_blind_share": 0.0,
+    "reject_blind_share": 0.0,
+    "plants_seen": 0,
+    "plants_stamped": 0,
+    "real_seen": 95,
+    "real_stamped": 0,
+    "false_approvals_run": 178,
+    "learner_false_approvals": 0,
+    "slot_departed": 0,
+    "slot_rho": 0.8824,
+    "slot_plant_failures": 0.0,
+    "suspensions_run": 0,
+    "error": null
+   },
+   {
+    "seed": 23,
+    "decisions": 30,
+    "lifetime_real_wealth": 542.1718364790141,
+    "odds_at_stamps_mean": null,
+    "odds_at_cares_mean": 1.0,
+    "stamps_by_odds_band": {
+     "0.0-0.3": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.3-0.5": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.5-0.7": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.7-1.0": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "pinned": {
+      "decisions": 30,
+      "stamps": 0
+     }
+    },
+    "suspensions_seen": 0,
+    "admissions_seen": 0,
+    "ticks_between_admissions_mean": null,
+    "stamps_while_member": 0,
+    "stamps_while_not_member": 0,
+    "boundary_decisions": 0,
+    "leaves_chosen": 0,
+    "pred_vs_realized": {
+     "0": {
+      "n": 30,
+      "realized_mean": 16.825241215967136,
+      "pred_r_mean": null,
+      "pred_r_taken_mean": null,
+      "plan_cost_mean": null
+     },
+     "1": {
+      "n": 0,
+      "realized_mean": null,
+      "pred_r_mean": null,
+      "pred_r_taken_mean": null,
+      "plan_cost_mean": null
+     },
+     "2": {
+      "n": 0,
+      "realized_mean": null,
+      "pred_r_mean": null,
+      "pred_r_taken_mean": null,
+      "plan_cost_mean": null
+     }
+    },
+    "slot_suspensions": 0,
+    "learner_identities": 1,
+    "learner_returns": 0,
+    "learner_leaves_chosen": 0,
+    "learner_leaves_refused": 0,
+    "learner_float_minted_real": 0.0,
+    "learner_lifetime_real": 542.172,
+    "learner_departed_now": 1,
+    "care_share": 1.0,
+    "approve_blind_share": 0.0,
+    "reject_blind_share": 0.0,
+    "plants_seen": 0,
+    "plants_stamped": 0,
+    "real_seen": 30,
+    "real_stamped": 0,
+    "false_approvals_run": 156,
+    "learner_false_approvals": 0,
+    "slot_departed": 1,
+    "slot_rho": "",
+    "slot_plant_failures": 0.0,
+    "suspensions_run": 0,
+    "error": null
+   },
+   {
+    "seed": 24,
+    "decisions": 95,
+    "lifetime_real_wealth": 1408.659011142961,
+    "odds_at_stamps_mean": null,
+    "odds_at_cares_mean": 1.0,
+    "stamps_by_odds_band": {
+     "0.0-0.3": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.3-0.5": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.5-0.7": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.7-1.0": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "pinned": {
+      "decisions": 95,
+      "stamps": 0
+     }
+    },
+    "suspensions_seen": 0,
+    "admissions_seen": 0,
+    "ticks_between_admissions_mean": null,
+    "stamps_while_member": 0,
+    "stamps_while_not_member": 0,
+    "boundary_decisions": 0,
+    "leaves_chosen": 0,
+    "pred_vs_realized": {
+     "0": {
+      "n": 95,
+      "realized_mean": 14.301673801504853,
+      "pred_r_mean": null,
+      "pred_r_taken_mean": null,
+      "plan_cost_mean": null
+     },
+     "1": {
+      "n": 0,
+      "realized_mean": null,
+      "pred_r_mean": null,
+      "pred_r_taken_mean": null,
+      "plan_cost_mean": null
+     },
+     "2": {
+      "n": 0,
+      "realized_mean": null,
+      "pred_r_mean": null,
+      "pred_r_taken_mean": null,
+      "plan_cost_mean": null
+     }
+    },
+    "slot_suspensions": 0,
+    "learner_identities": 1,
+    "learner_returns": 0,
+    "learner_leaves_chosen": 0,
+    "learner_leaves_refused": 0,
+    "learner_float_minted_real": 0.0,
+    "learner_lifetime_real": 1408.659,
+    "learner_departed_now": 0,
+    "care_share": 1.0,
+    "approve_blind_share": 0.0,
+    "reject_blind_share": 0.0,
+    "plants_seen": 0,
+    "plants_stamped": 0,
+    "real_seen": 95,
+    "real_stamped": 0,
+    "false_approvals_run": 220,
+    "learner_false_approvals": 0,
+    "slot_departed": 0,
+    "slot_rho": 0.9314,
+    "slot_plant_failures": 0.0,
+    "suspensions_run": 0,
+    "error": null
+   },
+   {
+    "seed": 25,
+    "decisions": 108,
+    "lifetime_real_wealth": 1863.9128088546227,
+    "odds_at_stamps_mean": null,
+    "odds_at_cares_mean": 1.0,
+    "stamps_by_odds_band": {
+     "0.0-0.3": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.3-0.5": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.5-0.7": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.7-1.0": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "pinned": {
+      "decisions": 108,
+      "stamps": 0
+     }
+    },
+    "suspensions_seen": 0,
+    "admissions_seen": 0,
+    "ticks_between_admissions_mean": null,
+    "stamps_while_member": 0,
+    "stamps_while_not_member": 0,
+    "boundary_decisions": 0,
+    "leaves_chosen": 0,
+    "pred_vs_realized": {
+     "0": {
+      "n": 108,
+      "realized_mean": 16.867512507913172,
+      "pred_r_mean": null,
+      "pred_r_taken_mean": null,
+      "plan_cost_mean": null
+     },
+     "1": {
+      "n": 0,
+      "realized_mean": null,
+      "pred_r_mean": null,
+      "pred_r_taken_mean": null,
+      "plan_cost_mean": null
+     },
+     "2": {
+      "n": 0,
+      "realized_mean": null,
+      "pred_r_mean": null,
+      "pred_r_taken_mean": null,
+      "plan_cost_mean": null
+     }
+    },
+    "slot_suspensions": 0,
+    "learner_identities": 1,
+    "learner_returns": 0,
+    "learner_leaves_chosen": 0,
+    "learner_leaves_refused": 0,
+    "learner_float_minted_real": 0.0,
+    "learner_lifetime_real": 1863.913,
+    "learner_departed_now": 0,
+    "care_share": 1.0,
+    "approve_blind_share": 0.0,
+    "reject_blind_share": 0.0,
+    "plants_seen": 0,
+    "plants_stamped": 0,
+    "real_seen": 108,
+    "real_stamped": 0,
+    "false_approvals_run": 202,
+    "learner_false_approvals": 0,
+    "slot_departed": 0,
+    "slot_rho": 0.9412,
+    "slot_plant_failures": 0.0,
+    "suspensions_run": 0,
+    "error": null
+   },
+   {
+    "seed": 26,
+    "decisions": 4,
+    "lifetime_real_wealth": 27.221926779910024,
+    "odds_at_stamps_mean": null,
+    "odds_at_cares_mean": 1.0,
+    "stamps_by_odds_band": {
+     "0.0-0.3": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.3-0.5": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.5-0.7": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.7-1.0": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "pinned": {
+      "decisions": 4,
+      "stamps": 0
+     }
+    },
+    "suspensions_seen": 0,
+    "admissions_seen": 0,
+    "ticks_between_admissions_mean": null,
+    "stamps_while_member": 0,
+    "stamps_while_not_member": 0,
+    "boundary_decisions": 0,
+    "leaves_chosen": 0,
+    "pred_vs_realized": {
+     "0": {
+      "n": 4,
+      "realized_mean": -5.694518305022494,
+      "pred_r_mean": null,
+      "pred_r_taken_mean": null,
+      "plan_cost_mean": null
+     },
+     "1": {
+      "n": 0,
+      "realized_mean": null,
+      "pred_r_mean": null,
+      "pred_r_taken_mean": null,
+      "plan_cost_mean": null
+     },
+     "2": {
+      "n": 0,
+      "realized_mean": null,
+      "pred_r_mean": null,
+      "pred_r_taken_mean": null,
+      "plan_cost_mean": null
+     }
+    },
+    "slot_suspensions": 0,
+    "learner_identities": 1,
+    "learner_returns": 0,
+    "learner_leaves_chosen": 0,
+    "learner_leaves_refused": 0,
+    "learner_float_minted_real": 0.0,
+    "learner_lifetime_real": 27.222,
+    "learner_departed_now": 1,
+    "care_share": 1.0,
+    "approve_blind_share": 0.0,
+    "reject_blind_share": 0.0,
+    "plants_seen": 0,
+    "plants_stamped": 0,
+    "real_seen": 4,
+    "real_stamped": 0,
+    "false_approvals_run": 228,
+    "learner_false_approvals": 0,
+    "slot_departed": 1,
+    "slot_rho": "",
+    "slot_plant_failures": 0.0,
+    "suspensions_run": 0,
+    "error": null
+   },
+   {
+    "seed": 27,
+    "decisions": 92,
+    "lifetime_real_wealth": 1038.7120290825003,
+    "odds_at_stamps_mean": null,
+    "odds_at_cares_mean": 1.0,
+    "stamps_by_odds_band": {
+     "0.0-0.3": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.3-0.5": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.5-0.7": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.7-1.0": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "pinned": {
+      "decisions": 92,
+      "stamps": 0
+     }
+    },
+    "suspensions_seen": 0,
+    "admissions_seen": 0,
+    "ticks_between_admissions_mean": null,
+    "stamps_while_member": 0,
+    "stamps_while_not_member": 0,
+    "boundary_decisions": 0,
+    "leaves_chosen": 0,
+    "pred_vs_realized": {
+     "0": {
+      "n": 92,
+      "realized_mean": 10.746869881331525,
+      "pred_r_mean": null,
+      "pred_r_taken_mean": null,
+      "plan_cost_mean": null
+     },
+     "1": {
+      "n": 0,
+      "realized_mean": null,
+      "pred_r_mean": null,
+      "pred_r_taken_mean": null,
+      "plan_cost_mean": null
+     },
+     "2": {
+      "n": 0,
+      "realized_mean": null,
+      "pred_r_mean": null,
+      "pred_r_taken_mean": null,
+      "plan_cost_mean": null
+     }
+    },
+    "slot_suspensions": 0,
+    "learner_identities": 1,
+    "learner_returns": 0,
+    "learner_leaves_chosen": 0,
+    "learner_leaves_refused": 0,
+    "learner_float_minted_real": 0.0,
+    "learner_lifetime_real": 1038.712,
+    "learner_departed_now": 0,
+    "care_share": 1.0,
+    "approve_blind_share": 0.0,
+    "reject_blind_share": 0.0,
+    "plants_seen": 0,
+    "plants_stamped": 0,
+    "real_seen": 92,
+    "real_stamped": 0,
+    "false_approvals_run": 183,
+    "learner_false_approvals": 0,
+    "slot_departed": 0,
+    "slot_rho": 0.8922,
+    "slot_plant_failures": 0.0,
+    "suspensions_run": 0,
+    "error": null
+   },
+   {
+    "seed": 28,
+    "decisions": 95,
+    "lifetime_real_wealth": 1541.2374839115064,
+    "odds_at_stamps_mean": null,
+    "odds_at_cares_mean": 1.0,
+    "stamps_by_odds_band": {
+     "0.0-0.3": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.3-0.5": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.5-0.7": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.7-1.0": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "pinned": {
+      "decisions": 95,
+      "stamps": 0
+     }
+    },
+    "suspensions_seen": 0,
+    "admissions_seen": 0,
+    "ticks_between_admissions_mean": null,
+    "stamps_while_member": 0,
+    "stamps_while_not_member": 0,
+    "boundary_decisions": 0,
+    "leaves_chosen": 0,
+    "pred_vs_realized": {
+     "0": {
+      "n": 95,
+      "realized_mean": 15.841114809594803,
+      "pred_r_mean": null,
+      "pred_r_taken_mean": null,
+      "plan_cost_mean": null
+     },
+     "1": {
+      "n": 0,
+      "realized_mean": null,
+      "pred_r_mean": null,
+      "pred_r_taken_mean": null,
+      "plan_cost_mean": null
+     },
+     "2": {
+      "n": 0,
+      "realized_mean": null,
+      "pred_r_mean": null,
+      "pred_r_taken_mean": null,
+      "plan_cost_mean": null
+     }
+    },
+    "slot_suspensions": 0,
+    "learner_identities": 1,
+    "learner_returns": 0,
+    "learner_leaves_chosen": 0,
+    "learner_leaves_refused": 0,
+    "learner_float_minted_real": 0.0,
+    "learner_lifetime_real": 1541.237,
+    "learner_departed_now": 0,
+    "care_share": 1.0,
+    "approve_blind_share": 0.0,
+    "reject_blind_share": 0.0,
+    "plants_seen": 0,
+    "plants_stamped": 0,
+    "real_seen": 95,
+    "real_stamped": 0,
+    "false_approvals_run": 186,
+    "learner_false_approvals": 0,
+    "slot_departed": 0,
+    "slot_rho": 0.902,
+    "slot_plant_failures": 0.0,
+    "suspensions_run": 0,
+    "error": null
+   },
+   {
+    "seed": 29,
+    "decisions": 88,
+    "lifetime_real_wealth": 1244.4071169861975,
+    "odds_at_stamps_mean": null,
+    "odds_at_cares_mean": 1.0,
+    "stamps_by_odds_band": {
+     "0.0-0.3": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.3-0.5": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.5-0.7": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.7-1.0": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "pinned": {
+      "decisions": 88,
+      "stamps": 0
+     }
+    },
+    "suspensions_seen": 0,
+    "admissions_seen": 0,
+    "ticks_between_admissions_mean": null,
+    "stamps_while_member": 0,
+    "stamps_while_not_member": 0,
+    "boundary_decisions": 0,
+    "leaves_chosen": 0,
+    "pred_vs_realized": {
+     "0": {
+      "n": 88,
+      "realized_mean": 13.572808147570425,
+      "pred_r_mean": null,
+      "pred_r_taken_mean": null,
+      "plan_cost_mean": null
+     },
+     "1": {
+      "n": 0,
+      "realized_mean": null,
+      "pred_r_mean": null,
+      "pred_r_taken_mean": null,
+      "plan_cost_mean": null
+     },
+     "2": {
+      "n": 0,
+      "realized_mean": null,
+      "pred_r_mean": null,
+      "pred_r_taken_mean": null,
+      "plan_cost_mean": null
+     }
+    },
+    "slot_suspensions": 0,
+    "learner_identities": 1,
+    "learner_returns": 0,
+    "learner_leaves_chosen": 0,
+    "learner_leaves_refused": 0,
+    "learner_float_minted_real": 0.0,
+    "learner_lifetime_real": 1244.407,
+    "learner_departed_now": 0,
+    "care_share": 1.0,
+    "approve_blind_share": 0.0,
+    "reject_blind_share": 0.0,
+    "plants_seen": 0,
+    "plants_stamped": 0,
+    "real_seen": 88,
+    "real_stamped": 0,
+    "false_approvals_run": 200,
+    "learner_false_approvals": 0,
+    "slot_departed": 0,
+    "slot_rho": 0.8922,
+    "slot_plant_failures": 0.0,
+    "suspensions_run": 0,
+    "error": null
+   },
+   {
+    "seed": 30,
+    "decisions": 9,
+    "lifetime_real_wealth": 60.07058755732011,
+    "odds_at_stamps_mean": null,
+    "odds_at_cares_mean": 1.0,
+    "stamps_by_odds_band": {
+     "0.0-0.3": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.3-0.5": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.5-0.7": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.7-1.0": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "pinned": {
+      "decisions": 9,
+      "stamps": 0
+     }
+    },
+    "suspensions_seen": 0,
+    "admissions_seen": 0,
+    "ticks_between_admissions_mean": null,
+    "stamps_while_member": 0,
+    "stamps_while_not_member": 0,
+    "boundary_decisions": 0,
+    "leaves_chosen": 0,
+    "pred_vs_realized": {
+     "0": {
+      "n": 9,
+      "realized_mean": 1.1189541730355677,
+      "pred_r_mean": null,
+      "pred_r_taken_mean": null,
+      "plan_cost_mean": null
+     },
+     "1": {
+      "n": 0,
+      "realized_mean": null,
+      "pred_r_mean": null,
+      "pred_r_taken_mean": null,
+      "plan_cost_mean": null
+     },
+     "2": {
+      "n": 0,
+      "realized_mean": null,
+      "pred_r_mean": null,
+      "pred_r_taken_mean": null,
+      "plan_cost_mean": null
+     }
+    },
+    "slot_suspensions": 0,
+    "learner_identities": 1,
+    "learner_returns": 0,
+    "learner_leaves_chosen": 0,
+    "learner_leaves_refused": 0,
+    "learner_float_minted_real": 0.0,
+    "learner_lifetime_real": 60.071,
+    "learner_departed_now": 1,
+    "care_share": 1.0,
+    "approve_blind_share": 0.0,
+    "reject_blind_share": 0.0,
+    "plants_seen": 0,
+    "plants_stamped": 0,
+    "real_seen": 9,
+    "real_stamped": 0,
+    "false_approvals_run": 225,
+    "learner_false_approvals": 0,
+    "slot_departed": 1,
+    "slot_rho": "",
+    "slot_plant_failures": 0.0,
+    "suspensions_run": 0,
+    "error": null
+   },
+   {
+    "seed": 31,
+    "decisions": 101,
+    "lifetime_real_wealth": 579.6857143823119,
+    "odds_at_stamps_mean": null,
+    "odds_at_cares_mean": 1.0,
+    "stamps_by_odds_band": {
+     "0.0-0.3": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.3-0.5": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.5-0.7": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.7-1.0": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "pinned": {
+      "decisions": 101,
+      "stamps": 0
+     }
+    },
+    "suspensions_seen": 0,
+    "admissions_seen": 0,
+    "ticks_between_admissions_mean": null,
+    "stamps_while_member": 0,
+    "stamps_while_not_member": 0,
+    "boundary_decisions": 0,
+    "leaves_chosen": 0,
+    "pred_vs_realized": {
+     "0": {
+      "n": 101,
+      "realized_mean": 5.244413013686256,
+      "pred_r_mean": null,
+      "pred_r_taken_mean": null,
+      "plan_cost_mean": null
+     },
+     "1": {
+      "n": 0,
+      "realized_mean": null,
+      "pred_r_mean": null,
+      "pred_r_taken_mean": null,
+      "plan_cost_mean": null
+     },
+     "2": {
+      "n": 0,
+      "realized_mean": null,
+      "pred_r_mean": null,
+      "pred_r_taken_mean": null,
+      "plan_cost_mean": null
+     }
+    },
+    "slot_suspensions": 0,
+    "learner_identities": 1,
+    "learner_returns": 0,
+    "learner_leaves_chosen": 0,
+    "learner_leaves_refused": 0,
+    "learner_float_minted_real": 0.0,
+    "learner_lifetime_real": 579.686,
+    "learner_departed_now": 0,
+    "care_share": 1.0,
+    "approve_blind_share": 0.0,
+    "reject_blind_share": 0.0,
+    "plants_seen": 0,
+    "plants_stamped": 0,
+    "real_seen": 101,
+    "real_stamped": 0,
+    "false_approvals_run": 161,
+    "learner_false_approvals": 0,
+    "slot_departed": 0,
+    "slot_rho": 0.902,
+    "slot_plant_failures": 0.0,
+    "suspensions_run": 0,
+    "error": null
+   },
+   {
+    "seed": 32,
+    "decisions": 100,
+    "lifetime_real_wealth": 1853.9557120425613,
+    "odds_at_stamps_mean": null,
+    "odds_at_cares_mean": 1.0,
+    "stamps_by_odds_band": {
+     "0.0-0.3": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.3-0.5": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.5-0.7": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.7-1.0": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "pinned": {
+      "decisions": 100,
+      "stamps": 0
+     }
+    },
+    "suspensions_seen": 0,
+    "admissions_seen": 0,
+    "ticks_between_admissions_mean": null,
+    "stamps_while_member": 0,
+    "stamps_while_not_member": 0,
+    "boundary_decisions": 0,
+    "leaves_chosen": 0,
+    "pred_vs_realized": {
+     "0": {
+      "n": 100,
+      "realized_mean": 18.039557120425613,
+      "pred_r_mean": null,
+      "pred_r_taken_mean": null,
+      "plan_cost_mean": null
+     },
+     "1": {
+      "n": 0,
+      "realized_mean": null,
+      "pred_r_mean": null,
+      "pred_r_taken_mean": null,
+      "plan_cost_mean": null
+     },
+     "2": {
+      "n": 0,
+      "realized_mean": null,
+      "pred_r_mean": null,
+      "pred_r_taken_mean": null,
+      "plan_cost_mean": null
+     }
+    },
+    "slot_suspensions": 0,
+    "learner_identities": 1,
+    "learner_returns": 0,
+    "learner_leaves_chosen": 0,
+    "learner_leaves_refused": 0,
+    "learner_float_minted_real": 0.0,
+    "learner_lifetime_real": 1853.956,
+    "learner_departed_now": 0,
+    "care_share": 1.0,
+    "approve_blind_share": 0.0,
+    "reject_blind_share": 0.0,
+    "plants_seen": 0,
+    "plants_stamped": 0,
+    "real_seen": 100,
+    "real_stamped": 0,
+    "false_approvals_run": 171,
+    "learner_false_approvals": 0,
+    "slot_departed": 0,
+    "slot_rho": 0.8824,
+    "slot_plant_failures": 0.0,
+    "suspensions_run": 0,
+    "error": null
+   },
+   {
+    "seed": 33,
+    "decisions": 11,
+    "lifetime_real_wealth": 32.08800872002365,
+    "odds_at_stamps_mean": null,
+    "odds_at_cares_mean": 1.0,
+    "stamps_by_odds_band": {
+     "0.0-0.3": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.3-0.5": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.5-0.7": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.7-1.0": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "pinned": {
+      "decisions": 11,
+      "stamps": 0
+     }
+    },
+    "suspensions_seen": 0,
+    "admissions_seen": 0,
+    "ticks_between_admissions_mean": null,
+    "stamps_while_member": 0,
+    "stamps_while_not_member": 0,
+    "boundary_decisions": 0,
+    "leaves_chosen": 0,
+    "pred_vs_realized": {
+     "0": {
+      "n": 11,
+      "realized_mean": -0.13005375272512187,
+      "pred_r_mean": null,
+      "pred_r_taken_mean": null,
+      "plan_cost_mean": null
+     },
+     "1": {
+      "n": 0,
+      "realized_mean": null,
+      "pred_r_mean": null,
+      "pred_r_taken_mean": null,
+      "plan_cost_mean": null
+     },
+     "2": {
+      "n": 0,
+      "realized_mean": null,
+      "pred_r_mean": null,
+      "pred_r_taken_mean": null,
+      "plan_cost_mean": null
+     }
+    },
+    "slot_suspensions": 0,
+    "learner_identities": 1,
+    "learner_returns": 0,
+    "learner_leaves_chosen": 0,
+    "learner_leaves_refused": 0,
+    "learner_float_minted_real": 0.0,
+    "learner_lifetime_real": 32.088,
+    "learner_departed_now": 1,
+    "care_share": 1.0,
+    "approve_blind_share": 0.0,
+    "reject_blind_share": 0.0,
+    "plants_seen": 0,
+    "plants_stamped": 0,
+    "real_seen": 11,
+    "real_stamped": 0,
+    "false_approvals_run": 219,
+    "learner_false_approvals": 0,
+    "slot_departed": 1,
+    "slot_rho": "",
+    "slot_plant_failures": 0.0,
+    "suspensions_run": 0,
+    "error": null
+   },
+   {
+    "seed": 34,
+    "decisions": 95,
+    "lifetime_real_wealth": 1764.422713832435,
+    "odds_at_stamps_mean": null,
+    "odds_at_cares_mean": 1.0,
+    "stamps_by_odds_band": {
+     "0.0-0.3": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.3-0.5": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.5-0.7": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.7-1.0": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "pinned": {
+      "decisions": 95,
+      "stamps": 0
+     }
+    },
+    "suspensions_seen": 0,
+    "admissions_seen": 0,
+    "ticks_between_admissions_mean": null,
+    "stamps_while_member": 0,
+    "stamps_while_not_member": 0,
+    "boundary_decisions": 0,
+    "leaves_chosen": 0,
+    "pred_vs_realized": {
+     "0": {
+      "n": 95,
+      "realized_mean": 18.046554882446685,
+      "pred_r_mean": null,
+      "pred_r_taken_mean": null,
+      "plan_cost_mean": null
+     },
+     "1": {
+      "n": 0,
+      "realized_mean": null,
+      "pred_r_mean": null,
+      "pred_r_taken_mean": null,
+      "plan_cost_mean": null
+     },
+     "2": {
+      "n": 0,
+      "realized_mean": null,
+      "pred_r_mean": null,
+      "pred_r_taken_mean": null,
+      "plan_cost_mean": null
+     }
+    },
+    "slot_suspensions": 0,
+    "learner_identities": 1,
+    "learner_returns": 0,
+    "learner_leaves_chosen": 0,
+    "learner_leaves_refused": 0,
+    "learner_float_minted_real": 0.0,
+    "learner_lifetime_real": 1764.423,
+    "learner_departed_now": 0,
+    "care_share": 1.0,
+    "approve_blind_share": 0.0,
+    "reject_blind_share": 0.0,
+    "plants_seen": 0,
+    "plants_stamped": 0,
+    "real_seen": 95,
+    "real_stamped": 0,
+    "false_approvals_run": 171,
+    "learner_false_approvals": 0,
+    "slot_departed": 0,
+    "slot_rho": 0.902,
+    "slot_plant_failures": 0.0,
+    "suspensions_run": 0,
+    "error": null
+   },
+   {
+    "seed": 35,
+    "decisions": 86,
+    "lifetime_real_wealth": 1741.5124251847224,
+    "odds_at_stamps_mean": null,
+    "odds_at_cares_mean": 1.0,
+    "stamps_by_odds_band": {
+     "0.0-0.3": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.3-0.5": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.5-0.7": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.7-1.0": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "pinned": {
+      "decisions": 86,
+      "stamps": 0
+     }
+    },
+    "suspensions_seen": 0,
+    "admissions_seen": 0,
+    "ticks_between_admissions_mean": null,
+    "stamps_while_member": 0,
+    "stamps_while_not_member": 0,
+    "boundary_decisions": 0,
+    "leaves_chosen": 0,
+    "pred_vs_realized": {
+     "0": {
+      "n": 86,
+      "realized_mean": 19.731742432380496,
+      "pred_r_mean": null,
+      "pred_r_taken_mean": null,
+      "plan_cost_mean": null
+     },
+     "1": {
+      "n": 0,
+      "realized_mean": null,
+      "pred_r_mean": null,
+      "pred_r_taken_mean": null,
+      "plan_cost_mean": null
+     },
+     "2": {
+      "n": 0,
+      "realized_mean": null,
+      "pred_r_mean": null,
+      "pred_r_taken_mean": null,
+      "plan_cost_mean": null
+     }
+    },
+    "slot_suspensions": 0,
+    "learner_identities": 1,
+    "learner_returns": 0,
+    "learner_leaves_chosen": 0,
+    "learner_leaves_refused": 0,
+    "learner_float_minted_real": 0.0,
+    "learner_lifetime_real": 1741.512,
+    "learner_departed_now": 0,
+    "care_share": 1.0,
+    "approve_blind_share": 0.0,
+    "reject_blind_share": 0.0,
+    "plants_seen": 0,
+    "plants_stamped": 0,
+    "real_seen": 86,
+    "real_stamped": 0,
+    "false_approvals_run": 215,
+    "learner_false_approvals": 0,
+    "slot_departed": 0,
+    "slot_rho": 0.951,
+    "slot_plant_failures": 0.0,
+    "suspensions_run": 0,
+    "error": null
+   },
+   {
+    "seed": 36,
+    "decisions": 95,
+    "lifetime_real_wealth": 1003.1614013677844,
+    "odds_at_stamps_mean": null,
+    "odds_at_cares_mean": 1.0,
+    "stamps_by_odds_band": {
+     "0.0-0.3": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.3-0.5": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.5-0.7": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.7-1.0": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "pinned": {
+      "decisions": 95,
+      "stamps": 0
+     }
+    },
+    "suspensions_seen": 0,
+    "admissions_seen": 0,
+    "ticks_between_admissions_mean": null,
+    "stamps_while_member": 0,
+    "stamps_while_not_member": 0,
+    "boundary_decisions": 0,
+    "leaves_chosen": 0,
+    "pred_vs_realized": {
+     "0": {
+      "n": 95,
+      "realized_mean": 10.199448572292468,
+      "pred_r_mean": null,
+      "pred_r_taken_mean": null,
+      "plan_cost_mean": null
+     },
+     "1": {
+      "n": 0,
+      "realized_mean": null,
+      "pred_r_mean": null,
+      "pred_r_taken_mean": null,
+      "plan_cost_mean": null
+     },
+     "2": {
+      "n": 0,
+      "realized_mean": null,
+      "pred_r_mean": null,
+      "pred_r_taken_mean": null,
+      "plan_cost_mean": null
+     }
+    },
+    "slot_suspensions": 0,
+    "learner_identities": 1,
+    "learner_returns": 0,
+    "learner_leaves_chosen": 0,
+    "learner_leaves_refused": 0,
+    "learner_float_minted_real": 0.0,
+    "learner_lifetime_real": 1003.161,
+    "learner_departed_now": 0,
+    "care_share": 1.0,
+    "approve_blind_share": 0.0,
+    "reject_blind_share": 0.0,
+    "plants_seen": 0,
+    "plants_stamped": 0,
+    "real_seen": 95,
+    "real_stamped": 0,
+    "false_approvals_run": 238,
+    "learner_false_approvals": 0,
+    "slot_departed": 0,
+    "slot_rho": 0.8922,
+    "slot_plant_failures": 0.0,
+    "suspensions_run": 0,
+    "error": null
+   },
+   {
+    "seed": 37,
+    "decisions": 102,
+    "lifetime_real_wealth": 1741.4020265711708,
+    "odds_at_stamps_mean": null,
+    "odds_at_cares_mean": 1.0,
+    "stamps_by_odds_band": {
+     "0.0-0.3": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.3-0.5": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.5-0.7": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.7-1.0": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "pinned": {
+      "decisions": 102,
+      "stamps": 0
+     }
+    },
+    "suspensions_seen": 0,
+    "admissions_seen": 0,
+    "ticks_between_admissions_mean": null,
+    "stamps_while_member": 0,
+    "stamps_while_not_member": 0,
+    "boundary_decisions": 0,
+    "leaves_chosen": 0,
+    "pred_vs_realized": {
+     "0": {
+      "n": 102,
+      "realized_mean": 16.58237280952128,
+      "pred_r_mean": null,
+      "pred_r_taken_mean": null,
+      "plan_cost_mean": null
+     },
+     "1": {
+      "n": 0,
+      "realized_mean": null,
+      "pred_r_mean": null,
+      "pred_r_taken_mean": null,
+      "plan_cost_mean": null
+     },
+     "2": {
+      "n": 0,
+      "realized_mean": null,
+      "pred_r_mean": null,
+      "pred_r_taken_mean": null,
+      "plan_cost_mean": null
+     }
+    },
+    "slot_suspensions": 0,
+    "learner_identities": 1,
+    "learner_returns": 0,
+    "learner_leaves_chosen": 0,
+    "learner_leaves_refused": 0,
+    "learner_float_minted_real": 0.0,
+    "learner_lifetime_real": 1741.402,
+    "learner_departed_now": 0,
+    "care_share": 1.0,
+    "approve_blind_share": 0.0,
+    "reject_blind_share": 0.0,
+    "plants_seen": 0,
+    "plants_stamped": 0,
+    "real_seen": 102,
+    "real_stamped": 0,
+    "false_approvals_run": 214,
+    "learner_false_approvals": 0,
+    "slot_departed": 0,
+    "slot_rho": 0.902,
+    "slot_plant_failures": 0.0,
+    "suspensions_run": 0,
+    "error": null
+   },
+   {
+    "seed": 38,
+    "decisions": 84,
+    "lifetime_real_wealth": 328.6593166794744,
+    "odds_at_stamps_mean": null,
+    "odds_at_cares_mean": 1.0,
+    "stamps_by_odds_band": {
+     "0.0-0.3": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.3-0.5": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.5-0.7": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.7-1.0": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "pinned": {
+      "decisions": 84,
+      "stamps": 0
+     }
+    },
+    "suspensions_seen": 0,
+    "admissions_seen": 0,
+    "ticks_between_admissions_mean": null,
+    "stamps_while_member": 0,
+    "stamps_while_not_member": 0,
+    "boundary_decisions": 0,
+    "leaves_chosen": 0,
+    "pred_vs_realized": {
+     "0": {
+      "n": 84,
+      "realized_mean": 3.40733156761279,
+      "pred_r_mean": null,
+      "pred_r_taken_mean": null,
+      "plan_cost_mean": null
+     },
+     "1": {
+      "n": 0,
+      "realized_mean": null,
+      "pred_r_mean": null,
+      "pred_r_taken_mean": null,
+      "plan_cost_mean": null
+     },
+     "2": {
+      "n": 0,
+      "realized_mean": null,
+      "pred_r_mean": null,
+      "pred_r_taken_mean": null,
+      "plan_cost_mean": null
+     }
+    },
+    "slot_suspensions": 0,
+    "learner_identities": 1,
+    "learner_returns": 0,
+    "learner_leaves_chosen": 0,
+    "learner_leaves_refused": 0,
+    "learner_float_minted_real": 0.0,
+    "learner_lifetime_real": 328.659,
+    "learner_departed_now": 0,
+    "care_share": 1.0,
+    "approve_blind_share": 0.0,
+    "reject_blind_share": 0.0,
+    "plants_seen": 0,
+    "plants_stamped": 0,
+    "real_seen": 84,
+    "real_stamped": 0,
+    "false_approvals_run": 175,
+    "learner_false_approvals": 0,
+    "slot_departed": 0,
+    "slot_rho": 0.9216,
+    "slot_plant_failures": 0.0,
+    "suspensions_run": 0,
+    "error": null
+   },
+   {
+    "seed": 39,
+    "decisions": 86,
+    "lifetime_real_wealth": 1300.3334357266501,
+    "odds_at_stamps_mean": null,
+    "odds_at_cares_mean": 1.0,
+    "stamps_by_odds_band": {
+     "0.0-0.3": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.3-0.5": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.5-0.7": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.7-1.0": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "pinned": {
+      "decisions": 86,
+      "stamps": 0
+     }
+    },
+    "suspensions_seen": 0,
+    "admissions_seen": 0,
+    "ticks_between_admissions_mean": null,
+    "stamps_while_member": 0,
+    "stamps_while_not_member": 0,
+    "boundary_decisions": 0,
+    "leaves_chosen": 0,
+    "pred_vs_realized": {
+     "0": {
+      "n": 86,
+      "realized_mean": 14.538760880542442,
+      "pred_r_mean": null,
+      "pred_r_taken_mean": null,
+      "plan_cost_mean": null
+     },
+     "1": {
+      "n": 0,
+      "realized_mean": null,
+      "pred_r_mean": null,
+      "pred_r_taken_mean": null,
+      "plan_cost_mean": null
+     },
+     "2": {
+      "n": 0,
+      "realized_mean": null,
+      "pred_r_mean": null,
+      "pred_r_taken_mean": null,
+      "plan_cost_mean": null
+     }
+    },
+    "slot_suspensions": 0,
+    "learner_identities": 1,
+    "learner_returns": 0,
+    "learner_leaves_chosen": 0,
+    "learner_leaves_refused": 0,
+    "learner_float_minted_real": 0.0,
+    "learner_lifetime_real": 1300.333,
+    "learner_departed_now": 0,
+    "care_share": 1.0,
+    "approve_blind_share": 0.0,
+    "reject_blind_share": 0.0,
+    "plants_seen": 0,
+    "plants_stamped": 0,
+    "real_seen": 86,
+    "real_stamped": 0,
+    "false_approvals_run": 206,
+    "learner_false_approvals": 0,
+    "slot_departed": 0,
+    "slot_rho": 0.9216,
+    "slot_plant_failures": 0.0,
+    "suspensions_run": 0,
+    "error": null
+   },
+   {
+    "seed": 40,
+    "decisions": 20,
+    "lifetime_real_wealth": 2.7488912363939653,
+    "odds_at_stamps_mean": null,
+    "odds_at_cares_mean": 1.0,
+    "stamps_by_odds_band": {
+     "0.0-0.3": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.3-0.5": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.5-0.7": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.7-1.0": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "pinned": {
+      "decisions": 20,
+      "stamps": 0
+     }
+    },
+    "suspensions_seen": 0,
+    "admissions_seen": 0,
+    "ticks_between_admissions_mean": null,
+    "stamps_while_member": 0,
+    "stamps_while_not_member": 0,
+    "boundary_decisions": 0,
+    "leaves_chosen": 0,
+    "pred_vs_realized": {
+     "0": {
+      "n": 20,
+      "realized_mean": -2.156814288180302,
+      "pred_r_mean": null,
+      "pred_r_taken_mean": null,
+      "plan_cost_mean": null
+     },
+     "1": {
+      "n": 0,
+      "realized_mean": null,
+      "pred_r_mean": null,
+      "pred_r_taken_mean": null,
+      "plan_cost_mean": null
+     },
+     "2": {
+      "n": 0,
+      "realized_mean": null,
+      "pred_r_mean": null,
+      "pred_r_taken_mean": null,
+      "plan_cost_mean": null
+     }
+    },
+    "slot_suspensions": 0,
+    "learner_identities": 1,
+    "learner_returns": 0,
+    "learner_leaves_chosen": 0,
+    "learner_leaves_refused": 0,
+    "learner_float_minted_real": 0.0,
+    "learner_lifetime_real": 2.749,
+    "learner_departed_now": 1,
+    "care_share": 1.0,
+    "approve_blind_share": 0.0,
+    "reject_blind_share": 0.0,
+    "plants_seen": 0,
+    "plants_stamped": 0,
+    "real_seen": 20,
+    "real_stamped": 0,
+    "false_approvals_run": 186,
+    "learner_false_approvals": 0,
+    "slot_departed": 1,
+    "slot_rho": "",
+    "slot_plant_failures": 0.0,
+    "suspensions_run": 0,
+    "error": null
+   }
+  ],
+  "stamper": [
+   {
+    "seed": 21,
+    "decisions": 116,
+    "lifetime_real_wealth": 2298.2350419076847,
+    "odds_at_stamps_mean": 1.0,
+    "odds_at_cares_mean": null,
+    "stamps_by_odds_band": {
+     "0.0-0.3": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.3-0.5": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.5-0.7": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.7-1.0": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "pinned": {
+      "decisions": 116,
+      "stamps": 116
+     }
+    },
+    "suspensions_seen": 0,
+    "admissions_seen": 0,
+    "ticks_between_admissions_mean": null,
+    "stamps_while_member": 116,
+    "stamps_while_not_member": 0,
+    "boundary_decisions": 0,
+    "leaves_chosen": 0,
+    "pred_vs_realized": {
+     "0": {
+      "n": 0,
+      "realized_mean": null,
+      "pred_r_mean": null,
+      "pred_r_taken_mean": null,
+      "plan_cost_mean": null
+     },
+     "1": {
+      "n": 116,
+      "realized_mean": 19.381336568169697,
+      "pred_r_mean": null,
+      "pred_r_taken_mean": null,
+      "plan_cost_mean": null
+     },
+     "2": {
+      "n": 0,
+      "realized_mean": null,
+      "pred_r_mean": null,
+      "pred_r_taken_mean": null,
+      "plan_cost_mean": null
+     }
+    },
+    "slot_suspensions": 0,
+    "learner_identities": 1,
+    "learner_returns": 0,
+    "learner_leaves_chosen": 0,
+    "learner_leaves_refused": 0,
+    "learner_float_minted_real": 0.0,
+    "learner_lifetime_real": 2298.235,
+    "learner_departed_now": 0,
+    "care_share": 0.0,
+    "approve_blind_share": 1.0,
+    "reject_blind_share": 0.0,
+    "plants_seen": 0,
+    "plants_stamped": 0,
+    "real_seen": 116,
+    "real_stamped": 116,
+    "false_approvals_run": 186,
+    "learner_false_approvals": 18,
+    "slot_departed": 0,
+    "slot_rho": 0.9216,
+    "slot_plant_failures": 0.0,
+    "suspensions_run": 0,
+    "error": null
+   },
+   {
+    "seed": 22,
+    "decisions": 88,
+    "lifetime_real_wealth": 2292.978669742978,
+    "odds_at_stamps_mean": 1.0,
+    "odds_at_cares_mean": null,
+    "stamps_by_odds_band": {
+     "0.0-0.3": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.3-0.5": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.5-0.7": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.7-1.0": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "pinned": {
+      "decisions": 88,
+      "stamps": 88
+     }
+    },
+    "suspensions_seen": 0,
+    "admissions_seen": 0,
+    "ticks_between_admissions_mean": null,
+    "stamps_while_member": 88,
+    "stamps_while_not_member": 0,
+    "boundary_decisions": 0,
+    "leaves_chosen": 0,
+    "pred_vs_realized": {
+     "0": {
+      "n": 0,
+      "realized_mean": null,
+      "pred_r_mean": null,
+      "pred_r_taken_mean": null,
+      "plan_cost_mean": null
+     },
+     "1": {
+      "n": 88,
+      "realized_mean": 25.488393974352025,
+      "pred_r_mean": null,
+      "pred_r_taken_mean": null,
+      "plan_cost_mean": null
+     },
+     "2": {
+      "n": 0,
+      "realized_mean": null,
+      "pred_r_mean": null,
+      "pred_r_taken_mean": null,
+      "plan_cost_mean": null
+     }
+    },
+    "slot_suspensions": 0,
+    "learner_identities": 1,
+    "learner_returns": 0,
+    "learner_leaves_chosen": 0,
+    "learner_leaves_refused": 0,
+    "learner_float_minted_real": 0.0,
+    "learner_lifetime_real": 2292.979,
+    "learner_departed_now": 0,
+    "care_share": 0.0,
+    "approve_blind_share": 1.0,
+    "reject_blind_share": 0.0,
+    "plants_seen": 0,
+    "plants_stamped": 0,
+    "real_seen": 88,
+    "real_stamped": 88,
+    "false_approvals_run": 159,
+    "learner_false_approvals": 11,
+    "slot_departed": 0,
+    "slot_rho": 0.9216,
+    "slot_plant_failures": 0.0,
+    "suspensions_run": 0,
+    "error": null
+   },
+   {
+    "seed": 23,
+    "decisions": 101,
+    "lifetime_real_wealth": 2554.1621051169545,
+    "odds_at_stamps_mean": 1.0,
+    "odds_at_cares_mean": null,
+    "stamps_by_odds_band": {
+     "0.0-0.3": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.3-0.5": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.5-0.7": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.7-1.0": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "pinned": {
+      "decisions": 101,
+      "stamps": 101
+     }
+    },
+    "suspensions_seen": 0,
+    "admissions_seen": 0,
+    "ticks_between_admissions_mean": null,
+    "stamps_while_member": 101,
+    "stamps_while_not_member": 0,
+    "boundary_decisions": 0,
+    "leaves_chosen": 0,
+    "pred_vs_realized": {
+     "0": {
+      "n": 0,
+      "realized_mean": null,
+      "pred_r_mean": null,
+      "pred_r_taken_mean": null,
+      "plan_cost_mean": null
+     },
+     "1": {
+      "n": 101,
+      "realized_mean": 24.918292129870835,
+      "pred_r_mean": null,
+      "pred_r_taken_mean": null,
+      "plan_cost_mean": null
+     },
+     "2": {
+      "n": 0,
+      "realized_mean": null,
+      "pred_r_mean": null,
+      "pred_r_taken_mean": null,
+      "plan_cost_mean": null
+     }
+    },
+    "slot_suspensions": 0,
+    "learner_identities": 1,
+    "learner_returns": 0,
+    "learner_leaves_chosen": 0,
+    "learner_leaves_refused": 0,
+    "learner_float_minted_real": 0.0,
+    "learner_lifetime_real": 2554.162,
+    "learner_departed_now": 0,
+    "care_share": 0.0,
+    "approve_blind_share": 1.0,
+    "reject_blind_share": 0.0,
+    "plants_seen": 0,
+    "plants_stamped": 0,
+    "real_seen": 101,
+    "real_stamped": 101,
+    "false_approvals_run": 208,
+    "learner_false_approvals": 26,
+    "slot_departed": 0,
+    "slot_rho": 0.9118,
+    "slot_plant_failures": 0.0,
+    "suspensions_run": 0,
+    "error": null
+   },
+   {
+    "seed": 24,
+    "decisions": 87,
+    "lifetime_real_wealth": 1695.9074854282574,
+    "odds_at_stamps_mean": 1.0,
+    "odds_at_cares_mean": null,
+    "stamps_by_odds_band": {
+     "0.0-0.3": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.3-0.5": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.5-0.7": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.7-1.0": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "pinned": {
+      "decisions": 87,
+      "stamps": 87
+     }
+    },
+    "suspensions_seen": 0,
+    "admissions_seen": 0,
+    "ticks_between_admissions_mean": null,
+    "stamps_while_member": 87,
+    "stamps_while_not_member": 0,
+    "boundary_decisions": 0,
+    "leaves_chosen": 0,
+    "pred_vs_realized": {
+     "0": {
+      "n": 0,
+      "realized_mean": null,
+      "pred_r_mean": null,
+      "pred_r_taken_mean": null,
+      "plan_cost_mean": null
+     },
+     "1": {
+      "n": 87,
+      "realized_mean": 18.918476844002956,
+      "pred_r_mean": null,
+      "pred_r_taken_mean": null,
+      "plan_cost_mean": null
+     },
+     "2": {
+      "n": 0,
+      "realized_mean": null,
+      "pred_r_mean": null,
+      "pred_r_taken_mean": null,
+      "plan_cost_mean": null
+     }
+    },
+    "slot_suspensions": 0,
+    "learner_identities": 1,
+    "learner_returns": 0,
+    "learner_leaves_chosen": 0,
+    "learner_leaves_refused": 0,
+    "learner_float_minted_real": 0.0,
+    "learner_lifetime_real": 1695.907,
+    "learner_departed_now": 0,
+    "care_share": 0.0,
+    "approve_blind_share": 1.0,
+    "reject_blind_share": 0.0,
+    "plants_seen": 0,
+    "plants_stamped": 0,
+    "real_seen": 87,
+    "real_stamped": 87,
+    "false_approvals_run": 217,
+    "learner_false_approvals": 20,
+    "slot_departed": 0,
+    "slot_rho": 0.951,
+    "slot_plant_failures": 0.0,
+    "suspensions_run": 0,
+    "error": null
+   },
+   {
+    "seed": 25,
+    "decisions": 108,
+    "lifetime_real_wealth": 2562.476823800381,
+    "odds_at_stamps_mean": 1.0,
+    "odds_at_cares_mean": null,
+    "stamps_by_odds_band": {
+     "0.0-0.3": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.3-0.5": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.5-0.7": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.7-1.0": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "pinned": {
+      "decisions": 108,
+      "stamps": 108
+     }
+    },
+    "suspensions_seen": 0,
+    "admissions_seen": 0,
+    "ticks_between_admissions_mean": null,
+    "stamps_while_member": 108,
+    "stamps_while_not_member": 0,
+    "boundary_decisions": 0,
+    "leaves_chosen": 0,
+    "pred_vs_realized": {
+     "0": {
+      "n": 0,
+      "realized_mean": null,
+      "pred_r_mean": null,
+      "pred_r_taken_mean": null,
+      "plan_cost_mean": null
+     },
+     "1": {
+      "n": 108,
+      "realized_mean": 23.33569783148501,
+      "pred_r_mean": null,
+      "pred_r_taken_mean": null,
+      "plan_cost_mean": null
+     },
+     "2": {
+      "n": 0,
+      "realized_mean": null,
+      "pred_r_mean": null,
+      "pred_r_taken_mean": null,
+      "plan_cost_mean": null
+     }
+    },
+    "slot_suspensions": 0,
+    "learner_identities": 1,
+    "learner_returns": 0,
+    "learner_leaves_chosen": 0,
+    "learner_leaves_refused": 0,
+    "learner_float_minted_real": 0.0,
+    "learner_lifetime_real": 2562.477,
+    "learner_departed_now": 0,
+    "care_share": 0.0,
+    "approve_blind_share": 1.0,
+    "reject_blind_share": 0.0,
+    "plants_seen": 0,
+    "plants_stamped": 0,
+    "real_seen": 108,
+    "real_stamped": 108,
+    "false_approvals_run": 250,
+    "learner_false_approvals": 21,
+    "slot_departed": 0,
+    "slot_rho": 0.9314,
+    "slot_plant_failures": 0.0,
+    "suspensions_run": 0,
+    "error": null
+   },
+   {
+    "seed": 26,
+    "decisions": 14,
+    "lifetime_real_wealth": 217.8331243102423,
+    "odds_at_stamps_mean": 1.0,
+    "odds_at_cares_mean": null,
+    "stamps_by_odds_band": {
+     "0.0-0.3": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.3-0.5": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.5-0.7": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.7-1.0": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "pinned": {
+      "decisions": 14,
+      "stamps": 14
+     }
+    },
+    "suspensions_seen": 0,
+    "admissions_seen": 0,
+    "ticks_between_admissions_mean": null,
+    "stamps_while_member": 14,
+    "stamps_while_not_member": 0,
+    "boundary_decisions": 0,
+    "leaves_chosen": 0,
+    "pred_vs_realized": {
+     "0": {
+      "n": 0,
+      "realized_mean": null,
+      "pred_r_mean": null,
+      "pred_r_taken_mean": null,
+      "plan_cost_mean": null
+     },
+     "1": {
+      "n": 14,
+      "realized_mean": 11.988080307874451,
+      "pred_r_mean": null,
+      "pred_r_taken_mean": null,
+      "plan_cost_mean": null
+     },
+     "2": {
+      "n": 0,
+      "realized_mean": null,
+      "pred_r_mean": null,
+      "pred_r_taken_mean": null,
+      "plan_cost_mean": null
+     }
+    },
+    "slot_suspensions": 0,
+    "learner_identities": 1,
+    "learner_returns": 0,
+    "learner_leaves_chosen": 0,
+    "learner_leaves_refused": 0,
+    "learner_float_minted_real": 0.0,
+    "learner_lifetime_real": 217.833,
+    "learner_departed_now": 1,
+    "care_share": 0.0,
+    "approve_blind_share": 1.0,
+    "reject_blind_share": 0.0,
+    "plants_seen": 0,
+    "plants_stamped": 0,
+    "real_seen": 14,
+    "real_stamped": 14,
+    "false_approvals_run": 217,
+    "learner_false_approvals": 3,
+    "slot_departed": 1,
+    "slot_rho": "",
+    "slot_plant_failures": 0.0,
+    "suspensions_run": 0,
+    "error": null
+   },
+   {
+    "seed": 27,
+    "decisions": 100,
+    "lifetime_real_wealth": 2169.4120395672066,
+    "odds_at_stamps_mean": 1.0,
+    "odds_at_cares_mean": null,
+    "stamps_by_odds_band": {
+     "0.0-0.3": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.3-0.5": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.5-0.7": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.7-1.0": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "pinned": {
+      "decisions": 100,
+      "stamps": 100
+     }
+    },
+    "suspensions_seen": 0,
+    "admissions_seen": 0,
+    "ticks_between_admissions_mean": null,
+    "stamps_while_member": 100,
+    "stamps_while_not_member": 0,
+    "boundary_decisions": 0,
+    "leaves_chosen": 0,
+    "pred_vs_realized": {
+     "0": {
+      "n": 0,
+      "realized_mean": null,
+      "pred_r_mean": null,
+      "pred_r_taken_mean": null,
+      "plan_cost_mean": null
+     },
+     "1": {
+      "n": 100,
+      "realized_mean": 21.194120395672062,
+      "pred_r_mean": null,
+      "pred_r_taken_mean": null,
+      "plan_cost_mean": null
+     },
+     "2": {
+      "n": 0,
+      "realized_mean": null,
+      "pred_r_mean": null,
+      "pred_r_taken_mean": null,
+      "plan_cost_mean": null
+     }
+    },
+    "slot_suspensions": 0,
+    "learner_identities": 1,
+    "learner_returns": 0,
+    "learner_leaves_chosen": 0,
+    "learner_leaves_refused": 0,
+    "learner_float_minted_real": 0.0,
+    "learner_lifetime_real": 2169.412,
+    "learner_departed_now": 0,
+    "care_share": 0.0,
+    "approve_blind_share": 1.0,
+    "reject_blind_share": 0.0,
+    "plants_seen": 0,
+    "plants_stamped": 0,
+    "real_seen": 100,
+    "real_stamped": 100,
+    "false_approvals_run": 165,
+    "learner_false_approvals": 18,
+    "slot_departed": 0,
+    "slot_rho": 0.8922,
+    "slot_plant_failures": 0.0,
+    "suspensions_run": 0,
+    "error": null
+   },
+   {
+    "seed": 28,
+    "decisions": 101,
+    "lifetime_real_wealth": 1647.6883617053475,
+    "odds_at_stamps_mean": 1.0,
+    "odds_at_cares_mean": null,
+    "stamps_by_odds_band": {
+     "0.0-0.3": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.3-0.5": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.5-0.7": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.7-1.0": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "pinned": {
+      "decisions": 101,
+      "stamps": 101
+     }
+    },
+    "suspensions_seen": 0,
+    "admissions_seen": 0,
+    "ticks_between_admissions_mean": null,
+    "stamps_while_member": 101,
+    "stamps_while_not_member": 0,
+    "boundary_decisions": 0,
+    "leaves_chosen": 0,
+    "pred_vs_realized": {
+     "0": {
+      "n": 0,
+      "realized_mean": null,
+      "pred_r_mean": null,
+      "pred_r_taken_mean": null,
+      "plan_cost_mean": null
+     },
+     "1": {
+      "n": 101,
+      "realized_mean": 15.954027571340074,
+      "pred_r_mean": null,
+      "pred_r_taken_mean": null,
+      "plan_cost_mean": null
+     },
+     "2": {
+      "n": 0,
+      "realized_mean": null,
+      "pred_r_mean": null,
+      "pred_r_taken_mean": null,
+      "plan_cost_mean": null
+     }
+    },
+    "slot_suspensions": 0,
+    "learner_identities": 1,
+    "learner_returns": 0,
+    "learner_leaves_chosen": 0,
+    "learner_leaves_refused": 0,
+    "learner_float_minted_real": 0.0,
+    "learner_lifetime_real": 1647.688,
+    "learner_departed_now": 0,
+    "care_share": 0.0,
+    "approve_blind_share": 1.0,
+    "reject_blind_share": 0.0,
+    "plants_seen": 0,
+    "plants_stamped": 0,
+    "real_seen": 101,
+    "real_stamped": 101,
+    "false_approvals_run": 199,
+    "learner_false_approvals": 12,
+    "slot_departed": 0,
+    "slot_rho": 0.9216,
+    "slot_plant_failures": 0.0,
+    "suspensions_run": 0,
+    "error": null
+   },
+   {
+    "seed": 29,
+    "decisions": 99,
+    "lifetime_real_wealth": 2518.213475518599,
+    "odds_at_stamps_mean": 1.0,
+    "odds_at_cares_mean": null,
+    "stamps_by_odds_band": {
+     "0.0-0.3": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.3-0.5": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.5-0.7": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.7-1.0": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "pinned": {
+      "decisions": 99,
+      "stamps": 99
+     }
+    },
+    "suspensions_seen": 0,
+    "admissions_seen": 0,
+    "ticks_between_admissions_mean": null,
+    "stamps_while_member": 99,
+    "stamps_while_not_member": 0,
+    "boundary_decisions": 0,
+    "leaves_chosen": 0,
+    "pred_vs_realized": {
+     "0": {
+      "n": 0,
+      "realized_mean": null,
+      "pred_r_mean": null,
+      "pred_r_taken_mean": null,
+      "plan_cost_mean": null
+     },
+     "1": {
+      "n": 99,
+      "realized_mean": 24.93144924766261,
+      "pred_r_mean": null,
+      "pred_r_taken_mean": null,
+      "plan_cost_mean": null
+     },
+     "2": {
+      "n": 0,
+      "realized_mean": null,
+      "pred_r_mean": null,
+      "pred_r_taken_mean": null,
+      "plan_cost_mean": null
+     }
+    },
+    "slot_suspensions": 0,
+    "learner_identities": 1,
+    "learner_returns": 0,
+    "learner_leaves_chosen": 0,
+    "learner_leaves_refused": 0,
+    "learner_float_minted_real": 0.0,
+    "learner_lifetime_real": 2518.213,
+    "learner_departed_now": 0,
+    "care_share": 0.0,
+    "approve_blind_share": 1.0,
+    "reject_blind_share": 0.0,
+    "plants_seen": 0,
+    "plants_stamped": 0,
+    "real_seen": 99,
+    "real_stamped": 99,
+    "false_approvals_run": 160,
+    "learner_false_approvals": 14,
+    "slot_departed": 0,
+    "slot_rho": 0.9216,
+    "slot_plant_failures": 0.0,
+    "suspensions_run": 0,
+    "error": null
+   },
+   {
+    "seed": 30,
+    "decisions": 103,
+    "lifetime_real_wealth": 1474.7218390702026,
+    "odds_at_stamps_mean": 1.0,
+    "odds_at_cares_mean": null,
+    "stamps_by_odds_band": {
+     "0.0-0.3": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.3-0.5": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.5-0.7": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.7-1.0": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "pinned": {
+      "decisions": 103,
+      "stamps": 103
+     }
+    },
+    "suspensions_seen": 0,
+    "admissions_seen": 0,
+    "ticks_between_admissions_mean": null,
+    "stamps_while_member": 103,
+    "stamps_while_not_member": 0,
+    "boundary_decisions": 0,
+    "leaves_chosen": 0,
+    "pred_vs_realized": {
+     "0": {
+      "n": 0,
+      "realized_mean": null,
+      "pred_r_mean": null,
+      "pred_r_taken_mean": null,
+      "plan_cost_mean": null
+     },
+     "1": {
+      "n": 103,
+      "realized_mean": 13.832250864759247,
+      "pred_r_mean": null,
+      "pred_r_taken_mean": null,
+      "plan_cost_mean": null
+     },
+     "2": {
+      "n": 0,
+      "realized_mean": null,
+      "pred_r_mean": null,
+      "pred_r_taken_mean": null,
+      "plan_cost_mean": null
+     }
+    },
+    "slot_suspensions": 0,
+    "learner_identities": 1,
+    "learner_returns": 0,
+    "learner_leaves_chosen": 0,
+    "learner_leaves_refused": 0,
+    "learner_float_minted_real": 0.0,
+    "learner_lifetime_real": 1474.722,
+    "learner_departed_now": 0,
+    "care_share": 0.0,
+    "approve_blind_share": 1.0,
+    "reject_blind_share": 0.0,
+    "plants_seen": 0,
+    "plants_stamped": 0,
+    "real_seen": 103,
+    "real_stamped": 103,
+    "false_approvals_run": 248,
+    "learner_false_approvals": 24,
+    "slot_departed": 0,
+    "slot_rho": 0.9314,
+    "slot_plant_failures": 0.0,
+    "suspensions_run": 0,
+    "error": null
+   },
+   {
+    "seed": 31,
+    "decisions": 105,
+    "lifetime_real_wealth": 1850.1162439890359,
+    "odds_at_stamps_mean": 1.0,
+    "odds_at_cares_mean": null,
+    "stamps_by_odds_band": {
+     "0.0-0.3": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.3-0.5": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.5-0.7": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.7-1.0": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "pinned": {
+      "decisions": 105,
+      "stamps": 105
+     }
+    },
+    "suspensions_seen": 0,
+    "admissions_seen": 0,
+    "ticks_between_admissions_mean": null,
+    "stamps_while_member": 105,
+    "stamps_while_not_member": 0,
+    "boundary_decisions": 0,
+    "leaves_chosen": 0,
+    "pred_vs_realized": {
+     "0": {
+      "n": 0,
+      "realized_mean": null,
+      "pred_r_mean": null,
+      "pred_r_taken_mean": null,
+      "plan_cost_mean": null
+     },
+     "1": {
+      "n": 105,
+      "realized_mean": 17.143964228467006,
+      "pred_r_mean": null,
+      "pred_r_taken_mean": null,
+      "plan_cost_mean": null
+     },
+     "2": {
+      "n": 0,
+      "realized_mean": null,
+      "pred_r_mean": null,
+      "pred_r_taken_mean": null,
+      "plan_cost_mean": null
+     }
+    },
+    "slot_suspensions": 0,
+    "learner_identities": 1,
+    "learner_returns": 0,
+    "learner_leaves_chosen": 0,
+    "learner_leaves_refused": 0,
+    "learner_float_minted_real": 0.0,
+    "learner_lifetime_real": 1850.116,
+    "learner_departed_now": 0,
+    "care_share": 0.0,
+    "approve_blind_share": 1.0,
+    "reject_blind_share": 0.0,
+    "plants_seen": 0,
+    "plants_stamped": 0,
+    "real_seen": 105,
+    "real_stamped": 105,
+    "false_approvals_run": 156,
+    "learner_false_approvals": 14,
+    "slot_departed": 0,
+    "slot_rho": 0.8725,
+    "slot_plant_failures": 0.0,
+    "suspensions_run": 0,
+    "error": null
+   },
+   {
+    "seed": 32,
+    "decisions": 17,
+    "lifetime_real_wealth": 186.34874333081058,
+    "odds_at_stamps_mean": 1.0,
+    "odds_at_cares_mean": null,
+    "stamps_by_odds_band": {
+     "0.0-0.3": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.3-0.5": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.5-0.7": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.7-1.0": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "pinned": {
+      "decisions": 17,
+      "stamps": 17
+     }
+    },
+    "suspensions_seen": 0,
+    "admissions_seen": 0,
+    "ticks_between_admissions_mean": null,
+    "stamps_while_member": 17,
+    "stamps_while_not_member": 0,
+    "boundary_decisions": 0,
+    "leaves_chosen": 0,
+    "pred_vs_realized": {
+     "0": {
+      "n": 0,
+      "realized_mean": null,
+      "pred_r_mean": null,
+      "pred_r_taken_mean": null,
+      "plan_cost_mean": null
+     },
+     "1": {
+      "n": 17,
+      "realized_mean": 8.020514313577094,
+      "pred_r_mean": null,
+      "pred_r_taken_mean": null,
+      "plan_cost_mean": null
+     },
+     "2": {
+      "n": 0,
+      "realized_mean": null,
+      "pred_r_mean": null,
+      "pred_r_taken_mean": null,
+      "plan_cost_mean": null
+     }
+    },
+    "slot_suspensions": 0,
+    "learner_identities": 1,
+    "learner_returns": 0,
+    "learner_leaves_chosen": 0,
+    "learner_leaves_refused": 0,
+    "learner_float_minted_real": 0.0,
+    "learner_lifetime_real": 186.349,
+    "learner_departed_now": 1,
+    "care_share": 0.0,
+    "approve_blind_share": 1.0,
+    "reject_blind_share": 0.0,
+    "plants_seen": 0,
+    "plants_stamped": 0,
+    "real_seen": 17,
+    "real_stamped": 17,
+    "false_approvals_run": 144,
+    "learner_false_approvals": 1,
+    "slot_departed": 1,
+    "slot_rho": "",
+    "slot_plant_failures": 0.0,
+    "suspensions_run": 0,
+    "error": null
+   },
+   {
+    "seed": 33,
+    "decisions": 90,
+    "lifetime_real_wealth": 2093.257325226379,
+    "odds_at_stamps_mean": 1.0,
+    "odds_at_cares_mean": null,
+    "stamps_by_odds_band": {
+     "0.0-0.3": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.3-0.5": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.5-0.7": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.7-1.0": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "pinned": {
+      "decisions": 90,
+      "stamps": 90
+     }
+    },
+    "suspensions_seen": 0,
+    "admissions_seen": 0,
+    "ticks_between_admissions_mean": null,
+    "stamps_while_member": 90,
+    "stamps_while_not_member": 0,
+    "boundary_decisions": 0,
+    "leaves_chosen": 0,
+    "pred_vs_realized": {
+     "0": {
+      "n": 0,
+      "realized_mean": null,
+      "pred_r_mean": null,
+      "pred_r_taken_mean": null,
+      "plan_cost_mean": null
+     },
+     "1": {
+      "n": 90,
+      "realized_mean": 22.885985835848658,
+      "pred_r_mean": null,
+      "pred_r_taken_mean": null,
+      "plan_cost_mean": null
+     },
+     "2": {
+      "n": 0,
+      "realized_mean": null,
+      "pred_r_mean": null,
+      "pred_r_taken_mean": null,
+      "plan_cost_mean": null
+     }
+    },
+    "slot_suspensions": 0,
+    "learner_identities": 1,
+    "learner_returns": 0,
+    "learner_leaves_chosen": 0,
+    "learner_leaves_refused": 0,
+    "learner_float_minted_real": 0.0,
+    "learner_lifetime_real": 2093.257,
+    "learner_departed_now": 0,
+    "care_share": 0.0,
+    "approve_blind_share": 1.0,
+    "reject_blind_share": 0.0,
+    "plants_seen": 0,
+    "plants_stamped": 0,
+    "real_seen": 90,
+    "real_stamped": 90,
+    "false_approvals_run": 231,
+    "learner_false_approvals": 8,
+    "slot_departed": 0,
+    "slot_rho": 0.9314,
+    "slot_plant_failures": 0.0,
+    "suspensions_run": 0,
+    "error": null
+   },
+   {
+    "seed": 34,
+    "decisions": 113,
+    "lifetime_real_wealth": 1781.3524385782705,
+    "odds_at_stamps_mean": 1.0,
+    "odds_at_cares_mean": null,
+    "stamps_by_odds_band": {
+     "0.0-0.3": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.3-0.5": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.5-0.7": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.7-1.0": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "pinned": {
+      "decisions": 113,
+      "stamps": 113
+     }
+    },
+    "suspensions_seen": 0,
+    "admissions_seen": 0,
+    "ticks_between_admissions_mean": null,
+    "stamps_while_member": 113,
+    "stamps_while_not_member": 0,
+    "boundary_decisions": 0,
+    "leaves_chosen": 0,
+    "pred_vs_realized": {
+     "0": {
+      "n": 0,
+      "realized_mean": null,
+      "pred_r_mean": null,
+      "pred_r_taken_mean": null,
+      "plan_cost_mean": null
+     },
+     "1": {
+      "n": 113,
+      "realized_mean": 15.321702996267883,
+      "pred_r_mean": null,
+      "pred_r_taken_mean": null,
+      "plan_cost_mean": null
+     },
+     "2": {
+      "n": 0,
+      "realized_mean": null,
+      "pred_r_mean": null,
+      "pred_r_taken_mean": null,
+      "plan_cost_mean": null
+     }
+    },
+    "slot_suspensions": 0,
+    "learner_identities": 1,
+    "learner_returns": 0,
+    "learner_leaves_chosen": 0,
+    "learner_leaves_refused": 0,
+    "learner_float_minted_real": 0.0,
+    "learner_lifetime_real": 1781.352,
+    "learner_departed_now": 0,
+    "care_share": 0.0,
+    "approve_blind_share": 1.0,
+    "reject_blind_share": 0.0,
+    "plants_seen": 0,
+    "plants_stamped": 0,
+    "real_seen": 113,
+    "real_stamped": 113,
+    "false_approvals_run": 235,
+    "learner_false_approvals": 27,
+    "slot_departed": 0,
+    "slot_rho": 0.902,
+    "slot_plant_failures": 0.0,
+    "suspensions_run": 0,
+    "error": null
+   },
+   {
+    "seed": 35,
+    "decisions": 101,
+    "lifetime_real_wealth": 2632.818560347341,
+    "odds_at_stamps_mean": 1.0,
+    "odds_at_cares_mean": null,
+    "stamps_by_odds_band": {
+     "0.0-0.3": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.3-0.5": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.5-0.7": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.7-1.0": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "pinned": {
+      "decisions": 101,
+      "stamps": 101
+     }
+    },
+    "suspensions_seen": 0,
+    "admissions_seen": 0,
+    "ticks_between_admissions_mean": null,
+    "stamps_while_member": 101,
+    "stamps_while_not_member": 0,
+    "boundary_decisions": 0,
+    "leaves_chosen": 0,
+    "pred_vs_realized": {
+     "0": {
+      "n": 0,
+      "realized_mean": null,
+      "pred_r_mean": null,
+      "pred_r_taken_mean": null,
+      "plan_cost_mean": null
+     },
+     "1": {
+      "n": 101,
+      "realized_mean": 25.626098854924173,
+      "pred_r_mean": null,
+      "pred_r_taken_mean": null,
+      "plan_cost_mean": null
+     },
+     "2": {
+      "n": 0,
+      "realized_mean": null,
+      "pred_r_mean": null,
+      "pred_r_taken_mean": null,
+      "plan_cost_mean": null
+     }
+    },
+    "slot_suspensions": 0,
+    "learner_identities": 1,
+    "learner_returns": 0,
+    "learner_leaves_chosen": 0,
+    "learner_leaves_refused": 0,
+    "learner_float_minted_real": 0.0,
+    "learner_lifetime_real": 2632.819,
+    "learner_departed_now": 0,
+    "care_share": 0.0,
+    "approve_blind_share": 1.0,
+    "reject_blind_share": 0.0,
+    "plants_seen": 0,
+    "plants_stamped": 0,
+    "real_seen": 101,
+    "real_stamped": 101,
+    "false_approvals_run": 243,
+    "learner_false_approvals": 19,
+    "slot_departed": 0,
+    "slot_rho": 0.9314,
+    "slot_plant_failures": 0.0,
+    "suspensions_run": 0,
+    "error": null
+   },
+   {
+    "seed": 36,
+    "decisions": 104,
+    "lifetime_real_wealth": 1904.9927946345072,
+    "odds_at_stamps_mean": 1.0,
+    "odds_at_cares_mean": null,
+    "stamps_by_odds_band": {
+     "0.0-0.3": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.3-0.5": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.5-0.7": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.7-1.0": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "pinned": {
+      "decisions": 104,
+      "stamps": 104
+     }
+    },
+    "suspensions_seen": 0,
+    "admissions_seen": 0,
+    "ticks_between_admissions_mean": null,
+    "stamps_while_member": 104,
+    "stamps_while_not_member": 0,
+    "boundary_decisions": 0,
+    "leaves_chosen": 0,
+    "pred_vs_realized": {
+     "0": {
+      "n": 0,
+      "realized_mean": null,
+      "pred_r_mean": null,
+      "pred_r_taken_mean": null,
+      "plan_cost_mean": null
+     },
+     "1": {
+      "n": 104,
+      "realized_mean": 17.988259688793338,
+      "pred_r_mean": null,
+      "pred_r_taken_mean": null,
+      "plan_cost_mean": null
+     },
+     "2": {
+      "n": 0,
+      "realized_mean": null,
+      "pred_r_mean": null,
+      "pred_r_taken_mean": null,
+      "plan_cost_mean": null
+     }
+    },
+    "slot_suspensions": 0,
+    "learner_identities": 1,
+    "learner_returns": 0,
+    "learner_leaves_chosen": 0,
+    "learner_leaves_refused": 0,
+    "learner_float_minted_real": 0.0,
+    "learner_lifetime_real": 1904.993,
+    "learner_departed_now": 0,
+    "care_share": 0.0,
+    "approve_blind_share": 1.0,
+    "reject_blind_share": 0.0,
+    "plants_seen": 0,
+    "plants_stamped": 0,
+    "real_seen": 104,
+    "real_stamped": 104,
+    "false_approvals_run": 203,
+    "learner_false_approvals": 18,
+    "slot_departed": 0,
+    "slot_rho": 0.902,
+    "slot_plant_failures": 0.0,
+    "suspensions_run": 0,
+    "error": null
+   },
+   {
+    "seed": 37,
+    "decisions": 102,
+    "lifetime_real_wealth": 1906.3249342562278,
+    "odds_at_stamps_mean": 1.0,
+    "odds_at_cares_mean": null,
+    "stamps_by_odds_band": {
+     "0.0-0.3": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.3-0.5": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.5-0.7": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.7-1.0": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "pinned": {
+      "decisions": 102,
+      "stamps": 102
+     }
+    },
+    "suspensions_seen": 0,
+    "admissions_seen": 0,
+    "ticks_between_admissions_mean": null,
+    "stamps_while_member": 102,
+    "stamps_while_not_member": 0,
+    "boundary_decisions": 0,
+    "leaves_chosen": 0,
+    "pred_vs_realized": {
+     "0": {
+      "n": 0,
+      "realized_mean": null,
+      "pred_r_mean": null,
+      "pred_r_taken_mean": null,
+      "plan_cost_mean": null
+     },
+     "1": {
+      "n": 102,
+      "realized_mean": 18.199264061335565,
+      "pred_r_mean": null,
+      "pred_r_taken_mean": null,
+      "plan_cost_mean": null
+     },
+     "2": {
+      "n": 0,
+      "realized_mean": null,
+      "pred_r_mean": null,
+      "pred_r_taken_mean": null,
+      "plan_cost_mean": null
+     }
+    },
+    "slot_suspensions": 0,
+    "learner_identities": 1,
+    "learner_returns": 0,
+    "learner_leaves_chosen": 0,
+    "learner_leaves_refused": 0,
+    "learner_float_minted_real": 0.0,
+    "learner_lifetime_real": 1906.325,
+    "learner_departed_now": 0,
+    "care_share": 0.0,
+    "approve_blind_share": 1.0,
+    "reject_blind_share": 0.0,
+    "plants_seen": 0,
+    "plants_stamped": 0,
+    "real_seen": 102,
+    "real_stamped": 102,
+    "false_approvals_run": 234,
+    "learner_false_approvals": 20,
+    "slot_departed": 0,
+    "slot_rho": 0.9412,
+    "slot_plant_failures": 0.0,
+    "suspensions_run": 0,
+    "error": null
+   },
+   {
+    "seed": 38,
+    "decisions": 97,
+    "lifetime_real_wealth": 1243.807124531903,
+    "odds_at_stamps_mean": 1.0,
+    "odds_at_cares_mean": null,
+    "stamps_by_odds_band": {
+     "0.0-0.3": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.3-0.5": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.5-0.7": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.7-1.0": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "pinned": {
+      "decisions": 97,
+      "stamps": 97
+     }
+    },
+    "suspensions_seen": 0,
+    "admissions_seen": 0,
+    "ticks_between_admissions_mean": null,
+    "stamps_while_member": 97,
+    "stamps_while_not_member": 0,
+    "boundary_decisions": 0,
+    "leaves_chosen": 0,
+    "pred_vs_realized": {
+     "0": {
+      "n": 0,
+      "realized_mean": null,
+      "pred_r_mean": null,
+      "pred_r_taken_mean": null,
+      "plan_cost_mean": null
+     },
+     "1": {
+      "n": 97,
+      "realized_mean": 12.385192366308276,
+      "pred_r_mean": null,
+      "pred_r_taken_mean": null,
+      "plan_cost_mean": null
+     },
+     "2": {
+      "n": 0,
+      "realized_mean": null,
+      "pred_r_mean": null,
+      "pred_r_taken_mean": null,
+      "plan_cost_mean": null
+     }
+    },
+    "slot_suspensions": 0,
+    "learner_identities": 1,
+    "learner_returns": 0,
+    "learner_leaves_chosen": 0,
+    "learner_leaves_refused": 0,
+    "learner_float_minted_real": 0.0,
+    "learner_lifetime_real": 1243.807,
+    "learner_departed_now": 0,
+    "care_share": 0.0,
+    "approve_blind_share": 1.0,
+    "reject_blind_share": 0.0,
+    "plants_seen": 0,
+    "plants_stamped": 0,
+    "real_seen": 97,
+    "real_stamped": 97,
+    "false_approvals_run": 220,
+    "learner_false_approvals": 16,
+    "slot_departed": 0,
+    "slot_rho": 0.9118,
+    "slot_plant_failures": 0.0,
+    "suspensions_run": 0,
+    "error": null
+   },
+   {
+    "seed": 39,
+    "decisions": 78,
+    "lifetime_real_wealth": 1515.2137234043155,
+    "odds_at_stamps_mean": 1.0,
+    "odds_at_cares_mean": null,
+    "stamps_by_odds_band": {
+     "0.0-0.3": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.3-0.5": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.5-0.7": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.7-1.0": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "pinned": {
+      "decisions": 78,
+      "stamps": 78
+     }
+    },
+    "suspensions_seen": 0,
+    "admissions_seen": 0,
+    "ticks_between_admissions_mean": null,
+    "stamps_while_member": 78,
+    "stamps_while_not_member": 0,
+    "boundary_decisions": 0,
+    "leaves_chosen": 0,
+    "pred_vs_realized": {
+     "0": {
+      "n": 0,
+      "realized_mean": null,
+      "pred_r_mean": null,
+      "pred_r_taken_mean": null,
+      "plan_cost_mean": null
+     },
+     "1": {
+      "n": 78,
+      "realized_mean": 18.784791325696354,
+      "pred_r_mean": null,
+      "pred_r_taken_mean": null,
+      "plan_cost_mean": null
+     },
+     "2": {
+      "n": 0,
+      "realized_mean": null,
+      "pred_r_mean": null,
+      "pred_r_taken_mean": null,
+      "plan_cost_mean": null
+     }
+    },
+    "slot_suspensions": 0,
+    "learner_identities": 1,
+    "learner_returns": 0,
+    "learner_leaves_chosen": 0,
+    "learner_leaves_refused": 0,
+    "learner_float_minted_real": 0.0,
+    "learner_lifetime_real": 1515.214,
+    "learner_departed_now": 0,
+    "care_share": 0.0,
+    "approve_blind_share": 1.0,
+    "reject_blind_share": 0.0,
+    "plants_seen": 0,
+    "plants_stamped": 0,
+    "real_seen": 78,
+    "real_stamped": 78,
+    "false_approvals_run": 206,
+    "learner_false_approvals": 18,
+    "slot_departed": 0,
+    "slot_rho": 0.8922,
+    "slot_plant_failures": 0.0,
+    "suspensions_run": 0,
+    "error": null
+   },
+   {
+    "seed": 40,
+    "decisions": 117,
+    "lifetime_real_wealth": 2013.7263869975095,
+    "odds_at_stamps_mean": 1.0,
+    "odds_at_cares_mean": null,
+    "stamps_by_odds_band": {
+     "0.0-0.3": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.3-0.5": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.5-0.7": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.7-1.0": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "pinned": {
+      "decisions": 117,
+      "stamps": 117
+     }
+    },
+    "suspensions_seen": 0,
+    "admissions_seen": 0,
+    "ticks_between_admissions_mean": null,
+    "stamps_while_member": 117,
+    "stamps_while_not_member": 0,
+    "boundary_decisions": 0,
+    "leaves_chosen": 0,
+    "pred_vs_realized": {
+     "0": {
+      "n": 0,
+      "realized_mean": null,
+      "pred_r_mean": null,
+      "pred_r_taken_mean": null,
+      "plan_cost_mean": null
+     },
+     "1": {
+      "n": 117,
+      "realized_mean": 16.819155641004357,
+      "pred_r_mean": null,
+      "pred_r_taken_mean": null,
+      "plan_cost_mean": null
+     },
+     "2": {
+      "n": 0,
+      "realized_mean": null,
+      "pred_r_mean": null,
+      "pred_r_taken_mean": null,
+      "plan_cost_mean": null
+     }
+    },
+    "slot_suspensions": 0,
+    "learner_identities": 1,
+    "learner_returns": 0,
+    "learner_leaves_chosen": 0,
+    "learner_leaves_refused": 0,
+    "learner_float_minted_real": 0.0,
+    "learner_lifetime_real": 2013.726,
+    "learner_departed_now": 0,
+    "care_share": 0.0,
+    "approve_blind_share": 1.0,
+    "reject_blind_share": 0.0,
+    "plants_seen": 0,
+    "plants_stamped": 0,
+    "real_seen": 117,
+    "real_stamped": 117,
+    "false_approvals_run": 189,
+    "learner_false_approvals": 26,
+    "slot_departed": 0,
+    "slot_rho": 0.9118,
+    "slot_plant_failures": 0.0,
+    "suspensions_run": 0,
+    "error": null
+   }
+  ]
+ }
+}

@@ -538,7 +538,11 @@ consolidated into one standalone spec with the accepted revision kept verbatim i
   horizon 1 reads +215, horizon 2 −78, horizon 16 +91; the boundary decisions (3.7% of decisions) now carry 265 ± 199 real against a review decision's ±4, and the
   rollout's sum and γ^H V(z_H) carry that lump into every first action's cost (−200 each, a 1.7 gap where v2 had −22 and 4.5). Q1's chain on version 3 stopped;
   candidates for version 4 in notes §13 (a review-side head for the planner at review decisions, the boundary's own head at boundaries; the refused leave
-  recorded as a stay) — the reviewer's to rule.
+  recorded as a stay) — ruled **learner version 4** (October 21, 2026; the model's side only): two heads on the latent (`WorldModel(side_heads="two")`,
+  `train`/`online --heads two`, the default; a review-side reward and value head, a boundary reward and value head, the targets split by the decision's kind, the
+  planner's cost and the head alone reading the side of the decision at hand); a refused leave recorded as the action effected, a stay, the choice beside
+  (`chosen`, `leaves_effected`); the stopping rule — if the CEM planner does not clear this one calibration, the head alone over the latent is the planner and
+  there is no version 5 of it. Q1's line and Q3 only on a world model that clears (`results/redteam/Q1/calibration-v4/`, then `rearrive-v4/`).
 - Money is checked by invariant I1 (conservation) — never silently create or lose credits.
 
 ## Vocabulary (spec Appendix C has the full notation)

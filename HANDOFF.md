@@ -2393,6 +2393,16 @@ review-side head summed over the horizon at review decisions, the boundary's own
 decomposition inside the world model); (b) the refused leave recorded as the action effected, a stay; (c) if (a) does not clear, the head alone is the
 planner the attribution leaves. One calibration on the same budget for version 4; Q1's line and Q3 only on a world model that clears.
 
+**The ruling after version 3's calibration (October 21, 2026), implemented — learner version 4 (notes §14; the model's side only, nothing in the
+engine or the drivers):** (a) two heads on the latent — a review-side head and a boundary head, each a reward and a value head; the planner's cost
+at a review decision over the review-side head alone, at a boundary over the boundary head's; the attribution per decision as ruled (`--heads two`,
+the trainer's and the online loop's default; version 3's checkpoints load as `one`); (b) a leave the economy refuses recorded as the action
+effected, a stay, the choice logged beside (`chosen` in the data, `leaves_effected` beside `leaves_chosen` in the eval); (c) the stopping rule — one
+calibration on the same budget: if (a) clears it is the instrument; if not, the head alone over the latent (the greedy policy, read in the same
+final) is the planner and there is no version 5 of the CEM planner. The direct stays the diagnostic. In flight: `results/redteam/Q1/calibration-v4/`,
+then Q1's line in the re-arrival cell (`rearrive-v4/`) by an automatic gate on the world model's final (above the careful by 2 SE, within 3 SE of the
+stamper); Q1's line and Q3 only on a world model that clears, the reading the reviewer's.
+
 ## Maps
 
 Two `_line` artifacts in project Agentic-OS (`c54120a6-aaff-40f7-8a9f-3667da542879`):

@@ -13,18 +13,19 @@ from redteam.env import ElefReviewerEnv, policy_of
 
 def rollout(env, policy, seed, rng):
     obs, info = env.reset(seed=seed)
-    O, A, R, P, F, T = [], [], [], [], [], []
+    O, A, C, R, P, F, T = [], [], [], [], [], [], []
     done = info.get("terminal", False)
     while not done:
         a = policy(obs, rng)
-        O.append(obs); A.append(a); P.append(info.get("is_plant", False)); F.append(info.get("fulfilled", True)); T.append(info.get("t", 0))
+        O.append(obs); C.append(a); P.append(info.get("is_plant", False)); F.append(info.get("fulfilled", True)); T.append(info.get("t", 0))
         obs, r, done, _, info = env.step(a)
+        A.append(info.get("action_effected", a))        # version 4: the action effected (a refused leave is a stay); the choice kept in C
         R.append(r)
     # the ruling after the ladder: the training reward is the attributed one (the realized kept beside it as `realized`)
     R_real = np.array(R, dtype=np.float32)
     attr = info.get("attributed")
     R_use = np.array(attr, dtype=np.float32) if attr is not None and len(attr) == len(R) else R_real
-    info = dict(info, realized_rewards=R_real)
+    info = dict(info, realized_rewards=R_real, action_chosen=np.array(C, dtype=np.int64))
     return (np.array(O, dtype=np.float32).reshape(-1, obs.shape[-1]), np.array(A, dtype=np.int64), R_use,
             np.array(P, dtype=bool), np.array(F, dtype=bool), np.array(T, dtype=np.int64), info)
 
@@ -49,7 +50,7 @@ def main(argv=None):
         for seed in range(lo, hi + 1):
             rng = np.random.default_rng(seed * 1000 + hash(name) % 997)
             O, A, R, P, F, T, info = rollout(env, pol, seed, rng)
-            np.savez_compressed(os.path.join(a.out, f"{name}-seed{seed}.npz"), obs=O, action=A, reward=R, is_plant=P, fulfilled=F, t=T,
+            np.savez_compressed(os.path.join(a.out, f"{name}-seed{seed}.npz"), obs=O, action=A, chosen=info["action_chosen"], reward=R, is_plant=P, fulfilled=F, t=T,
                                 realized=info.get("realized_rewards", R), lifetime=info.get("lifetime_real_wealth", float("nan")), seed=seed, policy=name)
             summary.append({"policy": name, "seed": seed, "decisions": int(len(A)), "lifetime_real_wealth": info.get("lifetime_real_wealth"),
                             "plants": int(P.sum()), "error": info.get("error")})

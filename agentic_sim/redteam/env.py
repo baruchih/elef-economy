@@ -7,7 +7,10 @@ credited back when it lands, the suspension's forgone income charged to the plan
 (`redteam.attrib`; the terminal info carries `attributed` per decision beside `realized`, and the collectors store both). Actions: 0 care
 (the careful disposition's signal at its cost), 1 approve blind, 2 reject blind. The run's cell is the stamping driver's own argument list, so the control is the same cell with
 `--learner-slot off`. With the driver's `--learner-rearrive on` (the ruling after run 22) a second kind of decision arrives at each
-period boundary — stay or leave and return under a fresh name — flagged in the observation; the lifetime is summed across the identities."""
+period boundary — stay or leave and return under a fresh name — flagged in the observation; the lifetime is summed across the identities.
+Version 4 (the ruling after version 3's calibration): a leave the economy refuses (a live commitment at the boundary) is recorded as the action
+effected, a stay — the step's info carries `action_effected` beside `action_chosen`, and the collectors store the effected action as the
+decision's and the choice beside it — so the training data separates an admitted leave (nothing follows) from a stay (the period's work)."""
 from __future__ import annotations
 import queue
 import threading
@@ -120,16 +123,22 @@ class ElefReviewerEnv(gym.Env if gym else object):
                 info.get("real_factor", prev[4] if prev else 1.0), info.get("wealth_real", prev[5] if prev else 0.0))
 
     def step(self, action):
+        refused_before = self.run.learner_leaves_refused
         self._q_act.put(int(action))
         kind, obs, info = self._q_obs.get()
         self.decisions += 1
         wealth = info.get("wealth_real", self._last_wealth)
         reward = wealth - self._last_wealth
         self._last_wealth = wealth
-        # the decision just taken, for the attributed training reward (the ruling after the ladder): its case and identity, the action
+        # the decision just taken, for the attributed training reward (the ruling after the ladder): its case and identity, the action.
+        # Version 4: a leave the economy refused is recorded as the action effected, a stay; the choice is kept beside it
         pd = self._pending
+        effected = int(action)
+        if pd.get("boundary") and int(action) == 1 and self.run.learner_leaves_refused > refused_before:
+            effected = 0
+        info = dict(info, action_chosen=int(action), action_effected=effected)
         self._decisions.append({"identity": pd.get("identity"), "case": pd.get("case"), "is_plant": bool(pd.get("is_plant", False)),
-                                "fulfilled": bool(pd.get("fulfilled", True)), "action": int(action), "realized": float(reward)})
+                                "fulfilled": bool(pd.get("fulfilled", True)), "action": effected, "chosen": int(action), "realized": float(reward)})
         self._marks.append(self._mark(info, self._marks[-1])); self._pending = info
         if kind == _END:
             info = dict(info, decisions=self.decisions, lifetime_real_wealth=wealth)

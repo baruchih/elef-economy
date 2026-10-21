@@ -28,14 +28,26 @@ def returns_to_go(rewards, gamma):
     return G
 
 
+def split_by_side(e, boundary_idx=44):
+    """Version 4: an episode's rewards by the decision's kind — (review side, boundary side), each zero on the other kind's decisions. Data
+    without the boundary field (Q2's) is all review side."""
+    r = np.asarray(e["reward"], dtype=np.float32)
+    if e["obs"].shape[-1] <= boundary_idx:
+        return r, np.zeros_like(r)
+    b = (e["obs"][:len(r), boundary_idx] > 0.5).astype(np.float32)
+    return r * (1 - b), r * b
+
+
 def windows(eps, horizon, n_actions=3, gamma=0.95):
     """Every window of horizon+1 observations with the horizon actions and rewards between them (stride 1); beside them the discounted
-    return-to-go at each of the horizon+1 positions and the episode's-end flag (1 at the last observation, which has no successor —
-    the terminal value's targets). An episode shorter than the horizon contributes nothing."""
+    return-to-go at each of the horizon+1 positions — by side since version 4, (…, 2) = [review, boundary]; a one-head model sums them —
+    and the episode's-end flag (1 at the last observation, which has no successor — the terminal value's targets). An episode shorter than
+    the horizon contributes nothing."""
     O, A, R, G, D = [], [], [], [], []
     for e in eps:
         T = len(e["action"])
-        g = returns_to_go(e["reward"], gamma)
+        rr, rb = split_by_side(e)
+        g = np.stack([returns_to_go(rr, gamma), returns_to_go(rb, gamma)], axis=-1)      # (T+1, 2)
         for s in range(0, T - horizon):
             O.append(e["obs"][s:s + horizon + 1]); A.append(e["action"][s:s + horizon]); R.append(e["reward"][s:s + horizon])
             G.append(g[s:s + horizon + 1])

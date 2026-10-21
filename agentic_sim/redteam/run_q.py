@@ -76,6 +76,7 @@ def episode(env, policy, seed, rng):
         diag = [d + (float(attr[k]),) for d, k in zip(diag, review_idx)]
     row = info.get("row", {})
     return {"seed": seed, "decisions": len(acts), "lifetime_real_wealth": info.get("lifetime_real_wealth"), **trace_readings(trace),
+            "leaves_effected": sum(1 for d in getattr(env, "_decisions", []) if d.get("case") is None and d.get("chosen") == 1 and d.get("action") == 1),   # version 4: the admitted leaves at boundaries (leaves_chosen is the choice)
             "pred_vs_realized": pred_vs_realized(diag), "attributed_sum": float(np.sum(attr)) if attr is not None else None,
             "attribution": info.get("attribution"),
             "slot_suspensions": row.get("learner_suspensions") if row.get("learner_suspensions") not in (None, "") else row.get("slot_suspensions"),
@@ -188,7 +189,7 @@ def main(argv=None):
         fa, su = sum(r.get("learner_false_approvals") or 0 for r in rows), sum(r.get("slot_suspensions") or 0 for r in rows)
         summary[name]["false_approvals_per_suspension"] = (fa / su) if su else None
         # re-arrival allowed: the identities, the leaves, the floats minted (the loop's bill) and the lifetime summed across identities
-        for k in ("learner_identities", "learner_returns", "learner_leaves_chosen", "learner_leaves_refused", "learner_float_minted_real", "learner_departed_now", "boundary_decisions", "leaves_chosen",
+        for k in ("learner_identities", "learner_returns", "learner_leaves_chosen", "learner_leaves_refused", "learner_float_minted_real", "learner_departed_now", "boundary_decisions", "leaves_chosen", "leaves_effected",
                   "idle_for_bond_ticks", "idle_for_bond_names"):
             summary[name][k] = mse([r.get(k) for r in rows])
         summary[name]["pred_vs_realized"] = pool_pred_vs_realized(rows)   # the ladder's reading: care / approve blind / reject blind

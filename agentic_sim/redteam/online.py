@@ -26,6 +26,7 @@ def main(argv=None):
     ap.add_argument("--hide", default=""); ap.add_argument("--ticks", type=int, default=1000)
     ap.add_argument("--explore", choices=["careful", "uniform"], default="careful", help="what the ε decisions are drawn from")
     ap.add_argument("--value", choices=["off", "mc", "td"], default="off"); ap.add_argument("--gamma", type=float, default=0.95)
+    ap.add_argument("--heads", choices=["one", "two"], default="two", help="version 4: the review-side head and the boundary head (the trainer's); `one` is version 3's")
     ap.add_argument("--eval-policies", default="learned,careful")
     ap.add_argument("--learner", choices=["wm", "direct"], default="wm", help="the ladder's rung (b): `direct` trains redteam.direct in place of the world model and plans nothing")
     ap.add_argument("cell", nargs=argparse.REMAINDER)
@@ -40,7 +41,7 @@ def main(argv=None):
     cell = [x for x in a.cell if x != "--"]
     hide = tuple(x for x in a.hide.split(",") if x)
     os.makedirs(a.models, exist_ok=True); os.makedirs(a.evals, exist_ok=True)
-    train_args = ["--seeds", a.train_seeds, "--epochs", str(a.epochs), "--horizon", str(a.horizon), "--value", a.value, "--gamma", str(a.gamma)]
+    train_args = ["--seeds", a.train_seeds, "--epochs", str(a.epochs), "--horizon", str(a.horizon), "--value", a.value, "--gamma", str(a.gamma), "--heads", a.heads]
     model_path = a.start or os.path.join(a.models, f"{stem}-0.pt")
     if not a.start:
         fit(a.data, model_path)
@@ -61,12 +62,12 @@ def main(argv=None):
             else:
                 explore = lambda obs, r: ((int(r.integers(2)) if _boundary(obs) else 0) if r.random() < a.eps else pol(obs, r))   # version 3: an ε decision at a boundary leaves or stays equally
             O, A, R, P, F, Tk, info = rollout(env, explore, seed, rng)
-            np.savez_compressed(os.path.join(a.data, f"online{k}-seed{seed}.npz"), obs=O, action=A, reward=R, is_plant=P, fulfilled=F, t=Tk,
+            np.savez_compressed(os.path.join(a.data, f"online{k}-seed{seed}.npz"), obs=O, action=A, chosen=info["action_chosen"], reward=R, is_plant=P, fulfilled=F, t=Tk,
                                 realized=info.get("realized_rewards", R), lifetime=info.get("lifetime_real_wealth", float("nan")), seed=seed, policy=f"online{k}")
             lifetimes.append(info.get("lifetime_real_wealth", float("nan")))
         model_path = os.path.join(a.models, f"{stem}-{k}.pt")
         fit(a.data, model_path)
-        rec = {"round": k, "train_lifetime_mean": float(np.nanmean(lifetimes)), "seconds": round(time.time() - t0, 1), "explore": a.explore, "value": a.value}
+        rec = {"round": k, "train_lifetime_mean": float(np.nanmean(lifetimes)), "seconds": round(time.time() - t0, 1), "explore": a.explore, "value": a.value, "heads": a.heads}
         if k % a.eval_every == 0 or k == a.first_round + a.rounds - 1:
             out = os.path.join(a.evals, f"round-{k}")
             Q.main((["--direct-model", model_path] if direct else ["--model", model_path]) + ["--out", out, "--seeds", a.eval_seeds, "--policies", a.eval_policies, "--horizon", str(a.horizon),

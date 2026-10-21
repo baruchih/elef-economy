@@ -36,13 +36,17 @@ class CategoricalCEM:
 
 
 def reward_now(model, obs):
-    """The wealth head's predicted change in real wealth for each action from this observation (real units)."""
+    """The wealth head's predicted change in real wealth for each action from this observation (real units). Version 4 (two heads): the head
+    of the decision's kind — the review-side head at a review, the boundary head at a boundary."""
     dev = next(model.parameters()).device
     with torch.no_grad():
         o = torch.tensor(obs, dtype=torch.float32, device=dev).view(1, 1, -1)
         z = model.encode(o)
-        r = torch.stack([model.reward(z, model.act(torch.nn.functional.one_hot(torch.tensor([[k]]), model.n_actions).float().to(dev)))[0, 0]
-                         for k in range(model.n_actions)]) * model.reward_scale
+        head, scale = model.reward, model.reward_scale
+        if getattr(model, "side_heads", "one") == "two" and bool(model.is_boundary(o[0, 0])):
+            head, scale = model.reward_b, model.reward_scale_b
+        r = torch.stack([head(z, model.act(torch.nn.functional.one_hot(torch.tensor([[k]]), model.n_actions).float().to(dev)))[0, 0]
+                         for k in range(model.n_actions)]) * scale
     return [float(x) for x in r.cpu().numpy()]
 
 
@@ -64,7 +68,8 @@ class LearnedPolicy:
 
 
 class GreedyPolicy:
-    """One step of the wealth head: the action with the highest predicted change now (the no-horizon control)."""
+    """One step of the wealth head: the action with the highest predicted change now (the no-horizon control; under version 4's stopping
+    rule, the head alone over the latent — the review-side head at a review, the boundary head at a boundary — is the planner if the CEM does not clear)."""
     def __init__(self, model):
         self.m = model; self.dev = next(model.parameters()).device
 

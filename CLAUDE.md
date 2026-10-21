@@ -468,7 +468,10 @@ consolidated into one standalone spec with the accepted revision kept verbatim i
   `learner_lifetime_real` and `redteam.env._wealth_real` (the brief's measure, net by construction), the exit rule's earnings gross of the period's
   repayments (`repaid_at_boundary`); the columns `names_*`, `departed_net`, and H2's readings `below_bond_before_admission` (arrival-born names whose
   unlocked balance fell below G^V at the index before admission) and `unfundable_with_loan_ticks` (free arrival-born members unfundable for an award
-  while a loan stood). `test_v27` (12); goldens unchanged.
+  while a loan stood). The red team's accomplice route (`--accomplice on`, with `--delegation on`): the first two arrival-born members admitted are a mover
+  and its accomplice — the mover posts a nested request at the largest ceiling its unlocked balance can lock and awards the accomplice directly, then
+  departs at the first boundary after a move (`acc_*` columns: the moves, the sum moved, the mover's wallet out and the bank's default on it). `test_v27`
+  (12); goldens unchanged.
 - The learned red team (`agentic_sim/redteam/`, October 20, 2026; the brief and the build plan in `docs/`). Run it with
   `/opt/homebrew/Caskroom/miniconda/base/envs/elef-redteam/bin/python -m redteam.<module>` from `agentic_sim/`; the project's Python has no torch and
   the suite never imports the package. The learner is a driver: `--learner-slot on` makes the slot actor (the first careful id, the same actor the

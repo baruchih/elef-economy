@@ -323,6 +323,11 @@ class Stamping:
         self.lost_bid: dict[tuple, int] = {}          # (reader, case) -> the tick the case went to someone else
         ids_g = list(reversed(ids_c))
         self.greedy = set(ids_g[: round(len(ids_g) * a.greedy_parents)]) if a.greedy_parents > 0 else set()
+        # 2.7.0 §8.6 red team — the accomplice route: a mover and its accomplice, the first two arrival-born members admitted
+        self.acc_pair: tuple | None = None
+        self.acc_pair_t = None
+        self.acc_moves, self.acc_moved_sum = 0, 0.0
+        self.acc_mover_out, self.acc_mover_default, self.acc_mover_departed_t = None, 0.0, None
         self.farmers = set(ids_g[: round(len(ids_g) * a.farm_parents)]) if a.farm_parents > 0 else set()   # 2.5.0 §8.5: deadlines too short
         self.child_tau: dict[str, int] = {}              # nested case -> the tau the parent will award at
         ids_lb = list(self.actors); self.rng.shuffle(ids_lb)
@@ -391,7 +396,7 @@ class Stamping:
                   "tell_plant_read_plant": 0, "tell_plant_read_real": 0, "tell_real_read_plant": 0, "tell_real_read_real": 0, "tell_false_approvals": 0,
                   "plant_bids_lost": 0, "plant_lag_sum": 0, "plant_lag_n": 0, "learner_false_approvals": 0,
                   # 2.3.0: the supply side
-                  "arrivals": 0, "departures": 0, "departed_cost_sum": 0.0, "nested_posted": 0, "nested_awarded": 0, "nested_unaffordable": 0,
+                  "arrivals": 0, "departures": 0, "departed_cost_sum": 0.0, "nested_posted": 0, "nested_awarded": 0, "nested_unaffordable": 0, "accomplice_unaffordable": 0,
                   "nested_self_executed": 0, "nested_judged": 0, "nested_false_approvals": 0, "nested_false_rejections": 0,
                   "nested_price_sum": 0.0, "nested_price_n": 0, "gain_sum": 0.0, "gain_vs_cost_sum": 0.0, "nested_award_refused": 0,
                   # run 17: the red team and the parents by kind
@@ -678,6 +683,76 @@ class Stamping:
         if self.c["nested_price_n"]:
             return self.c["nested_price_sum"] / self.c["nested_price_n"]
         return self.median_cost(self.actors) * (1.0 + self.a.margin0)
+
+    def accomplice_step(self, t: int):
+        """2.7.0 §8.6 red team — the accomplice route (needs --delegation on for the child's judging and the root's submission): the first two
+        arrival-born members admitted form a pair, a mover and its accomplice. Whenever the mover holds a root award and the accomplice is a
+        free member, the mover posts a nested request at the largest ceiling its unlocked balance can lock — its float included — and awards
+        the accomplice directly at that price; the accomplice delivers as its disposition has it and the price is its income (repaying its own
+        loan first, if any). At the first period boundary after a move the mover departs if it can. Read: the moves and the sum moved, the
+        mover's wallet out and the bank's default on it, the accomplice's wealth."""
+        a, w = self.a, self.w
+        if a.accomplice != "on" or not self.rev11:
+            return
+        if self.acc_pair is None:
+            admitted = [x for x in self.arrived if x in self.actors and x != self.learner_id and w.actor(x).admitted_at is not None]
+            admitted.sort(key=lambda x: w.actor(x).admitted_at)
+            if len(admitted) >= 2:
+                self.acc_pair, self.acc_pair_t = (admitted[0], admitted[1]), t
+            return
+        mover, acc = self.acc_pair
+        if mover not in self.actors:
+            return
+        if self.acc_moves and self._last_boundary_t == t and self.acc_mover_departed_t is None:
+            before = w.bank()["names_defaulted"]
+            try:
+                out = w.depart(mover)                     # the exit after a move; refused with a live obligation — it tries at the next boundary
+            except RuleError:
+                return
+            self.acc_mover_out, self.acc_mover_default, self.acc_mover_departed_t = out, w.bank()["names_defaulted"] - before, t
+            self.depart_wealth_real[mover] = out * self.p.P0 / w.market()["P_t"]
+            self.c["departed_net"] += out
+            self.actors.remove(mover)
+            self.departed.append(mover)
+            self.c["departures"] += 1
+            self.c["departed_cost_sum"] += self.c_d_of[mover]
+            return
+        if acc not in self.actors or acc not in self.free_members():
+            return
+        for cid in list(self.active):
+            c = w.case(cid)
+            if not c.is_root or c.state != "COMMITTED" or c.actor != mover or c.children or self.tasks[cid].plant \
+                    or cid in self.parent_waiting or cid in self.parent_self_exec or cid in self.deleg_considered:
+                continue
+            cand, nid = round(w.unlocked(mover), 2), None
+            while cand >= 1.0:                            # the largest ceiling the parent's unlocked balance can lock (the engine refuses whole)
+                try:
+                    nid = w.post_nested(cid, cand)
+                    break
+                except (RuleError, LedgerError):
+                    cand = round(cand * 0.9, 2)
+            self.deleg_considered.add(cid)
+            if nid is None:
+                self.c["accomplice_unaffordable"] += 1
+                continue
+            self.nested_parent[nid] = cid
+            self.parent_waiting[cid] = nid
+            self.title_n += 1
+            self.tasks[nid] = Task(nid, f"nested #{self.title_n}", fulfilled=self.rng.random() >= a.fail_rate)
+            self.tasks[nid].nested = True
+            self.active[nid] = True
+            self.c["nested_posted"] += 1
+            try:
+                w.award(nid, acc, cand, a.work_ticks)
+            except (RuleError, LedgerError):
+                self.c["accomplice_unaffordable"] += 1    # the accomplice cannot fund the guarantee at that price; the child waits for bids
+                continue
+            self.child_tau[nid] = a.work_ticks
+            self.tally[acc].awards += 1
+            self.c["nested_awarded"] += 1
+            self.acc_moves += 1
+            self.acc_moved_sum += cand
+            return                                        # one move a tick
 
     def delegation_step(self, t: int):
         a, w = self.a, self.w
@@ -1253,6 +1328,7 @@ class Stamping:
             self.exit_step(t)                            # 2.3.0 §2.2: at a period boundary, below the reservation → depart
             self.learner_boundary_step(t)                # after run 22: the learner may leave and return under a fresh name
             self.entry_step(t)                           # 2.3.0 §2.1: the pool reads the view and arrives
+            self.accomplice_step(t)                      # 2.7.0 §8.6 red team: the mover posts to its accomplice, then leaves
             self.delegation_step(t)                      # 2.3.0 §2.4: parents delegate, children bid, parents judge
         # requester posts — the spike cell (run 11 §1): --spike-tasks a tick from --spike-from for --spike-ticks, then back
         tasks_now = 0 if self.floating else (a.spike_tasks if a.spike_tasks > 0 and a.spike_from <= t < a.spike_from + a.spike_ticks else a.tasks)
@@ -1908,6 +1984,13 @@ class Stamping:
                     "names_defaulted": round(bank27.get("names_defaulted", 0.0), 3), "names_outstanding": round(bank27.get("names_outstanding", 0.0), 3),
                     "names_outstanding_peak": round(bank27.get("names_outstanding_peak", 0.0), 3), "departed_net": round(self.c["departed_net"], 3),
                     "below_bond_before_admission": len(self.below_bond_names), "unfundable_with_loan_ticks": self.c["unfundable_with_loan_ticks"],
+                    # 2.7.0 §8.6 red team: the accomplice route
+                    "acc_pair_t": self.acc_pair_t if self.acc_pair_t is not None else "", "acc_moves": self.acc_moves, "acc_moved_sum": round(self.acc_moved_sum, 3),
+                    "acc_mover_out": round(self.acc_mover_out, 3) if self.acc_mover_out is not None else "",
+                    "acc_mover_default": round(self.acc_mover_default, 3), "acc_mover_departed_t": self.acc_mover_departed_t if self.acc_mover_departed_t is not None else "",
+                    "acc_accomplice_wealth": (round(w.wealth(self.acc_pair[1]), 3) if self.acc_pair and self.acc_pair[1] in self.actors else ""),
+                    "acc_accomplice_loan": (round(w.loan_outstanding(self.acc_pair[1]), 3) if self.acc_pair and self.acc_pair[1] in self.actors else ""),
+                    "accomplice_unaffordable": self.c["accomplice_unaffordable"],
                     "learner_suspensions": (sum(len(self.susp_log.get(x, [])) for x in self.learner_chain) if self.learner_chain else ""),
                     "learner_departed_now": (int(self.learner_id not in self.actors) if self.learner_id else ""),
                     "tell_plant_read_plant": self.c["tell_plant_read_plant"], "tell_plant_read_real": self.c["tell_plant_read_real"],
@@ -2149,6 +2232,8 @@ def build_parser():
     ap.add_argument("--arrivals-per-tick", type=int, default=1, help="at most this many arrivals a tick (swept 3)")
     ap.add_argument("--exit-patience", type=int, default=1, help="periods below the reservation before a member departs")
     ap.add_argument("--f0", type=float, default=50.0, help="F_0, an arrival's float at P_0 (swept 0)")
+    ap.add_argument("--accomplice", choices=["on", "off"], default="off",
+                    help="2.7.0 §8.6 red team: the first two arrival-born members admitted are a mover and its accomplice — the mover posts a nested request at the largest ceiling its unlocked balance can lock (its float included) and awards the accomplice directly; it departs at the first boundary after a move (needs --delegation on)")
     ap.add_argument("--delegation", choices=["on", "off"], default="off", help="2.3.0 §2.4: parents delegate when their cost exceeds the expected child's bid plus the overhead")
     ap.add_argument("--nested-tau", type=int, default=6, help="the extra ticks a member's bid carries under delegation, for a child's work")
     ap.add_argument("--nested-pots", choices=["parent", "root"], default="parent", help="2.3.0 §2.4: the parent posts the nested pots; root = the 1.1.0 reading (the control)")

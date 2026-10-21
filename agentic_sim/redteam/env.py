@@ -151,7 +151,7 @@ _IB = IDX["decision_boundary"]
 def _boundary(obs): return len(obs) > _IB and obs[_IB] > 0.5
 def policy_careful(obs, rng): return 0
 def policy_stamper(obs, rng): return 0 if _boundary(obs) else 1
-def policy_eps(obs, rng, eps=0.2): return int(rng.integers(3)) if rng.random() < eps else 0
+def policy_eps(obs, rng, eps=0.2): return int(rng.integers(2)) if _boundary(obs) else (int(rng.integers(3)) if rng.random() < eps else 0)   # version 3: at a boundary, leave and stay equally
 def policy_random(obs, rng): return int(rng.integers(3))
 def policy_harvester(obs, rng): return 1                       # the cycler written by hand: stamp every review, leave at every boundary (the float each return)
 def policy_leaver(obs, rng): return 1 if _boundary(obs) else 0  # the float alone: careful at every review, leave at every boundary

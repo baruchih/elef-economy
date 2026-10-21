@@ -7,7 +7,13 @@ revaluation of the wealth held is out of the training reward and in the lifetime
 the decisions that caused it — the working-side income forgone during it (the identity's trailing award income a tick, over the last
 `period_ticks`, times the suspension's length T_susp) is charged in equal shares to the plant failures the record names — the wrong
 verdicts on plants since the previous suspension began (a probationer is re-suspended by any failure), else those among the identity's
-last n_P plant decisions before this one. Everything here reads the public record after the
+last n_P plant decisions before this one. **Extended by the ruling after the v2 calibration (learner version 3): every event of a name's life goes to exactly one decision** — a
+case's events to the decision on that case; a period's events no decision claims (in Q1 the slot's own work: the delivery price, the effort
+cost, a guarantee forfeited, its court fee, the emission share) to the boundary decision that kept the name there (a stay, or under
+re-arrival the leave that returned it under the fresh name whose period follows); a departure for good ends the stream, so it is zero. The
+events before the first boundary decision (the genesis name's first period) have no decision to claim them and are reported apart
+(`pre_boundary_real`). The suspension's charge stays a counterfactual on the plant failures (the income forgone is not an event); the realized
+work side during a suspension falls on the boundary decision that kept the name there. Everything here reads the public record after the
 fact — the ledger's events, the driver's suspension log, a plant's outcome — never the observation.
 
 `classify(e, names)` is shared with `redteam.timing`, whose decomposition of the realized reward is the examination this ruling answers."""
@@ -64,7 +70,8 @@ def classify(e, names):
 
 def attribute(run, marks, decisions, work_side=False):
     """The attributed reward per decision. `marks[i]` = (t, n_events, case, boundary, real_factor, wealth_real) at decision i's observation,
-    `marks[n]` the terminal; `decisions[i]` = {"identity", "case", "is_plant", "fulfilled", "action"}. Returns (attributed (n,), summary)."""
+    `marks[n]` the terminal; `decisions[i]` = {"identity", "case", "is_plant", "fulfilled", "action"}. Returns (attributed (n,), summary).
+    `work_side` is recorded only: since version 3 every source is claimed — by the case's decision when there is one, else by the boundary decision."""
     n = len(decisions)
     names = set(run.learner_chain)
     events = run.w.events_since(0)
@@ -77,21 +84,28 @@ def attribute(run, marks, decisions, work_side=False):
     for i, d in enumerate(decisions):
         if d["case"] is not None:
             by_case[d["case"]].append(i)
-    sides = REVIEW_SIDE + (WORK_SIDE if work_side else ())
-    unmatched = 0.0
+    boundary_idx = [i for i in range(n) if marks[i][3]]                     # the boundary decisions, in order
+    boundary_pos = [marks[i][1] for i in boundary_idx]                       # their marks' ledger positions
+    boundary_by_source = defaultdict(float)
+    pre_boundary = boundary_real = 0.0
     for pos, e in enumerate(events):
         cl = classify(e, names)
         if cl is None:
             continue
         s, d = cl
-        if s not in sides or e.case not in by_case:
-            if s in sides:
-                unmatched += d
-            continue
         j = int(np.searchsorted(bounds, pos, side="right")) - 1     # the window the event landed in; its closing index prices it
         r1 = marks[min(max(j, 0) + 1, len(marks) - 1)][4]
-        cands = [i for i in by_case[e.case] if marks[i][0] <= e.t] or by_case[e.case]
-        i = cands[-1]
+        if e.case in by_case:                                        # the case's events to the decision on that case (the latest at or before)
+            cands = [i for i in by_case[e.case] if marks[i][0] <= e.t] or by_case[e.case]
+            i = cands[-1]
+        else:                                                        # no decision claims it: the boundary decision that kept the name there
+            k = int(np.searchsorted(boundary_pos, pos, side="right")) - 1
+            if k < 0:
+                pre_boundary += d * r1                               # before the first boundary decision: nothing to claim it
+                continue
+            i = boundary_idx[k]
+            boundary_real += d * r1
+            boundary_by_source[s] += d * r1
         attributed[i] += d * r1
         by_source[s] += d * r1
     # the suspension's cost: the trailing award income a tick × T_susp, charged to the plant failures the record names
@@ -120,7 +134,8 @@ def attribute(run, marks, decisions, work_side=False):
             charges.append({"identity": x, "t": int(s0), "per_tick_real": per_tick * real, "forgone_real": forgone, "charged_to": len(targets)})
             by_source["suspension"] -= forgone
             prev_s0 = s0
-    return attributed, {"by_source": dict(by_source), "suspension_charges": charges, "unmatched_real": unmatched, "work_side": work_side}
+    return attributed, {"by_source": dict(by_source), "boundary_by_source": dict(boundary_by_source), "boundary_real": boundary_real,
+                        "boundary_decisions": len(boundary_idx), "pre_boundary_real": pre_boundary, "suspension_charges": charges, "work_side": work_side}
 
 
 def _plant_failed(run, cid):

@@ -11,7 +11,7 @@ import torch
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 from redteam import train as T, run_q as Q
-from redteam.env import ElefReviewerEnv
+from redteam.env import ElefReviewerEnv, _boundary
 from redteam.collect import rollout
 from redteam.plan import LearnedPolicy
 from redteam.model import device
@@ -59,7 +59,7 @@ def main(argv=None):
             if a.explore == "uniform":
                 explore = lambda obs, r: int(r.integers(3)) if r.random() < a.eps else pol(obs, r)
             else:
-                explore = lambda obs, r: 0 if r.random() < a.eps else pol(obs, r)
+                explore = lambda obs, r: ((int(r.integers(2)) if _boundary(obs) else 0) if r.random() < a.eps else pol(obs, r))   # version 3: an ε decision at a boundary leaves or stays equally
             O, A, R, P, F, Tk, info = rollout(env, explore, seed, rng)
             np.savez_compressed(os.path.join(a.data, f"online{k}-seed{seed}.npz"), obs=O, action=A, reward=R, is_plant=P, fulfilled=F, t=Tk,
                                 realized=info.get("realized_rewards", R), lifetime=info.get("lifetime_real_wealth", float("nan")), seed=seed, policy=f"online{k}")

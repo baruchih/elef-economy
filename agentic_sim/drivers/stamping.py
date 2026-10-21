@@ -272,6 +272,7 @@ class Stamping:
         self.arrived: list[str] = []
         self.repaid_at_boundary: dict[str, float] = {}   # 2.7.0: each name's loan repaid from income at the last boundary (the exit rule)
         self.below_bond_names: set[str] = set()          # 2.7.0 H2: arrival-born names whose unlocked balance fell below G^V before admission
+        self.idle_for_bond_names: set[str] = set()       # the standing reading after the v2 calibration: members idle for want of a bond
         self.departed: list[str] = []
         self.depart_wealth_real: dict[str, float] = {}   # actor -> real wealth taken out at departure (the lifetime measure)
         self.wealth_at_boundary: dict[str, float] = {}
@@ -370,6 +371,7 @@ class Stamping:
                   "duty_short_of_bond_ticks": 0,   # Σ over ticks of on-duty actors that cannot fund G^V (q6 solvency)
                   "departed_net": 0.0,             # 2.7.0: the wallets carried out by departing actors, net of the loans recovered
                   "unfundable_with_loan_ticks": 0, # 2.7.0 H2: Σ over ticks of free arrival-born members unfundable for an award while a loan stood
+                  "idle_for_bond_ticks": 0,        # members idle for want of a bond: Σ over ticks of free members whose unlocked balance is below G^V at the index
                   "disputes_filed": 0, "disputes_refused": 0, "disputes_won": 0, "disputes_lost": 0,
                   "false_approvals_disputed": 0, "false_approvals_overturned": 0,
                   "true_approvals_disputed": 0, "true_approvals_overturned": 0,
@@ -1676,6 +1678,15 @@ class Stamping:
                 if ac.is_member and not ac.on_duty and ac.committed is None and ac.open_review is None and w.loan_outstanding(aid) > 1e-9 \
                         and w.unlocked(aid) + 1e-9 < max(1.0, -(-self.p.G_frac * self.a.beta // 1)):
                     self.c["unfundable_with_loan_ticks"] += 1
+        # the standing reading in every cell (the ruling after the v2 calibration): members idle for want of a bond — a free member whose unlocked
+        # balance is below G^V at the index can take no seat (and no award); member-ticks and names. The member's bond loan is the named candidate
+        # if it ever reads outside noise in a real cell — not drafted.
+        bond_now = self.a.gv * (w.market().get("P_t") or self.p.P0) / self.p.P0
+        for aid in self.actors:
+            ac = w.actor(aid)
+            if ac.is_member and ac.committed is None and ac.open_review is None and w.unlocked(aid) + 1e-9 < bond_now:
+                self.c["idle_for_bond_ticks"] += 1
+                self.idle_for_bond_names.add(aid)
         self.cycler_step(t)
         self.inspection_diagnostics(t)
         self.awards_window.append((t, self.c["awarded"] - self._awarded_last, len(self.free_members())))
@@ -1992,6 +2003,7 @@ class Stamping:
                     "names_defaulted": round(bank27.get("names_defaulted", 0.0), 3), "names_outstanding": round(bank27.get("names_outstanding", 0.0), 3),
                     "names_outstanding_peak": round(bank27.get("names_outstanding_peak", 0.0), 3), "departed_net": round(self.c["departed_net"], 3),
                     "below_bond_before_admission": len(self.below_bond_names), "unfundable_with_loan_ticks": self.c["unfundable_with_loan_ticks"],
+                    "idle_for_bond_ticks": self.c["idle_for_bond_ticks"], "idle_for_bond_names": len(self.idle_for_bond_names),
                     # 2.7.0 §8.6 red team: the accomplice route
                     "acc_pair_t": self.acc_pair_t if self.acc_pair_t is not None else "", "acc_moves": self.acc_moves, "acc_moved_sum": round(self.acc_moved_sum, 3),
                     "acc_mover_out": round(self.acc_mover_out, 3) if self.acc_mover_out is not None else "",

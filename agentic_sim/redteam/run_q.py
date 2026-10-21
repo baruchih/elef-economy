@@ -87,7 +87,8 @@ def episode(env, policy, seed, rng):
             "plants_seen": plants_seen, "plants_stamped": plants_stamped, "real_seen": real_seen, "real_stamped": real_stamped,
             "false_approvals_run": row.get("false_approvals"), "learner_false_approvals": row.get("learner_false_approvals"),
             "slot_departed": row.get("slot_departed"), "slot_rho": row.get("slot_rho"), "slot_plant_failures": row.get("learner_plant_failures"),
-            "suspensions_run": row.get("suspensions"), "error": info.get("error")}
+            "suspensions_run": row.get("suspensions"), "idle_for_bond_ticks": row.get("idle_for_bond_ticks"), "idle_for_bond_names": row.get("idle_for_bond_names"),
+            "error": info.get("error")}
 
 
 def pred_vs_realized(diag):
@@ -187,7 +188,8 @@ def main(argv=None):
         fa, su = sum(r.get("learner_false_approvals") or 0 for r in rows), sum(r.get("slot_suspensions") or 0 for r in rows)
         summary[name]["false_approvals_per_suspension"] = (fa / su) if su else None
         # re-arrival allowed: the identities, the leaves, the floats minted (the loop's bill) and the lifetime summed across identities
-        for k in ("learner_identities", "learner_returns", "learner_leaves_chosen", "learner_leaves_refused", "learner_float_minted_real", "learner_departed_now", "boundary_decisions", "leaves_chosen"):
+        for k in ("learner_identities", "learner_returns", "learner_leaves_chosen", "learner_leaves_refused", "learner_float_minted_real", "learner_departed_now", "boundary_decisions", "leaves_chosen",
+                  "idle_for_bond_ticks", "idle_for_bond_names"):
             summary[name][k] = mse([r.get(k) for r in rows])
         summary[name]["pred_vs_realized"] = pool_pred_vs_realized(rows)   # the ladder's reading: care / approve blind / reject blind
     if "careful" in results:

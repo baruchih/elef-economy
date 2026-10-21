@@ -2,7 +2,7 @@
 seeds 1–20 by default). One file per (policy, seed) under <out>/<policy>-seed<N>.npz: obs (T, D), action (T,), reward (T,) — the attributed training reward since the
 ruling after the ladder, the realized change beside it as realized (T,) — is_plant (T,), fulfilled (T,), t (T,) and the episode's lifetime
 real wealth. Usage: python -m redteam.collect --out results/redteam/Q2/offline
-[--seeds 1-20] [--policies careful,stamper,eps,random] [--rules 2.6.0] -- <cell args>"""
+[--seeds 1-20] [--policies careful,stamper,eps,random,leaver] [--rules 2.6.0] -- <cell args>"""
 from __future__ import annotations
 import argparse, json, os, sys, time
 import numpy as np
@@ -33,7 +33,7 @@ def main(argv=None):
     ap = argparse.ArgumentParser()
     ap.add_argument("--out", required=True)
     ap.add_argument("--seeds", default="1-20")
-    ap.add_argument("--policies", default="careful,stamper,eps,random")
+    ap.add_argument("--policies", default="careful,stamper,eps,random,leaver")   # version 3: the leaver in the offline set
     ap.add_argument("--ticks", type=int, default=1000)
     ap.add_argument("--hide", default="", help="observation fields zeroed (comma-separated), e.g. own_p_eff for Q1's hidden-odds cell")
     ap.add_argument("cell", nargs=argparse.REMAINDER, help="the stamping driver's cell arguments after --")

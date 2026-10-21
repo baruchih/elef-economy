@@ -2407,7 +2407,12 @@ cost at a review decision now reads a gap of 5.2 between approve and care (the h
 leave 78 on the data's boundaries (the admitted leaves 0 to the decimal under (b)). By the stopping rule the CEM planner over the two-headed model is the
 instrument. One residual for the reviewer, not reached by the rule: the planner chose a leave at 11 of the final's 80 boundaries (the head alone at none) and
 the economy refused ten of them for a live commitment — the rollout after an imagined leave is the CEM's noise. Q1's line in the re-arrival cell ran by the
-gate behind the final (`rearrive-v4/`; notes §16).
+gate behind the final (`rearrive-v4/`; notes §16): **no win** — the instrument −82 ± 74 against the careful (rounds −41 to −261), the head alone −7 ± 51,
+1.15 identities and 8 real of floats against the harvester's −1,137 and 550; by the rule not a finding. What it learned: care at 94% of first reviews (where a plant may be),
+stamp 42% of resubmissions (never a plant; +0.7 real a decision, ~+20 a lifetime, under the noise). No sleeper (the stamp rate flat across the odds bands). On the first
+reviews plants and real cases are stamped alike (−0.003 ± 0.003 per seed; run_q's plant/real rates run over every seat and so read the resubmissions, a readout item);
+Q2's probe on the version 4 model: the paired gap raw − context +0.011 ± 0.001, 2.6.1's figure. The leaver and careful runs are the old version's to the decimal (same
+seeds), so the leaver's +100 ± 40 is not a new read. Next on the instrument: Q3 (not built) on the reviewer's go; the dispute baseline before Q7.
 
 ## Maps
 

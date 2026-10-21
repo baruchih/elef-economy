@@ -545,7 +545,9 @@ consolidated into one standalone spec with the accepted revision kept verbatim i
   there is no version 5 of it. Q1's line and Q3 only on a world model that clears. **Version 4's calibration read (October 21, 2026; notes §15; `results/redteam/Q1/calibration-v4/`): the CEM
   planner clears** — +680 ± 145 against the careful (the ideal +733 ± 119), −53 ± 74 against the stamper, the rounds steady on the stamper's line, the gap one seed's admitted leave;
   the head alone over the same latent is the stamper to the decimal; the direct +608 ± 132. By the stopping rule the CEM planner over the two-headed model is the instrument. The
-  residual reported: the planner chose a leave at 11 of 80 boundaries where the head alone chose none, ten refused by the economy for a commitment. Q1's line on it in `rearrive-v4/`.
+  residual reported: the planner chose a leave at 11 of 80 boundaries where the head alone chose none, ten refused by the economy for a commitment. Q1's line on it (`rearrive-v4/`; notes §16): **no win** — −82 ± 74 against the careful, the head alone −7 ± 51, three returns in twenty; by the rule not a
+  finding. It learned to care at first reviews (where a plant may be) and stamp resubmissions (never a plant), worth ~+20 a lifetime; no sleeper; plants and real cases
+  stamped alike on first reviews (run_q's plant/real stamp rates run over every seat — read them on the initial reviews); Q2's probe gap +0.011, 2.6.1's figure. Next: Q3 (not built).
 - Money is checked by invariant I1 (conservation) — never silently create or lose credits.
 
 ## Vocabulary (spec Appendix C has the full notation)

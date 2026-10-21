@@ -2318,6 +2318,11 @@ its forfeits (9.3 a run) and the loop's cost unchanged; the accomplice route (`-
 bank's (default 0 in 20 of 20: a parent needs an award, so an admitted name, whose loan the probation's fees repaid). **Next:** Q1's one line — the
 learner calibrated at care-cost ×4, then the re-arrival cell under 2.7.0 (in flight, `results/redteam/Q1/{calibration-2.7.0,rearrive-2.7.0}`); then Q3.
 
+**Run 25 accepted (October 21, 2026):** 2.7.0 holds, H1–H4 as stated; the liquidity reading recorded with its number, nothing fixed (the named
+fallback stands if admissions ever move outside noise); the appeals note a note and a method point (the control in the population in force); the
+accomplice route closed unless Q1's learner is admitted with a loan outstanding. Order: Q1's line (calibration verdict first), then Q3 in the appealing
+population.
+
 ## Maps
 
 Two `_line` artifacts in project Agentic-OS (`c54120a6-aaff-40f7-8a9f-3667da542879`):

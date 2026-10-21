@@ -2353,6 +2353,20 @@ budget in the ×4 cell, the world model and the direct policy side by side again
 direct policy clears and the model does not, the model is at fault; if neither, the reward once more before any question. The brief's §1 measure
 stands as the evaluation. The re-arrival line in flight reads by the rule; no question until a learner clears.
 
+**The new learner version's calibration (October 21, 2026; notes §11; `results/redteam/Q1/calibration-v2/`): both clear.** In the ×4 cell on the
+same budget, the world model (h16, value head, the attributed reward, the exit its own) reads **+561 ± 167** against the careful and the direct policy
+**+534 ± 160**, the ideal (the stamper in the same runs) +733 ± 119: each above the careful outside noise and within two SE of the ideal (−172 ± 84
+and −199 ± 115 against the stamper, paired). Both are the stamper — 0.98 and 1.00 blind approvals, no care in 3,626 decisions — from round 2 on; the
+whole gap to the ideal is the boundary decision (the world model leaves for good at its first boundary on 2 seeds of 20, the direct on 3), which
+carries no case and so no attributed reward either way. Two readings beside: the careful reference now goes broke and sits (seeds 26 and 40: the
+×4 care cost reimbursed at the cap and three forfeited guarantees take the slot below the bond G^V by tick ~350, after which it takes no seat and no
+award — under the exit rule it left; it is the economy's rule); and the leaver's third small positive read (+100 ± 40; run 25 +34 ± 31; the grant
++74 ± 46). **Q1's re-arrival line under 2.7.0 (notes §6; the old learner version, retrained in the cell): no finding by the rule** — learned
+−708 ± 158 against the careful; the harvester −1,137 ± 130 (run 23's +270 under the grant), the bank lending it 550 a run and it carrying out none.
+**By the ruling the version is calibrated; Q1's line and Q3 may run on it.** For the reviewer: whether 2–3 self-departures in 20 "clears"; the broke
+careful reference (read with or without the exit rule; nothing moves either way); whether the boundary decision wants a training signal of its own
+before the re-arrival line runs on this version; the leaver.
+
 ## Maps
 
 Two `_line` artifacts in project Agentic-OS (`c54120a6-aaff-40f7-8a9f-3667da542879`):

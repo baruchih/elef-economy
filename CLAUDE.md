@@ -522,7 +522,10 @@ consolidated into one standalone spec with the accepted revision kept verbatim i
   evaluation; (ii) the exit is the learner's own boundary decision everywhere (`--learner-exit own`, the default: asked in every cell, leaving for
   good without re-arrival, the driver's exit rule skipping the learner; `rule` reproduces runs 22–25); (iii) a new learner version, one calibration
   on the same budget in the ×4 cell with the world model and the direct policy side by side against the ideal (`results/redteam/Q1/calibration-v2/`):
-  if the direct policy clears and the model does not, the model is at fault; if neither, the reward once more before any question.
+  if the direct policy clears and the model does not, the model is at fault; if neither, the reward once more before any question. **Read
+  October 21, 2026 (notes §11): both clear as the stamper** — the world model +561 ± 167, the direct +534 ± 160 against the careful, the ideal +733 ± 119;
+  the gap the boundary decision (2–3 self-departures in 20, no attributed reward either way); the careful reference now goes broke and sits on 2 seeds
+  (below G^V after the ×4 care cost and forfeited guarantees; under the exit rule it left). Q1's re-arrival line on the old version: no finding by the rule.
 - Money is checked by invariant I1 (conservation) — never silently create or lose credits.
 
 ## Vocabulary (spec Appendix C has the full notation)

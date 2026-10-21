@@ -28,12 +28,29 @@ class CategoricalCEM:
                 best_c, best_a = float(cost.min()), seqs[int(np.argmin(cost))].copy()
             freq = np.stack([np.bincount(elite[:, h], minlength=self.K) / len(elite) for h in range(self.H)])
             probs = (1 - self.smooth) * freq + self.smooth * probs
+        # the planner's cost by first action (the diagnostic ladder's reading): the best plan with its first action swapped for each
+        alt = np.stack([best_a] * self.K); alt[np.arange(self.K), 0] = np.arange(self.K)
+        onehot = torch.nn.functional.one_hot(torch.tensor(alt), self.K).float().unsqueeze(0).to(self.dev)
+        self.last_first_costs = [float(x) for x in self.m.get_cost({"obs": obs_t}, onehot)[0].cpu().numpy()]
         return int(best_a[0]), best_a, best_c
 
 
+def reward_now(model, obs):
+    """The wealth head's predicted change in real wealth for each action from this observation (real units)."""
+    dev = next(model.parameters()).device
+    with torch.no_grad():
+        o = torch.tensor(obs, dtype=torch.float32, device=dev).view(1, 1, -1)
+        z = model.encode(o)
+        r = torch.stack([model.reward(z, model.act(torch.nn.functional.one_hot(torch.tensor([[k]]), model.n_actions).float().to(dev)))[0, 0]
+                         for k in range(model.n_actions)]) * model.reward_scale
+    return [float(x) for x in r.cpu().numpy()]
+
+
 class LearnedPolicy:
-    """The planner as a policy for the environment and the collector: one decision at a time."""
+    """The planner as a policy for the environment and the collector: one decision at a time. `diag_now` (after a decision) gives the
+    wealth head's predicted change per action and the planner's cost per first action — the ladder's pred-against-realized reading."""
     def __init__(self, model, horizon=8, **kw):
+        self.m = model
         self.cem = CategoricalCEM(model, horizon=horizon, **kw)
         self.trace = []
 
@@ -42,6 +59,9 @@ class LearnedPolicy:
         self.trace.append((a, c))
         return a
 
+    def diag_now(self, obs):
+        return {"pred_r": reward_now(self.m, obs), "plan_cost": list(getattr(self.cem, "last_first_costs", []) or [])}
+
 
 class GreedyPolicy:
     """One step of the wealth head: the action with the highest predicted change now (the no-horizon control)."""
@@ -49,8 +69,7 @@ class GreedyPolicy:
         self.m = model; self.dev = next(model.parameters()).device
 
     def __call__(self, obs, rng=None):
-        with torch.no_grad():
-            o = torch.tensor(obs, dtype=torch.float32, device=self.dev).view(1, 1, -1)
-            z = self.m.encode(o)
-            r = torch.stack([self.m.reward(z, self.m.act(torch.nn.functional.one_hot(torch.tensor([[k]]), 3).float().to(self.dev)))[0, 0] for k in range(3)])   # scale-free: the argmax
-            return int(r.argmax())
+        return int(np.argmax(reward_now(self.m, obs)))
+
+    def diag_now(self, obs):
+        return {"pred_r": reward_now(self.m, obs), "plan_cost": None}

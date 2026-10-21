@@ -27,21 +27,31 @@ def main(argv=None):
     ap.add_argument("--explore", choices=["careful", "uniform"], default="careful", help="what the ε decisions are drawn from")
     ap.add_argument("--value", choices=["off", "mc", "td"], default="off"); ap.add_argument("--gamma", type=float, default=0.95)
     ap.add_argument("--eval-policies", default="learned,careful")
+    ap.add_argument("--learner", choices=["wm", "direct"], default="wm", help="the ladder's rung (b): `direct` trains redteam.direct in place of the world model and plans nothing")
     ap.add_argument("cell", nargs=argparse.REMAINDER)
     a = ap.parse_args(argv)
+    direct = a.learner == "direct"
+    if direct:
+        from redteam.direct import main as D_main, load_direct, DirectPolicy
+    lead = a.eval_policies.split(",")[0]       # the policy the round's record reads (learned, or direct)
+    stem = "direct-online" if direct else "wm-online"
+    def fit(data, out):
+        (D_main if direct else T.main)(["--data", data, "--out", out] + train_args)
     cell = [x for x in a.cell if x != "--"]
     hide = tuple(x for x in a.hide.split(",") if x)
     os.makedirs(a.models, exist_ok=True); os.makedirs(a.evals, exist_ok=True)
     train_args = ["--seeds", a.train_seeds, "--epochs", str(a.epochs), "--horizon", str(a.horizon), "--value", a.value, "--gamma", str(a.gamma)]
-    model_path = a.start or os.path.join(a.models, "wm-online-0.pt")
+    model_path = a.start or os.path.join(a.models, f"{stem}-0.pt")
     if not a.start:
-        T.main(["--data", a.data, "--out", model_path] + train_args)
+        fit(a.data, model_path)
     env = ElefReviewerEnv(cell, ticks=a.ticks, hide=hide)
     log = []
     for k in range(a.first_round, a.first_round + a.rounds):
         t0 = time.time()
-        m, _ = T.load_model(model_path); m.to(device())
-        pol = LearnedPolicy(m, horizon=a.horizon)
+        if direct:
+            m, _ = load_direct(model_path); m.to(device()); pol = DirectPolicy(m)
+        else:
+            m, _ = T.load_model(model_path); m.to(device()); pol = LearnedPolicy(m, horizon=a.horizon)
         lo, hi = (int(x) for x in a.train_seeds.split("-"))
         lifetimes = []
         for seed in range(lo, hi + 1):
@@ -54,18 +64,19 @@ def main(argv=None):
             np.savez_compressed(os.path.join(a.data, f"online{k}-seed{seed}.npz"), obs=O, action=A, reward=R, is_plant=P, fulfilled=F, t=Tk,
                                 lifetime=info.get("lifetime_real_wealth", float("nan")), seed=seed, policy=f"online{k}")
             lifetimes.append(info.get("lifetime_real_wealth", float("nan")))
-        model_path = os.path.join(a.models, f"wm-online-{k}.pt")
-        T.main(["--data", a.data, "--out", model_path] + train_args)
+        model_path = os.path.join(a.models, f"{stem}-{k}.pt")
+        fit(a.data, model_path)
         rec = {"round": k, "train_lifetime_mean": float(np.nanmean(lifetimes)), "seconds": round(time.time() - t0, 1), "explore": a.explore, "value": a.value}
         if k % a.eval_every == 0 or k == a.first_round + a.rounds - 1:
             out = os.path.join(a.evals, f"round-{k}")
-            Q.main(["--model", model_path, "--out", out, "--seeds", a.eval_seeds, "--policies", a.eval_policies, "--horizon", str(a.horizon),
+            Q.main((["--direct-model", model_path] if direct else ["--model", model_path]) + ["--out", out, "--seeds", a.eval_seeds, "--policies", a.eval_policies, "--horizon", str(a.horizon),
                     "--hide", a.hide, "--ticks", str(a.ticks), "--"] + cell)
             s = json.load(open(os.path.join(out, "eval.json")))["summary"]
-            rec["eval"] = {"learned": s["learned"]["lifetime_real_wealth"], "careful": s["careful"]["lifetime_real_wealth"],
-                           "paired": s["learned"]["paired_minus_careful"], "care_share": s["learned"]["care_share"],
-                           "plant_stamp_rate": s["learned"]["plant_stamp_rate"], "real_stamp_rate": s["learned"]["real_stamp_rate"],
-                           "odds_at_stamps": s["learned"]["odds_at_stamps_mean"], "slot_suspensions": s["learned"]["slot_suspensions"]}
+            rec["eval"] = {lead: s[lead]["lifetime_real_wealth"], "careful": s["careful"]["lifetime_real_wealth"],
+                           "paired": s[lead]["paired_minus_careful"], "care_share": s[lead]["care_share"],
+                           "plant_stamp_rate": s[lead]["plant_stamp_rate"], "real_stamp_rate": s[lead]["real_stamp_rate"],
+                           "odds_at_stamps": s[lead]["odds_at_stamps_mean"], "slot_suspensions": s[lead]["slot_suspensions"],
+                           "pred_vs_realized": s[lead].get("pred_vs_realized")}
         log.append(rec)
         print(json.dumps(rec, default=float), flush=True)
         json.dump(log, open(os.path.join(a.evals, f"online-log-{a.first_round}.json" if a.first_round > 1 else "online-log.json"), "w"), indent=1, default=float)

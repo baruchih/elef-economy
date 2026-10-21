@@ -14,6 +14,7 @@ from redteam.env import ElefReviewerEnv, policy_of
 from redteam.obs import IDX
 from redteam.train import load_model, seeds_of
 from redteam.plan import LearnedPolicy, GreedyPolicy
+from redteam.direct import load_direct, DirectPolicy
 from redteam.model import device
 
 
@@ -49,9 +50,11 @@ def episode(env, policy, seed, rng):
     obs, info = env.reset(seed=seed)
     done = info.get("terminal", False)
     acts, plants_stamped, real_stamped, plants_seen, real_seen, trace = [], 0, 0, 0, 0, []
+    diag = []                                                     # per review decision: (action, predicted r per action, planner cost per first action, realized r)
     while not done:
         a = policy(obs, rng)
         boundary = bool(info.get("boundary", False))
+        pred = policy.diag_now(obs) if (not boundary and hasattr(policy, "diag_now")) else None
         if not boundary:
             acts.append(a)                                        # the review decisions: the shares below are over these
         trace.append((info.get("t", 0), info.get("p_eff", float(obs[IDX["own_p_eff"]])), float(info.get("member", obs[IDX["own_member"]])),
@@ -63,8 +66,11 @@ def episode(env, policy, seed, rng):
         else:
             real_seen += 1; real_stamped += int(a != 0)
         obs, r, done, _, info = env.step(a)
+        if not boundary:
+            diag.append((a, pred["pred_r"] if pred else None, (pred["plan_cost"] or None) if pred else None, float(r)))
     row = info.get("row", {})
     return {"seed": seed, "decisions": len(acts), "lifetime_real_wealth": info.get("lifetime_real_wealth"), **trace_readings(trace),
+            "pred_vs_realized": pred_vs_realized(diag),
             "slot_suspensions": row.get("learner_suspensions") if row.get("learner_suspensions") not in (None, "") else row.get("slot_suspensions"),
             "learner_identities": row.get("learner_identities"), "learner_returns": row.get("learner_returns"), "learner_leaves_chosen": row.get("learner_leaves_chosen"),
             "learner_leaves_refused": row.get("learner_leaves_refused"), "learner_float_minted_real": row.get("learner_float_minted_real"),
@@ -77,6 +83,38 @@ def episode(env, policy, seed, rng):
             "suspensions_run": row.get("suspensions"), "error": info.get("error")}
 
 
+def pred_vs_realized(diag):
+    """The ladder's reading, per episode: for each action k — how often taken, the realized wealth change when taken (the next decision's
+    reward), the predicted change for k over every decision (the wealth head's or the direct policy's), the planner's cost for k as the
+    first action over every decision (the learned policy only)."""
+    if not diag:
+        return None
+    out = {}
+    for k in range(3):
+        taken = [d for d in diag if d[0] == k]
+        pr = [d[1][k] for d in diag if d[1] is not None]
+        pc = [d[2][k] for d in diag if d[2] is not None and len(d[2]) > k]
+        out[str(k)] = {"n": len(taken), "realized_mean": float(np.mean([d[3] for d in taken])) if taken else None,
+                       "pred_r_mean": float(np.mean(pr)) if pr else None, "pred_r_taken_mean": float(np.mean([d[1][k] for d in taken if d[1] is not None])) if taken and pr else None,
+                       "plan_cost_mean": float(np.mean(pc)) if pc else None}
+    return out
+
+
+def pool_pred_vs_realized(rows):
+    """Pooled over the episodes, weighted by decisions."""
+    out = {}
+    for k in ("0", "1", "2"):
+        ds = [r["pred_vs_realized"][k] for r in rows if r.get("pred_vs_realized")]
+        n = sum(d["n"] for d in ds)
+        def wmean(key, weights):
+            pairs = [(d[key], w) for d, w in zip(ds, weights) if d[key] is not None and w]
+            return float(sum(v * w for v, w in pairs) / sum(w for _, w in pairs)) if pairs else None
+        dec = [sum(x["n"] for x in r["pred_vs_realized"].values()) for r in rows if r.get("pred_vs_realized")]
+        out[k] = {"n": n, "realized_mean": wmean("realized_mean", [d["n"] for d in ds]), "pred_r_mean": wmean("pred_r_mean", dec),
+                  "pred_r_taken_mean": wmean("pred_r_taken_mean", [d["n"] for d in ds]), "plan_cost_mean": wmean("plan_cost_mean", dec)}
+    return out
+
+
 def mse(xs):
     xs = [x for x in xs if x is not None and not (isinstance(x, float) and np.isnan(x))]
     if not xs:
@@ -87,6 +125,7 @@ def mse(xs):
 def main(argv=None):
     ap = argparse.ArgumentParser()
     ap.add_argument("--model", default=None, help="the world model (needed for the learned and greedy policies)"); ap.add_argument("--out", required=True)
+    ap.add_argument("--direct-model", default=None, help="the ladder's direct policy (redteam.direct), for the policy name `direct`")
     ap.add_argument("--seeds", default="21-40"); ap.add_argument("--policies", default="learned,greedy,careful")
     ap.add_argument("--horizon", type=int, default=8); ap.add_argument("--samples", type=int, default=256); ap.add_argument("--iters", type=int, default=6)
     ap.add_argument("--hide", default=""); ap.add_argument("--ticks", type=int, default=1000)
@@ -104,6 +143,9 @@ def main(argv=None):
             pols[name] = LearnedPolicy(m, horizon=a.horizon, samples=a.samples, iters=a.iters)
         elif name == "greedy":
             pols[name] = GreedyPolicy(m)
+        elif name == "direct":
+            dm, _ = load_direct(a.direct_model); dm.to(device())
+            pols[name] = DirectPolicy(dm)
         else:
             pols[name] = policy_of(name)
     os.makedirs(a.out, exist_ok=True)
@@ -138,6 +180,7 @@ def main(argv=None):
         # re-arrival allowed: the identities, the leaves, the floats minted (the loop's bill) and the lifetime summed across identities
         for k in ("learner_identities", "learner_returns", "learner_leaves_chosen", "learner_leaves_refused", "learner_float_minted_real", "learner_departed_now", "boundary_decisions", "leaves_chosen"):
             summary[name][k] = mse([r.get(k) for r in rows])
+        summary[name]["pred_vs_realized"] = pool_pred_vs_realized(rows)   # the ladder's reading: care / approve blind / reject blind
     if "careful" in results:
         base = {r["seed"]: r["lifetime_real_wealth"] for r in results["careful"]}
         for name in results:
@@ -145,7 +188,7 @@ def main(argv=None):
                 continue
             d = [r["lifetime_real_wealth"] - base[r["seed"]] for r in results[name] if r["seed"] in base]
             summary[name]["paired_minus_careful"] = mse(d)
-    out = {"cell": cell, "seeds": a.seeds, "hide": a.hide, "model": a.model, "model_train": ck.get("train", {}), "horizon": a.horizon,
+    out = {"cell": cell, "seeds": a.seeds, "hide": a.hide, "model": a.model, "direct_model": a.direct_model, "model_train": ck.get("train", {}), "horizon": a.horizon,
            "samples": a.samples, "iters": a.iters, "seconds": round(time.time() - t0, 1), "summary": summary, "episodes": results}
     json.dump(out, open(os.path.join(a.out, "eval.json"), "w"), indent=1, default=float)
     with open(os.path.join(a.out, "eval.md"), "w") as f:

@@ -142,7 +142,7 @@ tests/test_v26.py                   design revision 14 (2.6.0): the plant's disg
                                     capacity and credit refusals on the p_T path and the pinned draw (the ruling after run 21); submit_plant at the
                                     drawn tick and not before (the Q2 probe's correction) — 16
 
-Run: `python3 run_tests.py` — 330 pass, 0 fail, 32 expected failures, each with a stated reason (one original,
+Run: `python3 run_tests.py` — 342 pass, 0 fail, 32 expected failures, each with a stated reason (one original,
 four superseded by the view contract, nineteen on the withdrawn reopening path, one superseded by design
 revision 1, one by design revision 2, two by design revisions 10 and 11 — a service fee pooled until the close and the pool's advance move the reimbursement figures they pin — two by design revision 11 — the parent's pots make three children unaffordable on a float of 50, and the root's allowance is no longer exhausted by a nested review — two by design revision 8 — the backing's v_t and the pay-in refused at posting; the three 1.x figures 2.0.0's moving index broke pass again under 2.1.0's index per period). With pytest: `python3 -m pytest tests -q` reports 259 passed, 31 xfailed; the
 runner expands pytest parametrization as pytest does, including multi-argument and stacked marks. (Spec Appendix D
@@ -572,6 +572,19 @@ are posted in the requesters' posting step before the tick's awards, at a drawn 
 award pass they waited a tick more than every real root and were seated first, the gap the Q2 probe read. Erratum 2.6.1 (after run 24): the
 ceilings enter the plant's window at posting, as posted, and the plant requester raises a plant's ceiling as the population's requesters raise
 theirs (`raise_ceiling` admits a market plant, the difference minted; the driver's `raise_below_market` covers the plants; `plants_raised`).
+
+**The arrival loan (2.7.0; `Params.arrival_loan`, on; off is 2.6.1's grant, `--rules 2.6.0` / `--arrival-loan off`).** After run 23's learner harvested the
+arrival float by cycling names, the float is a loan of the bank's on the name: `arrive` lends it (the loan carried nominal at the arrival index; the bank's
+names line beside its loans to Ω), every inflow of **income** to the name repays it first the moment it arrives — the ledger hook's second leg burns
+`arrival_repayment` right after the income event, both legs in the record — and a return passes untouched (income: a review's fee, the emission share,
+the duty uplift, the delivery price whole, a kill fee, a child's guarantee forfeited to its parent; a return: a release, the reviewer's cost reimbursed,
+a court fee coming back, an escrow or a node's pots returned — fixed against the engine's events, `_is_income_event`). `depart` keeps its four refusals,
+recovers min(W_U, L) first, lets the remainder out as `departure`, counts the shortfall as the bank's default on arrivals and returns the wallet out; an
+unrepaid loan does not block a departure; the genesis float stays the sponsor's gift. I41 per tick and in the full audit; the names line appears in
+the period record and `view.bank()` once a name has been lent to, so a world with no arrivals keeps 2.6.1's record to the hash (goldens unchanged).
+Drivers: the brief's lifetime measure reads the wallet *out* from `depart`'s return and a live name net of its loan; the exit rule reads earnings gross
+of the repayments; the columns `names_lent`, `names_lent_n`, `names_repaid`, `names_recovered`, `names_defaulted`, `names_outstanding`,
+`names_outstanding_peak`, `departed_net`, `below_bond_before_admission`, `unfundable_with_loan_ticks`. `test_v27` (12).
 
 After run 22's acceptance, the reviewer's rulings for the red team: **a calibration cell** before each question's learner reads anything —
 the driver's `--audit-roll off` (the roll never made; a declared implementation effect, in the manifest) with `--pi0 0 --dial off`, so a

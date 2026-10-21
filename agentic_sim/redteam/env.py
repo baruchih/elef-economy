@@ -46,7 +46,9 @@ class ElefReviewerEnv(gym.Env if gym else object):
         run = self.run
         mk = run.w.market()
         real = mk["P0"] / (mk["P_t"] or mk["P0"])
-        return sum((run.w.wealth(x) * real) if x in run.actors else run.depart_wealth_real.get(x, 0.0) for x in run.learner_chain)
+        # 2.7.0: a live name reads net of its arrival loan outstanding — what it would carry out; a departed one what it did
+        return sum(((run.w.wealth(x) - min(run.w.wealth(x), run.w.loan_outstanding(x))) * real) if x in run.actors else run.depart_wealth_real.get(x, 0.0)
+                   for x in run.learner_chain)
 
     def _hook(self, run, reviewer, view, r):
         if self._abort:

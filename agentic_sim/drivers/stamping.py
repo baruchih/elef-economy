@@ -212,17 +212,18 @@ class Stamping:
         self.kind = {aid: (STAMPER if i < n_st else CAREFUL) for i, aid in enumerate(ids)}
         if a.rules == "1.1.0":                   # the control: the 1.1.0 engine's behaviour, declared
             a.pi0, a.dial, a.p_start, a.p_cap, a.omega0 = 0.0, "off", 0.5, 0.5, 20.0
-        rev3 = a.rules in ("1.3.0", "1.4.0", "1.5.0", "1.6.0", "1.7.0", "1.7.1", "2.0.0", "2.1.0", "2.2.0", "2.3.0", "2.4.0", "2.5.0", "2.6.0")     # 1.2.0 and 1.1.0: membership, the fund and netted capital off
-        rev4 = a.rules in ("1.4.0", "1.5.0", "1.6.0", "1.7.0", "1.7.1", "2.0.0", "2.1.0", "2.2.0", "2.3.0", "2.4.0", "2.5.0", "2.6.0") and a.troops == "on"
-        rev5 = a.rules in ("1.5.0", "1.6.0", "1.7.0", "1.7.1", "2.0.0", "2.1.0", "2.2.0", "2.3.0", "2.4.0", "2.5.0", "2.6.0")    # 1.4.0: the reserve is the peak capital carried, over two periods
-        rev6 = a.rules in ("1.6.0", "1.7.0", "1.7.1", "2.0.0", "2.1.0", "2.2.0", "2.3.0", "2.4.0", "2.5.0", "2.6.0")     # 1.6.0: the five rules, each behind its flag; `--rules 1.5.0` turns them off
-        rev7 = a.rules in ("1.7.0", "1.7.1", "2.0.0", "2.1.0", "2.2.0", "2.3.0", "2.4.0", "2.5.0", "2.6.0")  # 1.7.0: the troop account behind its flag and the cap at two thirds; `--rules 1.6.0` is the control
-        rev8 = a.rules in ("2.0.0", "2.1.0", "2.2.0", "2.3.0", "2.4.0", "2.5.0", "2.6.0")     # 2.0.0: the price of work — floating prices, N_T; `--rules 1.7.1` is the fixed-price control
-        rev9 = a.rules in ("2.1.0", "2.2.0", "2.3.0", "2.4.0", "2.5.0", "2.6.0")     # 2.1.0: the bank — loans, the debt, the wall, P_t once a period; `--rules 2.0.0` is the control
-        rev10 = a.rules in ("2.2.0", "2.3.0", "2.4.0", "2.5.0", "2.6.0")    # 2.2.0: the rebate from income — the period's fee pool, claims pro rata at the close; `--rules 2.1.0` the control
-        rev11 = a.rules in ("2.3.0", "2.4.0", "2.5.0", "2.6.0")               # 2.3.0: the supply side — entry, exit, the parent's pots; `--rules 2.2.0` the control
-        rev12 = a.rules == "2.6.0"                                   # 2.6.0: the plant's disguise — a plant goes through the market; `--rules 2.5.0` the control
-        self.rev9, self.rev10, self.rev11, self.rev12 = rev9, rev10, rev11, rev12
+        rev3 = a.rules in ("1.3.0", "1.4.0", "1.5.0", "1.6.0", "1.7.0", "1.7.1", "2.0.0", "2.1.0", "2.2.0", "2.3.0", "2.4.0", "2.5.0", "2.6.0", "2.7.0")     # 1.2.0 and 1.1.0: membership, the fund and netted capital off
+        rev4 = a.rules in ("1.4.0", "1.5.0", "1.6.0", "1.7.0", "1.7.1", "2.0.0", "2.1.0", "2.2.0", "2.3.0", "2.4.0", "2.5.0", "2.6.0", "2.7.0") and a.troops == "on"
+        rev5 = a.rules in ("1.5.0", "1.6.0", "1.7.0", "1.7.1", "2.0.0", "2.1.0", "2.2.0", "2.3.0", "2.4.0", "2.5.0", "2.6.0", "2.7.0")    # 1.4.0: the reserve is the peak capital carried, over two periods
+        rev6 = a.rules in ("1.6.0", "1.7.0", "1.7.1", "2.0.0", "2.1.0", "2.2.0", "2.3.0", "2.4.0", "2.5.0", "2.6.0", "2.7.0")     # 1.6.0: the five rules, each behind its flag; `--rules 1.5.0` turns them off
+        rev7 = a.rules in ("1.7.0", "1.7.1", "2.0.0", "2.1.0", "2.2.0", "2.3.0", "2.4.0", "2.5.0", "2.6.0", "2.7.0")  # 1.7.0: the troop account behind its flag and the cap at two thirds; `--rules 1.6.0` is the control
+        rev8 = a.rules in ("2.0.0", "2.1.0", "2.2.0", "2.3.0", "2.4.0", "2.5.0", "2.6.0", "2.7.0")     # 2.0.0: the price of work — floating prices, N_T; `--rules 1.7.1` is the fixed-price control
+        rev9 = a.rules in ("2.1.0", "2.2.0", "2.3.0", "2.4.0", "2.5.0", "2.6.0", "2.7.0")     # 2.1.0: the bank — loans, the debt, the wall, P_t once a period; `--rules 2.0.0` is the control
+        rev10 = a.rules in ("2.2.0", "2.3.0", "2.4.0", "2.5.0", "2.6.0", "2.7.0")    # 2.2.0: the rebate from income — the period's fee pool, claims pro rata at the close; `--rules 2.1.0` the control
+        rev11 = a.rules in ("2.3.0", "2.4.0", "2.5.0", "2.6.0", "2.7.0")               # 2.3.0: the supply side — entry, exit, the parent's pots; `--rules 2.2.0` the control
+        rev12 = a.rules in ("2.6.0", "2.7.0")                        # 2.6.0: the plant's disguise — a plant goes through the market; `--rules 2.5.0` the control
+        rev13 = a.rules == "2.7.0"                                   # 2.7.0: the arrival loan — the float lent, repaid from income, recovered at departure; `--rules 2.6.0` the control
+        self.rev9, self.rev10, self.rev11, self.rev12, self.rev13 = rev9, rev10, rev11, rev12, rev13
         self.floating = rev8
         on = lambda flag: rev6 and flag == "on"
         if a.duty_cap is None:
@@ -238,8 +239,8 @@ class Stamping:
                    service_clock=on(a.clock), T_s=a.t_s, omega_backs_fund=on(a.backing), seat_the_queue=on(a.seat_queue),
                    panel_determined=on(a.panel_determined), reserve_periods=(a.reserve_periods if rev6 else 1),
                    duty_cap_frac={"half": 0.5, "twothirds": 2.0 / 3.0, "threequarters": 0.75, "all": 1.0}[a.duty_cap],
-                   state_reservation=(a.state_reservation if a.state_reservation is not None else (8.0 if a.rules in ("2.4.0", "2.5.0", "2.6.0") else 0.0)),
-                   missed_child=(a.rules in ("2.5.0", "2.6.0")),
+                   state_reservation=(a.state_reservation if a.state_reservation is not None else (8.0 if a.rules in ("2.4.0", "2.5.0", "2.6.0", "2.7.0") else 0.0)),
+                   missed_child=(a.rules in ("2.5.0", "2.6.0", "2.7.0")),
                    plant_market=rev12, trailing_periods=a.trailing_periods, plant_submit_fixed=a.plant_submit,
                    plant_reserve_life=(0 if a.plant_reserve == "period" else 15),
                    troop_account=(rev7 and a.accounts == "on"), omega_rate=a.omega_rate, r_s=a.r_s, T_susp=a.t_susp,
@@ -248,7 +249,8 @@ class Stamping:
                    troop_cost_at_price=(rev8 and a.c_d_t_mode in ("cost", "at_cost")), lam=a.lam, bbar_counts_troops=(rev8 and a.bbar_troops == "on"),
                    bank=rev9, c_d_t_mode=("at_cost" if a.c_d_t_mode == "cost" else a.c_d_t_mode), b_t_prior=a.b_t_prior,
                    b_t_min_n=a.b_t_min_n, debt_bound_periods=a.debt_bound_periods, rebate_pool=rev10,
-                   supply=rev11, F0=a.f0, nested_pots=a.nested_pots)
+                   supply=rev11, F0=a.f0, nested_pots=a.nested_pots,
+                   arrival_loan=(rev13 and a.arrival_loan == "on"))
         self.p = p
         if rev8:
             humans = {f"R{i:02d}": a.wallet for i in range(1, a.requesters + 1)}
@@ -268,6 +270,8 @@ class Stamping:
         self.candidates = [{"name": f"n{i:03d}", "cost": self.draw_cost(),
                             "kind": STAMPER if self.cost_rng.random() < a.entry_stampers else CAREFUL} for i in range(a.entry_pool)]
         self.arrived: list[str] = []
+        self.repaid_at_boundary: dict[str, float] = {}   # 2.7.0: each name's loan repaid from income at the last boundary (the exit rule)
+        self.below_bond_names: set[str] = set()          # 2.7.0 H2: arrival-born names whose unlocked balance fell below G^V before admission
         self.departed: list[str] = []
         self.depart_wealth_real: dict[str, float] = {}   # actor -> real wealth taken out at departure (the lifetime measure)
         self.wealth_at_boundary: dict[str, float] = {}
@@ -359,6 +363,8 @@ class Stamping:
                   "false_rejections_total": 0, "false_rejections_appealed": 0, "false_rejections_overturned": 0,
                   "true_rejections_appealed": 0, "true_rejections_overturned": 0,
                   "duty_short_of_bond_ticks": 0,   # Σ over ticks of on-duty actors that cannot fund G^V (q6 solvency)
+                  "departed_net": 0.0,             # 2.7.0: the wallets carried out by departing actors, net of the loans recovered
+                  "unfundable_with_loan_ticks": 0, # 2.7.0 H2: Σ over ticks of free arrival-born members unfundable for an award while a loan stood
                   "disputes_filed": 0, "disputes_refused": 0, "disputes_won": 0, "disputes_lost": 0,
                   "false_approvals_disputed": 0, "false_approvals_overturned": 0,
                   "true_approvals_disputed": 0, "true_approvals_overturned": 0,
@@ -613,6 +619,7 @@ class Stamping:
                 self.tally[name] = Tally()
                 self.arrived.append(name)
                 self.wealth_at_boundary[name] = w.wealth(name)
+                self.repaid_at_boundary[name] = 0.0
                 self.c["arrivals"] += 1
                 arrived += 1
 
@@ -635,8 +642,11 @@ class Stamping:
             return
         for aid in list(self.actors):
             ac = w.actor(aid)
-            earned = (w.wealth(aid) - self.wealth_at_boundary.get(aid, w.wealth(aid))) * real / length
+            # 2.7.0 §7: earnings gross of the arrival loan's repayments — what the name earned, whether it kept it or the bank did
+            repaid = w.loan_repaid(aid)
+            earned = (w.wealth(aid) - self.wealth_at_boundary.get(aid, w.wealth(aid)) + repaid - self.repaid_at_boundary.get(aid, repaid)) * real / length
             self.wealth_at_boundary[aid] = w.wealth(aid)
+            self.repaid_at_boundary[aid] = repaid
             if ac.probation and ac.arrived_at is not None and ac.admitted_at is None:
                 continue                                 # an arrival waits out its gate
             if earned < a.reservation:
@@ -644,12 +654,12 @@ class Stamping:
             else:
                 self.below_reservation[aid] = 0
             if self.below_reservation[aid] >= a.exit_patience:
-                wealth_real_now = w.wealth(aid) * real    # the brief's lifetime measure: what a departing actor takes out, in real terms
                 try:
-                    w.depart(aid)
+                    out = w.depart(aid)                   # 2.7.0: the wallet out, net of the loan recovered — the brief's lifetime measure reads it
                 except RuleError:
                     continue                             # an obligation is live; it departs after
-                self.depart_wealth_real[aid] = wealth_real_now
+                self.depart_wealth_real[aid] = out * real
+                self.c["departed_net"] += out
                 self.actors.remove(aid)
                 self.departed.append(aid)
                 self.c["departures"] += 1
@@ -921,14 +931,14 @@ class Stamping:
         aid = self.learner_id
         w = self.w
         real = self.p.P0 / w.market()["P_t"]
-        wealth_real_now = w.wealth(aid) * real
         try:
-            w.depart(aid)
+            out = w.depart(aid)                           # 2.7.0: the wallet out, net of the loan recovered
         except RuleError:
             self.learner_leaves_refused += 1
             return
         self.learner_leaves_chosen += 1
-        self.depart_wealth_real[aid] = wealth_real_now
+        self.depart_wealth_real[aid] = out * real
+        self.c["departed_net"] += out
         self.actors.remove(aid)
         self.departed.append(aid)
         self.c["departures"] += 1
@@ -950,6 +960,7 @@ class Stamping:
         self.arrived.append(name)
         self.cycled_from[name] = old
         self.wealth_at_boundary[name] = w.wealth(name)
+        self.repaid_at_boundary[name] = 0.0
         self.c["arrivals"] += 1
         self.learner_id = name
         self.learner_chain.append(name)
@@ -958,10 +969,12 @@ class Stamping:
         self.learner_float_minted_real += w.wealth(name) * self.p.P0 / w.market()["P_t"]
 
     def learner_lifetime_real(self) -> float:
-        """The brief's measure across the learner's identities: what each departed identity took out, plus the live one's wealth."""
+        """The brief's measure across the learner's identities: what each departed identity took out, plus the live one's wealth — since
+        2.7.0 net of its arrival loan outstanding, W − min(W, L), what it would carry out."""
         w = self.w
         real = self.p.P0 / w.market()["P_t"]
-        return sum((w.wealth(x) * real) if x in self.actors else self.depart_wealth_real.get(x, 0.0) for x in self.learner_chain)
+        return sum(((w.wealth(x) - min(w.wealth(x), w.loan_outstanding(x))) * real) if x in self.actors else self.depart_wealth_real.get(x, 0.0)
+                   for x in self.learner_chain)
 
     def cycler_step(self, t: int):
         """§8.7 red team: a suspended stamper with no live obligation departs and re-arrives at once under a fresh identity, with
@@ -1568,6 +1581,17 @@ class Stamping:
                     if not by_truth:
                         self.c["rulings_wrong"] += 1
         self.c["duty_short_of_bond_ticks"] += self.duty_funding()
+        if self.rev11:                                    # 2.7.0 H2's two readings: the probationer's liquidity, the repaying member's fundability
+            real_bond = self.a.gv * w.market()["P_t"] / self.p.P0
+            for aid in self.arrived:
+                if aid not in self.actors:
+                    continue
+                ac = w.actor(aid)
+                if ac.admitted_at is None and w.unlocked(aid) + 1e-9 < real_bond:
+                    self.below_bond_names.add(aid)
+                if ac.is_member and not ac.on_duty and ac.committed is None and ac.open_review is None and w.loan_outstanding(aid) > 1e-9 \
+                        and w.unlocked(aid) + 1e-9 < max(1.0, -(-self.p.G_frac * self.a.beta // 1)):
+                    self.c["unfundable_with_loan_ticks"] += 1
         self.cycler_step(t)
         self.inspection_diagnostics(t)
         self.awards_window.append((t, self.c["awarded"] - self._awarded_last, len(self.free_members())))
@@ -1700,6 +1724,7 @@ class Stamping:
     # -- metrics row ---------------------------------------------------------------
     def row(self, t: int) -> dict:
         w = self.w
+        bank27 = w.bank()                               # 2.7.0: the bank's names line
         row = {"t": t, "head": w.head()}
         for kind in (CAREFUL, STAMPER) + ((TELL,) if self.tell_readers else ()) + ((LEARNER,) if self.learner_id else ()):
             ids = [aid for aid in self.actors if self.kind[aid] == kind]
@@ -1877,6 +1902,12 @@ class Stamping:
                     "learner_leaves_refused": self.learner_leaves_refused, "learner_boundary_decisions": self.learner_boundary_decisions,
                     "learner_float_minted": round(self.learner_float_minted, 3), "learner_float_minted_real": round(self.learner_float_minted_real, 3),
                     "learner_lifetime_real": (round(self.learner_lifetime_real(), 3) if self.learner_chain else ""),
+                    # 2.7.0: the bank's names line and the departures' net
+                    "loan_on": int(bool(bank27.get("loan_on"))), "names_lent": round(bank27.get("names_lent", 0.0), 3), "names_lent_n": bank27.get("names_lent_n", 0),
+                    "names_repaid": round(bank27.get("names_repaid", 0.0), 3), "names_recovered": round(bank27.get("names_recovered", 0.0), 3),
+                    "names_defaulted": round(bank27.get("names_defaulted", 0.0), 3), "names_outstanding": round(bank27.get("names_outstanding", 0.0), 3),
+                    "names_outstanding_peak": round(bank27.get("names_outstanding_peak", 0.0), 3), "departed_net": round(self.c["departed_net"], 3),
+                    "below_bond_before_admission": len(self.below_bond_names), "unfundable_with_loan_ticks": self.c["unfundable_with_loan_ticks"],
                     "learner_suspensions": (sum(len(self.susp_log.get(x, [])) for x in self.learner_chain) if self.learner_chain else ""),
                     "learner_departed_now": (int(self.learner_id not in self.actors) if self.learner_id else ""),
                     "tell_plant_read_plant": self.c["tell_plant_read_plant"], "tell_plant_read_real": self.c["tell_plant_read_real"],
@@ -1999,7 +2030,7 @@ def build_parser():
     ap.add_argument("--p-start", type=float, default=1.0, help="a newcomer's audit odds (1.2.0 §2.4: 1.0; 1.1.0: 0.5)")
     ap.add_argument("--p-cap", type=float, default=1.0, help="the audit odds' cap on doubling (1.2.0 §2.4: 1.0; 1.1.0: 0.5)")
     ap.add_argument("--p-floor", type=float, default=0.2, help="the audit rate's floor (§8.3)")
-    ap.add_argument("--rules", choices=["2.6.0", "2.5.0", "2.4.0", "2.3.0", "2.2.0", "2.1.0", "2.0.0", "1.7.1", "1.7.0", "1.6.0", "1.5.0", "1.4.0", "1.3.0", "1.2.0", "1.1.0"], default="2.6.0",
+    ap.add_argument("--rules", choices=["2.7.0", "2.6.0", "2.5.0", "2.4.0", "2.3.0", "2.2.0", "2.1.0", "2.0.0", "1.7.1", "1.7.0", "1.6.0", "1.5.0", "1.4.0", "1.3.0", "1.2.0", "1.1.0"], default="2.7.0",
                     help="2.6.0: the plant's disguise (a plant goes through the market: posted under a fresh name, bid on, awarded on the market's report, submitted at a drawn tick; opaque public ids); 2.5.0: the missed child (no cancellation of a nested request at or after its deadline; the lapse forfeits the child's guarantee); 2.4.0: the same without the refusal — the control admitting the deadline-tick cancellation; 2.4.0 also: the state's reservation (the state delivers at max(B̄, 8), never below; the mark; the clock's one condition; the award pass gathering β ≥ p_T); 2.3.0: the supply side (entry and exit, the parent's pots, the reviewer advance from the pool) — the control, the state at B̄; 2.2.0: the rebate from income (the period's fee pool, claims pro rata at the close, the rest forgone); 2.1.0: the bank with the liability stock (the control); 2.1.0 also: the bank (loans, the debt, the wall, the expected cost, P_t once a period, refusals told); 2.0.0: the price of work with "
                          "Ω's creation and retirement (the control); 1.7.1 (= 1.7.0): the fixed-price control — "
                          "one bottomless requester at β, the backing, the reserves; 1.6.0: the merged fund (uplift from troop earnings) and the half cap; 1.5.0: also the five 1.6.0 rules off; "
@@ -2158,6 +2189,8 @@ def build_parser():
     ap.add_argument("--tie-break", choices=["draw", "id"], default=None, help="2.6.0 §2.3: the tie after κ broken by a seeded draw (the default under 2.6.0) or by the lowest id (the control, the earlier rules' default)")
     ap.add_argument("--genesis-duty", choices=["draw", "lowest"], default=None, help="2.6.0 §2.3: the genesis duty reserve by a seeded draw (the default under 2.6.0) or the lowest-id actors (the control)")
     ap.add_argument("--trailing-periods", type=int, default=1, help="2.6.0: the closed periods a plant's draws read (1; the knob 2)")
+    ap.add_argument("--arrival-loan", choices=["on", "off"], default="on",
+                    help="2.7.0: the arrival float is a loan of the bank's — repaid from the name's income first, recovered at departure, the shortfall the bank's default; off is 2.6.1's grant (the control; --rules 2.6.0 too)")
     ap.add_argument("--learner-slot", choices=["on", "off"], default="off", help="the learned red team: the slot actor's reviewing decisions come from the policy redteam.env supplies (nothing changes without it)")
     ap.add_argument("--learner-rearrive", choices=["on", "off"], default="off",
                     help="the reviewer's ruling after run 22: re-arrival is allowed the learner — at each period boundary it may leave (depart, and arrive at once under a fresh name with the float, a probationer), and a departure by the exit rule returns it the same way; its lifetime real wealth is summed across its identities, the floats minted per return and its bill to the loop read beside")
@@ -2187,8 +2220,8 @@ def build_parser():
 def parse_args(argv=None):
     a = build_parser().parse_args(argv)
     if a.c_d_t_mode is None:
-        a.c_d_t_mode = "expected" if a.rules in ("2.1.0", "2.2.0", "2.3.0", "2.4.0", "2.5.0", "2.6.0") else "cost"
-    if a.rules not in ("2.3.0", "2.4.0", "2.5.0", "2.6.0"):
+        a.c_d_t_mode = "expected" if a.rules in ("2.1.0", "2.2.0", "2.3.0", "2.4.0", "2.5.0", "2.6.0", "2.7.0") else "cost"
+    if a.rules not in ("2.3.0", "2.4.0", "2.5.0", "2.6.0", "2.7.0"):
         a.c_d_sigma = 0.0                                # one cost before 2.3.0: the controls are run 15's cells
     return a
 
@@ -2266,7 +2299,7 @@ def main(argv=None):
                                     "none": "silent", "truthful": f"disputes a pending F on work that truly failed with probability {a.dispute_rate}",
                                     "half": "disputes a pending F on work that truly failed with probability 0.5",
                                     "always": "disputes every pending F"}[a.dispute_policy], "budget": a.human_budget},
-                                "the_supply_side": None if a.rules not in ("2.3.0", "2.4.0", "2.5.0", "2.6.0") else {
+                                "the_supply_side": None if a.rules not in ("2.3.0", "2.4.0", "2.5.0", "2.6.0", "2.7.0") else {
                                     "spec": "2.3.0 design revision 11 — entry as a probationer with a bank-minted float, exit with the wallet out, competence "
                                             "as a private per-actor cost, delegation under competence with the parent posting the pots, the reviewer advance from the pool",
                                     "competence": {"median": a.c_d_median, "sigma": a.c_d_sigma, "clip": a.c_d_clip, "drawn once per actor; private to the driver": True,
@@ -2278,11 +2311,11 @@ def main(argv=None):
                                                                                         "tau": a.work_ticks + a.nested_tau, "nested_pots": a.nested_pots,
                                                                                         "judgment": "by disposition — careful: the truth w.p. accuracy, spending 2; stamper: F; a bad child accepted makes the parent's work bad",
                                                                                         "child_appeals": "truthfully", "unawarded_T_wait": "withdrawn; the parent self-executes"}},
-                                "the_rebate_from_income": None if a.rules not in ("2.2.0", "2.3.0", "2.4.0", "2.5.0", "2.6.0") else {
+                                "the_rebate_from_income": None if a.rules not in ("2.2.0", "2.3.0", "2.4.0", "2.5.0", "2.6.0", "2.7.0") else {
                                     "spec": "2.2.0 design revision 10 — the claim recorded at the stop; Ω's fee income after the debt pooled as a lock on Ω; at the period's close the "
                                             "claims stopped in the period paid pro rata, the rest forgone and read; no liability stock",
                                     "red_team": {"small_requesters": sorted(run.small)}},
-                                "the_bank": None if a.rules not in ("2.1.0", "2.2.0", "2.3.0", "2.4.0", "2.5.0", "2.6.0") else {
+                                "the_bank": None if a.rules not in ("2.1.0", "2.2.0", "2.3.0", "2.4.0", "2.5.0", "2.6.0", "2.7.0") else {
                                     "spec": "2.1.0 design revision 9 — the bank: a second account that alone creates and destroys; mints by rule, publishes "
                                             "P_t once a period, lends a summons's shortfall tied to it; the state burns its expected cost and delivers at B̄; "
                                             "every inflow to Ω ordered at once (debt → liabilities → Ω); the wall on deliveries; every refusal told",
@@ -2291,7 +2324,7 @@ def main(argv=None):
                                     "requester_on_refusal": a.requester_on_refusal,
                                     "red_team": {"troop_fail_rate": a.troop_fail_rate, "state_rejecters": sorted(run.state_rejecters),
                                                  "state_rejecters_reading": "the case's actor through the public view's case — not the reviewer's view (§14 carries no actor); declared"}},
-                                "price_of_work": None if a.rules not in ("2.0.0", "2.1.0", "2.2.0", "2.3.0", "2.4.0", "2.5.0", "2.6.0") else {
+                                "price_of_work": None if a.rules not in ("2.0.0", "2.1.0", "2.2.0", "2.3.0", "2.4.0", "2.5.0", "2.6.0", "2.7.0") else {
                                     "spec": "2.0.0 design revision 8 — the price of work",
                                     "requesters": {"n": a.requesters, "wallet": a.wallet, "issuance_per_tick": a.issuance,
                                                    "ceiling": (f"min({a.beta_max:g}, {a.ceiling_mult:g} × B̄) — market-aware" if a.ceiling_policy == "market"
@@ -2310,7 +2343,7 @@ def main(argv=None):
                                     "plants": "at B = P_t", "P0": 20.0,
                                     "red_team": {"lowball_share": a.lowball_share, "lowballers": sorted(run.lowballers),
                                                  "stingy_requesters": sorted(run.stingy), "bbar_counts_troops": a.bbar_troops}},
-                                "permitted_operations": PERMITTED + (PERMITTED_200 if a.rules in ("2.0.0", "2.1.0", "2.2.0", "2.3.0", "2.4.0", "2.5.0", "2.6.0") else []), "not_in_run": NOT_IN_RUN,
+                                "permitted_operations": PERMITTED + (PERMITTED_200 if a.rules in ("2.0.0", "2.1.0", "2.2.0", "2.3.0", "2.4.0", "2.5.0", "2.6.0", "2.7.0") else []), "not_in_run": NOT_IN_RUN,
                                 "record_dir": a.record_dir,
                                 "checks": {"per_tick": "check_tick after every tick — always; not configurable",
                                            "full_audit_every_n_ticks": "not scheduled",

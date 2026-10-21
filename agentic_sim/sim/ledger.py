@@ -185,7 +185,7 @@ class History:
 class Ledger:
     OMEGA = "OMEGA"
     MINTS = {"mint_backed", "mint_emission", "issuance", "creation", "mint_plant", "loan", "mint_scenario", "arrival"}
-    BURNS = {"burn_bond", "purchase", "retirement", "departure", "repayment", "retire_plant"}
+    BURNS = {"burn_bond", "purchase", "retirement", "departure", "repayment", "retire_plant", "arrival_repayment"}
 
     def __init__(self, Res0: float, v0: float, history: Optional[History] = None,
                  events_path: Optional[str] = None, tail: int = 4096, floating: bool = False, P0: float = 20.0):
@@ -419,7 +419,7 @@ class Ledger:
     def burn_unlocked(self, kind: str, wid: str, credits: float, case=None, note=""):
         """retirement (Ω burns against its deficit) or departure (a leaving requester's wallet); 2.1.0: repayment (a loan or the
         debt, from Ω) and retire_plant (what a closed plant's wallets held)."""
-        if kind not in ("retirement", "departure", "repayment", "retire_plant"):
+        if kind not in ("retirement", "departure", "repayment", "retire_plant", "arrival_repayment"):
             raise LedgerError(f"burn: unknown sink kind {kind}")
         credits = amount(credits, kind)
         if credits <= 1e-12:

@@ -111,9 +111,18 @@ class Public:
         """2.3.0 §2.1: a fresh actor arrives as a probationer with a float the bank mints."""
         self._w.arrive(name)
 
-    def depart(self, name: str):
-        """2.3.0 §2.2: an actor with no live obligation leaves; its wallet departs M."""
-        self._w.depart(name)
+    def depart(self, name: str) -> float:
+        """2.3.0 §2.2: an actor with no live obligation leaves; its wallet departs M. 2.7.0: the arrival loan is recovered first and the
+        wallet out — what left as `departure` — is returned (the brief's lifetime measure reads it)."""
+        return self._w.depart(name)
+
+    def loan_outstanding(self, name: str) -> float:
+        """2.7.0: a name's own arrival loan outstanding (one's own standing; 0 for a genesis name or under the grant)."""
+        return self._w.arrival_loan.get(name, 0.0)
+
+    def loan_repaid(self, name: str) -> float:
+        """2.7.0: what a live name has repaid of its arrival loan from income, cumulative (the exit rule reads earnings gross of it)."""
+        return self._w.name_repaid.get(name, 0.0)
 
     def withdraw_pool_exhaustion(self, parent: str, nested: str):
         """§9.3: the parent exits a nested request unawarded past T_wait."""
@@ -232,7 +241,8 @@ class Public:
         L = w.ledger
         liab = sum(l["amount"] for l in w.omega_liabilities)
         wall = w._debt_bound()
-        return {"on": w.bank_on, "minted": dict(w.bank_minted), "destroyed": dict(w.bank_destroyed),
+        return {"on": w.bank_on, "minted": dict(w.bank_minted),
+                "destroyed": {**w.bank_destroyed, "arrival_repayment": w.names_repaid + w.names_recovered},
                 "loans_outstanding": w.loans_outstanding, "loans_peak": w.loans_peak, "loans_open": len(w.loans),
                 "debt": w.debt, "debt_created": w.debt_created, "debt_repaid": w.debt_repaid, "debt_peak": w.debt_peak,
                 "debt_since": w.debt_since, "liabilities": liab, "liabilities_n": len(w.omega_liabilities),
@@ -243,7 +253,12 @@ class Public:
                 "cost_of_truth": w.bank_minted["mint_plant"] - w.bank_destroyed["retire_plant"],
                 "b_T": w._state_fail_rate(), "last_b_t": w.last_b_t, "last_c_d_t": w.last_c_d_t,
                 "state_closed_period": w.period["state_closed"], "state_failed_period": w.period["state_failed"],
-                "P_published": w._P_published, "P_published_at": w._P_published_at}
+                "P_published": w._P_published, "P_published_at": w._P_published_at,
+                # 2.7.0: loans to names — the bank's second kind of lending, on its own line
+                "loan_on": w.loan_on, "names_lent": w.names_lent, "names_lent_n": w.names_lent_n, "names_repaid": w.names_repaid,
+                "names_recovered": w.names_recovered, "names_defaulted": w.names_defaulted,
+                "names_outstanding": w.names_outstanding, "names_outstanding_peak": w.names_outstanding_peak,
+                "departed_net": w.actor_departed_credits}
 
     def service(self) -> dict:
         """1.6.0 §2.1 readings: the network rating and Ω's liabilities."""

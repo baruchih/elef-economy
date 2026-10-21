@@ -2292,6 +2292,25 @@ recorded** (from 0.052 at run 22, 0.016–0.019 at run 24); the largest piece th
 item only if a learner monetises the floor; the withdrawal covered in advance by the Appendix S principle. **Next:** 2.7.0 (the arrival loan) on its
 acceptance; Q1's learned line once under it with appeals and re-arrival on; Q3 calibrated at ×4.
 
+## 2.7.0 — the arrival loan (October 21, 2026)
+
+**Design revision 15**, the reviewer's draft after run 23 (rc.1 → rc.2 the same day; the implementer's reviews in `spec/design_revisions/dr15_2.7.0-rc.{1,2}-review.md`;
+the accepted text `dr15_the_arrival_loan_2.7.0.md`; the consolidated spec `spec/agentic_economics_loop_spec_v2_7_0.md`, 2.6.1 to `spec/history/`). Run 23's
+learner lived one name per period — arrive as a probationer with the float, stamp until the first bad plant suspended it (a suspension discharges every
+obligation, so the exit is open), leave with the wallet, return under a fresh name — and the float was the whole of its win (+270 ± 89 on the lifetime
+measure, −373 ± 86 on its own earnings, 655 real minted for one slot). 2.3.0 had said identity cycling buys nothing because a departing actor "has given
+up its wallet"; it had taken it out. **The float is a loan of the bank's**: lent at arrival as before; repaid first from every inflow of income to the
+name the moment it arrives, a return passing untouched (the table fixed against the engine's events — the rc.1 review's one correction: the reviewer's
+cost reimbursed and a court fee coming back are returns, else an honest arrival's float is gone in twenty reviews; a child's guarantee forfeited to a
+parent is income); recovered from the unlocked wallet at departure, the remainder leaving as `departure`, the shortfall the bank's default on arrivals,
+read; an unrepaid loan no bar to departure; the genesis float the sponsor's gift. `Params.arrival_loan` (off is 2.6.1's grant); I1, I33, I34 amended, I41
+new; the view's `depart` returns the wallet out (the brief's measure reads it; a live name reads net of its loan); the exit rule reads earnings gross of
+the repayments. `test_v27` 12; **goldens unchanged** (no golden scenario arrives; the names line enters the record only once a name was lent to); suite
+342 + 32 in three modes. **Accepted as written (October 21, 2026)** with two readings in Appendix T: the forfeited-guarantee row is a name's only for a
+nested case; I41 scoped on the arrival tick. **Next:** §8 against run 24's baseline in the rc's order — the harvest (run 23's saved model replayed, the
+harvester, the leaver, the stamper, the careful on seeds 21–40), the entry cell, the bank's book, everything else, the swarm, the accomplice route, Q1's
+one line.
+
 ## Maps
 
 Two `_line` artifacts in project Agentic-OS (`c54120a6-aaff-40f7-8a9f-3667da542879`):

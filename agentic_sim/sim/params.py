@@ -178,6 +178,13 @@ class Params:
     trailing_periods: int = 1     # the window of closed periods the plant's draws read (the knob: 1 / 2)
     plant_submit_fixed: int = 0   # 0: the plant actor's time to submission is the draw; n > 0 pins it (within (0, τ]) — the lag-pinning cell
 
+    # Design revision 15 (2.7.0): the arrival loan. True: the float `arrive` mints is a loan of the bank's on the name — repaid first
+    # from every inflow of income to the name's unlocked balance (a review's fee, uplift and emission share, the delivery price, a kill
+    # fee, a child's guarantee forfeited to a parent; a return — a release, a reimbursement, a court fee coming back — passes untouched),
+    # recovered from the unlocked wallet at departure up to the loan with the remainder leaving as `departure`, the shortfall the bank's
+    # default on arrivals, read (I41). False is 2.6.1: the float a grant the wallet carries out.
+    arrival_loan: bool = True
+
     def __post_init__(self):
         # 2.4.0 §2.3 (I33): the arrival float exists so that an arrival can post the reviewer's bond — a constraint on the parameters,
         # nominal, the index cancelling. A parameter set with F0 < G_V is refused at construction, not at arrival.

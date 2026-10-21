@@ -29,7 +29,7 @@ ALLOWED_EVENT_KINDS = {
     "lock", "release", "transfer", "forfeit_to", "burn_bond", "purchase",
     "mint_backed", "mint_emission", "issuance", "creation", "retirement", "departure", "escrow_in", "deposit_in", "feepot_in", "escrow_out",
     "deposit_out", "feepot_out", "fee_out",
-    "mint_plant", "loan", "mint_scenario", "repayment", "retire_plant",     # 2.1.0: the bank's kinds
+    "mint_plant", "loan", "mint_scenario", "repayment", "retire_plant", "arrival_repayment",     # 2.1.0: the bank's kinds
     "arrival",                                                              # 2.3.0: an arrival's float
 }
 GRADES = {"human-explicit", "delegate-explicit", "protocol-default", "procedural", "plant"}
@@ -1224,6 +1224,51 @@ def I40_opaque_identifiers(w, cases=None):
         _fail("I40 the public identifiers follow the creation order")
 
 
+def I41_the_arrival_loan(w, events=None):
+    """2.7.0 §2.1 (I41): for every live name that arrived after genesis its loan outstanding is its float less what it repaid from
+    income, never below zero, and no genesis name carries one; every income inflow (§2.1's table) to a name with a loan outstanding is
+    followed by its repayment before the name keeps any of it, and a repayment from income follows nothing but such an inflow; lent to
+    names = repaid from income + recovered at departure + outstanding + defaulted, outstanding the sum over the live names, its peak
+    at or above it; a departed name's loan is zero."""
+    if not getattr(w, "loan_on", False):
+        return
+    for n, L in w.arrival_loan.items():
+        a = w.actors.get(n)
+        if a is None:
+            _fail(f"I41 a loan of {L} on {n}, not a live name")
+        if a.arrived_at is None:
+            _fail(f"I41 a loan on the genesis name {n}")
+        if L < -EPS:
+            _fail(f"I41 {n}'s loan is {L}")
+    for n, a in w.actors.items():
+        if a.arrived_at is not None and n not in w.arrival_loan:
+            _fail(f"I41 the arrival {n} carries no loan record")
+    for n in w.departed_actors:
+        if n in w.arrival_loan:
+            _fail(f"I41 the departed {n} still carries a loan")
+    outstanding = w.names_outstanding
+    if abs(w.names_lent - (w.names_repaid + w.names_recovered + outstanding + w.names_defaulted)) > _tol(max(1.0, w.names_lent)):
+        _fail(f"I41 lent {w.names_lent} ≠ repaid {w.names_repaid} + recovered {w.names_recovered} + outstanding {outstanding} + defaulted {w.names_defaulted}")
+    if w.names_outstanding_peak + EPS < outstanding:
+        _fail(f"I41 outstanding {outstanding} above its peak {w.names_outstanding_peak}")
+    prev = None
+    pending = None                                      # an income inflow to a name whose loan stands, awaiting its repayment
+    for e in (w.ledger.events if events is None else events):
+        if pending is not None:
+            if not (e.kind == "arrival_repayment" and e.src == pending.dst and (e.note or "").startswith("arrival loan repaid")
+                    and e.amount <= pending.amount + EPS):
+                _fail(f"I41 the income {pending.kind} '{pending.note}' of {pending.amount} to {pending.dst} was kept with a loan outstanding")
+            pending = None
+        elif e.kind == "arrival_repayment" and (e.note or "").startswith("arrival loan repaid"):
+            if prev is None or prev.dst != e.src or not w._is_income_event(prev):
+                _fail(f"I41 a repayment of {e.amount} from {e.src} follows no income inflow")
+        if w._is_income_event(e) and e.dst in w.arrival_loan and w.arrival_loan[e.dst] > EPS:
+            pending = e                                 # a loan standing now stood then: loans only fall
+        prev = e
+    if pending is not None:
+        _fail(f"I41 the income {pending.kind} of {pending.amount} to {pending.dst} was kept with a loan outstanding")
+
+
 def check_all(w):
     """The full audit: every predicate over everything, the record re-hashed from genesis.
     The record is streamed — one pass over the events, one over the reviews, one over the
@@ -1282,6 +1327,7 @@ def check_all(w):
     I38_the_missed_child(w)
     I39_the_plants_disguise(w)
     I40_opaque_identifiers(w)
+    I41_the_arrival_loan(w)
     I16_history_is_authoritative(w)
 
 
@@ -1353,6 +1399,7 @@ def check_tick(w):
     I38_the_missed_child(w, cases)
     I39_the_plants_disguise(w, cases)
     I40_opaque_identifiers(w, cases)
+    I41_the_arrival_loan(w, new_events)
 
     w._events_checked = len(w.ledger.events)
     w._prune_working_set()

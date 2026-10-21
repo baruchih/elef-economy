@@ -548,7 +548,7 @@ class World:
         # 2.1.0: the bank — minted and destroyed by kind, the loans by summons (troop id), the debt, the refusals for credit,
         # the index as published, and the state's own record of its deliveries
         self.bank_minted = {"issuance": 0.0, "mint_emission": 0.0, "mint_plant": 0.0, "mint_scenario": 0.0, "loan": 0.0, "arrival": 0.0}
-        self.bank_destroyed = {"repayment": 0.0, "retire_plant": 0.0}
+        self.bank_destroyed = {"repayment": 0.0, "retire_plant": 0.0}   # 2.7.0: arrival_repayment is the names line (repaid + recovered)
         self.loans: dict[str, dict] = {}                # troop id -> {amount, kind, case, t} while the summons is open
         self.loans_peak = 0.0
         self.debt = 0.0                                 # settled summonses' unrepaid loans
@@ -574,6 +574,12 @@ class World:
         self._pool_violation: Optional[str] = None
         # 2.3.0: entry and exit, the per-node pots, the reviewer advances from the pool
         self.departed_actors: dict = {}                 # archived identities, never reused
+        # 2.7.0: the arrival loan — a live name's loan outstanding, what it has repaid from income, and the bank's names line
+        self.arrival_loan: dict[str, float] = {}
+        self.name_repaid: dict[str, float] = {}
+        self.names_lent, self.names_repaid, self.names_recovered, self.names_defaulted = 0.0, 0.0, 0.0, 0.0
+        self.names_lent_n, self.names_outstanding_peak = 0, 0.0
+        self._repaying = False
         self.arrivals = 0
         self.admissions = 0
         self.admission_ticks_sum = 0
@@ -625,6 +631,16 @@ class World:
         return self.bank_on and self.p.supply
 
     @property
+    def loan_on(self) -> bool:
+        """2.7.0 §2.1: the arrival float is a loan of the bank's on the name (the grant is the 2.6.1 control)."""
+        return self.supply_on and self.p.arrival_loan
+
+    @property
+    def names_outstanding(self) -> float:
+        """2.7.0: loans to names outstanding — the live arrival-born names' unrepaid floats."""
+        return sum(self.arrival_loan.values())
+
+    @property
     def parent_pots(self) -> bool:
         """2.3.0 §2.4: a nested case carries its own pots, posted by the parent (the 1.1.0 reading is the control)."""
         return self.supply_on and self.p.nested_pots == "parent"
@@ -646,15 +662,26 @@ class World:
         self.actors[name] = a
         credits = self.p.F0 * self.ledger.index()
         if credits > 1e-12:
-            self.ledger.mint("arrival", name, credits, note="arrival: the float")
+            self.ledger.mint("arrival", name, credits, note="arrival: the float" + (" (a loan of the bank's)" if self.loan_on else ""))
+        if self.loan_on:                                # 2.7.0 §2.1: the float is lent — the loan carried on the name, nominal
+            self.arrival_loan[name] = credits
+            self.name_repaid[name] = 0.0
+            self.names_lent += credits
+            self.names_lent_n += 1
+            self.period["names_lent"] += credits
+            self.period["names_lent_n"] += 1
+            self.names_outstanding_peak = max(self.names_outstanding_peak, self.names_outstanding)
         self.arrivals += 1
         self.period["arrivals"] += 1
-        self.history.append("entry", {"t": self.t, "actor": name, "float": round(credits, 6), "msg": "arrived as a probationer"})
+        self.history.append("entry", {"t": self.t, "actor": name, "float": round(credits, 6), "loan": round(credits if self.loan_on else 0.0, 6),
+                                      "msg": "arrived as a probationer"})
 
-    def depart(self, name: str):
+    def depart(self, name: str) -> float:
         """2.3.0 §2.2: an actor with no live obligation to or from it leaves — no commitment, no open or unsettled review, no lock, no
         claim on Ω — off duty as it goes; its unlocked wallet leaves M as `departure`; its identity is archived and never reused (I34).
-        Refused whole otherwise."""
+        Refused whole otherwise. 2.7.0 §2.1: the unlocked wallet repays the name's arrival loan first (`arrival_repayment`, up to what it
+        holds) and the remainder leaves as `departure`; the shortfall is the bank's default on arrivals, read; an unrepaid loan does not
+        refuse the departure. Returns the wallet out."""
         if not self.supply_on:
             raise RuleError("depart: a 2.3.0 operation")
         a = self.actors.get(name)
@@ -679,9 +706,20 @@ class World:
             raise RuleError(f"depart: {name} is owed on {live[0]} (not final or not closed)")
         if a.on_duty:
             self._leave_duty(a, self.t, "departed")
-        credits = self.ledger.wallet(name).U
+        held = self.ledger.wallet(name).U
+        loan = self.arrival_loan.pop(name, 0.0) if self.loan_on else 0.0
+        self.name_repaid.pop(name, None)
+        recovery = min(held, loan)
+        if recovery > 1e-12:                            # 2.7.0 §2.1: the loan recovered first, destroyed by the bank
+            self.ledger.burn_unlocked("arrival_repayment", name, recovery, note="departure: the arrival loan recovered")
+        credits = held - recovery
+        default = loan - recovery
         if credits > 1e-12:
             self.ledger.burn_unlocked("departure", name, credits, note="departure: an actor's wallet leaves")
+        self.names_recovered += recovery
+        self.names_defaulted += default
+        self.period["names_recovered"] += recovery
+        self.period["names_defaulted"] += default
         self.departed += credits
         self.period["departed"] += credits
         self.actor_departures += 1
@@ -689,7 +727,50 @@ class World:
         self.period["actor_departures"] += 1
         del self.actors[name]
         self.departed_actors[name] = a
-        self.history.append("entry", {"t": self.t, "actor": name, "wallet": round(credits, 6), "msg": "departed"})
+        self.history.append("entry", {"t": self.t, "actor": name, "wallet": round(credits, 6), "recovered": round(recovery, 6),
+                                      "defaulted": round(default, 6), "msg": "departed"})
+        return credits
+
+    def _is_income_event(self, e) -> bool:
+        """2.7.0 §2.1's table — what repays a name's arrival loan: a review's fee (a nested review's too), the emission share, the duty
+        uplift, the delivery price at vesting, a kill fee received (from the escrow or the parent's balance), a child's guarantee
+        forfeited to the parent. A return is not income: a release, the reviewer's cost reimbursed (the allowance, Ω's advance, the
+        claim serviced, the deferred reimbursement), a court fee coming back to the challenger who paid it, an escrow or a node's
+        unused pots returned."""
+        k, n = e.kind, e.note or ""
+        if k == "feepot_out":
+            return n.endswith("review fee")
+        if k == "fee_out":
+            return n == "emission share"
+        if k == "transfer":
+            return n in ("duty uplift", "kill fee from unlocked")
+        if k == "escrow_out":
+            return n in ("delivery price", "kill fee from escrow")
+        if k == "forfeit_to":
+            return "forfeit:" in n
+        return False
+
+    def _loan_on_inflow(self, e):
+        """The ledger hook's 2.7.0 leg: an inflow of income to a name with an arrival loan outstanding is followed by its repayment —
+        `arrival_repayment` burned from the name, min(the inflow, the loan) — before the name keeps any of it. Both legs are in the
+        record. Reentrancy-guarded as Ω's order is."""
+        if self._repaying or e.dst is None:
+            return
+        loan = self.arrival_loan.get(e.dst)
+        if not loan or loan <= 1e-12 or not self._is_income_event(e):
+            return
+        pay = min(e.amount, loan, self.ledger.wallet(e.dst).U)
+        if pay <= 1e-12:
+            return
+        self._repaying = True
+        try:
+            self.ledger.burn_unlocked("arrival_repayment", e.dst, pay, case=e.case, note="arrival loan repaid from income")
+        finally:
+            self._repaying = False
+        self.arrival_loan[e.dst] = loan - pay
+        self.name_repaid[e.dst] = self.name_repaid.get(e.dst, 0.0) + pay
+        self.names_repaid += pay
+        self.period["names_repaid"] += pay
 
     def _is_fee_event(self, e) -> bool:
         """2.2.0 §2.2: Ω's fee income — the base fee at an award or a summons, a troop reviewer's fee at settlement, a court fee a troop
@@ -1084,6 +1165,8 @@ class World:
             elif e.kind in self.bank_destroyed:
                 self.bank_destroyed[e.kind] += e.amount
             self._bank_on_inflow(e)
+            if self.loan_on:                            # 2.7.0: the arrival loan repaid from income, the moment it arrives
+                self._loan_on_inflow(e)
         cid = e.case
         if cid is None:
             return
@@ -3209,6 +3292,8 @@ class World:
                "claims": [], "claims_total": 0.0, "pool": 0.0, "rebates_forgone": 0.0, "omega_retained_period": 0.0,
                # 2.3.0: entry and exit, the pool's reviewer advances
                "arrivals": 0, "admissions": 0, "admission_ticks": 0, "actor_departures": 0, "pool_advances": 0.0,
+               # 2.7.0: the bank's names line this period — floats lent (count, amount), repaid from income, recovered, defaulted
+               "names_lent": 0.0, "names_lent_n": 0, "names_repaid": 0.0, "names_recovered": 0.0, "names_defaulted": 0.0,
                # 2.6.0: the plant's life — posted, awarded (at the floor), the members' bids lost to plants, the time in the market
                "plants_posted": 0, "plants_awarded": 0, "plants_at_floor": 0, "plant_bids_lost": 0, "plant_market_ticks": 0}
 
@@ -3317,7 +3402,8 @@ class World:
                "troop_review_fee": round(per["troop_review_fee"], 6),
                "bank": None if not self.bank_on else {
                    "minted": {k: round(v, 6) for k, v in self.bank_minted.items()},
-                   "destroyed": {k: round(v, 6) for k, v in self.bank_destroyed.items()},
+                   "destroyed": {**{k: round(v, 6) for k, v in self.bank_destroyed.items()},
+                                 **({"arrival_repayment": round(self.names_repaid + self.names_recovered, 6)} if self.names_lent_n else {})},
                    "loans_period": round(per["loans"], 6), "repaid_period": round(per["repaid"], 6),
                    "loans_outstanding": round(self.loans_outstanding, 6), "loans_peak": round(per["loans_peak"], 6),
                    "debt": round(self.debt, 6), "debt_added": round(per["debt_added"], 6), "debt_repaid": round(per["debt_repaid"], 6),
@@ -3329,7 +3415,9 @@ class World:
                    "omega_net": round(self.ledger.wallet(Ledger.OMEGA).U - self.debt - sum(l["amount"] for l in self.omega_liabilities), 6),
                    "cost_of_truth": round(self.bank_minted["mint_plant"] - self.bank_destroyed["retire_plant"], 6),
                    "state_closed": per["state_closed"], "state_failed": per["state_failed"], "b_T": round(self._state_fail_rate(), 6),
-                   "refused_credit": [per["refused_credit_seats"], per["refused_credit_awards"]]},
+                   "refused_credit": [per["refused_credit_seats"], per["refused_credit_awards"]],
+                   # 2.7.0: loans to names — this period's lent, repaid, recovered, defaulted; the stock and its peak; the run's totals
+                   },
                # 2.2.0: the rebate from income — the period's claims, what the pool paid, what was forgone
                "claims": round(per["claims_total"], 6), "claims_n": len(per["claims"]), "pool": round(per["pool"], 6),
                "rebates_forgone": round(per["rebates_forgone"], 6),
@@ -3341,6 +3429,15 @@ class World:
                "actor_departures": per["actor_departures"], "members": sum(1 for a in self.actors.values() if a.is_member),
                "probationers": sum(1 for a in self.actors.values() if a.probation), "actors": len(self.actors),
                "pool_advances": round(per["pool_advances"], 6)}
+        if self.loan_on and self.names_lent_n and rec["bank"] is not None:
+            # 2.7.0: loans to names — this period's lent, repaid, recovered, defaulted; the stock and its peak; the run's totals. The line
+            # appears once the bank has lent to a name, so a world with no arrivals keeps 2.6.1's record to the hash
+            rec["bank"]["names"] = {
+                "lent": round(per["names_lent"], 6), "lent_n": per["names_lent_n"], "repaid": round(per["names_repaid"], 6),
+                "recovered": round(per["names_recovered"], 6), "defaulted": round(per["names_defaulted"], 6),
+                "outstanding": round(self.names_outstanding, 6), "outstanding_peak": round(self.names_outstanding_peak, 6),
+                "lent_total": round(self.names_lent, 6), "lent_n_total": self.names_lent_n, "repaid_total": round(self.names_repaid, 6),
+                "recovered_total": round(self.names_recovered, 6), "defaulted_total": round(self.names_defaulted, 6)}
         self.periods.append(rec)
         self.history.append("period", rec)
         self.troop_capital_peak_prev, self.troop_capital_peak = self.troop_capital_peak, self._troop_capital_now()

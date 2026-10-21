@@ -1,7 +1,7 @@
 # Agentic-OS — the economic loop
 
 A rulebook for a task → verification → dispute → settlement loop among autonomous actors, and a
-reference implementation of it with no strategies. Ten external reviews. The rulebook is at **2.6.1** — erratum 2.6.1 (October 21, 2026; §7.6, Appendix E E5: the plant's ceiling drawn from the real roots' ceilings *as posted*, the plant requester raising it as the population's requesters do, so the plant waits as a real root waits — the reviewer's ruling after run 24) on **2.6.0** — design revision 14, *the plant's disguise*: a plant goes
+reference implementation of it with no strategies. Ten external reviews. The rulebook is at **2.7.0** — design revision 15 (October 21, 2026), *the arrival loan*: the arrival float is a loan of the bank's on the name — lent at arrival as before, repaid first from every inflow of income to the name the moment it arrives (a return — a release, the reviewer's cost reimbursed, a court fee coming back — passes untouched; the table fixed against the engine's events), recovered from the unlocked wallet at departure with the remainder leaving as `departure`, the shortfall the bank's default on arrivals, read; an unrepaid loan does not block a departure; the genesis float stays the sponsor's gift — after run 23's learned reviewer-worker harvested 2.3.0's grant by cycling names (arrive, stamp until suspended, leave with the wallet, return under a fresh name: +270 ± 89 real on the lifetime measure while earning 373 less on its own work, 655 real minted for one slot) — on **2.6.1** — erratum 2.6.1 (October 21, 2026; §7.6, Appendix E E5: the plant's ceiling drawn from the real roots' ceilings *as posted*, the plant requester raising it as the population's requesters do, so the plant waits as a real root waits — the reviewer's ruling after run 24) on **2.6.0** — design revision 14, *the plant's disguise*: a plant goes
 through the market — posted as a root under a fresh plant-requester name with a ceiling drawn from the trailing real roots', open to the free members and
 waiting as a real root waits, awarded to a fresh plant-actor name at the price and work ticks the market's selection reports (the award as the report; past
 w_A at p_T, counted apart), submitted at a draw from the trailing real deliveries' within (0, τ]; fresh names alias the two plant wallets; no fee, no clock,
@@ -72,13 +72,13 @@ and what is proposed next.
 ## Layout
 
 ```
-spec/agentic_economics_loop_spec_v2_6_1.md   the text in force (standalone; Appendix A defaults, E errata incl. 2.6.1, F–S design revisions 1–14 and the rulings)
+spec/agentic_economics_loop_spec_v2_7_0.md   the text in force (standalone; Appendix A defaults, E errata incl. 2.6.1, F–T design revisions 1–15 and the rulings)
 spec/design_revisions/                       accepted design revisions, verbatim (dr1: two pots; dr2: the loop's own clock; dr3:
                                              inspection is membership; dr4: the orchestrator's troops; dr5: the reserve is sized to
-                                             the need; dr6: auto-scale; dr7: the state's earnings; dr8: the price of work; dr9: the bank; dr10: the rebate from income; dr11: the supply side; dr12: the state's reservation; dr13: the missed child; dr14: the plant's disguise), and the implementer's reviews of dr2–dr14's candidates
-spec/history/                                v0.1 … v2.6.0 — superseded, kept for provenance only
+                                             the need; dr6: auto-scale; dr7: the state's earnings; dr8: the price of work; dr9: the bank; dr10: the rebate from income; dr11: the supply side; dr12: the state's reservation; dr13: the missed child; dr14: the plant's disguise; dr15: the arrival loan), and the implementer's reviews of dr2–dr15's candidates
+spec/history/                                v0.1 … v2.6.1 — superseded, kept for provenance only
 reviews/                                     R01–R10, one external review per version, with the reviewer's notes
-agentic_sim/                                 the engine, 40 invariants, 32 test files, runner, drivers, results
+agentic_sim/                                 the engine, 41 invariants, 33 test files, runner, drivers, results
 agentic_sim/redteam/                         the learned red team (docs/red_team_brief.md, docs/red_team_build_plan.md): a separate package the suite never imports —
                                              needs the conda environment `elef-redteam` (Python 3.11, torch on MPS, gymnasium, stable-worldmodel); le-wm vendored under MIT in redteam/lewm/
 docs/line_map_economic_loop_v1_0_1.txt       text export of the _line map of the loop (the live map is the source)
@@ -91,12 +91,13 @@ HANDOFF.md                                   status, history table, open questio
 
 ```
 cd agentic_sim
-python3 run_tests.py        # expected: 330 passed, 0 failed, 32 expected failures
+python3 run_tests.py        # expected: 342 passed, 0 failed, 32 expected failures
 python3 -S run_tests.py     # same, with no site-packages
 python3 run_tests.py --record   # same, every World in record mode
-python3 -m pytest tests -q  # expected: 330 passed, 32 xfailed, 0 xpassed (conftest mirrors the runner; pytest is not installed here)
+python3 -m pytest tests -q  # expected: 342 passed, 32 xfailed, 0 xpassed (conftest mirrors the runner; pytest is not installed here)
 python3 -m drivers.load_run --actors 200 --ticks 10000 --on-duty 40 --tasks 30 --record-dir /path  # throughput run
 python3 -m drivers.stamping --actors 20 --ticks 1000 --stampers 0.6 --seed 1   # §18.1 q1 under 2.1.0: six requesters with wallets, members bidding, the state at its expected cost on the bank's loans under N_T 40
+python3 -m drivers.stamping --entry-pool 20 --stampers 0.6 --seed 1   # 2.7.0: run 24's baseline with the arrival float a loan (repaid from income, recovered at departure, the default read: names_* columns); --arrival-loan off (or --rules 2.6.0) the 2.6.1 grant, the control; --learner-rearrive on the re-arrival cell
 python3 -m drivers.stamping --entry-pool 20 --stampers 0.6 --appeal-policy none --seed 1   # runs 1–23's population: no appeals (truthful appeals are the default from run 24, the ruling after run 23)
 python3 -m drivers.stamping --entry-pool 20 --stampers 0.6 --seed 1   # 2.6.0: run 16's cell with the plants going through the market (posted, bid on, awarded on the report, submitted at a drawn tick); --rules 2.5.0 the control (plants built submitted); --tie-break id / --genesis-duty lowest the ordering controls; --trailing-periods 2 the window knob
 python3 -m drivers.stamping --entry-pool 20 --stampers 0.6 --tell-readers 0.125 --tell idage --seed 21   # the red team's Q2, hand-written: one tell-reader in eight careful actors; --tell gap|cap|idage|seen|post|price|losttie|all (any) within the convention, oracle (the marker) and freshname (the record's awardee) outside it, declared
@@ -447,6 +448,27 @@ consolidated into one standalone spec with the accepted revision kept verbatim i
   2.6.1**: the ceilings enter the window at `post_root`, *as posted* (not at the award), and `raise_ceiling` admits a market plant (the
   difference minted as the posting was, no fee, locked; `plants_raised` in `dial()`), so the driver's `raise_below_market` raises the plant as
   it raises a requester's root (`test_v26` 19; goldens re-pinned once more).
+- The arrival loan (2.7.0; `Params.arrival_loan`, on; off is 2.6.1's grant and `--rules 2.6.0` / `--arrival-loan off`). `arrive` mints the float as before and
+  carries it as the name's loan (`arrival_loan[name]`, nominal at the arrival index; the bank's names line `names_lent/_lent_n/_repaid/_recovered/_defaulted`,
+  `names_outstanding` with its peak). The ledger hook's second leg (`_loan_on_inflow`, after `_bank_on_inflow`, under its own reentrancy guard) follows
+  every **income** inflow to a name with a loan outstanding with an `arrival_repayment` burn of min(inflow, L) from the name — both legs in the record, so
+  the drivers' income tallies by event still see the fee. Income is fixed against the events (`_is_income_event`): `feepot_out` "… review fee", `fee_out`
+  "emission share", the duty-fund transfer "duty uplift", `escrow_out` "delivery price" / "kill fee from escrow", the transfer "kill fee from unlocked",
+  `forfeit_to` "forfeit: …" (a child's guarantee to its parent — a name's only for a nested case); everything else is a return — a `release`, the
+  reimbursement of a reviewer's cost (`deposit_out` reimburse / deferred, Ω's advance, the claim serviced), the court fee coming back (`forfeit_to`
+  "court fee"), an escrow or a node's pots returned. `depart` keeps its four refusals (the snapshot unchanged), recovers min(W_U, L) as
+  `arrival_repayment` ("departure: the arrival loan recovered"), lets the remainder out as `departure`, counts the default, closes the loan and **returns
+  the wallet out**; the history's entry carries `wallet`, `recovered`, `defaulted`. `arrival_repayment` is in `Ledger.BURNS`, `burn_unlocked`'s kinds and
+  I3's; it is **not** in `bank_destroyed` (the names line is its record) and the period record's `bank.names` block and `destroyed.arrival_repayment` appear
+  only once the bank has lent to a name — a world with no arrivals keeps 2.6.1's record to the hash, so the goldens did not move. I41 per tick (over the
+  tick's events: an income inflow to a name whose loan stands is followed by its repayment, a repayment from income follows nothing else; lent = repaid +
+  recovered + outstanding + defaulted; no loan on a genesis name, scoped on `arrived_at`) and in the full audit. The view: `depart` returns the wallet out,
+  `loan_outstanding(name)`, `loan_repaid(name)`, the names line in `bank()`. Drivers: `--rules 2.7.0` the default (every version tuple widened; `rev13`),
+  `--arrival-loan`; `depart_wealth_real` from `depart`'s return (the exit rule, the learner's boundary step), the live name net of its loan in
+  `learner_lifetime_real` and `redteam.env._wealth_real` (the brief's measure, net by construction), the exit rule's earnings gross of the period's
+  repayments (`repaid_at_boundary`); the columns `names_*`, `departed_net`, and H2's readings `below_bond_before_admission` (arrival-born names whose
+  unlocked balance fell below G^V at the index before admission) and `unfundable_with_loan_ticks` (free arrival-born members unfundable for an award
+  while a loan stood). `test_v27` (12); goldens unchanged.
 - The learned red team (`agentic_sim/redteam/`, October 20, 2026; the brief and the build plan in `docs/`). Run it with
   `/opt/homebrew/Caskroom/miniconda/base/envs/elef-redteam/bin/python -m redteam.<module>` from `agentic_sim/`; the project's Python has no torch and
   the suite never imports the package. The learner is a driver: `--learner-slot on` makes the slot actor (the first careful id, the same actor the

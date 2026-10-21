@@ -2307,9 +2307,16 @@ read; an unrepaid loan no bar to departure; the genesis float the sponsor's gift
 new; the view's `depart` returns the wallet out (the brief's measure reads it; a live name reads net of its loan); the exit rule reads earnings gross of
 the repayments. `test_v27` 12; **goldens unchanged** (no golden scenario arrives; the names line enters the record only once a name was lent to); suite
 342 + 32 in three modes. **Accepted as written (October 21, 2026)** with two readings in Appendix T: the forfeited-guarantee row is a name's only for a
-nested case; I41 scoped on the arrival tick. **Next:** §8 against run 24's baseline in the rc's order — the harvest (run 23's saved model replayed, the
-harvester, the leaver, the stamper, the careful on seeds 21–40), the entry cell, the bank's book, everything else, the swarm, the accomplice route, Q1's
-one line.
+nested case; I41 scoped on the arrival tick.
+
+**Run 25 (§8, `results/studies/2.7.0-notes-for-reviewer.md`, 592a5318):** the harvest closed — run 23's policy replayed under the loan ends
+−1,199 ± 95 against the careful, exactly the grant's lifetime less the floats (−1,198 ± 109), policy by policy (harvester −1,203 / −1,234, stamper
+−1,170 / −1,185, leaver +34 / +39); the entry cell within noise but for the constant (lent 990, repaid from income 976, recovered 13, defaulted 0.25)
+and the liquidity reading (1.45 names a run below the bond before admission, none under the grant; no repaying member ever unfundable); run 15's fixed
+population identical to the hash; the patient cell and the crowd within noise; the swarm carries out 1,008 ± 119 less — the floats — with the default
+its forfeits (9.3 a run) and the loop's cost unchanged; the accomplice route (`--accomplice on`) moves 1,368 of nested ceilings and nothing of the
+bank's (default 0 in 20 of 20: a parent needs an award, so an admitted name, whose loan the probation's fees repaid). **Next:** Q1's one line — the
+learner calibrated at care-cost ×4, then the re-arrival cell under 2.7.0 (in flight, `results/redteam/Q1/{calibration-2.7.0,rearrive-2.7.0}`); then Q3.
 
 ## Maps
 

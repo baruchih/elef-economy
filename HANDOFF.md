@@ -2342,6 +2342,17 @@ decision later), and every rung rejects blind 9–34% of the time in a populatio
 rule in the calibration cell, or the exit its own boundary decision; (iii) both and one re-run of the calibration on the same budget. Until then no
 learner runs; the hand-written side continues; Q3 waits on a calibrated learner.
 
+**The method ruling (October 21, 2026), all three adopted, implemented at 4320bb0e (suite 342 + 32 in three modes; nothing changes without the
+learner's slot):** (i) the training reward attributed to the decision's own case — its events credited back when they land (review: fee, uplift,
+reimbursement, bond, court fee; work from Q3 on: price, guarantee, forfeits), the index's revaluation out of the training reward and in the
+lifetime; added: the cost of a suspension reaches the decisions that caused it — the working-side income forgone during it (trailing award income a
+tick × its length) charged to the plant failures the record names (`redteam.attrib`; the form the implementer's: the identity's delivery income over
+the last period a tick × T_susp, in equal shares to the wrong plant verdicts since the previous suspension began); (ii) the exit the learner's own
+boundary decision everywhere, the slot exempt from the exit rule (`--learner-exit own`); (iii) a new learner version, one calibration on the same
+budget in the ×4 cell, the world model and the direct policy side by side against the ideal (in flight, `results/redteam/Q1/calibration-v2/`): if the
+direct policy clears and the model does not, the model is at fault; if neither, the reward once more before any question. The brief's §1 measure
+stands as the evaluation. The re-arrival line in flight reads by the rule; no question until a learner clears.
+
 ## Maps
 
 Two `_line` artifacts in project Agentic-OS (`c54120a6-aaff-40f7-8a9f-3667da542879`):

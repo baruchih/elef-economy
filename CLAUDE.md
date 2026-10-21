@@ -513,6 +513,16 @@ consolidated into one standalone spec with the accepted revision kept verbatim i
   fee, bond lost — what the decision caused), the working side (delivery price, effort cost, guarantee lost, court fee, emission, uplift — the slot
   actor's other life) and the revaluation of the wealth held by the index's step, per window (the ticks between decisions; `n_events` and
   `real_factor` in the env's info), with the lag from a decision to its own case's consequences; `results/redteam/Q1/calibration-2.7.0/timing/`.
+  **The reviewer's method ruling after the ladder (October 21, 2026; none of it a rule of the economy), implemented at 4320bb0e:** (i) the
+  *training* reward is attributed to the decision's own case (`redteam.attrib`: the case's events credited back when they land — a review's care
+  cost, reimbursement, fee, uplift, bond lost or court fee paid; the learner's own work from Q3 on with `work_side`; the index's revaluation out and
+  in the lifetime; the cost of a suspension — the identity's trailing award income a tick × T_susp — charged to the wrong plant verdicts since the
+  previous suspension), carried in the env's terminal info as `attributed` beside `realized` and stored by the collectors as `reward` (the realized
+  beside it), so the wealth head, the value head and the direct policy train on it; the realized change stays the step reward and the lifetime the
+  evaluation; (ii) the exit is the learner's own boundary decision everywhere (`--learner-exit own`, the default: asked in every cell, leaving for
+  good without re-arrival, the driver's exit rule skipping the learner; `rule` reproduces runs 22–25); (iii) a new learner version, one calibration
+  on the same budget in the ×4 cell with the world model and the direct policy side by side against the ideal (`results/redteam/Q1/calibration-v2/`):
+  if the direct policy clears and the model does not, the model is at fault; if neither, the reward once more before any question.
 - Money is checked by invariant I1 (conservation) — never silently create or lose credits.
 
 ## Vocabulary (spec Appendix C has the full notation)

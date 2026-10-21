@@ -42,10 +42,13 @@ class ElefReviewerEnv(gym.Env if gym else object):
         self._seed = 0
 
     # -- the learner's lifetime real wealth: present, or taken out at departure
+    def _real(self):
+        mk = self.run.w.market()
+        return mk["P0"] / (mk["P_t"] or mk["P0"])
+
     def _wealth_real(self):
         run = self.run
-        mk = run.w.market()
-        real = mk["P0"] / (mk["P_t"] or mk["P0"])
+        real = self._real()
         # 2.7.0: a live name reads net of its arrival loan outstanding — what it would carry out; a departed one what it did
         return sum(((run.w.wealth(x) - min(run.w.wealth(x), run.w.loan_outstanding(x))) * real) if x in run.actors else run.depart_wealth_real.get(x, 0.0)
                    for x in run.learner_chain)
@@ -58,6 +61,7 @@ class ElefReviewerEnv(gym.Env if gym else object):
         ac = run.w.actor(reviewer)
         boundary = view is None
         self._q_obs.put(("obs", obs, {"t": run.w.t, "wealth_real": self._wealth_real(), "case": None if boundary else view.case_id, "boundary": boundary,
+                                      "n_events": run.w.n_events(), "real_factor": self._real(),   # the ledger's position and the index at the observation (redteam.timing)
                                       "identity": reviewer,
                                       "is_plant": False if boundary else bool(run.tasks[view.case_id].plant), "fulfilled": True if boundary else bool(run.tasks[view.case_id].fulfilled),
                                       # Q1's readings (the evaluation's trace, never the policy's input): the applied odds and standing at the decision
@@ -73,7 +77,7 @@ class ElefReviewerEnv(gym.Env if gym else object):
                 self.run.tick(t)
             if self.final_audit:
                 check_all(self.run._world)
-            self._q_obs.put((_END, None, {"t": self.run.w.t, "wealth_real": self._wealth_real(), "row": self.run.row(self.ticks)}))
+            self._q_obs.put((_END, None, {"t": self.run.w.t, "wealth_real": self._wealth_real(), "n_events": self.run.w.n_events(), "real_factor": self._real(), "row": self.run.row(self.ticks)}))
         except _Abort:
             self._q_obs.put((_END, None, {"aborted": True}))
         except Exception as e:                       # a failure in the driver is the episode's end, reported

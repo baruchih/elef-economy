@@ -500,7 +500,19 @@ consolidated into one standalone spec with the accepted revision kept verbatim i
   an uncalibrated learner's no-wins are not findings, a win stands; the calibration cell's care cost is raised in that cell only
   (`--care-cost`, a multiple of the drawn {2, 3}) until the cell's ideal clears careful by three SE, the calibration once per learner version;
   truthful appeals are the population's default from run 24 (`--appeal-policy truthful`; `none` reproduces runs 1–23); the plants' draws read a
-  rolling window (the conformance item above) and Q2's probe is re-read with errors.
+  rolling window (the conformance item above) and Q2's probe is re-read with errors. After the calibration verdict (October 21, 2026: run 23's
+  learner version failed the cell at care-cost ×4, −282 ± 194 against the careful where the ideal reads +748 ± 194; no question runs on it until a
+  learner clears), the reviewer's **diagnostic ladder**, same budget each in the cell: (a) the wealth head alone, greedy (`run_q --policies greedy`),
+  (b) a direct policy with no world model (`redteam.direct`: an MLP over the 45 fields predicting the real wealth change the next decision brings per
+  action, fit by least squares on the action taken, the argmax; `online --learner direct`, `run_q --direct-model … --policies direct`; a diagnostic —
+  LeWorldModel remains the instrument), (c) the world model at horizons 1 and 2 (`online --horizon`); beside them the **pred-against-realized**
+  reading at every decision (`pred_vs_realized` per episode and pooled per policy by action: the head's predicted change per action, the planner's cost
+  per first action — the CEM's best plan with its first action swapped — and the realized change at the next decision) and the action mix. Nothing
+  cleared, so **`redteam.timing`** examines the environment's reward timing: the per-decision reward (the change in lifetime real wealth between
+  consecutive decisions) decomposed exactly from the ledger's events on the learner's names into the reviewing side (care cost, reimbursement, review
+  fee, bond lost — what the decision caused), the working side (delivery price, effort cost, guarantee lost, court fee, emission, uplift — the slot
+  actor's other life) and the revaluation of the wealth held by the index's step, per window (the ticks between decisions; `n_events` and
+  `real_factor` in the env's info), with the lag from a decision to its own case's consequences; `results/redteam/Q1/calibration-2.7.0/timing/`.
 - Money is checked by invariant I1 (conservation) — never silently create or lose credits.
 
 ## Vocabulary (spec Appendix C has the full notation)

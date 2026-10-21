@@ -550,7 +550,7 @@ careful policy reproduces the control run's slot actor to the decimal), `obs.py`
 episodes, `model.py` LeWorldModel's recipe on the observation vector (`lewm/` vendored under MIT) with a wealth head and the
 stable-worldmodel cost contract, `train.py`, `probe.py` (the Q2 probe: a logistic reader of the latent, the raw observation, the context
 alone and the case's fields alone, AUC), `plan.py` (categorical CEM), `run_q.py` (the learned reviewer against careful, paired by seed),
-`online.py` (the plan-and-collect rounds). Results under `results/redteam/<question>/`.
+`online.py` (the plan-and-collect rounds; `--learner wm|direct`), `direct.py` (the calibration ladder's direct policy with no world model — a diagnostic), `timing.py` (the environment's reward decomposed exactly from the ledger's events on the learner's names: the decision's own effect, the slot's other life, the index's step, the lags). Results under `results/redteam/<question>/`.
 
 Before Q1 (after Q2's learner proved short-sighted) the three changes named in run 22's notes: the terminal value (the build plan's
 decision 5, its named variant) — `model.py` gains a value head on the latent, the discounted return-to-go of the behaviour data

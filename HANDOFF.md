@@ -2377,6 +2377,22 @@ bond"** (`idle_for_bond_ticks`, `idle_for_bond_names`: free members whose unlock
 from here — the member's bond loan the named candidate if it ever reads outside noise in a real cell, not drafted. The old version's Q1 line recorded,
 no finding.
 
+**Version 3's calibration, read (October 21, 2026; notes §13; `results/redteam/Q1/calibration-v3/`):** the direct policy clears — +593 ± 171 against the
+careful, the ideal +733 ± 119, steady across the rounds (+423 → +593), 0.99 blind approvals, one self-departure in 20 — and **the world model fails** the
+cell it cleared as version 2: +91 ± 167, a mix of 0.31 care / 0.58 approve / 0.12 reject, rounds wandering between −141 and +151, 2–7 departures a round.
+By the method ruling's branch (iii) the model is at fault. The fault is the planner's cost, not the head: the head's predicted change per action at the
+review decisions is +4.5 approve / −0.2 care / −3.6 reject (version 2's order and figures), and **the head alone on the same trained model clears,
++530 ± 212**; horizon 1 reads +215 ± 178, horizon 2 −78 ± 180, horizon 16 +91. Version 3 put the period's work — 265 ± 199 real — on the boundary
+decisions (3.7% of decisions) beside a review decision's ±4 (version 2's training set: sd 1.65, largest 14); the rollout's 16-step sum and γ^16 V(z_16)
+carry that lump into every first action's cost (−199 / −201 / −177, a 1.7 gap where version 2 read −22 / −26 / −13, a 4.5 gap), so the CEM's elites are
+the sequences whose imagined boundary came out richest and the first action is noise. The direct policy never sees the lump at a review decision. A
+second reading: a leave refused for a commitment keeps the name there and carries the period's work under the recorded action "leave", so the data says
+leave ≈ stay (253 vs 284) and never shows what an admitted leave costs. **Q1's chain on version 3 was stopped** (a learner must clear before Q1; the partial
+collection not kept). Candidates for version 4, the reviewer's to rule (notes §13): (a) the planner's cost reads only what the decision can move — a
+review-side head summed over the horizon at review decisions, the boundary's own head at a boundary (the attribution per decision as ruled; the direct's
+decomposition inside the world model); (b) the refused leave recorded as the action effected, a stay; (c) if (a) does not clear, the head alone is the
+planner the attribution leaves. One calibration on the same budget for version 4; Q1's line and Q3 only on a world model that clears.
+
 ## Maps
 
 Two `_line` artifacts in project Agentic-OS (`c54120a6-aaff-40f7-8a9f-3667da542879`):

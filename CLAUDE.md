@@ -532,7 +532,13 @@ consolidated into one standalone spec with the accepted revision kept verbatim i
   same budget then Q1's line and Q3 on it (`results/redteam/Q1/calibration-v3/`, `rearrive-v3/`). The careful reference is read without the exit rule
   (broke seeds in the mean at ~0). **The standing reading in every cell from here: members idle for want of a bond** — `idle_for_bond_ticks` (Σ over
   ticks of free members whose unlocked balance is below G^V at the index) and `idle_for_bond_names` in the driver's row and run_q's eval; the member's
-  bond loan is the named candidate if it ever reads outside noise in a real cell — not drafted.
+  bond loan is the named candidate if it ever reads outside noise in a real cell — not drafted. **Version 3's calibration read (October 21, 2026; notes §13): the direct clears (+593 ± 171 against the careful, the ideal +733 ± 119, steady
+  over the rounds) and the world model fails the cell it cleared as version 2 (+91 ± 167, mix 0.31/0.58/0.12, rounds wandering) — the model is at fault by the
+  method ruling's branch, and the fault is the planner's cost, not the head: the head alone on the same trained model clears (+530 ± 212, `eval/final-greedy`),
+  horizon 1 reads +215, horizon 2 −78, horizon 16 +91; the boundary decisions (3.7% of decisions) now carry 265 ± 199 real against a review decision's ±4, and the
+  rollout's sum and γ^H V(z_H) carry that lump into every first action's cost (−200 each, a 1.7 gap where v2 had −22 and 4.5). Q1's chain on version 3 stopped;
+  candidates for version 4 in notes §13 (a review-side head for the planner at review decisions, the boundary's own head at boundaries; the refused leave
+  recorded as a stay) — the reviewer's to rule.
 - Money is checked by invariant I1 (conservation) — never silently create or lose credits.
 
 ## Vocabulary (spec Appendix C has the full notation)

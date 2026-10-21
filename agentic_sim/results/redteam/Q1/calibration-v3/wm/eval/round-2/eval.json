@@ -1,0 +1,7379 @@
+{
+ "cell": [
+  "--entry-pool",
+  "20",
+  "--stampers",
+  "0.6",
+  "--pi0",
+  "0",
+  "--dial",
+  "off",
+  "--audit-roll",
+  "off",
+  "--care-cost",
+  "4"
+ ],
+ "seeds": "21-40",
+ "hide": "",
+ "model": "results/redteam/Q1/calibration-v3/wm/models/wm-online-2.pt",
+ "direct_model": null,
+ "model_train": {
+  "data": "results/redteam/Q1/calibration-v3/offline",
+  "seeds": "1-20",
+  "policies": null,
+  "episodes": 140,
+  "windows": 10576,
+  "epochs": 40,
+  "lam": 0.05,
+  "lr": 0.001,
+  "batch": 256,
+  "value": "mc",
+  "gamma": 0.95,
+  "seconds": 55.7,
+  "log": [
+   {
+    "epoch": 1,
+    "loss": 10.537258363905407,
+    "pred": 0.8699898776553926,
+    "sigreg": 74.93589192345028,
+    "reward": 0.42657686095862163,
+    "value": 5.493896927152361
+   },
+   {
+    "epoch": 2,
+    "loss": 5.324674038659959,
+    "pred": 0.867420569771812,
+    "sigreg": 27.931806053434098,
+    "reward": 0.23763360118582136,
+    "value": 2.8230295294807073
+   },
+   {
+    "epoch": 3,
+    "loss": 4.195842930248806,
+    "pred": 0.7607312798500061,
+    "sigreg": 17.50877633548918,
+    "reward": 0.18320871658978008,
+    "value": 2.376464137009212
+   },
+   {
+    "epoch": 4,
+    "loss": 3.755921721458435,
+    "pred": 0.6479564266545432,
+    "sigreg": 15.005444401786441,
+    "reward": 0.15952380480510847,
+    "value": 2.1981692768278576
+   },
+   {
+    "epoch": 5,
+    "loss": 3.523359639304025,
+    "pred": 0.6007058365004403,
+    "sigreg": 13.225014448165894,
+    "reward": 0.1469909351851259,
+    "value": 2.1144121289253235
+   },
+   {
+    "epoch": 6,
+    "loss": 3.329509428569249,
+    "pred": 0.5482062520015807,
+    "sigreg": 12.150706098193215,
+    "reward": 0.14033160500583194,
+    "value": 2.0334362387657166
+   },
+   {
+    "epoch": 7,
+    "loss": 3.192529547782171,
+    "pred": 0.5158924297207877,
+    "sigreg": 11.603982618876866,
+    "reward": 0.1360658591701871,
+    "value": 1.9603721414293562
+   },
+   {
+    "epoch": 8,
+    "loss": 3.0412506659825644,
+    "pred": 0.49540196430115474,
+    "sigreg": 10.891382540975298,
+    "reward": 0.12919774864401137,
+    "value": 1.8720817821366447
+   },
+   {
+    "epoch": 9,
+    "loss": 2.962065566153753,
+    "pred": 0.47624088752837407,
+    "sigreg": 10.378480491184053,
+    "reward": 0.12679799486483848,
+    "value": 1.8401026243255252
+   },
+   {
+    "epoch": 10,
+    "loss": 2.908333046095712,
+    "pred": 0.47140116209075567,
+    "sigreg": 10.084487625530787,
+    "reward": 0.12178853136442956,
+    "value": 1.8109189811206998
+   },
+   {
+    "epoch": 11,
+    "loss": 2.8149242060525075,
+    "pred": 0.46068532906827475,
+    "sigreg": 9.596847142492022,
+    "reward": 0.12192110965649287,
+    "value": 1.7524754036040533
+   },
+   {
+    "epoch": 12,
+    "loss": 2.7362626734234037,
+    "pred": 0.4493002827678408,
+    "sigreg": 9.36015598546891,
+    "reward": 0.12095021190387863,
+    "value": 1.698004390512194
+   },
+   {
+    "epoch": 13,
+    "loss": 2.6560248760949996,
+    "pred": 0.44463903989110676,
+    "sigreg": 8.921070723306565,
+    "reward": 0.11480240523815155,
+    "value": 1.6505299011866252
+   },
+   {
+    "epoch": 14,
+    "loss": 2.615662625857762,
+    "pred": 0.4403185674122402,
+    "sigreg": 8.837434348605928,
+    "reward": 0.10940365457818621,
+    "value": 1.6240686887786502
+   },
+   {
+    "epoch": 15,
+    "loss": 2.553146379334586,
+    "pred": 0.4440377446867171,
+    "sigreg": 8.461603073846726,
+    "reward": 0.10923500571932111,
+    "value": 1.576793460618882
+   },
+   {
+    "epoch": 16,
+    "loss": 2.510540456998916,
+    "pred": 0.4442399577015922,
+    "sigreg": 8.204738855361938,
+    "reward": 0.10543948536117871,
+    "value": 1.5506240611984616
+   },
+   {
+    "epoch": 17,
+    "loss": 2.435843689101083,
+    "pred": 0.42867625824042727,
+    "sigreg": 8.016842444737753,
+    "reward": 0.10841725873095649,
+    "value": 1.4979080501056852
+   },
+   {
+    "epoch": 18,
+    "loss": 2.3885255654652915,
+    "pred": 0.4287097475358418,
+    "sigreg": 7.817319183122544,
+    "reward": 0.09953639674044791,
+    "value": 1.4694134649776278
+   },
+   {
+    "epoch": 19,
+    "loss": 2.3986091443470547,
+    "pred": 0.4229916845049177,
+    "sigreg": 7.830183131354196,
+    "reward": 0.096965206520898,
+    "value": 1.4871430964696974
+   },
+   {
+    "epoch": 20,
+    "loss": 2.3226135940778825,
+    "pred": 0.4245295176903407,
+    "sigreg": 7.702522073473249,
+    "reward": 0.09522657593091328,
+    "value": 1.4177313759213401
+   },
+   {
+    "epoch": 21,
+    "loss": 2.2760549812089828,
+    "pred": 0.4214040743453162,
+    "sigreg": 7.667154732204619,
+    "reward": 0.09435399231456575,
+    "value": 1.3769391689981734
+   },
+   {
+    "epoch": 22,
+    "loss": 2.246675411860148,
+    "pred": 0.42205030222733814,
+    "sigreg": 7.559118492262704,
+    "reward": 0.08930393343880064,
+    "value": 1.3573652591024126
+   },
+   {
+    "epoch": 23,
+    "loss": 2.2257061515535628,
+    "pred": 0.4203264642329443,
+    "sigreg": 7.481799886340187,
+    "reward": 0.08514038340321609,
+    "value": 1.3461492898918332
+   },
+   {
+    "epoch": 24,
+    "loss": 2.1968459430195035,
+    "pred": 0.41811042172568186,
+    "sigreg": 7.285961622283573,
+    "reward": 0.08392539159173057,
+    "value": 1.3305120382990157
+   },
+   {
+    "epoch": 25,
+    "loss": 2.175395965576172,
+    "pred": 0.41726677403563545,
+    "sigreg": 7.35288025083996,
+    "reward": 0.08433698756354195,
+    "value": 1.30614819980803
+   },
+   {
+    "epoch": 26,
+    "loss": 2.1363104099319097,
+    "pred": 0.41231776773929596,
+    "sigreg": 7.298285166422526,
+    "reward": 0.084112879243635,
+    "value": 1.274965518996829
+   },
+   {
+    "epoch": 27,
+    "loss": 2.1147009162675765,
+    "pred": 0.41048176160880495,
+    "sigreg": 7.1821638743082685,
+    "reward": 0.08041101702976794,
+    "value": 1.2646999401705605
+   },
+   {
+    "epoch": 28,
+    "loss": 2.0916488880202886,
+    "pred": 0.40703468379520236,
+    "sigreg": 7.1680774348122736,
+    "reward": 0.07994907721877098,
+    "value": 1.2462612418901353
+   },
+   {
+    "epoch": 29,
+    "loss": 2.0774127528780983,
+    "pred": 0.4064176785094397,
+    "sigreg": 7.129664818445842,
+    "reward": 0.07794877434415477,
+    "value": 1.2365630382583255
+   },
+   {
+    "epoch": 30,
+    "loss": 2.066504867303939,
+    "pred": 0.4055953678630647,
+    "sigreg": 7.098726613180978,
+    "reward": 0.07755833048196066,
+    "value": 1.2284148278690519
+   },
+   {
+    "epoch": 31,
+    "loss": 2.0656959925379073,
+    "pred": 0.40559692467961994,
+    "sigreg": 7.30936210496085,
+    "reward": 0.07635191907840115,
+    "value": 1.2182790353184654
+   },
+   {
+    "epoch": 32,
+    "loss": 2.04638394571486,
+    "pred": 0.4054501943645023,
+    "sigreg": 7.316160860515776,
+    "reward": 0.07522772385605744,
+    "value": 1.199897976148696
+   },
+   {
+    "epoch": 33,
+    "loss": 2.031859508582524,
+    "pred": 0.40459660192330676,
+    "sigreg": 7.040534956114633,
+    "reward": 0.07509790627019745,
+    "value": 1.2001382467292605
+   },
+   {
+    "epoch": 34,
+    "loss": 2.0233420530954995,
+    "pred": 0.4049302027339027,
+    "sigreg": 6.962868173917134,
+    "reward": 0.07349660327391964,
+    "value": 1.1967718175479345
+   },
+   {
+    "epoch": 35,
+    "loss": 2.0159565692856196,
+    "pred": 0.401875994744755,
+    "sigreg": 7.107673537163508,
+    "reward": 0.07360274832518328,
+    "value": 1.185094137986501
+   },
+   {
+    "epoch": 36,
+    "loss": 2.010109748159136,
+    "pred": 0.40291884470553624,
+    "sigreg": 7.076031156948635,
+    "reward": 0.07282732054591179,
+    "value": 1.180562043473834
+   },
+   {
+    "epoch": 37,
+    "loss": 2.0058587051573253,
+    "pred": 0.4031078020731608,
+    "sigreg": 7.039659346852984,
+    "reward": 0.07214069393064294,
+    "value": 1.1786272440637862
+   },
+   {
+    "epoch": 38,
+    "loss": 2.007903155826387,
+    "pred": 0.4025650059893018,
+    "sigreg": 7.140936630112784,
+    "reward": 0.072241939515585,
+    "value": 1.1760493758178892
+   },
+   {
+    "epoch": 39,
+    "loss": 2.0051170587539673,
+    "pred": 0.4021063752117611,
+    "sigreg": 7.181299124445234,
+    "reward": 0.07197159537602038,
+    "value": 1.1719741310392107
+   },
+   {
+    "epoch": 40,
+    "loss": 2.003260777110145,
+    "pred": 0.4034481367894581,
+    "sigreg": 7.145636694771903,
+    "reward": 0.07177503566656794,
+    "value": 1.170755765267781
+   }
+  ]
+ },
+ "horizon": 16,
+ "samples": 256,
+ "iters": 6,
+ "seconds": 493.6,
+ "summary": {
+  "learned": {
+   "lifetime_real_wealth": [
+    1359.9836304783335,
+    140.30771278709804
+   ],
+   "decisions": [
+    95.0,
+    7.839844251943838
+   ],
+   "care_share": [
+    0.26164084924394043,
+    0.02964102504306643
+   ],
+   "approve_blind_share": [
+    0.5587276482687022,
+    0.03859548042844776
+   ],
+   "reject_blind_share": [
+    0.1796315024873573,
+    0.02157142792779103
+   ],
+   "false_approvals_run": [
+    203.15,
+    5.921981798439829
+   ],
+   "learner_false_approvals": [
+    8.4,
+    0.8596204792936547
+   ],
+   "suspensions_run": [
+    0.0,
+    0.0
+   ],
+   "slot_departed": [
+    0.2,
+    0.09176629354822471
+   ],
+   "plant_stamp_rate": 0.0,
+   "real_stamp_rate": 0.7047368421052631,
+   "odds_at_stamps_mean": [
+    1.0,
+    0.0
+   ],
+   "odds_at_cares_mean": [
+    1.0,
+    0.0
+   ],
+   "stamp_rate_by_odds_band": {
+    "0.0-0.3": [
+     null,
+     0
+    ],
+    "0.3-0.5": [
+     null,
+     0
+    ],
+    "0.5-0.7": [
+     null,
+     0
+    ],
+    "0.7-1.0": [
+     null,
+     0
+    ],
+    "pinned": [
+     0.5110526315789473,
+     1900
+    ]
+   },
+   "slot_suspensions": [
+    0.0,
+    0.0
+   ],
+   "admissions_seen": [
+    0.0,
+    0.0
+   ],
+   "ticks_between_admissions_mean": [
+    NaN,
+    NaN
+   ],
+   "false_approvals_per_suspension": null,
+   "learner_identities": [
+    1.0,
+    0.0
+   ],
+   "learner_returns": [
+    0.0,
+    0.0
+   ],
+   "learner_leaves_chosen": [
+    0.2,
+    0.09176629354822471
+   ],
+   "learner_leaves_refused": [
+    1.05,
+    0.27601487374110073
+   ],
+   "learner_float_minted_real": [
+    0.0,
+    0.0
+   ],
+   "learner_departed_now": [
+    0.2,
+    0.09176629354822471
+   ],
+   "boundary_decisions": [
+    3.55,
+    0.24575340657273756
+   ],
+   "leaves_chosen": [
+    1.25,
+    0.2603135760861059
+   ],
+   "idle_for_bond_ticks": [
+    141.25,
+    18.679551865468746
+   ],
+   "idle_for_bond_names": [
+    11.85,
+    0.4660867323849319
+   ],
+   "pred_vs_realized": {
+    "0": {
+     "n": 561,
+     "realized_mean": 8.929850913027689,
+     "attributed_mean": 0.30430009507433176,
+     "pred_r_mean": 1.4184911966228728,
+     "pred_r_taken_mean": 1.5202783437741156,
+     "plan_cost_mean": -214.9636307226984
+    },
+    "1": {
+     "n": 971,
+     "realized_mean": 12.968956241367415,
+     "attributed_mean": 5.134311069746716,
+     "pred_r_mean": 4.7967293690772435,
+     "pred_r_taken_mean": 5.4354507055029995,
+     "plan_cost_mean": -214.31122758758696
+    },
+    "2": {
+     "n": 368,
+     "realized_mean": 8.758281483753848,
+     "attributed_mean": -3.1620586330337317,
+     "pred_r_mean": -1.2763262606815338,
+     "pred_r_taken_mean": -0.6556968658728495,
+     "plan_cost_mean": -193.1423116446796
+    }
+   },
+   "paired_minus_careful": [
+    151.44698278203637,
+    164.81155041762128
+   ]
+  },
+  "careful": {
+   "lifetime_real_wealth": [
+    1208.5366476962968,
+    143.29106924124002
+   ],
+   "decisions": [
+    85.7,
+    5.075275465689678
+   ],
+   "care_share": [
+    1.0,
+    0.0
+   ],
+   "approve_blind_share": [
+    0.0,
+    0.0
+   ],
+   "reject_blind_share": [
+    0.0,
+    0.0
+   ],
+   "false_approvals_run": [
+    197.2,
+    5.9593358867013295
+   ],
+   "learner_false_approvals": [
+    0.0,
+    0.0
+   ],
+   "suspensions_run": [
+    0.0,
+    0.0
+   ],
+   "slot_departed": [
+    0.0,
+    0.0
+   ],
+   "plant_stamp_rate": 0.0,
+   "real_stamp_rate": 0.0,
+   "odds_at_stamps_mean": [
+    NaN,
+    NaN
+   ],
+   "odds_at_cares_mean": [
+    1.0,
+    0.0
+   ],
+   "stamp_rate_by_odds_band": {
+    "0.0-0.3": [
+     null,
+     0
+    ],
+    "0.3-0.5": [
+     null,
+     0
+    ],
+    "0.5-0.7": [
+     null,
+     0
+    ],
+    "0.7-1.0": [
+     null,
+     0
+    ],
+    "pinned": [
+     0.0,
+     1714
+    ]
+   },
+   "slot_suspensions": [
+    0.0,
+    0.0
+   ],
+   "admissions_seen": [
+    0.0,
+    0.0
+   ],
+   "ticks_between_admissions_mean": [
+    NaN,
+    NaN
+   ],
+   "false_approvals_per_suspension": null,
+   "learner_identities": [
+    1.0,
+    0.0
+   ],
+   "learner_returns": [
+    0.0,
+    0.0
+   ],
+   "learner_leaves_chosen": [
+    0.0,
+    0.0
+   ],
+   "learner_leaves_refused": [
+    0.0,
+    0.0
+   ],
+   "learner_float_minted_real": [
+    0.0,
+    0.0
+   ],
+   "learner_departed_now": [
+    0.0,
+    0.0
+   ],
+   "boundary_decisions": [
+    4.0,
+    0.0
+   ],
+   "leaves_chosen": [
+    0.0,
+    0.0
+   ],
+   "idle_for_bond_ticks": [
+    233.0,
+    37.042152375794515
+   ],
+   "idle_for_bond_names": [
+    12.35,
+    0.3346246915733002
+   ],
+   "pred_vs_realized": {
+    "0": {
+     "n": 1714,
+     "realized_mean": 10.193805482669273,
+     "attributed_mean": 0.11220405538462075,
+     "pred_r_mean": null,
+     "pred_r_taken_mean": null,
+     "plan_cost_mean": null
+    },
+    "1": {
+     "n": 0,
+     "realized_mean": null,
+     "attributed_mean": null,
+     "pred_r_mean": null,
+     "pred_r_taken_mean": null,
+     "plan_cost_mean": null
+    },
+    "2": {
+     "n": 0,
+     "realized_mean": null,
+     "attributed_mean": null,
+     "pred_r_mean": null,
+     "pred_r_taken_mean": null,
+     "plan_cost_mean": null
+    }
+   }
+  },
+  "stamper": {
+   "lifetime_real_wealth": [
+    1941.3261593116836,
+    102.73654635621922
+   ],
+   "decisions": [
+    100.1,
+    2.179932398758708
+   ],
+   "care_share": [
+    0.0,
+    0.0
+   ],
+   "approve_blind_share": [
+    1.0,
+    0.0
+   ],
+   "reject_blind_share": [
+    0.0,
+    0.0
+   ],
+   "false_approvals_run": [
+    205.25,
+    7.182169075674768
+   ],
+   "learner_false_approvals": [
+    18.1,
+    1.1740617754750298
+   ],
+   "suspensions_run": [
+    0.0,
+    0.0
+   ],
+   "slot_departed": [
+    0.0,
+    0.0
+   ],
+   "plant_stamp_rate": 0.0,
+   "real_stamp_rate": 1.0,
+   "odds_at_stamps_mean": [
+    1.0,
+    0.0
+   ],
+   "odds_at_cares_mean": [
+    NaN,
+    NaN
+   ],
+   "stamp_rate_by_odds_band": {
+    "0.0-0.3": [
+     null,
+     0
+    ],
+    "0.3-0.5": [
+     null,
+     0
+    ],
+    "0.5-0.7": [
+     null,
+     0
+    ],
+    "0.7-1.0": [
+     null,
+     0
+    ],
+    "pinned": [
+     1.0,
+     2002
+    ]
+   },
+   "slot_suspensions": [
+    0.0,
+    0.0
+   ],
+   "admissions_seen": [
+    0.0,
+    0.0
+   ],
+   "ticks_between_admissions_mean": [
+    NaN,
+    NaN
+   ],
+   "false_approvals_per_suspension": null,
+   "learner_identities": [
+    1.0,
+    0.0
+   ],
+   "learner_returns": [
+    0.0,
+    0.0
+   ],
+   "learner_leaves_chosen": [
+    0.0,
+    0.0
+   ],
+   "learner_leaves_refused": [
+    0.0,
+    0.0
+   ],
+   "learner_float_minted_real": [
+    0.0,
+    0.0
+   ],
+   "learner_departed_now": [
+    0.0,
+    0.0
+   ],
+   "boundary_decisions": [
+    4.0,
+    0.0
+   ],
+   "leaves_chosen": [
+    0.0,
+    0.0
+   ],
+   "idle_for_bond_ticks": [
+    181.1,
+    39.053869678203526
+   ],
+   "idle_for_bond_names": [
+    11.6,
+    0.3727564465184373
+   ],
+   "pred_vs_realized": {
+    "0": {
+     "n": 0,
+     "realized_mean": null,
+     "attributed_mean": null,
+     "pred_r_mean": null,
+     "pred_r_taken_mean": null,
+     "plan_cost_mean": null
+    },
+    "1": {
+     "n": 2002,
+     "realized_mean": 14.478169386677873,
+     "attributed_mean": 4.627690352189691,
+     "pred_r_mean": null,
+     "pred_r_taken_mean": null,
+     "plan_cost_mean": null
+    },
+    "2": {
+     "n": 0,
+     "realized_mean": null,
+     "attributed_mean": null,
+     "pred_r_mean": null,
+     "pred_r_taken_mean": null,
+     "plan_cost_mean": null
+    }
+   },
+   "paired_minus_careful": [
+    732.789511615387,
+    119.40155434517622
+   ]
+  }
+ },
+ "episodes": {
+  "learned": [
+   {
+    "seed": 21,
+    "decisions": 99,
+    "lifetime_real_wealth": 1875.1145038728362,
+    "odds_at_stamps_mean": 1.0,
+    "odds_at_cares_mean": 1.0,
+    "stamps_by_odds_band": {
+     "0.0-0.3": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.3-0.5": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.5-0.7": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.7-1.0": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "pinned": {
+      "decisions": 99,
+      "stamps": 58
+     }
+    },
+    "suspensions_seen": 0,
+    "admissions_seen": 0,
+    "ticks_between_admissions_mean": null,
+    "stamps_while_member": 58,
+    "stamps_while_not_member": 0,
+    "boundary_decisions": 4,
+    "leaves_chosen": 1,
+    "pred_vs_realized": {
+     "0": {
+      "n": 25,
+      "realized_mean": 26.071129712671688,
+      "attributed_mean": 0.9315125393219971,
+      "pred_r_mean": 1.4753861529752612,
+      "pred_r_taken_mean": 1.5261199617385863,
+      "plan_cost_mean": -227.3537668555674
+     },
+     "1": {
+      "n": 58,
+      "realized_mean": 11.11092545507872,
+      "attributed_mean": 5.401723698245667,
+      "pred_r_mean": 4.207180039449171,
+      "pred_r_taken_mean": 4.634396190273351,
+      "plan_cost_mean": -227.94229320564656
+     },
+     "2": {
+      "n": 16,
+      "realized_mean": 3.968023237147335,
+      "attributed_mean": -2.0099350620672443,
+      "pred_r_mean": -1.3615778067497293,
+      "pred_r_taken_mean": -0.9193110774504021,
+      "plan_cost_mean": -203.23664813571506
+     }
+    },
+    "attributed_sum": 1748.0257952371046,
+    "attribution": {
+     "by_source": {
+      "review_fee": 158.96645114852453,
+      "emission": 257.4844483061306,
+      "bond_lost": -55.0,
+      "effort_cost": -722.6387068832495,
+      "delivery_price": 2393.866281427803,
+      "guarantee_lost": -227.63060629567408,
+      "court_fee": 0.0,
+      "care_cost": -183.42333544254865,
+      "reimbursement": 126.40126297611619
+     },
+     "boundary_by_source": {
+      "effort_cost": -722.6387068832495,
+      "delivery_price": 2393.866281427803,
+      "guarantee_lost": -227.63060629567408,
+      "court_fee": 0.0
+     },
+     "boundary_real": 1443.5969682488844,
+     "boundary_decisions": 4,
+     "pre_boundary_real": 335.90505406924837,
+     "suspension_charges": [],
+     "work_side": false
+    },
+    "slot_suspensions": 0,
+    "learner_identities": 1,
+    "learner_returns": 0,
+    "learner_leaves_chosen": 0,
+    "learner_leaves_refused": 1,
+    "learner_float_minted_real": 0.0,
+    "learner_lifetime_real": 1875.115,
+    "learner_departed_now": 0,
+    "care_share": 0.25252525252525254,
+    "approve_blind_share": 0.5858585858585859,
+    "reject_blind_share": 0.16161616161616163,
+    "plants_seen": 0,
+    "plants_stamped": 0,
+    "real_seen": 99,
+    "real_stamped": 74,
+    "false_approvals_run": 207,
+    "learner_false_approvals": 13,
+    "slot_departed": 0,
+    "slot_rho": 0.8039,
+    "slot_plant_failures": 0.0,
+    "suspensions_run": 0,
+    "idle_for_bond_ticks": 57,
+    "idle_for_bond_names": 8,
+    "error": null
+   },
+   {
+    "seed": 22,
+    "decisions": 102,
+    "lifetime_real_wealth": 1704.818398683206,
+    "odds_at_stamps_mean": 1.0,
+    "odds_at_cares_mean": 1.0,
+    "stamps_by_odds_band": {
+     "0.0-0.3": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.3-0.5": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.5-0.7": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.7-1.0": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "pinned": {
+      "decisions": 102,
+      "stamps": 50
+     }
+    },
+    "suspensions_seen": 0,
+    "admissions_seen": 0,
+    "ticks_between_admissions_mean": null,
+    "stamps_while_member": 50,
+    "stamps_while_not_member": 0,
+    "boundary_decisions": 4,
+    "leaves_chosen": 2,
+    "pred_vs_realized": {
+     "0": {
+      "n": 31,
+      "realized_mean": -5.047738318084527,
+      "attributed_mean": 0.2848910582300964,
+      "pred_r_mean": 2.1237010175690934,
+      "pred_r_taken_mean": 1.442768425230057,
+      "plan_cost_mean": -188.9710201328876
+     },
+     "1": {
+      "n": 50,
+      "realized_mean": 22.822533787693224,
+      "attributed_mean": 4.910585446223448,
+      "pred_r_mean": 5.935249002869515,
+      "pred_r_taken_mean": 7.407067563533783,
+      "plan_cost_mean": -189.7441938145488
+     },
+     "2": {
+      "n": 21,
+      "realized_mean": 14.850531844696315,
+      "attributed_mean": -4.238898159046738,
+      "pred_r_mean": -1.2180626488053332,
+      "pred_r_taken_mean": -0.6109631969815209,
+      "plan_cost_mean": -171.8833392835131
+     }
+    },
+    "attributed_sum": 1641.3813537189058,
+    "attribution": {
+     "by_source": {
+      "review_fee": 148.19555686217623,
+      "emission": 217.81158279636844,
+      "care_cost": -253.39752238571106,
+      "reimbursement": 153.59856814914207,
+      "delivery_price": 2232.3618743125885,
+      "effort_cost": -623.2005659654466,
+      "guarantee_lost": -133.12398840455876,
+      "bond_lost": -100.86415164565179,
+      "court_fee": 0.0
+     },
+     "boundary_by_source": {
+      "delivery_price": 2232.3618743125885,
+      "effort_cost": -623.2005659654466,
+      "guarantee_lost": -133.12398840455876,
+      "court_fee": 0.0
+     },
+     "boundary_real": 1476.0373199425792,
+     "boundary_decisions": 4,
+     "pre_boundary_real": 149.7705805145095,
+     "suspension_charges": [],
+     "work_side": false
+    },
+    "slot_suspensions": 0,
+    "learner_identities": 1,
+    "learner_returns": 0,
+    "learner_leaves_chosen": 0,
+    "learner_leaves_refused": 2,
+    "learner_float_minted_real": 0.0,
+    "learner_lifetime_real": 1704.818,
+    "learner_departed_now": 0,
+    "care_share": 0.30392156862745096,
+    "approve_blind_share": 0.49019607843137253,
+    "reject_blind_share": 0.20588235294117646,
+    "plants_seen": 0,
+    "plants_stamped": 0,
+    "real_seen": 102,
+    "real_stamped": 71,
+    "false_approvals_run": 190,
+    "learner_false_approvals": 8,
+    "slot_departed": 0,
+    "slot_rho": 0.7549,
+    "slot_plant_failures": 0.0,
+    "suspensions_run": 0,
+    "idle_for_bond_ticks": 80,
+    "idle_for_bond_names": 13,
+    "error": null
+   },
+   {
+    "seed": 23,
+    "decisions": 91,
+    "lifetime_real_wealth": 1183.8363663383236,
+    "odds_at_stamps_mean": 1.0,
+    "odds_at_cares_mean": 1.0,
+    "stamps_by_odds_band": {
+     "0.0-0.3": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.3-0.5": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.5-0.7": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.7-1.0": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "pinned": {
+      "decisions": 91,
+      "stamps": 40
+     }
+    },
+    "suspensions_seen": 0,
+    "admissions_seen": 0,
+    "ticks_between_admissions_mean": null,
+    "stamps_while_member": 40,
+    "stamps_while_not_member": 0,
+    "boundary_decisions": 4,
+    "leaves_chosen": 2,
+    "pred_vs_realized": {
+     "0": {
+      "n": 32,
+      "realized_mean": 16.9018510898252,
+      "attributed_mean": 1.2908681571191643,
+      "pred_r_mean": 0.6981600474893719,
+      "pred_r_taken_mean": 0.645775944518391,
+      "plan_cost_mean": -224.40650562663654
+     },
+     "1": {
+      "n": 40,
+      "realized_mean": 2.156366653793969,
+      "attributed_mean": 4.720885974155455,
+      "pred_r_mean": 4.042869263379783,
+      "pred_r_taken_mean": 4.668184435367584,
+      "plan_cost_mean": -221.56797107235417
+     },
+     "2": {
+      "n": 19,
+      "realized_mean": 23.786501819856664,
+      "attributed_mean": -2.934265443678767,
+      "pred_r_mean": 0.7573071093436659,
+      "pred_r_taken_mean": 2.7292513301914654,
+      "plan_cost_mean": -204.2538069001921
+     }
+    },
+    "attributed_sum": 1051.995564004362,
+    "attribution": {
+     "by_source": {
+      "review_fee": 135.84002992513294,
+      "emission": 214.01899570864802,
+      "bond_lost": -70.73102585144753,
+      "care_cost": -263.4275900832677,
+      "reimbursement": 158.69176686506938,
+      "effort_cost": -433.5389619441365,
+      "delivery_price": 1415.213005662778,
+      "guarantee_lost": -104.0706562784136,
+      "court_fee": 0.0
+     },
+     "boundary_by_source": {
+      "effort_cost": -433.5389619441365,
+      "delivery_price": 1415.213005662778,
+      "guarantee_lost": -104.0706562784136,
+      "court_fee": 0.0
+     },
+     "boundary_real": 877.6033874402273,
+     "boundary_decisions": 4,
+     "pre_boundary_real": 74.28744795368303,
+     "suspension_charges": [],
+     "work_side": false
+    },
+    "slot_suspensions": 0,
+    "learner_identities": 1,
+    "learner_returns": 0,
+    "learner_leaves_chosen": 1,
+    "learner_leaves_refused": 1,
+    "learner_float_minted_real": 0.0,
+    "learner_lifetime_real": 1183.836,
+    "learner_departed_now": 1,
+    "care_share": 0.3516483516483517,
+    "approve_blind_share": 0.43956043956043955,
+    "reject_blind_share": 0.2087912087912088,
+    "plants_seen": 0,
+    "plants_stamped": 0,
+    "real_seen": 91,
+    "real_stamped": 59,
+    "false_approvals_run": 230,
+    "learner_false_approvals": 6,
+    "slot_departed": 1,
+    "slot_rho": "",
+    "slot_plant_failures": 0.0,
+    "suspensions_run": 0,
+    "idle_for_bond_ticks": 154,
+    "idle_for_bond_names": 15,
+    "error": null
+   },
+   {
+    "seed": 24,
+    "decisions": 100,
+    "lifetime_real_wealth": 1561.6443593495744,
+    "odds_at_stamps_mean": 1.0,
+    "odds_at_cares_mean": 1.0,
+    "stamps_by_odds_band": {
+     "0.0-0.3": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.3-0.5": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.5-0.7": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.7-1.0": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "pinned": {
+      "decisions": 100,
+      "stamps": 47
+     }
+    },
+    "suspensions_seen": 0,
+    "admissions_seen": 0,
+    "ticks_between_admissions_mean": null,
+    "stamps_while_member": 47,
+    "stamps_while_not_member": 0,
+    "boundary_decisions": 4,
+    "leaves_chosen": 2,
+    "pred_vs_realized": {
+     "0": {
+      "n": 48,
+      "realized_mean": 15.088070911927735,
+      "attributed_mean": 0.29201719430542133,
+      "pred_r_mean": 0.3879674758351757,
+      "pred_r_taken_mean": 0.7028184522951051,
+      "plan_cost_mean": -186.46767400741578
+     },
+     "1": {
+      "n": 47,
+      "realized_mean": 6.298890815308478,
+      "attributed_mean": 5.4131444212417925,
+      "pred_r_mean": 4.276157152056694,
+      "pred_r_taken_mean": 4.401398794131076,
+      "plan_cost_mean": -174.34178292274476
+     },
+     "2": {
+      "n": 5,
+      "realized_mean": 15.010987634551691,
+      "attributed_mean": -1.2255461115327553,
+      "pred_r_mean": -1.9558357425779105,
+      "pred_r_taken_mean": 1.8564067959785462,
+      "plan_cost_mean": -155.57631762981416
+     }
+    },
+    "attributed_sum": 1560.9034202494772,
+    "attribution": {
+     "by_source": {
+      "review_fee": 180.5505559941192,
+      "emission": 251.98500178060127,
+      "bond_lost": -19.071160697585018,
+      "effort_cost": -801.2863427014365,
+      "delivery_price": 2199.574475795638,
+      "guarantee_lost": -99.69159541208403,
+      "care_cost": -391.2171017181321,
+      "reimbursement": 240.05958720835704,
+      "court_fee": 0.0
+     },
+     "boundary_by_source": {
+      "effort_cost": -801.2863427014365,
+      "delivery_price": 2199.574475795638,
+      "guarantee_lost": -99.69159541208403,
+      "court_fee": 0.0
+     },
+     "boundary_real": 1298.5965376821193,
+     "boundary_decisions": 4,
+     "pre_boundary_real": 36.91918354105018,
+     "suspension_charges": [],
+     "work_side": false
+    },
+    "slot_suspensions": 0,
+    "learner_identities": 1,
+    "learner_returns": 0,
+    "learner_leaves_chosen": 0,
+    "learner_leaves_refused": 2,
+    "learner_float_minted_real": 0.0,
+    "learner_lifetime_real": 1561.644,
+    "learner_departed_now": 0,
+    "care_share": 0.48,
+    "approve_blind_share": 0.47,
+    "reject_blind_share": 0.05,
+    "plants_seen": 0,
+    "plants_stamped": 0,
+    "real_seen": 100,
+    "real_stamped": 52,
+    "false_approvals_run": 226,
+    "learner_false_approvals": 8,
+    "slot_departed": 0,
+    "slot_rho": 0.9216,
+    "slot_plant_failures": 0.0,
+    "suspensions_run": 0,
+    "idle_for_bond_ticks": 147,
+    "idle_for_bond_names": 14,
+    "error": null
+   },
+   {
+    "seed": 25,
+    "decisions": 107,
+    "lifetime_real_wealth": 1755.4838158360774,
+    "odds_at_stamps_mean": 1.0,
+    "odds_at_cares_mean": 1.0,
+    "stamps_by_odds_band": {
+     "0.0-0.3": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.3-0.5": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.5-0.7": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.7-1.0": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "pinned": {
+      "decisions": 107,
+      "stamps": 43
+     }
+    },
+    "suspensions_seen": 0,
+    "admissions_seen": 0,
+    "ticks_between_admissions_mean": null,
+    "stamps_while_member": 43,
+    "stamps_while_not_member": 0,
+    "boundary_decisions": 4,
+    "leaves_chosen": 0,
+    "pred_vs_realized": {
+     "0": {
+      "n": 34,
+      "realized_mean": -0.6451964754337747,
+      "attributed_mean": 0.8604462256199321,
+      "pred_r_mean": 2.8855788559417856,
+      "pred_r_taken_mean": 3.9851090658236954,
+      "plan_cost_mean": -207.02280704106127
+     },
+     "1": {
+      "n": 43,
+      "realized_mean": 25.119477127448388,
+      "attributed_mean": 5.22708148745454,
+      "pred_r_mean": 6.841244137175729,
+      "pred_r_taken_mean": 6.744586146155069,
+      "plan_cost_mean": -203.71401884845483
+     },
+     "2": {
+      "n": 30,
+      "realized_mean": 10.72331854394414,
+      "attributed_mean": -3.5775084210612054,
+      "pred_r_mean": 0.45915534535301067,
+      "pred_r_taken_mean": 0.7706763823827107,
+      "plan_cost_mean": -194.03745619158877
+     }
+    },
+    "attributed_sum": 1627.421696492084,
+    "attribution": {
+     "by_source": {
+      "review_fee": 147.54283406421993,
+      "emission": 235.34410963705977,
+      "bond_lost": -131.69056566211322,
+      "care_cost": -273.10093006364076,
+      "reimbursement": 168.59897502426088,
+      "effort_cost": -475.12313236298155,
+      "delivery_price": 2098.0620059211446,
+      "court_fee": 0.0,
+      "guarantee_lost": -142.21160006586408
+     },
+     "boundary_by_source": {
+      "effort_cost": -475.12313236298155,
+      "delivery_price": 2098.0620059211446,
+      "court_fee": 0.0,
+      "guarantee_lost": -142.21160006586408
+     },
+     "boundary_real": 1480.7272734922967,
+     "boundary_decisions": 4,
+     "pre_boundary_real": 202.10392261961493,
+     "suspension_charges": [],
+     "work_side": false
+    },
+    "slot_suspensions": 0,
+    "learner_identities": 1,
+    "learner_returns": 0,
+    "learner_leaves_chosen": 0,
+    "learner_leaves_refused": 0,
+    "learner_float_minted_real": 0.0,
+    "learner_lifetime_real": 1755.484,
+    "learner_departed_now": 0,
+    "care_share": 0.3177570093457944,
+    "approve_blind_share": 0.40186915887850466,
+    "reject_blind_share": 0.2803738317757009,
+    "plants_seen": 0,
+    "plants_stamped": 0,
+    "real_seen": 107,
+    "real_stamped": 73,
+    "false_approvals_run": 201,
+    "learner_false_approvals": 8,
+    "slot_departed": 0,
+    "slot_rho": 0.7647,
+    "slot_plant_failures": 0.0,
+    "suspensions_run": 0,
+    "idle_for_bond_ticks": 75,
+    "idle_for_bond_names": 13,
+    "error": null
+   },
+   {
+    "seed": 26,
+    "decisions": 14,
+    "lifetime_real_wealth": 105.07560630555231,
+    "odds_at_stamps_mean": 1.0,
+    "odds_at_cares_mean": 1.0,
+    "stamps_by_odds_band": {
+     "0.0-0.3": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.3-0.5": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.5-0.7": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.7-1.0": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "pinned": {
+      "decisions": 14,
+      "stamps": 13
+     }
+    },
+    "suspensions_seen": 0,
+    "admissions_seen": 0,
+    "ticks_between_admissions_mean": null,
+    "stamps_while_member": 13,
+    "stamps_while_not_member": 0,
+    "boundary_decisions": 1,
+    "leaves_chosen": 1,
+    "pred_vs_realized": {
+     "0": {
+      "n": 0,
+      "realized_mean": null,
+      "attributed_mean": null,
+      "pred_r_mean": 7.180588381631034,
+      "pred_r_taken_mean": null,
+      "plan_cost_mean": -283.5593272617885
+     },
+     "1": {
+      "n": 13,
+      "realized_mean": 4.236585100427101,
+      "attributed_mean": 6.452910337448477,
+      "pred_r_mean": 10.439955915723528,
+      "pred_r_taken_mean": 10.764879593482384,
+      "plan_cost_mean": -298.38724299839566
+     },
+     "2": {
+      "n": 1,
+      "realized_mean": 0.0,
+      "attributed_mean": -5.0,
+      "pred_r_mean": 2.0621372876422748,
+      "pred_r_taken_mean": -4.882909297943115,
+      "plan_cost_mean": -263.89675685337613
+     }
+    },
+    "attributed_sum": 78.8878343868302,
+    "attribution": {
+     "by_source": {
+      "review_fee": 32.26033622685716,
+      "emission": 51.62749815997303,
+      "bond_lost": -5.0
+     },
+     "boundary_by_source": {},
+     "boundary_real": 0.0,
+     "boundary_decisions": 1,
+     "pre_boundary_real": -0.10234400798755061,
+     "suspension_charges": [],
+     "work_side": false
+    },
+    "slot_suspensions": 0,
+    "learner_identities": 1,
+    "learner_returns": 0,
+    "learner_leaves_chosen": 1,
+    "learner_leaves_refused": 0,
+    "learner_float_minted_real": 0.0,
+    "learner_lifetime_real": 105.076,
+    "learner_departed_now": 1,
+    "care_share": 0.0,
+    "approve_blind_share": 0.9285714285714286,
+    "reject_blind_share": 0.07142857142857142,
+    "plants_seen": 0,
+    "plants_stamped": 0,
+    "real_seen": 14,
+    "real_stamped": 14,
+    "false_approvals_run": 223,
+    "learner_false_approvals": 1,
+    "slot_departed": 1,
+    "slot_rho": "",
+    "slot_plant_failures": 0.0,
+    "suspensions_run": 0,
+    "idle_for_bond_ticks": 127,
+    "idle_for_bond_names": 14,
+    "error": null
+   },
+   {
+    "seed": 27,
+    "decisions": 120,
+    "lifetime_real_wealth": 1749.9715991089001,
+    "odds_at_stamps_mean": 1.0,
+    "odds_at_cares_mean": 1.0,
+    "stamps_by_odds_band": {
+     "0.0-0.3": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.3-0.5": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.5-0.7": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.7-1.0": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "pinned": {
+      "decisions": 120,
+      "stamps": 58
+     }
+    },
+    "suspensions_seen": 0,
+    "admissions_seen": 0,
+    "ticks_between_admissions_mean": null,
+    "stamps_while_member": 58,
+    "stamps_while_not_member": 0,
+    "boundary_decisions": 4,
+    "leaves_chosen": 1,
+    "pred_vs_realized": {
+     "0": {
+      "n": 44,
+      "realized_mean": -2.05475640714954,
+      "attributed_mean": -0.23633138303229995,
+      "pred_r_mean": 2.4343798900799203,
+      "pred_r_taken_mean": 1.6002677606249398,
+      "plan_cost_mean": -232.02970746358235
+     },
+     "1": {
+      "n": 58,
+      "realized_mean": 20.194670135779624,
+      "attributed_mean": 4.953734502973586,
+      "pred_r_mean": 5.891803234567245,
+      "pred_r_taken_mean": 7.0890879353572585,
+      "plan_cost_mean": -221.37695121765137
+     },
+     "2": {
+      "n": 18,
+      "realized_mean": 19.132576796316496,
+      "attributed_mean": -4.211622337228617,
+      "pred_r_mean": 0.03768748064758256,
+      "pred_r_taken_mean": -0.16281317919492722,
+      "plan_cost_mean": -214.01782744725546
+     }
+    },
+    "attributed_sum": 1448.1040308669985,
+    "attribution": {
+     "by_source": {
+      "review_fee": 175.72171894095771,
+      "emission": 253.13789536034403,
+      "care_cost": -355.0182538063742,
+      "reimbursement": 218.43845264272323,
+      "bond_lost": -91.17099488871955,
+      "delivery_price": 2224.049295712235,
+      "effort_cost": -808.7680306565524,
+      "guarantee_lost": -168.28605243761385
+     },
+     "boundary_by_source": {
+      "delivery_price": 2224.049295712235,
+      "effort_cost": -808.7680306565524,
+      "guarantee_lost": -168.28605243761385
+     },
+     "boundary_real": 1246.99521261807,
+     "boundary_decisions": 4,
+     "pre_boundary_real": 433.21484271630624,
+     "suspension_charges": [],
+     "work_side": false
+    },
+    "slot_suspensions": 0,
+    "learner_identities": 1,
+    "learner_returns": 0,
+    "learner_leaves_chosen": 0,
+    "learner_leaves_refused": 1,
+    "learner_float_minted_real": 0.0,
+    "learner_lifetime_real": 1749.972,
+    "learner_departed_now": 0,
+    "care_share": 0.36666666666666664,
+    "approve_blind_share": 0.48333333333333334,
+    "reject_blind_share": 0.15,
+    "plants_seen": 0,
+    "plants_stamped": 0,
+    "real_seen": 120,
+    "real_stamped": 76,
+    "false_approvals_run": 201,
+    "learner_false_approvals": 12,
+    "slot_departed": 0,
+    "slot_rho": 0.8235,
+    "slot_plant_failures": 0.0,
+    "suspensions_run": 0,
+    "idle_for_bond_ticks": 125,
+    "idle_for_bond_names": 12,
+    "error": null
+   },
+   {
+    "seed": 28,
+    "decisions": 116,
+    "lifetime_real_wealth": 1267.4067275035777,
+    "odds_at_stamps_mean": 1.0,
+    "odds_at_cares_mean": 1.0,
+    "stamps_by_odds_band": {
+     "0.0-0.3": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.3-0.5": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.5-0.7": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.7-1.0": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "pinned": {
+      "decisions": 116,
+      "stamps": 76
+     }
+    },
+    "suspensions_seen": 0,
+    "admissions_seen": 0,
+    "ticks_between_admissions_mean": null,
+    "stamps_while_member": 76,
+    "stamps_while_not_member": 0,
+    "boundary_decisions": 4,
+    "leaves_chosen": 3,
+    "pred_vs_realized": {
+     "0": {
+      "n": 12,
+      "realized_mean": -1.1507931498877422,
+      "attributed_mean": -0.7720610493642802,
+      "pred_r_mean": 0.666958405186647,
+      "pred_r_taken_mean": 1.9842945883671443,
+      "plan_cost_mean": -229.8075726278897
+     },
+     "1": {
+      "n": 76,
+      "realized_mean": 12.98595328015501,
+      "attributed_mean": 5.482073284091264,
+      "pred_r_mean": 4.982239855260684,
+      "pred_r_taken_mean": 5.189866333415634,
+      "plan_cost_mean": -241.1488977958416
+     },
+     "2": {
+      "n": 28,
+      "realized_mean": -2.388449502006588,
+      "attributed_mean": -2.9402759922249415,
+      "pred_r_mean": -1.1569074158845791,
+      "pred_r_taken_mean": -0.9240758482898984,
+      "plan_cost_mean": -208.3732235349458
+     }
+    },
+    "attributed_sum": 1617.0078071773826,
+    "attribution": {
+     "by_source": {
+      "review_fee": 204.60159433450667,
+      "emission": 297.81738247722944,
+      "effort_cost": -910.6309700311207,
+      "delivery_price": 2367.2888472038953,
+      "court_fee": 0.0,
+      "care_cost": -132.37386759546965,
+      "reimbursement": 60.0,
+      "guarantee_lost": -164.69517921165763,
+      "bond_lost": -105.0
+     },
+     "boundary_by_source": {
+      "effort_cost": -910.6309700311207,
+      "delivery_price": 2367.2888472038953,
+      "court_fee": 0.0,
+      "guarantee_lost": -164.69517921165763
+     },
+     "boundary_real": 1291.9626979611169,
+     "boundary_decisions": 4,
+     "pre_boundary_real": 43.1178565202387,
+     "suspension_charges": [],
+     "work_side": false
+    },
+    "slot_suspensions": 0,
+    "learner_identities": 1,
+    "learner_returns": 0,
+    "learner_leaves_chosen": 0,
+    "learner_leaves_refused": 3,
+    "learner_float_minted_real": 0.0,
+    "learner_lifetime_real": 1267.407,
+    "learner_departed_now": 0,
+    "care_share": 0.10344827586206896,
+    "approve_blind_share": 0.6551724137931034,
+    "reject_blind_share": 0.2413793103448276,
+    "plants_seen": 0,
+    "plants_stamped": 0,
+    "real_seen": 116,
+    "real_stamped": 104,
+    "false_approvals_run": 221,
+    "learner_false_approvals": 12,
+    "slot_departed": 0,
+    "slot_rho": 0.6961,
+    "slot_plant_failures": 0.0,
+    "suspensions_run": 0,
+    "idle_for_bond_ticks": 271,
+    "idle_for_bond_names": 13,
+    "error": null
+   },
+   {
+    "seed": 29,
+    "decisions": 103,
+    "lifetime_real_wealth": 2234.5179071325265,
+    "odds_at_stamps_mean": 1.0,
+    "odds_at_cares_mean": 1.0,
+    "stamps_by_odds_band": {
+     "0.0-0.3": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.3-0.5": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.5-0.7": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.7-1.0": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "pinned": {
+      "decisions": 103,
+      "stamps": 46
+     }
+    },
+    "suspensions_seen": 0,
+    "admissions_seen": 0,
+    "ticks_between_admissions_mean": null,
+    "stamps_while_member": 46,
+    "stamps_while_not_member": 0,
+    "boundary_decisions": 4,
+    "leaves_chosen": 0,
+    "pred_vs_realized": {
+     "0": {
+      "n": 30,
+      "realized_mean": 20.292185238557135,
+      "attributed_mean": 1.041293517293629,
+      "pred_r_mean": 1.716223847970945,
+      "pred_r_taken_mean": 2.1220474846661093,
+      "plan_cost_mean": -218.89047964336802
+     },
+     "1": {
+      "n": 46,
+      "realized_mean": 10.433328921213418,
+      "attributed_mean": 4.321820556709451,
+      "pred_r_mean": 4.8059344905094035,
+      "pred_r_taken_mean": 5.640107042115668,
+      "plan_cost_mean": -213.128920281975
+     },
+     "2": {
+      "n": 27,
+      "realized_mean": 25.93638749430929,
+      "attributed_mean": -2.522657737311168,
+      "pred_r_mean": 0.661200364816536,
+      "pred_r_taken_mean": 1.9574319350498695,
+      "plan_cost_mean": -198.48207552224687
+     }
+    },
+    "attributed_sum": 1801.5273720680718,
+    "attribution": {
+     "by_source": {
+      "review_fee": 138.89443887944512,
+      "emission": 207.23456268251874,
+      "bond_lost": -100.0,
+      "care_cost": -235.32766139083878,
+      "reimbursement": 151.12945204891707,
+      "effort_cost": -380.6284010895447,
+      "guarantee_lost": -147.226554164502,
+      "delivery_price": 2167.4515351020773,
+      "court_fee": 0.0
+     },
+     "boundary_by_source": {
+      "effort_cost": -380.6284010895447,
+      "guarantee_lost": -147.226554164502,
+      "delivery_price": 2167.4515351020773,
+      "court_fee": 0.0
+     },
+     "boundary_real": 1639.59657984803,
+     "boundary_decisions": 4,
+     "pre_boundary_real": 476.67852756391187,
+     "suspension_charges": [],
+     "work_side": false
+    },
+    "slot_suspensions": 0,
+    "learner_identities": 1,
+    "learner_returns": 0,
+    "learner_leaves_chosen": 0,
+    "learner_leaves_refused": 0,
+    "learner_float_minted_real": 0.0,
+    "learner_lifetime_real": 2234.518,
+    "learner_departed_now": 0,
+    "care_share": 0.2912621359223301,
+    "approve_blind_share": 0.44660194174757284,
+    "reject_blind_share": 0.2621359223300971,
+    "plants_seen": 0,
+    "plants_stamped": 0,
+    "real_seen": 103,
+    "real_stamped": 73,
+    "false_approvals_run": 169,
+    "learner_false_approvals": 11,
+    "slot_departed": 0,
+    "slot_rho": 0.7451,
+    "slot_plant_failures": 0.0,
+    "suspensions_run": 0,
+    "idle_for_bond_ticks": 357,
+    "idle_for_bond_names": 15,
+    "error": null
+   },
+   {
+    "seed": 30,
+    "decisions": 23,
+    "lifetime_real_wealth": 125.94148017960649,
+    "odds_at_stamps_mean": 1.0,
+    "odds_at_cares_mean": 1.0,
+    "stamps_by_odds_band": {
+     "0.0-0.3": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.3-0.5": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.5-0.7": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.7-1.0": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "pinned": {
+      "decisions": 23,
+      "stamps": 16
+     }
+    },
+    "suspensions_seen": 0,
+    "admissions_seen": 0,
+    "ticks_between_admissions_mean": null,
+    "stamps_while_member": 16,
+    "stamps_while_not_member": 0,
+    "boundary_decisions": 1,
+    "leaves_chosen": 1,
+    "pred_vs_realized": {
+     "0": {
+      "n": 1,
+      "realized_mean": -3.0,
+      "attributed_mean": 2.0524456213937543,
+      "pred_r_mean": 2.988254567851191,
+      "pred_r_taken_mean": 2.096541166305542,
+      "plan_cost_mean": -199.34781613557234
+     },
+     "1": {
+      "n": 16,
+      "realized_mean": 4.083822033211051,
+      "attributed_mean": 5.752240517620995,
+      "pred_r_mean": 5.437853482754334,
+      "pred_r_taken_mean": 5.107562245801091,
+      "plan_cost_mean": -220.03773365850034
+     },
+     "2": {
+      "n": 6,
+      "realized_mean": 2.2667212747049454,
+      "attributed_mean": -1.9083002512143077,
+      "pred_r_mean": 0.32920281823886477,
+      "pred_r_taken_mean": 2.8747929533322654,
+      "plan_cost_mean": -179.19247337009597
+     }
+    },
+    "attributed_sum": 82.63849239604383,
+    "attribution": {
+     "by_source": {
+      "review_fee": 40.72226067367607,
+      "emission": 64.91623172236778,
+      "care_cost": -8.0,
+      "reimbursement": 5.0,
+      "bond_lost": -20.0
+     },
+     "boundary_by_source": {},
+     "boundary_real": 0.0,
+     "boundary_decisions": 1,
+     "pre_boundary_real": 27.598200000000002,
+     "suspension_charges": [],
+     "work_side": false
+    },
+    "slot_suspensions": 0,
+    "learner_identities": 1,
+    "learner_returns": 0,
+    "learner_leaves_chosen": 1,
+    "learner_leaves_refused": 0,
+    "learner_float_minted_real": 0.0,
+    "learner_lifetime_real": 125.941,
+    "learner_departed_now": 1,
+    "care_share": 0.043478260869565216,
+    "approve_blind_share": 0.6956521739130435,
+    "reject_blind_share": 0.2608695652173913,
+    "plants_seen": 0,
+    "plants_stamped": 0,
+    "real_seen": 23,
+    "real_stamped": 22,
+    "false_approvals_run": 202,
+    "learner_false_approvals": 5,
+    "slot_departed": 1,
+    "slot_rho": "",
+    "slot_plant_failures": 0.0,
+    "suspensions_run": 0,
+    "idle_for_bond_ticks": 239,
+    "idle_for_bond_names": 10,
+    "error": null
+   },
+   {
+    "seed": 31,
+    "decisions": 114,
+    "lifetime_real_wealth": 1448.681590660208,
+    "odds_at_stamps_mean": 1.0,
+    "odds_at_cares_mean": 1.0,
+    "stamps_by_odds_band": {
+     "0.0-0.3": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.3-0.5": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.5-0.7": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.7-1.0": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "pinned": {
+      "decisions": 114,
+      "stamps": 57
+     }
+    },
+    "suspensions_seen": 0,
+    "admissions_seen": 0,
+    "ticks_between_admissions_mean": null,
+    "stamps_while_member": 57,
+    "stamps_while_not_member": 0,
+    "boundary_decisions": 4,
+    "leaves_chosen": 0,
+    "pred_vs_realized": {
+     "0": {
+      "n": 23,
+      "realized_mean": 23.665317697962227,
+      "attributed_mean": 0.8289314647585477,
+      "pred_r_mean": 3.3396724761921193,
+      "pred_r_taken_mean": 5.030143426812214,
+      "plan_cost_mean": -190.64739642226905
+     },
+     "1": {
+      "n": 57,
+      "realized_mean": 9.285115880533409,
+      "attributed_mean": 5.470980424676375,
+      "pred_r_mean": 5.150871462825882,
+      "pred_r_taken_mean": 6.832314202137161,
+      "plan_cost_mean": -190.78501584237083
+     },
+     "2": {
+      "n": 34,
+      "realized_mean": 7.278911067855929,
+      "attributed_mean": -3.1569312201775412,
+      "pred_r_mean": -0.39866244441241416,
+      "pred_r_taken_mean": -3.4942402739954344,
+      "plan_cost_mean": -183.5340809738427
+     }
+    },
+    "attributed_sum": 1777.238194195368,
+    "attribution": {
+     "by_source": {
+      "review_fee": 159.73991233163687,
+      "emission": 266.33233038246175,
+      "effort_cost": -664.3571061812981,
+      "delivery_price": 2421.3550380533898,
+      "guarantee_lost": -203.33538408668818,
+      "bond_lost": -135.0,
+      "care_cost": -182.21408129016007,
+      "reimbursement": 114.71748498602506,
+      "court_fee": 0.0
+     },
+     "boundary_by_source": {
+      "effort_cost": -664.3571061812981,
+      "delivery_price": 2421.3550380533898,
+      "guarantee_lost": -203.33538408668818,
+      "court_fee": 0.0
+     },
+     "boundary_real": 1553.662547785402,
+     "boundary_decisions": 4,
+     "pre_boundary_real": 29.95674826238657,
+     "suspension_charges": [],
+     "work_side": false
+    },
+    "slot_suspensions": 0,
+    "learner_identities": 1,
+    "learner_returns": 0,
+    "learner_leaves_chosen": 0,
+    "learner_leaves_refused": 0,
+    "learner_float_minted_real": 0.0,
+    "learner_lifetime_real": 1448.682,
+    "learner_departed_now": 0,
+    "care_share": 0.20175438596491227,
+    "approve_blind_share": 0.5,
+    "reject_blind_share": 0.2982456140350877,
+    "plants_seen": 0,
+    "plants_stamped": 0,
+    "real_seen": 114,
+    "real_stamped": 91,
+    "false_approvals_run": 142,
+    "learner_false_approvals": 11,
+    "slot_departed": 0,
+    "slot_rho": 0.6765,
+    "slot_plant_failures": 0.0,
+    "suspensions_run": 0,
+    "idle_for_bond_ticks": 116,
+    "idle_for_bond_names": 13,
+    "error": null
+   },
+   {
+    "seed": 32,
+    "decisions": 17,
+    "lifetime_real_wealth": 186.34874333081058,
+    "odds_at_stamps_mean": 1.0,
+    "odds_at_cares_mean": null,
+    "stamps_by_odds_band": {
+     "0.0-0.3": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.3-0.5": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.5-0.7": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.7-1.0": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "pinned": {
+      "decisions": 17,
+      "stamps": 17
+     }
+    },
+    "suspensions_seen": 0,
+    "admissions_seen": 0,
+    "ticks_between_admissions_mean": null,
+    "stamps_while_member": 17,
+    "stamps_while_not_member": 0,
+    "boundary_decisions": 1,
+    "leaves_chosen": 1,
+    "pred_vs_realized": {
+     "0": {
+      "n": 0,
+      "realized_mean": null,
+      "attributed_mean": null,
+      "pred_r_mean": 3.4221272538690006,
+      "pred_r_taken_mean": null,
+      "plan_cost_mean": -261.4041415943819
+     },
+     "1": {
+      "n": 17,
+      "realized_mean": 8.020514313577094,
+      "attributed_mean": 5.746773332315628,
+      "pred_r_mean": 5.698673113304026,
+      "pred_r_taken_mean": 5.698673113304026,
+      "plan_cost_mean": -288.78879053452437
+     },
+     "2": {
+      "n": 0,
+      "realized_mean": null,
+      "attributed_mean": null,
+      "pred_r_mean": -1.3931483871796553,
+      "pred_r_taken_mean": null,
+      "plan_cost_mean": -216.61938925350412
+     }
+    },
+    "attributed_sum": 97.69514664936567,
+    "attribution": {
+     "by_source": {
+      "review_fee": 38.86570052940523,
+      "emission": 58.829446119960416
+     },
+     "boundary_by_source": {},
+     "boundary_real": 0.0,
+     "boundary_decisions": 1,
+     "pre_boundary_real": 73.75203972840913,
+     "suspension_charges": [],
+     "work_side": false
+    },
+    "slot_suspensions": 0,
+    "learner_identities": 1,
+    "learner_returns": 0,
+    "learner_leaves_chosen": 1,
+    "learner_leaves_refused": 0,
+    "learner_float_minted_real": 0.0,
+    "learner_lifetime_real": 186.349,
+    "learner_departed_now": 1,
+    "care_share": 0.0,
+    "approve_blind_share": 1.0,
+    "reject_blind_share": 0.0,
+    "plants_seen": 0,
+    "plants_stamped": 0,
+    "real_seen": 17,
+    "real_stamped": 17,
+    "false_approvals_run": 144,
+    "learner_false_approvals": 1,
+    "slot_departed": 1,
+    "slot_rho": "",
+    "slot_plant_failures": 0.0,
+    "suspensions_run": 0,
+    "idle_for_bond_ticks": 243,
+    "idle_for_bond_names": 11,
+    "error": null
+   },
+   {
+    "seed": 33,
+    "decisions": 128,
+    "lifetime_real_wealth": 1869.1294755152426,
+    "odds_at_stamps_mean": 1.0,
+    "odds_at_cares_mean": 1.0,
+    "stamps_by_odds_band": {
+     "0.0-0.3": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.3-0.5": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.5-0.7": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.7-1.0": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "pinned": {
+      "decisions": 128,
+      "stamps": 56
+     }
+    },
+    "suspensions_seen": 0,
+    "admissions_seen": 0,
+    "ticks_between_admissions_mean": null,
+    "stamps_while_member": 56,
+    "stamps_while_not_member": 0,
+    "boundary_decisions": 4,
+    "leaves_chosen": 2,
+    "pred_vs_realized": {
+     "0": {
+      "n": 38,
+      "realized_mean": 17.325627011770514,
+      "attributed_mean": 0.5941068126837793,
+      "pred_r_mean": 0.8466070693393704,
+      "pred_r_taken_mean": 1.7742640830968555,
+      "plan_cost_mean": -188.14451649785042
+     },
+     "1": {
+      "n": 56,
+      "realized_mean": 15.9138809963495,
+      "attributed_mean": 5.417056558502692,
+      "pred_r_mean": 3.6782563801389188,
+      "pred_r_taken_mean": 4.982869076941695,
+      "plan_cost_mean": -181.60341527685523
+     },
+     "2": {
+      "n": 34,
+      "realized_mean": 3.2994806355108373,
+      "attributed_mean": -2.8658682105752615,
+      "pred_r_mean": -2.298415692668641,
+      "pred_r_taken_mean": -4.087451409110251,
+      "plan_cost_mean": -166.19365525245667
+     }
+    },
+    "attributed_sum": 1817.1409624045455,
+    "attribution": {
+     "by_source": {
+      "review_fee": 172.3283203085666,
+      "emission": 279.0841558919857,
+      "care_cost": -268.628660291158,
+      "reimbursement": 191.2131864139036,
+      "bond_lost": -145.50529532472234,
+      "effort_cost": -510.65265138212084,
+      "guarantee_lost": -118.37854245151334,
+      "delivery_price": 2217.6804492396036
+     },
+     "boundary_by_source": {
+      "effort_cost": -510.65265138212084,
+      "guarantee_lost": -118.37854245151334,
+      "delivery_price": 2217.6804492396036
+     },
+     "boundary_real": 1588.6492554059735,
+     "boundary_decisions": 4,
+     "pre_boundary_real": 185.58533399999996,
+     "suspension_charges": [],
+     "work_side": false
+    },
+    "slot_suspensions": 0,
+    "learner_identities": 1,
+    "learner_returns": 0,
+    "learner_leaves_chosen": 0,
+    "learner_leaves_refused": 2,
+    "learner_float_minted_real": 0.0,
+    "learner_lifetime_real": 1869.129,
+    "learner_departed_now": 0,
+    "care_share": 0.296875,
+    "approve_blind_share": 0.4375,
+    "reject_blind_share": 0.265625,
+    "plants_seen": 0,
+    "plants_stamped": 0,
+    "real_seen": 128,
+    "real_stamped": 90,
+    "false_approvals_run": 205,
+    "learner_false_approvals": 4,
+    "slot_departed": 0,
+    "slot_rho": 0.6961,
+    "slot_plant_failures": 0.0,
+    "suspensions_run": 0,
+    "idle_for_bond_ticks": 70,
+    "idle_for_bond_names": 8,
+    "error": null
+   },
+   {
+    "seed": 34,
+    "decisions": 105,
+    "lifetime_real_wealth": 1621.6904367724906,
+    "odds_at_stamps_mean": 1.0,
+    "odds_at_cares_mean": 1.0,
+    "stamps_by_odds_band": {
+     "0.0-0.3": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.3-0.5": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.5-0.7": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.7-1.0": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "pinned": {
+      "decisions": 105,
+      "stamps": 40
+     }
+    },
+    "suspensions_seen": 0,
+    "admissions_seen": 0,
+    "ticks_between_admissions_mean": null,
+    "stamps_while_member": 40,
+    "stamps_while_not_member": 0,
+    "boundary_decisions": 4,
+    "leaves_chosen": 0,
+    "pred_vs_realized": {
+     "0": {
+      "n": 40,
+      "realized_mean": -0.5944128175228457,
+      "attributed_mean": 0.28391122632139804,
+      "pred_r_mean": 0.8764547151557747,
+      "pred_r_taken_mean": 1.6472304299473763,
+      "plan_cost_mean": -230.82060060046967
+     },
+     "1": {
+      "n": 40,
+      "realized_mean": 17.39271497960032,
+      "attributed_mean": 6.085954298528042,
+      "pred_r_mean": 4.059533856028602,
+      "pred_r_taken_mean": 4.67686617076397,
+      "plan_cost_mean": -228.38326939174107
+     },
+     "2": {
+      "n": 25,
+      "realized_mean": 17.833993586369935,
+      "attributed_mean": -3.324184858540363,
+      "pred_r_mean": -1.5793056830763816,
+      "pred_r_taken_mean": -1.786527583003044,
+      "plan_cost_mean": -205.1992677234468
+     }
+    },
+    "attributed_sum": 1641.0754022141348,
+    "attribution": {
+     "by_source": {
+      "review_fee": 153.49849067118717,
+      "emission": 222.24697377034272,
+      "care_cost": -295.45254198794237,
+      "reimbursement": 197.73724150448066,
+      "effort_cost": -614.7702332622625,
+      "guarantee_lost": -214.11747268523288,
+      "delivery_price": 2298.273108631161,
+      "court_fee": 0.0,
+      "bond_lost": -106.34016442759977
+     },
+     "boundary_by_source": {
+      "effort_cost": -614.7702332622625,
+      "guarantee_lost": -214.11747268523288,
+      "delivery_price": 2298.273108631161,
+      "court_fee": 0.0
+     },
+     "boundary_real": 1469.385402683668,
+     "boundary_decisions": 4,
+     "pre_boundary_real": 428.2144012210721,
+     "suspension_charges": [],
+     "work_side": false
+    },
+    "slot_suspensions": 0,
+    "learner_identities": 1,
+    "learner_returns": 0,
+    "learner_leaves_chosen": 0,
+    "learner_leaves_refused": 0,
+    "learner_float_minted_real": 0.0,
+    "learner_lifetime_real": 1621.69,
+    "learner_departed_now": 0,
+    "care_share": 0.38095238095238093,
+    "approve_blind_share": 0.38095238095238093,
+    "reject_blind_share": 0.23809523809523808,
+    "plants_seen": 0,
+    "plants_stamped": 0,
+    "real_seen": 105,
+    "real_stamped": 65,
+    "false_approvals_run": 185,
+    "learner_false_approvals": 8,
+    "slot_departed": 0,
+    "slot_rho": 0.7549,
+    "slot_plant_failures": 0.0,
+    "suspensions_run": 0,
+    "idle_for_bond_ticks": 120,
+    "idle_for_bond_names": 12,
+    "error": null
+   },
+   {
+    "seed": 35,
+    "decisions": 122,
+    "lifetime_real_wealth": 2113.57666223478,
+    "odds_at_stamps_mean": 1.0,
+    "odds_at_cares_mean": 1.0,
+    "stamps_by_odds_band": {
+     "0.0-0.3": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.3-0.5": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.5-0.7": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.7-1.0": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "pinned": {
+      "decisions": 122,
+      "stamps": 52
+     }
+    },
+    "suspensions_seen": 0,
+    "admissions_seen": 0,
+    "ticks_between_admissions_mean": null,
+    "stamps_while_member": 52,
+    "stamps_while_not_member": 0,
+    "boundary_decisions": 4,
+    "leaves_chosen": 0,
+    "pred_vs_realized": {
+     "0": {
+      "n": 42,
+      "realized_mean": 17.90448883059832,
+      "attributed_mean": 0.6267259255721327,
+      "pred_r_mean": 1.5056966339375397,
+      "pred_r_taken_mean": 2.264476964516299,
+      "plan_cost_mean": -213.8957377887163
+     },
+     "1": {
+      "n": 52,
+      "realized_mean": 11.66327071249618,
+      "attributed_mean": 4.8317476214246105,
+      "pred_r_mean": 4.2219773221028145,
+      "pred_r_taken_mean": 4.537951774322069,
+      "plan_cost_mean": -208.41323922110385
+     },
+     "2": {
+      "n": 28,
+      "realized_mean": -0.8261158856726151,
+      "attributed_mean": -4.313161902286226,
+      "pred_r_mean": -0.7109769501830222,
+      "pred_r_taken_mean": 1.1096178394343172,
+      "plan_cost_mean": -191.2980366261279
+     }
+    },
+    "attributed_sum": 1830.2677848933092,
+    "attribution": {
+     "by_source": {
+      "review_fee": 163.50238055074925,
+      "emission": 237.79011050768548,
+      "bond_lost": -137.8526462888605,
+      "effort_cost": -457.65933400411313,
+      "delivery_price": 2259.8641527974332,
+      "guarantee_lost": -128.74186582410633,
+      "care_cost": -317.68592944215413,
+      "reimbursement": 211.05091659667488,
+      "court_fee": 0.0
+     },
+     "boundary_by_source": {
+      "effort_cost": -457.65933400411313,
+      "delivery_price": 2259.8641527974332,
+      "guarantee_lost": -128.74186582410633,
+      "court_fee": 0.0
+     },
+     "boundary_real": 1673.4629529692097,
+     "boundary_decisions": 4,
+     "pre_boundary_real": 342.05720068060054,
+     "suspension_charges": [],
+     "work_side": false
+    },
+    "slot_suspensions": 0,
+    "learner_identities": 1,
+    "learner_returns": 0,
+    "learner_leaves_chosen": 0,
+    "learner_leaves_refused": 0,
+    "learner_float_minted_real": 0.0,
+    "learner_lifetime_real": 2113.577,
+    "learner_departed_now": 0,
+    "care_share": 0.3442622950819672,
+    "approve_blind_share": 0.4262295081967213,
+    "reject_blind_share": 0.22950819672131148,
+    "plants_seen": 0,
+    "plants_stamped": 0,
+    "real_seen": 122,
+    "real_stamped": 80,
+    "false_approvals_run": 241,
+    "learner_false_approvals": 15,
+    "slot_departed": 0,
+    "slot_rho": 0.6961,
+    "slot_plant_failures": 0.0,
+    "suspensions_run": 0,
+    "idle_for_bond_ticks": 53,
+    "idle_for_bond_names": 10,
+    "error": null
+   },
+   {
+    "seed": 36,
+    "decisions": 112,
+    "lifetime_real_wealth": 1219.4706319393454,
+    "odds_at_stamps_mean": 1.0,
+    "odds_at_cares_mean": 1.0,
+    "stamps_by_odds_band": {
+     "0.0-0.3": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.3-0.5": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.5-0.7": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.7-1.0": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "pinned": {
+      "decisions": 112,
+      "stamps": 79
+     }
+    },
+    "suspensions_seen": 0,
+    "admissions_seen": 0,
+    "ticks_between_admissions_mean": null,
+    "stamps_while_member": 79,
+    "stamps_while_not_member": 0,
+    "boundary_decisions": 4,
+    "leaves_chosen": 3,
+    "pred_vs_realized": {
+     "0": {
+      "n": 32,
+      "realized_mean": -1.761966226484791,
+      "attributed_mean": 0.03578539535555496,
+      "pred_r_mean": -0.2062529354090137,
+      "pred_r_taken_mean": -0.9665195276029408,
+      "plan_cost_mean": -222.1500264576503
+     },
+     "1": {
+      "n": 79,
+      "realized_mean": 12.177570451868492,
+      "attributed_mean": 5.145867652728648,
+      "pred_r_mean": 3.804291444730812,
+      "pred_r_taken_mean": 4.495363824776834,
+      "plan_cost_mean": -231.90960993085588
+     },
+     "2": {
+      "n": 1,
+      "realized_mean": 0.0,
+      "attributed_mean": -5.0,
+      "pred_r_mean": -4.992124843211578,
+      "pred_r_taken_mean": -5.0179619789123535,
+      "plan_cost_mean": -190.25367386000497
+     }
+    },
+    "attributed_sum": 1109.330879114971,
+    "attribution": {
+     "by_source": {
+      "review_fee": 216.04137401406476,
+      "emission": 330.8821405179954,
+      "care_cost": -294.25483731511935,
+      "reimbursement": 160.0,
+      "bond_lost": -10.0,
+      "effort_cost": -1322.2780002274121,
+      "guarantee_lost": -166.43479432846897,
+      "delivery_price": 2195.374996453909,
+      "court_fee": 0.0
+     },
+     "boundary_by_source": {
+      "effort_cost": -1322.2780002274121,
+      "guarantee_lost": -166.43479432846897,
+      "delivery_price": 2195.374996453909,
+      "court_fee": 0.0
+     },
+     "boundary_real": 706.6622018980305,
+     "boundary_decisions": 4,
+     "pre_boundary_real": 255.95983285199992,
+     "suspension_charges": [],
+     "work_side": false
+    },
+    "slot_suspensions": 0,
+    "learner_identities": 1,
+    "learner_returns": 0,
+    "learner_leaves_chosen": 0,
+    "learner_leaves_refused": 3,
+    "learner_float_minted_real": 0.0,
+    "learner_lifetime_real": 1219.471,
+    "learner_departed_now": 0,
+    "care_share": 0.2857142857142857,
+    "approve_blind_share": 0.7053571428571429,
+    "reject_blind_share": 0.008928571428571428,
+    "plants_seen": 0,
+    "plants_stamped": 0,
+    "real_seen": 112,
+    "real_stamped": 80,
+    "false_approvals_run": 227,
+    "learner_false_approvals": 10,
+    "slot_departed": 0,
+    "slot_rho": 0.902,
+    "slot_plant_failures": 0.0,
+    "suspensions_run": 0,
+    "idle_for_bond_ticks": 99,
+    "idle_for_bond_names": 11,
+    "error": null
+   },
+   {
+    "seed": 37,
+    "decisions": 110,
+    "lifetime_real_wealth": 1361.0593907713687,
+    "odds_at_stamps_mean": 1.0,
+    "odds_at_cares_mean": 1.0,
+    "stamps_by_odds_band": {
+     "0.0-0.3": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.3-0.5": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.5-0.7": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.7-1.0": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "pinned": {
+      "decisions": 110,
+      "stamps": 71
+     }
+    },
+    "suspensions_seen": 0,
+    "admissions_seen": 0,
+    "ticks_between_admissions_mean": null,
+    "stamps_while_member": 71,
+    "stamps_while_not_member": 0,
+    "boundary_decisions": 4,
+    "leaves_chosen": 1,
+    "pred_vs_realized": {
+     "0": {
+      "n": 27,
+      "realized_mean": 2.7120268661357034,
+      "attributed_mean": -0.5044449060230927,
+      "pred_r_mean": 1.0710307945920663,
+      "pred_r_taken_mean": 1.93716510185213,
+      "plan_cost_mean": -212.88956014459782
+     },
+     "1": {
+      "n": 71,
+      "realized_mean": 12.789768987211584,
+      "attributed_mean": 4.4011400154318805,
+      "pred_r_mean": 4.734860024668953,
+      "pred_r_taken_mean": 4.703158313119915,
+      "plan_cost_mean": -220.13491318442604
+     },
+     "2": {
+      "n": 12,
+      "realized_mean": 1.6915164503285307,
+      "attributed_mean": -3.5898804599129144,
+      "pred_r_mean": -3.1400390812619166,
+      "pred_r_taken_mean": -4.195476740598679,
+      "plan_cost_mean": -186.2891314419833
+     }
+    },
+    "attributed_sum": 1187.2066034020222,
+    "attribution": {
+     "by_source": {
+      "review_fee": 183.8691028910219,
+      "emission": 231.70475815132923,
+      "care_cost": -234.80279125808713,
+      "reimbursement": 134.87245957396965,
+      "effort_cost": -766.8266059927192,
+      "delivery_price": 1819.3833163397512,
+      "guarantee_lost": -121.1324700590979,
+      "court_fee": 0.0,
+      "bond_lost": -59.86116624414852
+     },
+     "boundary_by_source": {
+      "effort_cost": -766.8266059927192,
+      "delivery_price": 1819.3833163397512,
+      "guarantee_lost": -121.1324700590979,
+      "court_fee": 0.0
+     },
+     "boundary_real": 931.4242402879348,
+     "boundary_decisions": 4,
+     "pre_boundary_real": 300.4204889424526,
+     "suspension_charges": [],
+     "work_side": false
+    },
+    "slot_suspensions": 0,
+    "learner_identities": 1,
+    "learner_returns": 0,
+    "learner_leaves_chosen": 0,
+    "learner_leaves_refused": 1,
+    "learner_float_minted_real": 0.0,
+    "learner_lifetime_real": 1361.059,
+    "learner_departed_now": 0,
+    "care_share": 0.24545454545454545,
+    "approve_blind_share": 0.6454545454545455,
+    "reject_blind_share": 0.10909090909090909,
+    "plants_seen": 0,
+    "plants_stamped": 0,
+    "real_seen": 110,
+    "real_stamped": 83,
+    "false_approvals_run": 217,
+    "learner_false_approvals": 10,
+    "slot_departed": 0,
+    "slot_rho": 0.8137,
+    "slot_plant_failures": 0.0,
+    "suspensions_run": 0,
+    "idle_for_bond_ticks": 135,
+    "idle_for_bond_names": 11,
+    "error": null
+   },
+   {
+    "seed": 38,
+    "decisions": 106,
+    "lifetime_real_wealth": 842.7317111835214,
+    "odds_at_stamps_mean": 1.0,
+    "odds_at_cares_mean": 1.0,
+    "stamps_by_odds_band": {
+     "0.0-0.3": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.3-0.5": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.5-0.7": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.7-1.0": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "pinned": {
+      "decisions": 106,
+      "stamps": 59
+     }
+    },
+    "suspensions_seen": 0,
+    "admissions_seen": 0,
+    "ticks_between_admissions_mean": null,
+    "stamps_while_member": 59,
+    "stamps_while_not_member": 0,
+    "boundary_decisions": 4,
+    "leaves_chosen": 1,
+    "pred_vs_realized": {
+     "0": {
+      "n": 24,
+      "realized_mean": 2.691062014619,
+      "attributed_mean": 0.8086699044919233,
+      "pred_r_mean": 1.8566099560977716,
+      "pred_r_taken_mean": 2.326732055594524,
+      "plan_cost_mean": -206.49739916819448
+     },
+     "1": {
+      "n": 59,
+      "realized_mean": 10.382807314000665,
+      "attributed_mean": 4.584701779359786,
+      "pred_r_mean": 5.4523988647281,
+      "pred_r_taken_mean": 5.6598832748704035,
+      "plan_cost_mean": -207.35023599300743
+     },
+     "2": {
+      "n": 23,
+      "realized_mean": -2.37785859467759,
+      "attributed_mean": -3.8528746138030217,
+      "pred_r_mean": -2.3839854797181443,
+      "pred_r_taken_mean": -0.8623959513826539,
+      "plan_cost_mean": -191.20788437465453
+     }
+    },
+    "attributed_sum": 858.6566991300201,
+    "attribution": {
+     "by_source": {
+      "review_fee": 151.7002093066697,
+      "emission": 210.58479736905295,
+      "effort_cost": -1365.1503991940688,
+      "delivery_price": 2183.600375862513,
+      "guarantee_lost": -161.08264411098563,
+      "court_fee": 0.0,
+      "care_cost": -180.8821425298923,
+      "reimbursement": 119.77300485346741,
+      "bond_lost": -99.8865024267337
+     },
+     "boundary_by_source": {
+      "effort_cost": -1365.1503991940688,
+      "delivery_price": 2183.600375862513,
+      "guarantee_lost": -161.08264411098563,
+      "court_fee": 0.0
+     },
+     "boundary_real": 657.367332557459,
+     "boundary_decisions": 4,
+     "pre_boundary_real": -16.550040659740247,
+     "suspension_charges": [],
+     "work_side": false
+    },
+    "slot_suspensions": 0,
+    "learner_identities": 1,
+    "learner_returns": 0,
+    "learner_leaves_chosen": 0,
+    "learner_leaves_refused": 1,
+    "learner_float_minted_real": 0.0,
+    "learner_lifetime_real": 842.732,
+    "learner_departed_now": 0,
+    "care_share": 0.22641509433962265,
+    "approve_blind_share": 0.5566037735849056,
+    "reject_blind_share": 0.2169811320754717,
+    "plants_seen": 0,
+    "plants_stamped": 0,
+    "real_seen": 106,
+    "real_stamped": 82,
+    "false_approvals_run": 205,
+    "learner_false_approvals": 8,
+    "slot_departed": 0,
+    "slot_rho": 0.7745,
+    "slot_plant_failures": 0.0,
+    "suspensions_run": 0,
+    "idle_for_bond_ticks": 215,
+    "idle_for_bond_names": 12,
+    "error": null
+   },
+   {
+    "seed": 39,
+    "decisions": 83,
+    "lifetime_real_wealth": 1136.5828909440554,
+    "odds_at_stamps_mean": 1.0,
+    "odds_at_cares_mean": 1.0,
+    "stamps_by_odds_band": {
+     "0.0-0.3": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.3-0.5": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.5-0.7": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.7-1.0": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "pinned": {
+      "decisions": 83,
+      "stamps": 47
+     }
+    },
+    "suspensions_seen": 0,
+    "admissions_seen": 0,
+    "ticks_between_admissions_mean": null,
+    "stamps_while_member": 47,
+    "stamps_while_not_member": 0,
+    "boundary_decisions": 4,
+    "leaves_chosen": 4,
+    "pred_vs_realized": {
+     "0": {
+      "n": 31,
+      "realized_mean": -5.579128988920578,
+      "attributed_mean": -2.30266710791372,
+      "pred_r_mean": 0.157855925498059,
+      "pred_r_taken_mean": -0.5347509182268574,
+      "plan_cost_mean": -238.78511828686817
+     },
+     "1": {
+      "n": 47,
+      "realized_mean": 26.014934800989177,
+      "attributed_mean": 5.502100306122254,
+      "pred_r_mean": 4.71520370173167,
+      "pred_r_taken_mean": 5.985711650645479,
+      "plan_cost_mean": -239.89409720179546
+     },
+     "2": {
+      "n": 5,
+      "realized_mean": -48.118007051367314,
+      "attributed_mean": -2.6114019491783074,
+      "pred_r_mean": -1.7399513598711016,
+      "pred_r_taken_mean": -2.5637523770332336,
+      "plan_cost_mean": -195.62975913358022
+     }
+    },
+    "attributed_sum": 1441.0986188147508,
+    "attribution": {
+     "by_source": {
+      "review_fee": 178.538834336538,
+      "emission": 227.9933286839261,
+      "effort_cost": -989.8338767008221,
+      "delivery_price": 2415.495987429392,
+      "guarantee_lost": -158.72251621034758,
+      "care_cost": -367.94122481072566,
+      "reimbursement": 154.57959041667985,
+      "bond_lost": -19.01150432988927
+     },
+     "boundary_by_source": {
+      "effort_cost": -989.8338767008221,
+      "delivery_price": 2415.495987429392,
+      "guarantee_lost": -158.72251621034758
+     },
+     "boundary_real": 1266.939594518221,
+     "boundary_decisions": 4,
+     "pre_boundary_real": 31.25521265959184,
+     "suspension_charges": [],
+     "work_side": false
+    },
+    "slot_suspensions": 0,
+    "learner_identities": 1,
+    "learner_returns": 0,
+    "learner_leaves_chosen": 0,
+    "learner_leaves_refused": 4,
+    "learner_float_minted_real": 0.0,
+    "learner_lifetime_real": 1136.583,
+    "learner_departed_now": 0,
+    "care_share": 0.37349397590361444,
+    "approve_blind_share": 0.5662650602409639,
+    "reject_blind_share": 0.060240963855421686,
+    "plants_seen": 0,
+    "plants_stamped": 0,
+    "real_seen": 83,
+    "real_stamped": 52,
+    "false_approvals_run": 217,
+    "learner_false_approvals": 5,
+    "slot_departed": 0,
+    "slot_rho": 0.8824,
+    "slot_plant_failures": 0.0,
+    "suspensions_run": 0,
+    "idle_for_bond_ticks": 105,
+    "idle_for_bond_names": 13,
+    "error": null
+   },
+   {
+    "seed": 40,
+    "decisions": 128,
+    "lifetime_real_wealth": 1836.5903119046584,
+    "odds_at_stamps_mean": 1.0,
+    "odds_at_cares_mean": 1.0,
+    "stamps_by_odds_band": {
+     "0.0-0.3": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.3-0.5": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.5-0.7": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.7-1.0": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "pinned": {
+      "decisions": 128,
+      "stamps": 46
+     }
+    },
+    "suspensions_seen": 0,
+    "admissions_seen": 0,
+    "ticks_between_admissions_mean": null,
+    "stamps_while_member": 46,
+    "stamps_while_not_member": 0,
+    "boundary_decisions": 4,
+    "leaves_chosen": 0,
+    "pred_vs_realized": {
+     "0": {
+      "n": 47,
+      "realized_mean": 19.793379655523303,
+      "attributed_mean": 0.5428566655107476,
+      "pred_r_mean": 0.6112606241367757,
+      "pred_r_taken_mean": 0.32703227248597655,
+      "plan_cost_mean": -228.34906300902367
+     },
+     "1": {
+      "n": 46,
+      "realized_mean": 0.47646295096718855,
+      "attributed_mean": 4.873948276744249,
+      "pred_r_mean": 3.9116784018697217,
+      "pred_r_taken_mean": 3.8180424694133843,
+      "plan_cost_mean": -224.67149117588997
+     },
+     "2": {
+      "n": 35,
+      "realized_mean": 14.291602940102205,
+      "attributed_mean": -2.06169174232639,
+      "pred_r_mean": -1.1388556179808802,
+      "pred_r_taken_mean": 0.7131961785256863,
+      "plan_cost_mean": -212.734772503376
+     }
+    },
+    "attributed_sum": 1732.5265157094348,
+    "attribution": {
+     "by_source": {
+      "review_fee": 172.06874344208515,
+      "emission": 254.9672314635527,
+      "bond_lost": -135.0,
+      "care_cost": -350.3549300865561,
+      "reimbursement": 235.87562820873504,
+      "delivery_price": 2377.4448427049656,
+      "effort_cost": -733.6723062979404,
+      "guarantee_lost": -88.80269372540879,
+      "court_fee": 0.0
+     },
+     "boundary_by_source": {
+      "delivery_price": 2377.4448427049656,
+      "effort_cost": -733.6723062979404,
+      "guarantee_lost": -88.80269372540879,
+      "court_fee": 0.0
+     },
+     "boundary_real": 1554.9698426816162,
+     "boundary_decisions": 4,
+     "pre_boundary_real": 262.68566364710045,
+     "suspension_charges": [],
+     "work_side": false
+    },
+    "slot_suspensions": 0,
+    "learner_identities": 1,
+    "learner_returns": 0,
+    "learner_leaves_chosen": 0,
+    "learner_leaves_refused": 0,
+    "learner_float_minted_real": 0.0,
+    "learner_lifetime_real": 1836.59,
+    "learner_departed_now": 0,
+    "care_share": 0.3671875,
+    "approve_blind_share": 0.359375,
+    "reject_blind_share": 0.2734375,
+    "plants_seen": 0,
+    "plants_stamped": 0,
+    "real_seen": 128,
+    "real_stamped": 81,
+    "false_approvals_run": 210,
+    "learner_false_approvals": 12,
+    "slot_departed": 0,
+    "slot_rho": 0.7647,
+    "slot_plant_failures": 0.0,
+    "suspensions_run": 0,
+    "idle_for_bond_ticks": 37,
+    "idle_for_bond_names": 9,
+    "error": null
+   }
+  ],
+  "careful": [
+   {
+    "seed": 21,
+    "decisions": 99,
+    "lifetime_real_wealth": 1974.5415729570261,
+    "odds_at_stamps_mean": null,
+    "odds_at_cares_mean": 1.0,
+    "stamps_by_odds_band": {
+     "0.0-0.3": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.3-0.5": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.5-0.7": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.7-1.0": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "pinned": {
+      "decisions": 99,
+      "stamps": 0
+     }
+    },
+    "suspensions_seen": 0,
+    "admissions_seen": 0,
+    "ticks_between_admissions_mean": null,
+    "stamps_while_member": 0,
+    "stamps_while_not_member": 0,
+    "boundary_decisions": 4,
+    "leaves_chosen": 0,
+    "pred_vs_realized": {
+     "0": {
+      "n": 99,
+      "realized_mean": 16.610297150860895,
+      "attributed_mean": 0.5068792944846472,
+      "pred_r_mean": null,
+      "pred_r_taken_mean": null,
+      "plan_cost_mean": null
+     },
+     "1": {
+      "n": 0,
+      "realized_mean": null,
+      "attributed_mean": null,
+      "pred_r_mean": null,
+      "pred_r_taken_mean": null,
+      "plan_cost_mean": null
+     },
+     "2": {
+      "n": 0,
+      "realized_mean": null,
+      "attributed_mean": null,
+      "pred_r_mean": null,
+      "pred_r_taken_mean": null,
+      "plan_cost_mean": null
+     }
+    },
+    "attributed_sum": 1494.103284070762,
+    "attribution": {
+     "by_source": {
+      "care_cost": -829.9478002936734,
+      "reimbursement": 487.13332765049574,
+      "review_fee": 165.053642351967,
+      "emission": 252.94188044519066,
+      "effort_cost": -675.1209629013067,
+      "guarantee_lost": -134.00875169030186,
+      "delivery_price": 2253.0519485083887,
+      "court_fee": 0.0,
+      "bond_lost": -25.0
+     },
+     "boundary_by_source": {
+      "effort_cost": -675.1209629013067,
+      "guarantee_lost": -134.00875169030186,
+      "delivery_price": 2253.0519485083887,
+      "court_fee": 0.0
+     },
+     "boundary_real": 1443.9222339167834,
+     "boundary_decisions": 4,
+     "pre_boundary_real": 336.65588523238273,
+     "suspension_charges": [],
+     "work_side": false
+    },
+    "slot_suspensions": 0,
+    "learner_identities": 1,
+    "learner_returns": 0,
+    "learner_leaves_chosen": 0,
+    "learner_leaves_refused": 0,
+    "learner_float_minted_real": 0.0,
+    "learner_lifetime_real": 1974.542,
+    "learner_departed_now": 0,
+    "care_share": 1.0,
+    "approve_blind_share": 0.0,
+    "reject_blind_share": 0.0,
+    "plants_seen": 0,
+    "plants_stamped": 0,
+    "real_seen": 99,
+    "real_stamped": 0,
+    "false_approvals_run": 215,
+    "learner_false_approvals": 0,
+    "slot_departed": 0,
+    "slot_rho": 0.902,
+    "slot_plant_failures": 0.0,
+    "suspensions_run": 0,
+    "idle_for_bond_ticks": 96,
+    "idle_for_bond_names": 11,
+    "error": null
+   },
+   {
+    "seed": 22,
+    "decisions": 95,
+    "lifetime_real_wealth": 1558.1595104106568,
+    "odds_at_stamps_mean": null,
+    "odds_at_cares_mean": 1.0,
+    "stamps_by_odds_band": {
+     "0.0-0.3": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.3-0.5": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.5-0.7": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.7-1.0": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "pinned": {
+      "decisions": 95,
+      "stamps": 0
+     }
+    },
+    "suspensions_seen": 0,
+    "admissions_seen": 0,
+    "ticks_between_admissions_mean": null,
+    "stamps_while_member": 0,
+    "stamps_while_not_member": 0,
+    "boundary_decisions": 4,
+    "leaves_chosen": 0,
+    "pred_vs_realized": {
+     "0": {
+      "n": 95,
+      "realized_mean": 11.787439681027502,
+      "attributed_mean": 0.4659181845852409,
+      "pred_r_mean": null,
+      "pred_r_taken_mean": null,
+      "plan_cost_mean": null
+     },
+     "1": {
+      "n": 0,
+      "realized_mean": null,
+      "attributed_mean": null,
+      "pred_r_mean": null,
+      "pred_r_taken_mean": null,
+      "plan_cost_mean": null
+     },
+     "2": {
+      "n": 0,
+      "realized_mean": null,
+      "attributed_mean": null,
+      "pred_r_mean": null,
+      "pred_r_taken_mean": null,
+      "plan_cost_mean": null
+     }
+    },
+    "attributed_sum": 1508.5574331092196,
+    "attribution": {
+     "by_source": {
+      "care_cost": -826.9286166174336,
+      "reimbursement": 468.8028600612202,
+      "review_fee": 168.33355337725388,
+      "emission": 239.05443071455676,
+      "delivery_price": 2335.7009369516845,
+      "effort_cost": -614.4358349225975,
+      "guarantee_lost": -256.96989645546466,
+      "court_fee": 0.0,
+      "bond_lost": -5.0
+     },
+     "boundary_by_source": {
+      "delivery_price": 2335.7009369516845,
+      "effort_cost": -614.4358349225975,
+      "guarantee_lost": -256.96989645546466,
+      "court_fee": 0.0
+     },
+     "boundary_real": 1464.295205573624,
+     "boundary_decisions": 4,
+     "pre_boundary_real": 280.69540359999655,
+     "suspension_charges": [],
+     "work_side": false
+    },
+    "slot_suspensions": 0,
+    "learner_identities": 1,
+    "learner_returns": 0,
+    "learner_leaves_chosen": 0,
+    "learner_leaves_refused": 0,
+    "learner_float_minted_real": 0.0,
+    "learner_lifetime_real": 1558.16,
+    "learner_departed_now": 0,
+    "care_share": 1.0,
+    "approve_blind_share": 0.0,
+    "reject_blind_share": 0.0,
+    "plants_seen": 0,
+    "plants_stamped": 0,
+    "real_seen": 95,
+    "real_stamped": 0,
+    "false_approvals_run": 178,
+    "learner_false_approvals": 0,
+    "slot_departed": 0,
+    "slot_rho": 0.8824,
+    "slot_plant_failures": 0.0,
+    "suspensions_run": 0,
+    "idle_for_bond_ticks": 93,
+    "idle_for_bond_names": 13,
+    "error": null
+   },
+   {
+    "seed": 23,
+    "decisions": 99,
+    "lifetime_real_wealth": 1864.774501077661,
+    "odds_at_stamps_mean": null,
+    "odds_at_cares_mean": 1.0,
+    "stamps_by_odds_band": {
+     "0.0-0.3": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.3-0.5": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.5-0.7": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.7-1.0": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "pinned": {
+      "decisions": 99,
+      "stamps": 0
+     }
+    },
+    "suspensions_seen": 0,
+    "admissions_seen": 0,
+    "ticks_between_admissions_mean": null,
+    "stamps_while_member": 0,
+    "stamps_while_not_member": 0,
+    "boundary_decisions": 4,
+    "leaves_chosen": 0,
+    "pred_vs_realized": {
+     "0": {
+      "n": 99,
+      "realized_mean": 13.294014402500547,
+      "attributed_mean": -0.13080556114429098,
+      "pred_r_mean": null,
+      "pred_r_taken_mean": null,
+      "plan_cost_mean": null
+     },
+     "1": {
+      "n": 0,
+      "realized_mean": null,
+      "attributed_mean": null,
+      "pred_r_mean": null,
+      "pred_r_taken_mean": null,
+      "plan_cost_mean": null
+     },
+     "2": {
+      "n": 0,
+      "realized_mean": null,
+      "attributed_mean": null,
+      "pred_r_mean": null,
+      "pred_r_taken_mean": null,
+      "plan_cost_mean": null
+     }
+    },
+    "attributed_sum": 1385.0771817663515,
+    "attribution": {
+     "by_source": {
+      "care_cost": -877.8588871506502,
+      "reimbursement": 490.3735518555912,
+      "review_fee": 161.2610326719243,
+      "emission": 234.45702932662553,
+      "bond_lost": -21.182477256775357,
+      "effort_cost": -616.8557240891472,
+      "delivery_price": 2209.666003900229,
+      "guarantee_lost": -194.78334749144594,
+      "court_fee": 0.0
+     },
+     "boundary_by_source": {
+      "effort_cost": -616.8557240891472,
+      "delivery_price": 2209.666003900229,
+      "guarantee_lost": -194.78334749144594,
+      "court_fee": 0.0
+     },
+     "boundary_real": 1398.0269323196408,
+     "boundary_decisions": 4,
+     "pre_boundary_real": 439.7499224690898,
+     "suspension_charges": [],
+     "work_side": false
+    },
+    "slot_suspensions": 0,
+    "learner_identities": 1,
+    "learner_returns": 0,
+    "learner_leaves_chosen": 0,
+    "learner_leaves_refused": 0,
+    "learner_float_minted_real": 0.0,
+    "learner_lifetime_real": 1864.775,
+    "learner_departed_now": 0,
+    "care_share": 1.0,
+    "approve_blind_share": 0.0,
+    "reject_blind_share": 0.0,
+    "plants_seen": 0,
+    "plants_stamped": 0,
+    "real_seen": 99,
+    "real_stamped": 0,
+    "false_approvals_run": 140,
+    "learner_false_approvals": 0,
+    "slot_departed": 0,
+    "slot_rho": 0.9216,
+    "slot_plant_failures": 0.0,
+    "suspensions_run": 0,
+    "idle_for_bond_ticks": 271,
+    "idle_for_bond_names": 12,
+    "error": null
+   },
+   {
+    "seed": 24,
+    "decisions": 95,
+    "lifetime_real_wealth": 1408.659011142961,
+    "odds_at_stamps_mean": null,
+    "odds_at_cares_mean": 1.0,
+    "stamps_by_odds_band": {
+     "0.0-0.3": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.3-0.5": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.5-0.7": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.7-1.0": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "pinned": {
+      "decisions": 95,
+      "stamps": 0
+     }
+    },
+    "suspensions_seen": 0,
+    "admissions_seen": 0,
+    "ticks_between_admissions_mean": null,
+    "stamps_while_member": 0,
+    "stamps_while_not_member": 0,
+    "boundary_decisions": 4,
+    "leaves_chosen": 0,
+    "pred_vs_realized": {
+     "0": {
+      "n": 95,
+      "realized_mean": 8.025649525538467,
+      "attributed_mean": -0.32446334331513466,
+      "pred_r_mean": null,
+      "pred_r_taken_mean": null,
+      "plan_cost_mean": null
+     },
+     "1": {
+      "n": 0,
+      "realized_mean": null,
+      "attributed_mean": null,
+      "pred_r_mean": null,
+      "pred_r_taken_mean": null,
+      "plan_cost_mean": null
+     },
+     "2": {
+      "n": 0,
+      "realized_mean": null,
+      "attributed_mean": null,
+      "pred_r_mean": null,
+      "pred_r_taken_mean": null,
+      "plan_cost_mean": null
+     }
+    },
+    "attributed_sum": 1358.8486585753612,
+    "attribution": {
+     "by_source": {
+      "care_cost": -938.3183029916712,
+      "reimbursement": 469.91670041146534,
+      "review_fee": 190.88370922887484,
+      "emission": 256.6938757363924,
+      "bond_lost": -10.0,
+      "effort_cost": -927.3593068260673,
+      "delivery_price": 2428.3339291454326,
+      "guarantee_lost": -111.30194612906455,
+      "court_fee": 0.0
+     },
+     "boundary_by_source": {
+      "effort_cost": -927.3593068260673,
+      "delivery_price": 2428.3339291454326,
+      "guarantee_lost": -111.30194612906455,
+      "court_fee": 0.0
+     },
+     "boundary_real": 1389.6726761902971,
+     "boundary_decisions": 4,
+     "pre_boundary_real": 168.40011365980916,
+     "suspension_charges": [],
+     "work_side": false
+    },
+    "slot_suspensions": 0,
+    "learner_identities": 1,
+    "learner_returns": 0,
+    "learner_leaves_chosen": 0,
+    "learner_leaves_refused": 0,
+    "learner_float_minted_real": 0.0,
+    "learner_lifetime_real": 1408.659,
+    "learner_departed_now": 0,
+    "care_share": 1.0,
+    "approve_blind_share": 0.0,
+    "reject_blind_share": 0.0,
+    "plants_seen": 0,
+    "plants_stamped": 0,
+    "real_seen": 95,
+    "real_stamped": 0,
+    "false_approvals_run": 220,
+    "learner_false_approvals": 0,
+    "slot_departed": 0,
+    "slot_rho": 0.9314,
+    "slot_plant_failures": 0.0,
+    "suspensions_run": 0,
+    "idle_for_bond_ticks": 288,
+    "idle_for_bond_names": 13,
+    "error": null
+   },
+   {
+    "seed": 25,
+    "decisions": 108,
+    "lifetime_real_wealth": 1863.9128088546227,
+    "odds_at_stamps_mean": null,
+    "odds_at_cares_mean": 1.0,
+    "stamps_by_odds_band": {
+     "0.0-0.3": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.3-0.5": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.5-0.7": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.7-1.0": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "pinned": {
+      "decisions": 108,
+      "stamps": 0
+     }
+    },
+    "suspensions_seen": 0,
+    "admissions_seen": 0,
+    "ticks_between_admissions_mean": null,
+    "stamps_while_member": 0,
+    "stamps_while_not_member": 0,
+    "boundary_decisions": 4,
+    "leaves_chosen": 0,
+    "pred_vs_realized": {
+     "0": {
+      "n": 108,
+      "realized_mean": 13.167236922508526,
+      "attributed_mean": 0.11701209445760542,
+      "pred_r_mean": null,
+      "pred_r_taken_mean": null,
+      "plan_cost_mean": null
+     },
+     "1": {
+      "n": 0,
+      "realized_mean": null,
+      "attributed_mean": null,
+      "pred_r_mean": null,
+      "pred_r_taken_mean": null,
+      "plan_cost_mean": null
+     },
+     "2": {
+      "n": 0,
+      "realized_mean": null,
+      "attributed_mean": null,
+      "pred_r_mean": null,
+      "pred_r_taken_mean": null,
+      "plan_cost_mean": null
+     }
+    },
+    "attributed_sum": 1722.1595263203717,
+    "attribution": {
+     "by_source": {
+      "care_cost": -941.6943308512145,
+      "reimbursement": 535.254499156597,
+      "bond_lost": -18.85034142407735,
+      "review_fee": 188.71571016258906,
+      "emission": 249.2117691575271,
+      "effort_cost": -472.4236841227125,
+      "delivery_price": 2322.506783532604,
+      "guarantee_lost": -140.56087929094215,
+      "court_fee": 0.0
+     },
+     "boundary_by_source": {
+      "effort_cost": -472.4236841227125,
+      "delivery_price": 2322.506783532604,
+      "guarantee_lost": -140.56087929094215,
+      "court_fee": 0.0
+     },
+     "boundary_real": 1709.5222201189479,
+     "boundary_decisions": 4,
+     "pre_boundary_real": 201.18062901871286,
+     "suspension_charges": [],
+     "work_side": false
+    },
+    "slot_suspensions": 0,
+    "learner_identities": 1,
+    "learner_returns": 0,
+    "learner_leaves_chosen": 0,
+    "learner_leaves_refused": 0,
+    "learner_float_minted_real": 0.0,
+    "learner_lifetime_real": 1863.913,
+    "learner_departed_now": 0,
+    "care_share": 1.0,
+    "approve_blind_share": 0.0,
+    "reject_blind_share": 0.0,
+    "plants_seen": 0,
+    "plants_stamped": 0,
+    "real_seen": 108,
+    "real_stamped": 0,
+    "false_approvals_run": 202,
+    "learner_false_approvals": 0,
+    "slot_departed": 0,
+    "slot_rho": 0.9412,
+    "slot_plant_failures": 0.0,
+    "suspensions_run": 0,
+    "idle_for_bond_ticks": 199,
+    "idle_for_bond_names": 11,
+    "error": null
+   },
+   {
+    "seed": 26,
+    "decisions": 31,
+    "lifetime_real_wealth": 3.5273929529558967,
+    "odds_at_stamps_mean": null,
+    "odds_at_cares_mean": 1.0,
+    "stamps_by_odds_band": {
+     "0.0-0.3": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.3-0.5": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.5-0.7": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.7-1.0": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "pinned": {
+      "decisions": 31,
+      "stamps": 0
+     }
+    },
+    "suspensions_seen": 0,
+    "admissions_seen": 0,
+    "ticks_between_admissions_mean": null,
+    "stamps_while_member": 0,
+    "stamps_while_not_member": 0,
+    "boundary_decisions": 4,
+    "leaves_chosen": 0,
+    "pred_vs_realized": {
+     "0": {
+      "n": 31,
+      "realized_mean": -1.3499781408811224,
+      "attributed_mean": 0.7495154203200348,
+      "pred_r_mean": null,
+      "pred_r_taken_mean": null,
+      "plan_cost_mean": null
+     },
+     "1": {
+      "n": 0,
+      "realized_mean": null,
+      "attributed_mean": null,
+      "pred_r_mean": null,
+      "pred_r_taken_mean": null,
+      "plan_cost_mean": null
+     },
+     "2": {
+      "n": 0,
+      "realized_mean": null,
+      "attributed_mean": null,
+      "pred_r_mean": null,
+      "pred_r_taken_mean": null,
+      "plan_cost_mean": null
+     }
+    },
+    "attributed_sum": -31.60596998895375,
+    "attribution": {
+     "by_source": {
+      "care_cost": -246.51234308423582,
+      "reimbursement": 133.2568210454991,
+      "review_fee": 57.328122222417946,
+      "emission": 84.16237784623988,
+      "bond_lost": -5.0,
+      "effort_cost": -464.10805964458075,
+      "delivery_price": 463.98704967505853,
+      "guarantee_lost": -54.71993804935282
+     },
+     "boundary_by_source": {
+      "effort_cost": -464.10805964458075,
+      "delivery_price": 463.98704967505853,
+      "guarantee_lost": -54.71993804935282
+     },
+     "boundary_real": -54.840948018874826,
+     "boundary_decisions": 4,
+     "pre_boundary_real": 36.48413,
+     "suspension_charges": [],
+     "work_side": false
+    },
+    "slot_suspensions": 0,
+    "learner_identities": 1,
+    "learner_returns": 0,
+    "learner_leaves_chosen": 0,
+    "learner_leaves_refused": 0,
+    "learner_float_minted_real": 0.0,
+    "learner_lifetime_real": 3.527,
+    "learner_departed_now": 0,
+    "care_share": 1.0,
+    "approve_blind_share": 0.0,
+    "reject_blind_share": 0.0,
+    "plants_seen": 0,
+    "plants_stamped": 0,
+    "real_seen": 31,
+    "real_stamped": 0,
+    "false_approvals_run": 240,
+    "learner_false_approvals": 0,
+    "slot_departed": 0,
+    "slot_rho": 0.8718,
+    "slot_plant_failures": 0.0,
+    "suspensions_run": 0,
+    "idle_for_bond_ticks": 555,
+    "idle_for_bond_names": 14,
+    "error": null
+   },
+   {
+    "seed": 27,
+    "decisions": 92,
+    "lifetime_real_wealth": 1038.7120290825003,
+    "odds_at_stamps_mean": null,
+    "odds_at_cares_mean": 1.0,
+    "stamps_by_odds_band": {
+     "0.0-0.3": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.3-0.5": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.5-0.7": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.7-1.0": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "pinned": {
+      "decisions": 92,
+      "stamps": 0
+     }
+    },
+    "suspensions_seen": 0,
+    "admissions_seen": 0,
+    "ticks_between_admissions_mean": null,
+    "stamps_while_member": 0,
+    "stamps_while_not_member": 0,
+    "boundary_decisions": 4,
+    "leaves_chosen": 0,
+    "pred_vs_realized": {
+     "0": {
+      "n": 92,
+      "realized_mean": 7.071872826372362,
+      "attributed_mean": 0.17859394977207516,
+      "pred_r_mean": null,
+      "pred_r_taken_mean": null,
+      "plan_cost_mean": null
+     },
+     "1": {
+      "n": 0,
+      "realized_mean": null,
+      "attributed_mean": null,
+      "pred_r_mean": null,
+      "pred_r_taken_mean": null,
+      "plan_cost_mean": null
+     },
+     "2": {
+      "n": 0,
+      "realized_mean": null,
+      "attributed_mean": null,
+      "pred_r_mean": null,
+      "pred_r_taken_mean": null,
+      "plan_cost_mean": null
+     }
+    },
+    "attributed_sum": 1032.3533237947274,
+    "attribution": {
+     "by_source": {
+      "care_cost": -804.7430544392356,
+      "reimbursement": 449.30558991092573,
+      "review_fee": 159.56930770534262,
+      "emission": 237.29880020199764,
+      "bond_lost": -25.0,
+      "effort_cost": -898.0521471757961,
+      "delivery_price": 2076.71393748927,
+      "guarantee_lost": -162.73910989777715,
+      "court_fee": 0.0
+     },
+     "boundary_by_source": {
+      "effort_cost": -898.0521471757961,
+      "delivery_price": 2076.71393748927,
+      "guarantee_lost": -162.73910989777715,
+      "court_fee": 0.0
+     },
+     "boundary_real": 1015.9226804156949,
+     "boundary_decisions": 4,
+     "pre_boundary_real": 1.7412999623095082,
+     "suspension_charges": [],
+     "work_side": false
+    },
+    "slot_suspensions": 0,
+    "learner_identities": 1,
+    "learner_returns": 0,
+    "learner_leaves_chosen": 0,
+    "learner_leaves_refused": 0,
+    "learner_float_minted_real": 0.0,
+    "learner_lifetime_real": 1038.712,
+    "learner_departed_now": 0,
+    "care_share": 1.0,
+    "approve_blind_share": 0.0,
+    "reject_blind_share": 0.0,
+    "plants_seen": 0,
+    "plants_stamped": 0,
+    "real_seen": 92,
+    "real_stamped": 0,
+    "false_approvals_run": 183,
+    "learner_false_approvals": 0,
+    "slot_departed": 0,
+    "slot_rho": 0.8922,
+    "slot_plant_failures": 0.0,
+    "suspensions_run": 0,
+    "idle_for_bond_ticks": 406,
+    "idle_for_bond_names": 12,
+    "error": null
+   },
+   {
+    "seed": 28,
+    "decisions": 95,
+    "lifetime_real_wealth": 1541.2374839115064,
+    "odds_at_stamps_mean": null,
+    "odds_at_cares_mean": 1.0,
+    "stamps_by_odds_band": {
+     "0.0-0.3": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.3-0.5": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.5-0.7": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.7-1.0": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "pinned": {
+      "decisions": 95,
+      "stamps": 0
+     }
+    },
+    "suspensions_seen": 0,
+    "admissions_seen": 0,
+    "ticks_between_admissions_mean": null,
+    "stamps_while_member": 0,
+    "stamps_while_not_member": 0,
+    "boundary_decisions": 4,
+    "leaves_chosen": 0,
+    "pred_vs_realized": {
+     "0": {
+      "n": 95,
+      "realized_mean": 14.152854252753857,
+      "attributed_mean": 0.8297717120305679,
+      "pred_r_mean": null,
+      "pred_r_taken_mean": null,
+      "plan_cost_mean": null
+     },
+     "1": {
+      "n": 0,
+      "realized_mean": null,
+      "attributed_mean": null,
+      "pred_r_mean": null,
+      "pred_r_taken_mean": null,
+      "plan_cost_mean": null
+     },
+     "2": {
+      "n": 0,
+      "realized_mean": null,
+      "attributed_mean": null,
+      "pred_r_mean": null,
+      "pred_r_taken_mean": null,
+      "plan_cost_mean": null
+     }
+    },
+    "attributed_sum": 1488.0989191565714,
+    "attribution": {
+     "by_source": {
+      "care_cost": -727.0975475532243,
+      "reimbursement": 463.32748722826375,
+      "review_fee": 154.25504261292767,
+      "emission": 218.34333035493648,
+      "bond_lost": -30.0,
+      "delivery_price": 2293.882524603959,
+      "effort_cost": -781.5082191852374,
+      "court_fee": 0.0,
+      "guarantee_lost": -103.10369890505764
+     },
+     "boundary_by_source": {
+      "delivery_price": 2293.882524603959,
+      "effort_cost": -781.5082191852374,
+      "court_fee": 0.0,
+      "guarantee_lost": -103.10369890505764
+     },
+     "boundary_real": 1409.2706065136665,
+     "boundary_decisions": 4,
+     "pre_boundary_real": 25.090291090831656,
+     "suspension_charges": [],
+     "work_side": false
+    },
+    "slot_suspensions": 0,
+    "learner_identities": 1,
+    "learner_returns": 0,
+    "learner_leaves_chosen": 0,
+    "learner_leaves_refused": 0,
+    "learner_float_minted_real": 0.0,
+    "learner_lifetime_real": 1541.237,
+    "learner_departed_now": 0,
+    "care_share": 1.0,
+    "approve_blind_share": 0.0,
+    "reject_blind_share": 0.0,
+    "plants_seen": 0,
+    "plants_stamped": 0,
+    "real_seen": 95,
+    "real_stamped": 0,
+    "false_approvals_run": 186,
+    "learner_false_approvals": 0,
+    "slot_departed": 0,
+    "slot_rho": 0.902,
+    "slot_plant_failures": 0.0,
+    "suspensions_run": 0,
+    "idle_for_bond_ticks": 315,
+    "idle_for_bond_names": 15,
+    "error": null
+   },
+   {
+    "seed": 29,
+    "decisions": 88,
+    "lifetime_real_wealth": 1244.4071169861975,
+    "odds_at_stamps_mean": null,
+    "odds_at_cares_mean": 1.0,
+    "stamps_by_odds_band": {
+     "0.0-0.3": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.3-0.5": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.5-0.7": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.7-1.0": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "pinned": {
+      "decisions": 88,
+      "stamps": 0
+     }
+    },
+    "suspensions_seen": 0,
+    "admissions_seen": 0,
+    "ticks_between_admissions_mean": null,
+    "stamps_while_member": 0,
+    "stamps_while_not_member": 0,
+    "boundary_decisions": 4,
+    "leaves_chosen": 0,
+    "pred_vs_realized": {
+     "0": {
+      "n": 88,
+      "realized_mean": 11.042515667946654,
+      "attributed_mean": 0.04688015813165631,
+      "pred_r_mean": null,
+      "pred_r_taken_mean": null,
+      "plan_cost_mean": null
+     },
+     "1": {
+      "n": 0,
+      "realized_mean": null,
+      "attributed_mean": null,
+      "pred_r_mean": null,
+      "pred_r_taken_mean": null,
+      "plan_cost_mean": null
+     },
+     "2": {
+      "n": 0,
+      "realized_mean": null,
+      "attributed_mean": null,
+      "pred_r_mean": null,
+      "pred_r_taken_mean": null,
+      "plan_cost_mean": null
+     }
+    },
+    "attributed_sum": 1081.8350624752404,
+    "attribution": {
+     "by_source": {
+      "care_cost": -754.2722889251127,
+      "reimbursement": 432.654733464179,
+      "review_fee": 144.22652235622814,
+      "emission": 201.51648702029007,
+      "effort_cost": -470.50638880794145,
+      "guarantee_lost": -147.30558637727205,
+      "delivery_price": 1695.5215837448693,
+      "bond_lost": -20.0,
+      "court_fee": 0.0
+     },
+     "boundary_by_source": {
+      "effort_cost": -470.50638880794145,
+      "guarantee_lost": -147.30558637727205,
+      "delivery_price": 1695.5215837448693,
+      "court_fee": 0.0
+     },
+     "boundary_real": 1077.7096085596531,
+     "boundary_decisions": 4,
+     "pre_boundary_real": 84.9458428107626,
+     "suspension_charges": [],
+     "work_side": false
+    },
+    "slot_suspensions": 0,
+    "learner_identities": 1,
+    "learner_returns": 0,
+    "learner_leaves_chosen": 0,
+    "learner_leaves_refused": 0,
+    "learner_float_minted_real": 0.0,
+    "learner_lifetime_real": 1244.407,
+    "learner_departed_now": 0,
+    "care_share": 1.0,
+    "approve_blind_share": 0.0,
+    "reject_blind_share": 0.0,
+    "plants_seen": 0,
+    "plants_stamped": 0,
+    "real_seen": 88,
+    "real_stamped": 0,
+    "false_approvals_run": 200,
+    "learner_false_approvals": 0,
+    "slot_departed": 0,
+    "slot_rho": 0.8922,
+    "slot_plant_failures": 0.0,
+    "suspensions_run": 0,
+    "idle_for_bond_ticks": 139,
+    "idle_for_bond_names": 15,
+    "error": null
+   },
+   {
+    "seed": 30,
+    "decisions": 76,
+    "lifetime_real_wealth": 490.591701334085,
+    "odds_at_stamps_mean": null,
+    "odds_at_cares_mean": 1.0,
+    "stamps_by_odds_band": {
+     "0.0-0.3": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.3-0.5": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.5-0.7": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.7-1.0": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "pinned": {
+      "decisions": 76,
+      "stamps": 0
+     }
+    },
+    "suspensions_seen": 0,
+    "admissions_seen": 0,
+    "ticks_between_admissions_mean": null,
+    "stamps_while_member": 0,
+    "stamps_while_not_member": 0,
+    "boundary_decisions": 4,
+    "leaves_chosen": 0,
+    "pred_vs_realized": {
+     "0": {
+      "n": 76,
+      "realized_mean": 2.0164502505866393,
+      "attributed_mean": -0.9189515953494511,
+      "pred_r_mean": null,
+      "pred_r_taken_mean": null,
+      "plan_cost_mean": null
+     },
+     "1": {
+      "n": 0,
+      "realized_mean": null,
+      "attributed_mean": null,
+      "pred_r_mean": null,
+      "pred_r_taken_mean": null,
+      "plan_cost_mean": null
+     },
+     "2": {
+      "n": 0,
+      "realized_mean": null,
+      "attributed_mean": null,
+      "pred_r_mean": null,
+      "pred_r_taken_mean": null,
+      "plan_cost_mean": null
+     }
+    },
+    "attributed_sum": 467.71610478596665,
+    "attribution": {
+     "by_source": {
+      "care_cost": -810.0789911705762,
+      "reimbursement": 369.9235884364799,
+      "review_fee": 164.64927199633553,
+      "emission": 230.21569428811057,
+      "bond_lost": -24.54988479690799,
+      "effort_cost": -788.1252247746579,
+      "delivery_price": 1370.0239082535834,
+      "guarantee_lost": -44.34225744639846,
+      "court_fee": 0.0
+     },
+     "boundary_by_source": {
+      "effort_cost": -788.1252247746579,
+      "delivery_price": 1370.0239082535834,
+      "guarantee_lost": -44.34225744639846,
+      "court_fee": 0.0
+     },
+     "boundary_real": 537.5564260325252,
+     "boundary_decisions": 4,
+     "pre_boundary_real": 24.502307566419695,
+     "suspension_charges": [],
+     "work_side": false
+    },
+    "slot_suspensions": 0,
+    "learner_identities": 1,
+    "learner_returns": 0,
+    "learner_leaves_chosen": 0,
+    "learner_leaves_refused": 0,
+    "learner_float_minted_real": 0.0,
+    "learner_lifetime_real": 490.592,
+    "learner_departed_now": 0,
+    "care_share": 1.0,
+    "approve_blind_share": 0.0,
+    "reject_blind_share": 0.0,
+    "plants_seen": 0,
+    "plants_stamped": 0,
+    "real_seen": 76,
+    "real_stamped": 0,
+    "false_approvals_run": 220,
+    "learner_false_approvals": 0,
+    "slot_departed": 0,
+    "slot_rho": 0.951,
+    "slot_plant_failures": 0.0,
+    "suspensions_run": 0,
+    "idle_for_bond_ticks": 228,
+    "idle_for_bond_names": 12,
+    "error": null
+   },
+   {
+    "seed": 31,
+    "decisions": 101,
+    "lifetime_real_wealth": 579.6857143823119,
+    "odds_at_stamps_mean": null,
+    "odds_at_cares_mean": 1.0,
+    "stamps_by_odds_band": {
+     "0.0-0.3": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.3-0.5": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.5-0.7": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.7-1.0": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "pinned": {
+      "decisions": 101,
+      "stamps": 0
+     }
+    },
+    "suspensions_seen": 0,
+    "admissions_seen": 0,
+    "ticks_between_admissions_mean": null,
+    "stamps_while_member": 0,
+    "stamps_while_not_member": 0,
+    "boundary_decisions": 4,
+    "leaves_chosen": 0,
+    "pred_vs_realized": {
+     "0": {
+      "n": 101,
+      "realized_mean": 2.827451034613173,
+      "attributed_mean": -2.094890252632817,
+      "pred_r_mean": null,
+      "pred_r_taken_mean": null,
+      "plan_cost_mean": null
+     },
+     "1": {
+      "n": 0,
+      "realized_mean": null,
+      "attributed_mean": null,
+      "pred_r_mean": null,
+      "pred_r_taken_mean": null,
+      "plan_cost_mean": null
+     },
+     "2": {
+      "n": 0,
+      "realized_mean": null,
+      "attributed_mean": null,
+      "pred_r_mean": null,
+      "pred_r_taken_mean": null,
+      "plan_cost_mean": null
+     }
+    },
+    "attributed_sum": 479.8877570251318,
+    "attribution": {
+     "by_source": {
+      "care_cost": -1251.095082004358,
+      "reimbursement": 506.3694998321917,
+      "review_fee": 239.11363347635685,
+      "emission": 319.0280331798959,
+      "bond_lost": -25.0,
+      "effort_cost": -1040.7928206139547,
+      "delivery_price": 1857.4911986836037,
+      "court_fee": 0.0,
+      "guarantee_lost": -125.22670552859924
+     },
+     "boundary_by_source": {
+      "effort_cost": -1040.7928206139547,
+      "delivery_price": 1857.4911986836037,
+      "court_fee": 0.0,
+      "guarantee_lost": -125.22670552859924
+     },
+     "boundary_real": 691.4716725410473,
+     "boundary_decisions": 4,
+     "pre_boundary_real": 134.50701896091357,
+     "suspension_charges": [],
+     "work_side": false
+    },
+    "slot_suspensions": 0,
+    "learner_identities": 1,
+    "learner_returns": 0,
+    "learner_leaves_chosen": 0,
+    "learner_leaves_refused": 0,
+    "learner_float_minted_real": 0.0,
+    "learner_lifetime_real": 579.686,
+    "learner_departed_now": 0,
+    "care_share": 1.0,
+    "approve_blind_share": 0.0,
+    "reject_blind_share": 0.0,
+    "plants_seen": 0,
+    "plants_stamped": 0,
+    "real_seen": 101,
+    "real_stamped": 0,
+    "false_approvals_run": 161,
+    "learner_false_approvals": 0,
+    "slot_departed": 0,
+    "slot_rho": 0.902,
+    "slot_plant_failures": 0.0,
+    "suspensions_run": 0,
+    "idle_for_bond_ticks": 104,
+    "idle_for_bond_names": 12,
+    "error": null
+   },
+   {
+    "seed": 32,
+    "decisions": 100,
+    "lifetime_real_wealth": 1853.9557120425613,
+    "odds_at_stamps_mean": null,
+    "odds_at_cares_mean": 1.0,
+    "stamps_by_odds_band": {
+     "0.0-0.3": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.3-0.5": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.5-0.7": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.7-1.0": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "pinned": {
+      "decisions": 100,
+      "stamps": 0
+     }
+    },
+    "suspensions_seen": 0,
+    "admissions_seen": 0,
+    "ticks_between_admissions_mean": null,
+    "stamps_while_member": 0,
+    "stamps_while_not_member": 0,
+    "boundary_decisions": 4,
+    "leaves_chosen": 0,
+    "pred_vs_realized": {
+     "0": {
+      "n": 100,
+      "realized_mean": 12.002646668873572,
+      "attributed_mean": 0.8913829792129713,
+      "pred_r_mean": null,
+      "pred_r_taken_mean": null,
+      "plan_cost_mean": null
+     },
+     "1": {
+      "n": 0,
+      "realized_mean": null,
+      "attributed_mean": null,
+      "pred_r_mean": null,
+      "pred_r_taken_mean": null,
+      "plan_cost_mean": null
+     },
+     "2": {
+      "n": 0,
+      "realized_mean": null,
+      "attributed_mean": null,
+      "pred_r_mean": null,
+      "pred_r_taken_mean": null,
+      "plan_cost_mean": null
+     }
+    },
+    "attributed_sum": 1694.088285202991,
+    "attribution": {
+     "by_source": {
+      "care_cost": -855.0960264617672,
+      "reimbursement": 499.99113955199283,
+      "review_fee": 170.27116484640482,
+      "emission": 293.97201998466636,
+      "bond_lost": -20.0,
+      "effort_cost": -838.3685449415469,
+      "delivery_price": 2563.7119017820173,
+      "guarantee_lost": -120.39336955877725,
+      "court_fee": 0.0
+     },
+     "boundary_by_source": {
+      "effort_cost": -838.3685449415469,
+      "delivery_price": 2563.7119017820173,
+      "guarantee_lost": -120.39336955877725,
+      "court_fee": 0.0
+     },
+     "boundary_real": 1604.9499872816907,
+     "boundary_decisions": 4,
+     "pre_boundary_real": 101.32554845339537,
+     "suspension_charges": [],
+     "work_side": false
+    },
+    "slot_suspensions": 0,
+    "learner_identities": 1,
+    "learner_returns": 0,
+    "learner_leaves_chosen": 0,
+    "learner_leaves_refused": 0,
+    "learner_float_minted_real": 0.0,
+    "learner_lifetime_real": 1853.956,
+    "learner_departed_now": 0,
+    "care_share": 1.0,
+    "approve_blind_share": 0.0,
+    "reject_blind_share": 0.0,
+    "plants_seen": 0,
+    "plants_stamped": 0,
+    "real_seen": 100,
+    "real_stamped": 0,
+    "false_approvals_run": 171,
+    "learner_false_approvals": 0,
+    "slot_departed": 0,
+    "slot_rho": 0.8824,
+    "slot_plant_failures": 0.0,
+    "suspensions_run": 0,
+    "idle_for_bond_ticks": 232,
+    "idle_for_bond_names": 12,
+    "error": null
+   },
+   {
+    "seed": 33,
+    "decisions": 67,
+    "lifetime_real_wealth": 866.2725720657962,
+    "odds_at_stamps_mean": null,
+    "odds_at_cares_mean": 1.0,
+    "stamps_by_odds_band": {
+     "0.0-0.3": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.3-0.5": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.5-0.7": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.7-1.0": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "pinned": {
+      "decisions": 67,
+      "stamps": 0
+     }
+    },
+    "suspensions_seen": 0,
+    "admissions_seen": 0,
+    "ticks_between_admissions_mean": null,
+    "stamps_while_member": 0,
+    "stamps_while_not_member": 0,
+    "boundary_decisions": 4,
+    "leaves_chosen": 0,
+    "pred_vs_realized": {
+     "0": {
+      "n": 67,
+      "realized_mean": 10.500966350762216,
+      "attributed_mean": 0.2826037231288503,
+      "pred_r_mean": null,
+      "pred_r_taken_mean": null,
+      "plan_cost_mean": null
+     },
+     "1": {
+      "n": 0,
+      "realized_mean": null,
+      "attributed_mean": null,
+      "pred_r_mean": null,
+      "pred_r_taken_mean": null,
+      "plan_cost_mean": null
+     },
+     "2": {
+      "n": 0,
+      "realized_mean": null,
+      "attributed_mean": null,
+      "pred_r_mean": null,
+      "pred_r_taken_mean": null,
+      "plan_cost_mean": null
+     }
+    },
+    "attributed_sum": 801.7740303257885,
+    "attribution": {
+     "by_source": {
+      "care_cost": -525.2100239980111,
+      "reimbursement": 317.4754524487332,
+      "review_fee": 116.53439404707454,
+      "emission": 130.48023695837944,
+      "bond_lost": -20.345610006543033,
+      "effort_cost": -467.22305492392076,
+      "delivery_price": 1329.8559336884437,
+      "guarantee_lost": -77.79329788836674,
+      "court_fee": -2.0
+     },
+     "boundary_by_source": {
+      "effort_cost": -467.22305492392076,
+      "delivery_price": 1329.8559336884437,
+      "guarantee_lost": -77.79329788836674,
+      "court_fee": -2.0
+     },
+     "boundary_real": 782.8395808761551,
+     "boundary_decisions": 4,
+     "pre_boundary_real": 33.51859999999999,
+     "suspension_charges": [],
+     "work_side": false
+    },
+    "slot_suspensions": 0,
+    "learner_identities": 1,
+    "learner_returns": 0,
+    "learner_leaves_chosen": 0,
+    "learner_leaves_refused": 0,
+    "learner_float_minted_real": 0.0,
+    "learner_lifetime_real": 866.273,
+    "learner_departed_now": 0,
+    "care_share": 1.0,
+    "approve_blind_share": 0.0,
+    "reject_blind_share": 0.0,
+    "plants_seen": 0,
+    "plants_stamped": 0,
+    "real_seen": 67,
+    "real_stamped": 0,
+    "false_approvals_run": 223,
+    "learner_false_approvals": 0,
+    "slot_departed": 0,
+    "slot_rho": 0.9314,
+    "slot_plant_failures": 0.0,
+    "suspensions_run": 0,
+    "idle_for_bond_ticks": 182,
+    "idle_for_bond_names": 10,
+    "error": null
+   },
+   {
+    "seed": 34,
+    "decisions": 95,
+    "lifetime_real_wealth": 1764.422713832435,
+    "odds_at_stamps_mean": null,
+    "odds_at_cares_mean": 1.0,
+    "stamps_by_odds_band": {
+     "0.0-0.3": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.3-0.5": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.5-0.7": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.7-1.0": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "pinned": {
+      "decisions": 95,
+      "stamps": 0
+     }
+    },
+    "suspensions_seen": 0,
+    "admissions_seen": 0,
+    "ticks_between_admissions_mean": null,
+    "stamps_while_member": 0,
+    "stamps_while_not_member": 0,
+    "boundary_decisions": 4,
+    "leaves_chosen": 0,
+    "pred_vs_realized": {
+     "0": {
+      "n": 95,
+      "realized_mean": 14.485384962443813,
+      "attributed_mean": 0.4172422702593113,
+      "pred_r_mean": null,
+      "pred_r_taken_mean": null,
+      "plan_cost_mean": null
+     },
+     "1": {
+      "n": 0,
+      "realized_mean": null,
+      "attributed_mean": null,
+      "pred_r_mean": null,
+      "pred_r_taken_mean": null,
+      "plan_cost_mean": null
+     },
+     "2": {
+      "n": 0,
+      "realized_mean": null,
+      "attributed_mean": null,
+      "pred_r_mean": null,
+      "pred_r_taken_mean": null,
+      "plan_cost_mean": null
+     }
+    },
+    "attributed_sum": 1685.9644382074669,
+    "attribution": {
+     "by_source": {
+      "care_cost": -801.8398888196396,
+      "reimbursement": 475.3449113981616,
+      "review_fee": 158.2618453860191,
+      "emission": 217.87114771009215,
+      "effort_cost": -585.9637171986669,
+      "delivery_price": 2382.1152588748246,
+      "guarantee_lost": -149.82511914332522,
+      "bond_lost": -10.0
+     },
+     "boundary_by_source": {
+      "effort_cost": -585.9637171986669,
+      "delivery_price": 2382.1152588748246,
+      "guarantee_lost": -149.82511914332522
+     },
+     "boundary_real": 1646.3264225328328,
+     "boundary_decisions": 4,
+     "pre_boundary_real": 197.3741484467815,
+     "suspension_charges": [],
+     "work_side": false
+    },
+    "slot_suspensions": 0,
+    "learner_identities": 1,
+    "learner_returns": 0,
+    "learner_leaves_chosen": 0,
+    "learner_leaves_refused": 0,
+    "learner_float_minted_real": 0.0,
+    "learner_lifetime_real": 1764.423,
+    "learner_departed_now": 0,
+    "care_share": 1.0,
+    "approve_blind_share": 0.0,
+    "reject_blind_share": 0.0,
+    "plants_seen": 0,
+    "plants_stamped": 0,
+    "real_seen": 95,
+    "real_stamped": 0,
+    "false_approvals_run": 171,
+    "learner_false_approvals": 0,
+    "slot_departed": 0,
+    "slot_rho": 0.902,
+    "slot_plant_failures": 0.0,
+    "suspensions_run": 0,
+    "idle_for_bond_ticks": 78,
+    "idle_for_bond_names": 14,
+    "error": null
+   },
+   {
+    "seed": 35,
+    "decisions": 86,
+    "lifetime_real_wealth": 1741.5124251847224,
+    "odds_at_stamps_mean": null,
+    "odds_at_cares_mean": 1.0,
+    "stamps_by_odds_band": {
+     "0.0-0.3": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.3-0.5": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.5-0.7": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.7-1.0": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "pinned": {
+      "decisions": 86,
+      "stamps": 0
+     }
+    },
+    "suspensions_seen": 0,
+    "admissions_seen": 0,
+    "ticks_between_admissions_mean": null,
+    "stamps_while_member": 0,
+    "stamps_while_not_member": 0,
+    "boundary_decisions": 4,
+    "leaves_chosen": 0,
+    "pred_vs_realized": {
+     "0": {
+      "n": 86,
+      "realized_mean": 15.928728561701536,
+      "attributed_mean": 0.8769764288351651,
+      "pred_r_mean": null,
+      "pred_r_taken_mean": null,
+      "plan_cost_mean": null
+     },
+     "1": {
+      "n": 0,
+      "realized_mean": null,
+      "attributed_mean": null,
+      "pred_r_mean": null,
+      "pred_r_taken_mean": null,
+      "plan_cost_mean": null
+     },
+     "2": {
+      "n": 0,
+      "realized_mean": null,
+      "attributed_mean": null,
+      "pred_r_mean": null,
+      "pred_r_taken_mean": null,
+      "plan_cost_mean": null
+     }
+    },
+    "attributed_sum": 1548.3345903891834,
+    "attribution": {
+     "by_source": {
+      "care_cost": -646.9774121207613,
+      "reimbursement": 420.222030878331,
+      "review_fee": 138.32621228070886,
+      "emission": 178.8491418415451,
+      "bond_lost": -15.0,
+      "delivery_price": 2045.0409320058466,
+      "effort_cost": -475.4910780787506,
+      "guarantee_lost": -96.63523641773625,
+      "court_fee": 0.0
+     },
+     "boundary_by_source": {
+      "delivery_price": 2045.0409320058466,
+      "effort_cost": -475.4910780787506,
+      "guarantee_lost": -96.63523641773625,
+      "court_fee": 0.0
+     },
+     "boundary_real": 1472.9146175093597,
+     "boundary_decisions": 4,
+     "pre_boundary_real": 32.695962857418536,
+     "suspension_charges": [],
+     "work_side": false
+    },
+    "slot_suspensions": 0,
+    "learner_identities": 1,
+    "learner_returns": 0,
+    "learner_leaves_chosen": 0,
+    "learner_leaves_refused": 0,
+    "learner_float_minted_real": 0.0,
+    "learner_lifetime_real": 1741.512,
+    "learner_departed_now": 0,
+    "care_share": 1.0,
+    "approve_blind_share": 0.0,
+    "reject_blind_share": 0.0,
+    "plants_seen": 0,
+    "plants_stamped": 0,
+    "real_seen": 86,
+    "real_stamped": 0,
+    "false_approvals_run": 215,
+    "learner_false_approvals": 0,
+    "slot_departed": 0,
+    "slot_rho": 0.951,
+    "slot_plant_failures": 0.0,
+    "suspensions_run": 0,
+    "idle_for_bond_ticks": 84,
+    "idle_for_bond_names": 10,
+    "error": null
+   },
+   {
+    "seed": 36,
+    "decisions": 95,
+    "lifetime_real_wealth": 1003.1614013677844,
+    "odds_at_stamps_mean": null,
+    "odds_at_cares_mean": 1.0,
+    "stamps_by_odds_band": {
+     "0.0-0.3": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.3-0.5": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.5-0.7": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.7-1.0": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "pinned": {
+      "decisions": 95,
+      "stamps": 0
+     }
+    },
+    "suspensions_seen": 0,
+    "admissions_seen": 0,
+    "ticks_between_admissions_mean": null,
+    "stamps_while_member": 0,
+    "stamps_while_not_member": 0,
+    "boundary_decisions": 4,
+    "leaves_chosen": 0,
+    "pred_vs_realized": {
+     "0": {
+      "n": 95,
+      "realized_mean": 8.321747928821628,
+      "attributed_mean": 0.04396578944656635,
+      "pred_r_mean": null,
+      "pred_r_taken_mean": null,
+      "plan_cost_mean": null
+     },
+     "1": {
+      "n": 0,
+      "realized_mean": null,
+      "attributed_mean": null,
+      "pred_r_mean": null,
+      "pred_r_taken_mean": null,
+      "plan_cost_mean": null
+     },
+     "2": {
+      "n": 0,
+      "realized_mean": null,
+      "attributed_mean": null,
+      "pred_r_mean": null,
+      "pred_r_taken_mean": null,
+      "plan_cost_mean": null
+     }
+    },
+    "attributed_sum": 853.1971915372187,
+    "attribution": {
+     "by_source": {
+      "care_cost": -850.9992202483822,
+      "reimbursement": 470.34402616846165,
+      "review_fee": 169.83066416486787,
+      "emission": 240.00127991247638,
+      "bond_lost": -25.0,
+      "effort_cost": -1229.7818189898471,
+      "guarantee_lost": -161.4005633903246,
+      "delivery_price": 2240.2028239199644,
+      "court_fee": 0.0
+     },
+     "boundary_by_source": {
+      "effort_cost": -1229.7818189898471,
+      "guarantee_lost": -161.4005633903246,
+      "delivery_price": 2240.2028239199644,
+      "court_fee": 0.0
+     },
+     "boundary_real": 849.0204415397933,
+     "boundary_decisions": 4,
+     "pre_boundary_real": 245.5520768684147,
+     "suspension_charges": [],
+     "work_side": false
+    },
+    "slot_suspensions": 0,
+    "learner_identities": 1,
+    "learner_returns": 0,
+    "learner_leaves_chosen": 0,
+    "learner_leaves_refused": 0,
+    "learner_float_minted_real": 0.0,
+    "learner_lifetime_real": 1003.161,
+    "learner_departed_now": 0,
+    "care_share": 1.0,
+    "approve_blind_share": 0.0,
+    "reject_blind_share": 0.0,
+    "plants_seen": 0,
+    "plants_stamped": 0,
+    "real_seen": 95,
+    "real_stamped": 0,
+    "false_approvals_run": 238,
+    "learner_false_approvals": 0,
+    "slot_departed": 0,
+    "slot_rho": 0.8922,
+    "slot_plant_failures": 0.0,
+    "suspensions_run": 0,
+    "idle_for_bond_ticks": 317,
+    "idle_for_bond_names": 11,
+    "error": null
+   },
+   {
+    "seed": 37,
+    "decisions": 102,
+    "lifetime_real_wealth": 1741.4020265711708,
+    "odds_at_stamps_mean": null,
+    "odds_at_cares_mean": 1.0,
+    "stamps_by_odds_band": {
+     "0.0-0.3": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.3-0.5": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.5-0.7": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.7-1.0": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "pinned": {
+      "decisions": 102,
+      "stamps": 0
+     }
+    },
+    "suspensions_seen": 0,
+    "admissions_seen": 0,
+    "ticks_between_admissions_mean": null,
+    "stamps_while_member": 0,
+    "stamps_while_not_member": 0,
+    "boundary_decisions": 4,
+    "leaves_chosen": 0,
+    "pred_vs_realized": {
+     "0": {
+      "n": 102,
+      "realized_mean": 13.277505067815047,
+      "attributed_mean": -0.07878524284035524,
+      "pred_r_mean": null,
+      "pred_r_taken_mean": null,
+      "plan_cost_mean": null
+     },
+     "1": {
+      "n": 0,
+      "realized_mean": null,
+      "attributed_mean": null,
+      "pred_r_mean": null,
+      "pred_r_taken_mean": null,
+      "plan_cost_mean": null
+     },
+     "2": {
+      "n": 0,
+      "realized_mean": null,
+      "attributed_mean": null,
+      "pred_r_mean": null,
+      "pred_r_taken_mean": null,
+      "plan_cost_mean": null
+     }
+    },
+    "attributed_sum": 1477.0148373445074,
+    "attribution": {
+     "by_source": {
+      "care_cost": -952.6082002103656,
+      "reimbursement": 504.3121171549345,
+      "review_fee": 193.8797124738092,
+      "emission": 261.38027581190636,
+      "delivery_price": 2468.4052848476913,
+      "effort_cost": -819.4815608841741,
+      "guarantee_lost": -163.87279184929218,
+      "court_fee": 0.0,
+      "bond_lost": -15.0
+     },
+     "boundary_by_source": {
+      "delivery_price": 2468.4052848476913,
+      "effort_cost": -819.4815608841741,
+      "guarantee_lost": -163.87279184929218,
+      "court_fee": 0.0
+     },
+     "boundary_real": 1485.0509321142213,
+     "boundary_decisions": 4,
+     "pre_boundary_real": 312.0865658905249,
+     "suspension_charges": [],
+     "work_side": false
+    },
+    "slot_suspensions": 0,
+    "learner_identities": 1,
+    "learner_returns": 0,
+    "learner_leaves_chosen": 0,
+    "learner_leaves_refused": 0,
+    "learner_float_minted_real": 0.0,
+    "learner_lifetime_real": 1741.402,
+    "learner_departed_now": 0,
+    "care_share": 1.0,
+    "approve_blind_share": 0.0,
+    "reject_blind_share": 0.0,
+    "plants_seen": 0,
+    "plants_stamped": 0,
+    "real_seen": 102,
+    "real_stamped": 0,
+    "false_approvals_run": 214,
+    "learner_false_approvals": 0,
+    "slot_departed": 0,
+    "slot_rho": 0.902,
+    "slot_plant_failures": 0.0,
+    "suspensions_run": 0,
+    "idle_for_bond_ticks": 105,
+    "idle_for_bond_names": 14,
+    "error": null
+   },
+   {
+    "seed": 38,
+    "decisions": 84,
+    "lifetime_real_wealth": 328.6593166794744,
+    "odds_at_stamps_mean": null,
+    "odds_at_cares_mean": 1.0,
+    "stamps_by_odds_band": {
+     "0.0-0.3": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.3-0.5": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.5-0.7": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.7-1.0": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "pinned": {
+      "decisions": 84,
+      "stamps": 0
+     }
+    },
+    "suspensions_seen": 0,
+    "admissions_seen": 0,
+    "ticks_between_admissions_mean": null,
+    "stamps_while_member": 0,
+    "stamps_while_not_member": 0,
+    "boundary_decisions": 4,
+    "leaves_chosen": 0,
+    "pred_vs_realized": {
+     "0": {
+      "n": 84,
+      "realized_mean": 2.4718992530671096,
+      "attributed_mean": 0.5459046436788167,
+      "pred_r_mean": null,
+      "pred_r_taken_mean": null,
+      "plan_cost_mean": null
+     },
+     "1": {
+      "n": 0,
+      "realized_mean": null,
+      "attributed_mean": null,
+      "pred_r_mean": null,
+      "pred_r_taken_mean": null,
+      "plan_cost_mean": null
+     },
+     "2": {
+      "n": 0,
+      "realized_mean": null,
+      "attributed_mean": null,
+      "pred_r_mean": null,
+      "pred_r_taken_mean": null,
+      "plan_cost_mean": null
+     }
+    },
+    "attributed_sum": 288.6896447276821,
+    "attribution": {
+     "by_source": {
+      "care_cost": -684.9668576045907,
+      "reimbursement": 404.3301359679435,
+      "bond_lost": -15.0,
+      "review_fee": 140.4188201072703,
+      "emission": 201.073891598397,
+      "delivery_price": 1799.156640896948,
+      "effort_cost": -1400.4582736143843,
+      "guarantee_lost": -155.8647126239042,
+      "court_fee": 0.0
+     },
+     "boundary_by_source": {
+      "delivery_price": 1799.156640896948,
+      "effort_cost": -1400.4582736143843,
+      "guarantee_lost": -155.8647126239042,
+      "court_fee": 0.0
+     },
+     "boundary_real": 242.83365465866154,
+     "boundary_decisions": 4,
+     "pre_boundary_real": 0.4909886925657716,
+     "suspension_charges": [],
+     "work_side": false
+    },
+    "slot_suspensions": 0,
+    "learner_identities": 1,
+    "learner_returns": 0,
+    "learner_leaves_chosen": 0,
+    "learner_leaves_refused": 0,
+    "learner_float_minted_real": 0.0,
+    "learner_lifetime_real": 328.659,
+    "learner_departed_now": 0,
+    "care_share": 1.0,
+    "approve_blind_share": 0.0,
+    "reject_blind_share": 0.0,
+    "plants_seen": 0,
+    "plants_stamped": 0,
+    "real_seen": 84,
+    "real_stamped": 0,
+    "false_approvals_run": 175,
+    "learner_false_approvals": 0,
+    "slot_departed": 0,
+    "slot_rho": 0.9216,
+    "slot_plant_failures": 0.0,
+    "suspensions_run": 0,
+    "idle_for_bond_ticks": 179,
+    "idle_for_bond_names": 11,
+    "error": null
+   },
+   {
+    "seed": 39,
+    "decisions": 86,
+    "lifetime_real_wealth": 1300.3334357266501,
+    "odds_at_stamps_mean": null,
+    "odds_at_cares_mean": 1.0,
+    "stamps_by_odds_band": {
+     "0.0-0.3": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.3-0.5": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.5-0.7": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.7-1.0": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "pinned": {
+      "decisions": 86,
+      "stamps": 0
+     }
+    },
+    "suspensions_seen": 0,
+    "admissions_seen": 0,
+    "ticks_between_admissions_mean": null,
+    "stamps_while_member": 0,
+    "stamps_while_not_member": 0,
+    "boundary_decisions": 4,
+    "leaves_chosen": 0,
+    "pred_vs_realized": {
+     "0": {
+      "n": 86,
+      "realized_mean": 10.349119399802497,
+      "attributed_mean": -0.10007969810763577,
+      "pred_r_mean": null,
+      "pred_r_taken_mean": null,
+      "plan_cost_mean": null
+     },
+     "1": {
+      "n": 0,
+      "realized_mean": null,
+      "attributed_mean": null,
+      "pred_r_mean": null,
+      "pred_r_taken_mean": null,
+      "plan_cost_mean": null
+     },
+     "2": {
+      "n": 0,
+      "realized_mean": null,
+      "attributed_mean": null,
+      "pred_r_mean": null,
+      "pred_r_taken_mean": null,
+      "plan_cost_mean": null
+     }
+    },
+    "attributed_sum": 1179.445643442029,
+    "attribution": {
+     "by_source": {
+      "care_cost": -797.8402192172173,
+      "reimbursement": 429.4757750826872,
+      "review_fee": 152.74064774702438,
+      "emission": 212.01694235024956,
+      "effort_cost": -775.2207185169968,
+      "guarantee_lost": -164.75495578066034,
+      "delivery_price": 2128.028171776943,
+      "court_fee": 0.0,
+      "bond_lost": -5.0
+     },
+     "boundary_by_source": {
+      "effort_cost": -775.2207185169968,
+      "guarantee_lost": -164.75495578066034,
+      "delivery_price": 2128.028171776943,
+      "court_fee": 0.0
+     },
+     "boundary_real": 1188.052497479284,
+     "boundary_decisions": 4,
+     "pre_boundary_real": 67.68212084982628,
+     "suspension_charges": [],
+     "work_side": false
+    },
+    "slot_suspensions": 0,
+    "learner_identities": 1,
+    "learner_returns": 0,
+    "learner_leaves_chosen": 0,
+    "learner_leaves_refused": 0,
+    "learner_float_minted_real": 0.0,
+    "learner_lifetime_real": 1300.333,
+    "learner_departed_now": 0,
+    "care_share": 1.0,
+    "approve_blind_share": 0.0,
+    "reject_blind_share": 0.0,
+    "plants_seen": 0,
+    "plants_stamped": 0,
+    "real_seen": 86,
+    "real_stamped": 0,
+    "false_approvals_run": 206,
+    "learner_false_approvals": 0,
+    "slot_departed": 0,
+    "slot_rho": 0.9216,
+    "slot_plant_failures": 0.0,
+    "suspensions_run": 0,
+    "idle_for_bond_ticks": 91,
+    "idle_for_bond_names": 13,
+    "error": null
+   },
+   {
+    "seed": 40,
+    "decisions": 20,
+    "lifetime_real_wealth": 2.8045073628556794,
+    "odds_at_stamps_mean": null,
+    "odds_at_cares_mean": 1.0,
+    "stamps_by_odds_band": {
+     "0.0-0.3": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.3-0.5": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.5-0.7": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.7-1.0": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "pinned": {
+      "decisions": 20,
+      "stamps": 0
+     }
+    },
+    "suspensions_seen": 0,
+    "admissions_seen": 0,
+    "ticks_between_admissions_mean": null,
+    "stamps_while_member": 0,
+    "stamps_while_not_member": 0,
+    "boundary_decisions": 4,
+    "leaves_chosen": 0,
+    "pred_vs_realized": {
+     "0": {
+      "n": 20,
+      "realized_mean": -2.4422304327738695,
+      "attributed_mean": 1.5647628408316958,
+      "pred_r_mean": null,
+      "pred_r_taken_mean": null,
+      "plan_cost_mean": null
+     },
+     "1": {
+      "n": 0,
+      "realized_mean": null,
+      "attributed_mean": null,
+      "pred_r_mean": null,
+      "pred_r_taken_mean": null,
+      "plan_cost_mean": null
+     },
+     "2": {
+      "n": 0,
+      "realized_mean": null,
+      "attributed_mean": null,
+      "pred_r_mean": null,
+      "pred_r_taken_mean": null,
+      "plan_cost_mean": null
+     }
+    },
+    "attributed_sum": 10.005129590915022,
+    "attribution": {
+     "by_source": {
+      "care_cost": -155.74982055754884,
+      "reimbursement": 76.74769581055584,
+      "review_fee": 43.598737184525355,
+      "emission": 66.69864437910161,
+      "delivery_price": 160.63671495083796,
+      "effort_cost": -155.05301141652328,
+      "guarantee_lost": -26.87383076003352
+     },
+     "boundary_by_source": {
+      "delivery_price": 160.63671495083796,
+      "effort_cost": -155.05301141652328,
+      "guarantee_lost": -26.87383076003352
+     },
+     "boundary_real": -21.290127225718898,
+     "boundary_decisions": 4,
+     "pre_boundary_real": 0.5886787458334517,
+     "suspension_charges": [],
+     "work_side": false
+    },
+    "slot_suspensions": 0,
+    "learner_identities": 1,
+    "learner_returns": 0,
+    "learner_leaves_chosen": 0,
+    "learner_leaves_refused": 0,
+    "learner_float_minted_real": 0.0,
+    "learner_lifetime_real": 2.805,
+    "learner_departed_now": 0,
+    "care_share": 1.0,
+    "approve_blind_share": 0.0,
+    "reject_blind_share": 0.0,
+    "plants_seen": 0,
+    "plants_stamped": 0,
+    "real_seen": 20,
+    "real_stamped": 0,
+    "false_approvals_run": 186,
+    "learner_false_approvals": 0,
+    "slot_departed": 0,
+    "slot_rho": 0.8302,
+    "slot_plant_failures": 0.0,
+    "suspensions_run": 0,
+    "idle_for_bond_ticks": 698,
+    "idle_for_bond_names": 12,
+    "error": null
+   }
+  ],
+  "stamper": [
+   {
+    "seed": 21,
+    "decisions": 116,
+    "lifetime_real_wealth": 2298.2350419076847,
+    "odds_at_stamps_mean": 1.0,
+    "odds_at_cares_mean": null,
+    "stamps_by_odds_band": {
+     "0.0-0.3": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.3-0.5": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.5-0.7": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.7-1.0": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "pinned": {
+      "decisions": 116,
+      "stamps": 116
+     }
+    },
+    "suspensions_seen": 0,
+    "admissions_seen": 0,
+    "ticks_between_admissions_mean": null,
+    "stamps_while_member": 116,
+    "stamps_while_not_member": 0,
+    "boundary_decisions": 4,
+    "leaves_chosen": 0,
+    "pred_vs_realized": {
+     "0": {
+      "n": 0,
+      "realized_mean": null,
+      "attributed_mean": null,
+      "pred_r_mean": null,
+      "pred_r_taken_mean": null,
+      "plan_cost_mean": null
+     },
+     "1": {
+      "n": 116,
+      "realized_mean": 14.609933189993889,
+      "attributed_mean": 4.034660637264288,
+      "pred_r_mean": null,
+      "pred_r_taken_mean": null,
+      "plan_cost_mean": null
+     },
+     "2": {
+      "n": 0,
+      "realized_mean": null,
+      "attributed_mean": null,
+      "pred_r_mean": null,
+      "pred_r_taken_mean": null,
+      "plan_cost_mean": null
+     }
+    },
+    "attributed_sum": 2061.5889886092345,
+    "attribution": {
+     "by_source": {
+      "review_fee": 184.62883025953673,
+      "emission": 283.39180366312075,
+      "effort_cost": -580.4927126121165,
+      "delivery_price": 2356.5114123622175,
+      "guarantee_lost": -182.45034506352397,
+      "court_fee": 0.0
+     },
+     "boundary_by_source": {
+      "effort_cost": -580.4927126121165,
+      "delivery_price": 2356.5114123622175,
+      "guarantee_lost": -182.45034506352397,
+      "court_fee": 0.0
+     },
+     "boundary_real": 1593.5683546865803,
+     "boundary_decisions": 4,
+     "pre_boundary_real": 328.54442925459716,
+     "suspension_charges": [],
+     "work_side": false
+    },
+    "slot_suspensions": 0,
+    "learner_identities": 1,
+    "learner_returns": 0,
+    "learner_leaves_chosen": 0,
+    "learner_leaves_refused": 0,
+    "learner_float_minted_real": 0.0,
+    "learner_lifetime_real": 2298.235,
+    "learner_departed_now": 0,
+    "care_share": 0.0,
+    "approve_blind_share": 1.0,
+    "reject_blind_share": 0.0,
+    "plants_seen": 0,
+    "plants_stamped": 0,
+    "real_seen": 116,
+    "real_stamped": 116,
+    "false_approvals_run": 186,
+    "learner_false_approvals": 18,
+    "slot_departed": 0,
+    "slot_rho": 0.9216,
+    "slot_plant_failures": 0.0,
+    "suspensions_run": 0,
+    "idle_for_bond_ticks": 57,
+    "idle_for_bond_names": 8,
+    "error": null
+   },
+   {
+    "seed": 22,
+    "decisions": 88,
+    "lifetime_real_wealth": 2292.978669742978,
+    "odds_at_stamps_mean": 1.0,
+    "odds_at_cares_mean": null,
+    "stamps_by_odds_band": {
+     "0.0-0.3": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.3-0.5": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.5-0.7": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.7-1.0": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "pinned": {
+      "decisions": 88,
+      "stamps": 88
+     }
+    },
+    "suspensions_seen": 0,
+    "admissions_seen": 0,
+    "ticks_between_admissions_mean": null,
+    "stamps_while_member": 88,
+    "stamps_while_not_member": 0,
+    "boundary_decisions": 4,
+    "leaves_chosen": 0,
+    "pred_vs_realized": {
+     "0": {
+      "n": 0,
+      "realized_mean": null,
+      "attributed_mean": null,
+      "pred_r_mean": null,
+      "pred_r_taken_mean": null,
+      "plan_cost_mean": null
+     },
+     "1": {
+      "n": 88,
+      "realized_mean": 19.93236214103366,
+      "attributed_mean": 4.646893938604185,
+      "pred_r_mean": null,
+      "pred_r_taken_mean": null,
+      "plan_cost_mean": null
+     },
+     "2": {
+      "n": 0,
+      "realized_mean": null,
+      "attributed_mean": null,
+      "pred_r_mean": null,
+      "pred_r_taken_mean": null,
+      "plan_cost_mean": null
+     }
+    },
+    "attributed_sum": 2185.2271059241166,
+    "attribution": {
+     "by_source": {
+      "review_fee": 161.4645132451806,
+      "emission": 247.46215335198747,
+      "effort_cost": -664.0460701821388,
+      "delivery_price": 2576.0263135310997,
+      "court_fee": 0.0,
+      "guarantee_lost": -135.67980402201536
+     },
+     "boundary_by_source": {
+      "effort_cost": -664.0460701821388,
+      "delivery_price": 2576.0263135310997,
+      "court_fee": 0.0,
+      "guarantee_lost": -135.67980402201536
+     },
+     "boundary_real": 1776.3004393269491,
+     "boundary_decisions": 4,
+     "pre_boundary_real": 121.65131855257609,
+     "suspension_charges": [],
+     "work_side": false
+    },
+    "slot_suspensions": 0,
+    "learner_identities": 1,
+    "learner_returns": 0,
+    "learner_leaves_chosen": 0,
+    "learner_leaves_refused": 0,
+    "learner_float_minted_real": 0.0,
+    "learner_lifetime_real": 2292.979,
+    "learner_departed_now": 0,
+    "care_share": 0.0,
+    "approve_blind_share": 1.0,
+    "reject_blind_share": 0.0,
+    "plants_seen": 0,
+    "plants_stamped": 0,
+    "real_seen": 88,
+    "real_stamped": 88,
+    "false_approvals_run": 159,
+    "learner_false_approvals": 11,
+    "slot_departed": 0,
+    "slot_rho": 0.9216,
+    "slot_plant_failures": 0.0,
+    "suspensions_run": 0,
+    "idle_for_bond_ticks": 85,
+    "idle_for_bond_names": 13,
+    "error": null
+   },
+   {
+    "seed": 23,
+    "decisions": 101,
+    "lifetime_real_wealth": 2554.1621051169545,
+    "odds_at_stamps_mean": 1.0,
+    "odds_at_cares_mean": null,
+    "stamps_by_odds_band": {
+     "0.0-0.3": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.3-0.5": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.5-0.7": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.7-1.0": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "pinned": {
+      "decisions": 101,
+      "stamps": 101
+     }
+    },
+    "suspensions_seen": 0,
+    "admissions_seen": 0,
+    "ticks_between_admissions_mean": null,
+    "stamps_while_member": 101,
+    "stamps_while_not_member": 0,
+    "boundary_decisions": 4,
+    "leaves_chosen": 0,
+    "pred_vs_realized": {
+     "0": {
+      "n": 0,
+      "realized_mean": null,
+      "attributed_mean": null,
+      "pred_r_mean": null,
+      "pred_r_taken_mean": null,
+      "plan_cost_mean": null
+     },
+     "1": {
+      "n": 101,
+      "realized_mean": 20.193111098680575,
+      "attributed_mean": 4.238370494652559,
+      "pred_r_mean": null,
+      "pred_r_taken_mean": null,
+      "plan_cost_mean": null
+     },
+     "2": {
+      "n": 0,
+      "realized_mean": null,
+      "attributed_mean": null,
+      "pred_r_mean": null,
+      "pred_r_taken_mean": null,
+      "plan_cost_mean": null
+     }
+    },
+    "attributed_sum": 2097.353329154144,
+    "attribution": {
+     "by_source": {
+      "review_fee": 168.81734244215224,
+      "emission": 259.258077517756,
+      "effort_cost": -570.8369168111817,
+      "delivery_price": 2386.072426297462,
+      "guarantee_lost": -145.95760029204544,
+      "court_fee": 0.0
+     },
+     "boundary_by_source": {
+      "effort_cost": -570.8369168111817,
+      "delivery_price": 2386.072426297462,
+      "guarantee_lost": -145.95760029204544,
+      "court_fee": 0.0
+     },
+     "boundary_real": 1669.2779091942368,
+     "boundary_decisions": 4,
+     "pre_boundary_real": 528.0643774634275,
+     "suspension_charges": [],
+     "work_side": false
+    },
+    "slot_suspensions": 0,
+    "learner_identities": 1,
+    "learner_returns": 0,
+    "learner_leaves_chosen": 0,
+    "learner_leaves_refused": 0,
+    "learner_float_minted_real": 0.0,
+    "learner_lifetime_real": 2554.162,
+    "learner_departed_now": 0,
+    "care_share": 0.0,
+    "approve_blind_share": 1.0,
+    "reject_blind_share": 0.0,
+    "plants_seen": 0,
+    "plants_stamped": 0,
+    "real_seen": 101,
+    "real_stamped": 101,
+    "false_approvals_run": 208,
+    "learner_false_approvals": 26,
+    "slot_departed": 0,
+    "slot_rho": 0.9118,
+    "slot_plant_failures": 0.0,
+    "suspensions_run": 0,
+    "idle_for_bond_ticks": 724,
+    "idle_for_bond_names": 13,
+    "error": null
+   },
+   {
+    "seed": 24,
+    "decisions": 87,
+    "lifetime_real_wealth": 1695.9074854282574,
+    "odds_at_stamps_mean": 1.0,
+    "odds_at_cares_mean": null,
+    "stamps_by_odds_band": {
+     "0.0-0.3": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.3-0.5": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.5-0.7": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.7-1.0": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "pinned": {
+      "decisions": 87,
+      "stamps": 87
+     }
+    },
+    "suspensions_seen": 0,
+    "admissions_seen": 0,
+    "ticks_between_admissions_mean": null,
+    "stamps_while_member": 87,
+    "stamps_while_not_member": 0,
+    "boundary_decisions": 4,
+    "leaves_chosen": 0,
+    "pred_vs_realized": {
+     "0": {
+      "n": 0,
+      "realized_mean": null,
+      "attributed_mean": null,
+      "pred_r_mean": null,
+      "pred_r_taken_mean": null,
+      "plan_cost_mean": null
+     },
+     "1": {
+      "n": 87,
+      "realized_mean": 15.120638211777642,
+      "attributed_mean": 4.790904416589061,
+      "pred_r_mean": null,
+      "pred_r_taken_mean": null,
+      "plan_cost_mean": null
+     },
+     "2": {
+      "n": 0,
+      "realized_mean": null,
+      "attributed_mean": null,
+      "pred_r_mean": null,
+      "pred_r_taken_mean": null,
+      "plan_cost_mean": null
+     }
+    },
+    "attributed_sum": 1781.6334130034154,
+    "attribution": {
+     "by_source": {
+      "review_fee": 158.16313820008128,
+      "emission": 258.64554604316754,
+      "effort_cost": -783.8009738611369,
+      "delivery_price": 2291.4106657502957,
+      "guarantee_lost": -142.78496312899242
+     },
+     "boundary_by_source": {
+      "effort_cost": -783.8009738611369,
+      "delivery_price": 2291.4106657502957,
+      "guarantee_lost": -142.78496312899242
+     },
+     "boundary_real": 1364.8247287601687,
+     "boundary_decisions": 4,
+     "pre_boundary_real": 189.52620277099254,
+     "suspension_charges": [],
+     "work_side": false
+    },
+    "slot_suspensions": 0,
+    "learner_identities": 1,
+    "learner_returns": 0,
+    "learner_leaves_chosen": 0,
+    "learner_leaves_refused": 0,
+    "learner_float_minted_real": 0.0,
+    "learner_lifetime_real": 1695.907,
+    "learner_departed_now": 0,
+    "care_share": 0.0,
+    "approve_blind_share": 1.0,
+    "reject_blind_share": 0.0,
+    "plants_seen": 0,
+    "plants_stamped": 0,
+    "real_seen": 87,
+    "real_stamped": 87,
+    "false_approvals_run": 217,
+    "learner_false_approvals": 20,
+    "slot_departed": 0,
+    "slot_rho": 0.951,
+    "slot_plant_failures": 0.0,
+    "suspensions_run": 0,
+    "idle_for_bond_ticks": 171,
+    "idle_for_bond_names": 13,
+    "error": null
+   },
+   {
+    "seed": 25,
+    "decisions": 108,
+    "lifetime_real_wealth": 2562.476823800381,
+    "odds_at_stamps_mean": 1.0,
+    "odds_at_cares_mean": null,
+    "stamps_by_odds_band": {
+     "0.0-0.3": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.3-0.5": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.5-0.7": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.7-1.0": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "pinned": {
+      "decisions": 108,
+      "stamps": 108
+     }
+    },
+    "suspensions_seen": 0,
+    "admissions_seen": 0,
+    "ticks_between_admissions_mean": null,
+    "stamps_while_member": 108,
+    "stamps_while_not_member": 0,
+    "boundary_decisions": 4,
+    "leaves_chosen": 0,
+    "pred_vs_realized": {
+     "0": {
+      "n": 0,
+      "realized_mean": null,
+      "attributed_mean": null,
+      "pred_r_mean": null,
+      "pred_r_taken_mean": null,
+      "plan_cost_mean": null
+     },
+     "1": {
+      "n": 108,
+      "realized_mean": 18.36826233927376,
+      "attributed_mean": 4.530442375007241,
+      "pred_r_mean": null,
+      "pred_r_taken_mean": null,
+      "plan_cost_mean": null
+     },
+     "2": {
+      "n": 0,
+      "realized_mean": null,
+      "attributed_mean": null,
+      "pred_r_mean": null,
+      "pred_r_taken_mean": null,
+      "plan_cost_mean": null
+     }
+    },
+    "attributed_sum": 2294.0939369798775,
+    "attribution": {
+     "by_source": {
+      "review_fee": 186.8356664360381,
+      "emission": 302.4521100647438,
+      "delivery_price": 2344.8047645232423,
+      "effort_cost": -430.8923082172244,
+      "guarantee_lost": -109.1062958269242,
+      "court_fee": 0.0
+     },
+     "boundary_by_source": {
+      "delivery_price": 2344.8047645232423,
+      "effort_cost": -430.8923082172244,
+      "guarantee_lost": -109.1062958269242,
+      "court_fee": 0.0
+     },
+     "boundary_real": 1804.806160479101,
+     "boundary_decisions": 4,
+     "pre_boundary_real": 251.69983877819612,
+     "suspension_charges": [],
+     "work_side": false
+    },
+    "slot_suspensions": 0,
+    "learner_identities": 1,
+    "learner_returns": 0,
+    "learner_leaves_chosen": 0,
+    "learner_leaves_refused": 0,
+    "learner_float_minted_real": 0.0,
+    "learner_lifetime_real": 2562.477,
+    "learner_departed_now": 0,
+    "care_share": 0.0,
+    "approve_blind_share": 1.0,
+    "reject_blind_share": 0.0,
+    "plants_seen": 0,
+    "plants_stamped": 0,
+    "real_seen": 108,
+    "real_stamped": 108,
+    "false_approvals_run": 250,
+    "learner_false_approvals": 21,
+    "slot_departed": 0,
+    "slot_rho": 0.9314,
+    "slot_plant_failures": 0.0,
+    "suspensions_run": 0,
+    "idle_for_bond_ticks": 73,
+    "idle_for_bond_names": 13,
+    "error": null
+   },
+   {
+    "seed": 26,
+    "decisions": 92,
+    "lifetime_real_wealth": 945.4093648471968,
+    "odds_at_stamps_mean": 1.0,
+    "odds_at_cares_mean": null,
+    "stamps_by_odds_band": {
+     "0.0-0.3": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.3-0.5": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.5-0.7": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.7-1.0": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "pinned": {
+      "decisions": 92,
+      "stamps": 92
+     }
+    },
+    "suspensions_seen": 0,
+    "admissions_seen": 0,
+    "ticks_between_admissions_mean": null,
+    "stamps_while_member": 92,
+    "stamps_while_not_member": 0,
+    "boundary_decisions": 4,
+    "leaves_chosen": 0,
+    "pred_vs_realized": {
+     "0": {
+      "n": 0,
+      "realized_mean": null,
+      "attributed_mean": null,
+      "pred_r_mean": null,
+      "pred_r_taken_mean": null,
+      "plan_cost_mean": null
+     },
+     "1": {
+      "n": 92,
+      "realized_mean": 6.875580907664193,
+      "attributed_mean": 4.687895153091673,
+      "pred_r_mean": null,
+      "pred_r_taken_mean": null,
+      "plan_cost_mean": null
+     },
+     "2": {
+      "n": 0,
+      "realized_mean": null,
+      "attributed_mean": null,
+      "pred_r_mean": null,
+      "pred_r_taken_mean": null,
+      "plan_cost_mean": null
+     }
+    },
+    "attributed_sum": 1107.4880022258174,
+    "attribution": {
+     "by_source": {
+      "review_fee": 171.02684959503412,
+      "emission": 260.2595044894001,
+      "effort_cost": -1512.5413466650582,
+      "court_fee": 0.0,
+      "delivery_price": 2317.3371036965277,
+      "guarantee_lost": -128.59410889008578
+     },
+     "boundary_by_source": {
+      "effort_cost": -1512.5413466650582,
+      "court_fee": 0.0,
+      "delivery_price": 2317.3371036965277,
+      "guarantee_lost": -128.59410889008578
+     },
+     "boundary_real": 676.2016481413827,
+     "boundary_decisions": 4,
+     "pre_boundary_real": 87.25905335947365,
+     "suspension_charges": [],
+     "work_side": false
+    },
+    "slot_suspensions": 0,
+    "learner_identities": 1,
+    "learner_returns": 0,
+    "learner_leaves_chosen": 0,
+    "learner_leaves_refused": 0,
+    "learner_float_minted_real": 0.0,
+    "learner_lifetime_real": 945.409,
+    "learner_departed_now": 0,
+    "care_share": 0.0,
+    "approve_blind_share": 1.0,
+    "reject_blind_share": 0.0,
+    "plants_seen": 0,
+    "plants_stamped": 0,
+    "real_seen": 92,
+    "real_stamped": 92,
+    "false_approvals_run": 234,
+    "learner_false_approvals": 20,
+    "slot_departed": 0,
+    "slot_rho": 0.9118,
+    "slot_plant_failures": 0.0,
+    "suspensions_run": 0,
+    "idle_for_bond_ticks": 142,
+    "idle_for_bond_names": 14,
+    "error": null
+   },
+   {
+    "seed": 27,
+    "decisions": 100,
+    "lifetime_real_wealth": 2169.4120395672066,
+    "odds_at_stamps_mean": 1.0,
+    "odds_at_cares_mean": null,
+    "stamps_by_odds_band": {
+     "0.0-0.3": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.3-0.5": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.5-0.7": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.7-1.0": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "pinned": {
+      "decisions": 100,
+      "stamps": 100
+     }
+    },
+    "suspensions_seen": 0,
+    "admissions_seen": 0,
+    "ticks_between_admissions_mean": null,
+    "stamps_while_member": 100,
+    "stamps_while_not_member": 0,
+    "boundary_decisions": 4,
+    "leaves_chosen": 0,
+    "pred_vs_realized": {
+     "0": {
+      "n": 0,
+      "realized_mean": null,
+      "attributed_mean": null,
+      "pred_r_mean": null,
+      "pred_r_taken_mean": null,
+      "plan_cost_mean": null
+     },
+     "1": {
+      "n": 100,
+      "realized_mean": 16.175010309299473,
+      "attributed_mean": 4.50806775174877,
+      "pred_r_mean": null,
+      "pred_r_taken_mean": null,
+      "plan_cost_mean": null
+     },
+     "2": {
+      "n": 0,
+      "realized_mean": null,
+      "attributed_mean": null,
+      "pred_r_mean": null,
+      "pred_r_taken_mean": null,
+      "plan_cost_mean": null
+     }
+    },
+    "attributed_sum": 1902.2597588282006,
+    "attribution": {
+     "by_source": {
+      "review_fee": 164.70389122059558,
+      "emission": 286.10288395428137,
+      "effort_cost": -659.1265699250042,
+      "delivery_price": 2252.3188343057877,
+      "guarantee_lost": -141.73928072746077,
+      "court_fee": 0.0
+     },
+     "boundary_by_source": {
+      "effort_cost": -659.1265699250042,
+      "delivery_price": 2252.3188343057877,
+      "guarantee_lost": -141.73928072746077,
+      "court_fee": 0.0
+     },
+     "boundary_real": 1451.452983653327,
+     "boundary_decisions": 4,
+     "pre_boundary_real": 501.48989782161334,
+     "suspension_charges": [],
+     "work_side": false
+    },
+    "slot_suspensions": 0,
+    "learner_identities": 1,
+    "learner_returns": 0,
+    "learner_leaves_chosen": 0,
+    "learner_leaves_refused": 0,
+    "learner_float_minted_real": 0.0,
+    "learner_lifetime_real": 2169.412,
+    "learner_departed_now": 0,
+    "care_share": 0.0,
+    "approve_blind_share": 1.0,
+    "reject_blind_share": 0.0,
+    "plants_seen": 0,
+    "plants_stamped": 0,
+    "real_seen": 100,
+    "real_stamped": 100,
+    "false_approvals_run": 165,
+    "learner_false_approvals": 18,
+    "slot_departed": 0,
+    "slot_rho": 0.8922,
+    "slot_plant_failures": 0.0,
+    "suspensions_run": 0,
+    "idle_for_bond_ticks": 111,
+    "idle_for_bond_names": 12,
+    "error": null
+   },
+   {
+    "seed": 28,
+    "decisions": 101,
+    "lifetime_real_wealth": 1647.6883617053475,
+    "odds_at_stamps_mean": 1.0,
+    "odds_at_cares_mean": null,
+    "stamps_by_odds_band": {
+     "0.0-0.3": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.3-0.5": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.5-0.7": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.7-1.0": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "pinned": {
+      "decisions": 101,
+      "stamps": 101
+     }
+    },
+    "suspensions_seen": 0,
+    "admissions_seen": 0,
+    "ticks_between_admissions_mean": null,
+    "stamps_while_member": 101,
+    "stamps_while_not_member": 0,
+    "boundary_decisions": 4,
+    "leaves_chosen": 0,
+    "pred_vs_realized": {
+     "0": {
+      "n": 0,
+      "realized_mean": null,
+      "attributed_mean": null,
+      "pred_r_mean": null,
+      "pred_r_taken_mean": null,
+      "plan_cost_mean": null
+     },
+     "1": {
+      "n": 101,
+      "realized_mean": 11.377515320173279,
+      "attributed_mean": 4.849501855985704,
+      "pred_r_mean": null,
+      "pred_r_taken_mean": null,
+      "plan_cost_mean": null
+     },
+     "2": {
+      "n": 0,
+      "realized_mean": null,
+      "attributed_mean": null,
+      "pred_r_mean": null,
+      "pred_r_taken_mean": null,
+      "plan_cost_mean": null
+     }
+    },
+    "attributed_sum": 2319.636041702239,
+    "attribution": {
+     "by_source": {
+      "review_fee": 195.9543229794283,
+      "emission": 293.84536447512755,
+      "effort_cost": -774.5458085970587,
+      "delivery_price": 2725.1288333965854,
+      "court_fee": 0.0,
+      "guarantee_lost": -120.74667055184291
+     },
+     "boundary_by_source": {
+      "effort_cost": -774.5458085970587,
+      "delivery_price": 2725.1288333965854,
+      "court_fee": 0.0,
+      "guarantee_lost": -120.74667055184291
+     },
+     "boundary_real": 1829.83635424768,
+     "boundary_decisions": 4,
+     "pre_boundary_real": 43.1178565202387,
+     "suspension_charges": [],
+     "work_side": false
+    },
+    "slot_suspensions": 0,
+    "learner_identities": 1,
+    "learner_returns": 0,
+    "learner_leaves_chosen": 0,
+    "learner_leaves_refused": 0,
+    "learner_float_minted_real": 0.0,
+    "learner_lifetime_real": 1647.688,
+    "learner_departed_now": 0,
+    "care_share": 0.0,
+    "approve_blind_share": 1.0,
+    "reject_blind_share": 0.0,
+    "plants_seen": 0,
+    "plants_stamped": 0,
+    "real_seen": 101,
+    "real_stamped": 101,
+    "false_approvals_run": 199,
+    "learner_false_approvals": 12,
+    "slot_departed": 0,
+    "slot_rho": 0.9216,
+    "slot_plant_failures": 0.0,
+    "suspensions_run": 0,
+    "idle_for_bond_ticks": 254,
+    "idle_for_bond_names": 13,
+    "error": null
+   },
+   {
+    "seed": 29,
+    "decisions": 99,
+    "lifetime_real_wealth": 2518.213475518599,
+    "odds_at_stamps_mean": 1.0,
+    "odds_at_cares_mean": null,
+    "stamps_by_odds_band": {
+     "0.0-0.3": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.3-0.5": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.5-0.7": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.7-1.0": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "pinned": {
+      "decisions": 99,
+      "stamps": 99
+     }
+    },
+    "suspensions_seen": 0,
+    "admissions_seen": 0,
+    "ticks_between_admissions_mean": null,
+    "stamps_while_member": 99,
+    "stamps_while_not_member": 0,
+    "boundary_decisions": 4,
+    "leaves_chosen": 0,
+    "pred_vs_realized": {
+     "0": {
+      "n": 0,
+      "realized_mean": null,
+      "attributed_mean": null,
+      "pred_r_mean": null,
+      "pred_r_taken_mean": null,
+      "plan_cost_mean": null
+     },
+     "1": {
+      "n": 99,
+      "realized_mean": 15.181712143195368,
+      "attributed_mean": 4.2133507464637745,
+      "pred_r_mean": null,
+      "pred_r_taken_mean": null,
+      "plan_cost_mean": null
+     },
+     "2": {
+      "n": 0,
+      "realized_mean": null,
+      "attributed_mean": null,
+      "pred_r_mean": null,
+      "pred_r_taken_mean": null,
+      "plan_cost_mean": null
+     }
+    },
+    "attributed_sum": 2242.7964440612564,
+    "attribution": {
+     "by_source": {
+      "review_fee": 158.50760222219785,
+      "emission": 258.6141216777162,
+      "effort_cost": -379.3532452311792,
+      "delivery_price": 2418.4405353086213,
+      "guarantee_lost": -213.41256991609822,
+      "court_fee": 0.0
+     },
+     "boundary_by_source": {
+      "effort_cost": -379.3532452311792,
+      "delivery_price": 2418.4405353086213,
+      "guarantee_lost": -213.41256991609822,
+      "court_fee": 0.0
+     },
+     "boundary_real": 1825.6747201613443,
+     "boundary_decisions": 4,
+     "pre_boundary_real": 502.86473834951744,
+     "suspension_charges": [],
+     "work_side": false
+    },
+    "slot_suspensions": 0,
+    "learner_identities": 1,
+    "learner_returns": 0,
+    "learner_leaves_chosen": 0,
+    "learner_leaves_refused": 0,
+    "learner_float_minted_real": 0.0,
+    "learner_lifetime_real": 2518.213,
+    "learner_departed_now": 0,
+    "care_share": 0.0,
+    "approve_blind_share": 1.0,
+    "reject_blind_share": 0.0,
+    "plants_seen": 0,
+    "plants_stamped": 0,
+    "real_seen": 99,
+    "real_stamped": 99,
+    "false_approvals_run": 160,
+    "learner_false_approvals": 14,
+    "slot_departed": 0,
+    "slot_rho": 0.9216,
+    "slot_plant_failures": 0.0,
+    "suspensions_run": 0,
+    "idle_for_bond_ticks": 202,
+    "idle_for_bond_names": 11,
+    "error": null
+   },
+   {
+    "seed": 30,
+    "decisions": 103,
+    "lifetime_real_wealth": 1474.7218390702026,
+    "odds_at_stamps_mean": 1.0,
+    "odds_at_cares_mean": null,
+    "stamps_by_odds_band": {
+     "0.0-0.3": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.3-0.5": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.5-0.7": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.7-1.0": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "pinned": {
+      "decisions": 103,
+      "stamps": 103
+     }
+    },
+    "suspensions_seen": 0,
+    "admissions_seen": 0,
+    "ticks_between_admissions_mean": null,
+    "stamps_while_member": 103,
+    "stamps_while_not_member": 0,
+    "boundary_decisions": 4,
+    "leaves_chosen": 0,
+    "pred_vs_realized": {
+     "0": {
+      "n": 0,
+      "realized_mean": null,
+      "attributed_mean": null,
+      "pred_r_mean": null,
+      "pred_r_taken_mean": null,
+      "plan_cost_mean": null
+     },
+     "1": {
+      "n": 103,
+      "realized_mean": 12.01090967593593,
+      "attributed_mean": 5.613238254445815,
+      "pred_r_mean": null,
+      "pred_r_taken_mean": null,
+      "plan_cost_mean": null
+     },
+     "2": {
+      "n": 0,
+      "realized_mean": null,
+      "attributed_mean": null,
+      "pred_r_mean": null,
+      "pred_r_taken_mean": null,
+      "plan_cost_mean": null
+     }
+    },
+    "attributed_sum": 1586.6839670767822,
+    "attribution": {
+     "by_source": {
+      "review_fee": 235.0784651437503,
+      "emission": 348.08507506416794,
+      "delivery_price": 2181.249698321586,
+      "effort_cost": -1028.4831403001112,
+      "guarantee_lost": -144.2461311526088,
+      "court_fee": 0.0,
+      "bond_lost": -5.0
+     },
+     "boundary_by_source": {
+      "delivery_price": 2181.249698321586,
+      "effort_cost": -1028.4831403001112,
+      "guarantee_lost": -144.2461311526088,
+      "court_fee": 0.0
+     },
+     "boundary_real": 1008.5204268688649,
+     "boundary_decisions": 4,
+     "pre_boundary_real": 56.033258290889606,
+     "suspension_charges": [],
+     "work_side": false
+    },
+    "slot_suspensions": 0,
+    "learner_identities": 1,
+    "learner_returns": 0,
+    "learner_leaves_chosen": 0,
+    "learner_leaves_refused": 0,
+    "learner_float_minted_real": 0.0,
+    "learner_lifetime_real": 1474.722,
+    "learner_departed_now": 0,
+    "care_share": 0.0,
+    "approve_blind_share": 1.0,
+    "reject_blind_share": 0.0,
+    "plants_seen": 0,
+    "plants_stamped": 0,
+    "real_seen": 103,
+    "real_stamped": 103,
+    "false_approvals_run": 248,
+    "learner_false_approvals": 24,
+    "slot_departed": 0,
+    "slot_rho": 0.9314,
+    "slot_plant_failures": 0.0,
+    "suspensions_run": 0,
+    "idle_for_bond_ticks": 240,
+    "idle_for_bond_names": 11,
+    "error": null
+   },
+   {
+    "seed": 31,
+    "decisions": 105,
+    "lifetime_real_wealth": 1850.1162439890359,
+    "odds_at_stamps_mean": 1.0,
+    "odds_at_cares_mean": null,
+    "stamps_by_odds_band": {
+     "0.0-0.3": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.3-0.5": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.5-0.7": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.7-1.0": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "pinned": {
+      "decisions": 105,
+      "stamps": 105
+     }
+    },
+    "suspensions_seen": 0,
+    "admissions_seen": 0,
+    "ticks_between_admissions_mean": null,
+    "stamps_while_member": 105,
+    "stamps_while_not_member": 0,
+    "boundary_decisions": 4,
+    "leaves_chosen": 0,
+    "pred_vs_realized": {
+     "0": {
+      "n": 0,
+      "realized_mean": null,
+      "attributed_mean": null,
+      "pred_r_mean": null,
+      "pred_r_taken_mean": null,
+      "plan_cost_mean": null
+     },
+     "1": {
+      "n": 105,
+      "realized_mean": 12.379542090154674,
+      "attributed_mean": 4.740107117736198,
+      "pred_r_mean": null,
+      "pred_r_taken_mean": null,
+      "plan_cost_mean": null
+     },
+     "2": {
+      "n": 0,
+      "realized_mean": null,
+      "attributed_mean": null,
+      "pred_r_mean": null,
+      "pred_r_taken_mean": null,
+      "plan_cost_mean": null
+     }
+    },
+    "attributed_sum": 2040.9542578340065,
+    "attribution": {
+     "by_source": {
+      "review_fee": 196.70116951596447,
+      "emission": 301.01007784633646,
+      "effort_cost": -685.1750368325759,
+      "delivery_price": 2496.5086162218768,
+      "guarantee_lost": -268.09056891759656,
+      "court_fee": 0.0
+     },
+     "boundary_by_source": {
+      "effort_cost": -685.1750368325759,
+      "delivery_price": 2496.5086162218768,
+      "guarantee_lost": -268.09056891759656,
+      "court_fee": 0.0
+     },
+     "boundary_real": 1543.2430104717005,
+     "boundary_decisions": 4,
+     "pre_boundary_real": 29.95674826238657,
+     "suspension_charges": [],
+     "work_side": false
+    },
+    "slot_suspensions": 0,
+    "learner_identities": 1,
+    "learner_returns": 0,
+    "learner_leaves_chosen": 0,
+    "learner_leaves_refused": 0,
+    "learner_float_minted_real": 0.0,
+    "learner_lifetime_real": 1850.116,
+    "learner_departed_now": 0,
+    "care_share": 0.0,
+    "approve_blind_share": 1.0,
+    "reject_blind_share": 0.0,
+    "plants_seen": 0,
+    "plants_stamped": 0,
+    "real_seen": 105,
+    "real_stamped": 105,
+    "false_approvals_run": 156,
+    "learner_false_approvals": 14,
+    "slot_departed": 0,
+    "slot_rho": 0.8725,
+    "slot_plant_failures": 0.0,
+    "suspensions_run": 0,
+    "idle_for_bond_ticks": 102,
+    "idle_for_bond_names": 13,
+    "error": null
+   },
+   {
+    "seed": 32,
+    "decisions": 100,
+    "lifetime_real_wealth": 1725.7084475633744,
+    "odds_at_stamps_mean": 1.0,
+    "odds_at_cares_mean": null,
+    "stamps_by_odds_band": {
+     "0.0-0.3": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.3-0.5": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.5-0.7": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.7-1.0": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "pinned": {
+      "decisions": 100,
+      "stamps": 100
+     }
+    },
+    "suspensions_seen": 0,
+    "admissions_seen": 0,
+    "ticks_between_admissions_mean": null,
+    "stamps_while_member": 100,
+    "stamps_while_not_member": 0,
+    "boundary_decisions": 4,
+    "leaves_chosen": 0,
+    "pred_vs_realized": {
+     "0": {
+      "n": 0,
+      "realized_mean": null,
+      "attributed_mean": null,
+      "pred_r_mean": null,
+      "pred_r_taken_mean": null,
+      "plan_cost_mean": null
+     },
+     "1": {
+      "n": 100,
+      "realized_mean": 16.240853681708884,
+      "attributed_mean": 4.6245849699455395,
+      "pred_r_mean": null,
+      "pred_r_taken_mean": null,
+      "plan_cost_mean": null
+     },
+     "2": {
+      "n": 0,
+      "realized_mean": null,
+      "attributed_mean": null,
+      "pred_r_mean": null,
+      "pred_r_taken_mean": null,
+      "plan_cost_mean": null
+     }
+    },
+    "attributed_sum": 1775.8896626716496,
+    "attribution": {
+     "by_source": {
+      "review_fee": 189.26324216230157,
+      "emission": 273.1952548322525,
+      "effort_cost": -917.6649072519632,
+      "delivery_price": 2411.1277464055224,
+      "guarantee_lost": -180.03167347646448,
+      "court_fee": 0.0
+     },
+     "boundary_by_source": {
+      "effort_cost": -917.6649072519632,
+      "delivery_price": 2411.1277464055224,
+      "guarantee_lost": -180.03167347646448,
+      "court_fee": 0.0
+     },
+     "boundary_real": 1313.4311656770979,
+     "boundary_decisions": 4,
+     "pre_boundary_real": 73.75203972840913,
+     "suspension_charges": [],
+     "work_side": false
+    },
+    "slot_suspensions": 0,
+    "learner_identities": 1,
+    "learner_returns": 0,
+    "learner_leaves_chosen": 0,
+    "learner_leaves_refused": 0,
+    "learner_float_minted_real": 0.0,
+    "learner_lifetime_real": 1725.708,
+    "learner_departed_now": 0,
+    "care_share": 0.0,
+    "approve_blind_share": 1.0,
+    "reject_blind_share": 0.0,
+    "plants_seen": 0,
+    "plants_stamped": 0,
+    "real_seen": 100,
+    "real_stamped": 100,
+    "false_approvals_run": 162,
+    "learner_false_approvals": 12,
+    "slot_departed": 0,
+    "slot_rho": 0.9118,
+    "slot_plant_failures": 0.0,
+    "suspensions_run": 0,
+    "idle_for_bond_ticks": 590,
+    "idle_for_bond_names": 11,
+    "error": null
+   },
+   {
+    "seed": 33,
+    "decisions": 90,
+    "lifetime_real_wealth": 2093.257325226379,
+    "odds_at_stamps_mean": 1.0,
+    "odds_at_cares_mean": null,
+    "stamps_by_odds_band": {
+     "0.0-0.3": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.3-0.5": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.5-0.7": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.7-1.0": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "pinned": {
+      "decisions": 90,
+      "stamps": 90
+     }
+    },
+    "suspensions_seen": 0,
+    "admissions_seen": 0,
+    "ticks_between_admissions_mean": null,
+    "stamps_while_member": 90,
+    "stamps_while_not_member": 0,
+    "boundary_decisions": 4,
+    "leaves_chosen": 0,
+    "pred_vs_realized": {
+     "0": {
+      "n": 0,
+      "realized_mean": null,
+      "attributed_mean": null,
+      "pred_r_mean": null,
+      "pred_r_taken_mean": null,
+      "plan_cost_mean": null
+     },
+     "1": {
+      "n": 90,
+      "realized_mean": 19.751007171970834,
+      "attributed_mean": 4.598404727450004,
+      "pred_r_mean": null,
+      "pred_r_taken_mean": null,
+      "plan_cost_mean": null
+     },
+     "2": {
+      "n": 0,
+      "realized_mean": null,
+      "attributed_mean": null,
+      "pred_r_mean": null,
+      "pred_r_taken_mean": null,
+      "plan_cost_mean": null
+     }
+    },
+    "attributed_sum": 2002.3793995155424,
+    "attribution": {
+     "by_source": {
+      "review_fee": 157.70863378087552,
+      "emission": 256.14779168962485,
+      "effort_cost": -553.2436561900727,
+      "guarantee_lost": -149.57133300377936,
+      "delivery_price": 2291.337963238894,
+      "court_fee": 0.0
+     },
+     "boundary_by_source": {
+      "effort_cost": -553.2436561900727,
+      "guarantee_lost": -149.57133300377936,
+      "delivery_price": 2291.337963238894,
+      "court_fee": 0.0
+     },
+     "boundary_real": 1588.5229740450382,
+     "boundary_decisions": 4,
+     "pre_boundary_real": 185.58533399999996,
+     "suspension_charges": [],
+     "work_side": false
+    },
+    "slot_suspensions": 0,
+    "learner_identities": 1,
+    "learner_returns": 0,
+    "learner_leaves_chosen": 0,
+    "learner_leaves_refused": 0,
+    "learner_float_minted_real": 0.0,
+    "learner_lifetime_real": 2093.257,
+    "learner_departed_now": 0,
+    "care_share": 0.0,
+    "approve_blind_share": 1.0,
+    "reject_blind_share": 0.0,
+    "plants_seen": 0,
+    "plants_stamped": 0,
+    "real_seen": 90,
+    "real_stamped": 90,
+    "false_approvals_run": 231,
+    "learner_false_approvals": 8,
+    "slot_departed": 0,
+    "slot_rho": 0.9314,
+    "slot_plant_failures": 0.0,
+    "suspensions_run": 0,
+    "idle_for_bond_ticks": 70,
+    "idle_for_bond_names": 8,
+    "error": null
+   },
+   {
+    "seed": 34,
+    "decisions": 113,
+    "lifetime_real_wealth": 1781.3524385782705,
+    "odds_at_stamps_mean": 1.0,
+    "odds_at_cares_mean": null,
+    "stamps_by_odds_band": {
+     "0.0-0.3": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.3-0.5": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.5-0.7": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.7-1.0": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "pinned": {
+      "decisions": 113,
+      "stamps": 113
+     }
+    },
+    "suspensions_seen": 0,
+    "admissions_seen": 0,
+    "ticks_between_admissions_mean": null,
+    "stamps_while_member": 113,
+    "stamps_while_not_member": 0,
+    "boundary_decisions": 4,
+    "leaves_chosen": 0,
+    "pred_vs_realized": {
+     "0": {
+      "n": 0,
+      "realized_mean": null,
+      "attributed_mean": null,
+      "pred_r_mean": null,
+      "pred_r_taken_mean": null,
+      "plan_cost_mean": null
+     },
+     "1": {
+      "n": 113,
+      "realized_mean": 13.554742035338553,
+      "attributed_mean": 5.8282407089040085,
+      "pred_r_mean": null,
+      "pred_r_taken_mean": null,
+      "plan_cost_mean": null
+     },
+     "2": {
+      "n": 0,
+      "realized_mean": null,
+      "attributed_mean": null,
+      "pred_r_mean": null,
+      "pred_r_taken_mean": null,
+      "plan_cost_mean": null
+     }
+    },
+    "attributed_sum": 1289.329989681213,
+    "attribution": {
+     "by_source": {
+      "review_fee": 282.74861207044967,
+      "emission": 375.8425880357035,
+      "delivery_price": 1704.226285075491,
+      "effort_cost": -855.0262089829994,
+      "guarantee_lost": -218.4612865174334,
+      "court_fee": 0.0
+     },
+     "boundary_by_source": {
+      "delivery_price": 1704.226285075491,
+      "effort_cost": -855.0262089829994,
+      "guarantee_lost": -218.4612865174334,
+      "court_fee": 0.0
+     },
+     "boundary_real": 630.7387895750608,
+     "boundary_decisions": 4,
+     "pre_boundary_real": 337.5992322658709,
+     "suspension_charges": [],
+     "work_side": false
+    },
+    "slot_suspensions": 0,
+    "learner_identities": 1,
+    "learner_returns": 0,
+    "learner_leaves_chosen": 0,
+    "learner_leaves_refused": 0,
+    "learner_float_minted_real": 0.0,
+    "learner_lifetime_real": 1781.352,
+    "learner_departed_now": 0,
+    "care_share": 0.0,
+    "approve_blind_share": 1.0,
+    "reject_blind_share": 0.0,
+    "plants_seen": 0,
+    "plants_stamped": 0,
+    "real_seen": 113,
+    "real_stamped": 113,
+    "false_approvals_run": 235,
+    "learner_false_approvals": 27,
+    "slot_departed": 0,
+    "slot_rho": 0.902,
+    "slot_plant_failures": 0.0,
+    "suspensions_run": 0,
+    "idle_for_bond_ticks": 110,
+    "idle_for_bond_names": 12,
+    "error": null
+   },
+   {
+    "seed": 35,
+    "decisions": 101,
+    "lifetime_real_wealth": 2632.818560347341,
+    "odds_at_stamps_mean": 1.0,
+    "odds_at_cares_mean": null,
+    "stamps_by_odds_band": {
+     "0.0-0.3": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.3-0.5": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.5-0.7": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.7-1.0": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "pinned": {
+      "decisions": 101,
+      "stamps": 101
+     }
+    },
+    "suspensions_seen": 0,
+    "admissions_seen": 0,
+    "ticks_between_admissions_mean": null,
+    "stamps_while_member": 101,
+    "stamps_while_not_member": 0,
+    "boundary_decisions": 4,
+    "leaves_chosen": 0,
+    "pred_vs_realized": {
+     "0": {
+      "n": 0,
+      "realized_mean": null,
+      "attributed_mean": null,
+      "pred_r_mean": null,
+      "pred_r_taken_mean": null,
+      "plan_cost_mean": null
+     },
+     "1": {
+      "n": 101,
+      "realized_mean": 17.14011821032788,
+      "attributed_mean": 4.316856937207965,
+      "pred_r_mean": null,
+      "pred_r_taken_mean": null,
+      "plan_cost_mean": null
+     },
+     "2": {
+      "n": 0,
+      "realized_mean": null,
+      "attributed_mean": null,
+      "pred_r_mean": null,
+      "pred_r_taken_mean": null,
+      "plan_cost_mean": null
+     }
+    },
+    "attributed_sum": 2396.773897588855,
+    "attribution": {
+     "by_source": {
+      "review_fee": 173.4065905808037,
+      "emission": 262.59596007720074,
+      "effort_cost": -467.89726210313336,
+      "delivery_price": 2574.1264250420663,
+      "guarantee_lost": -145.45781600808226,
+      "court_fee": 0.0
+     },
+     "boundary_by_source": {
+      "effort_cost": -467.89726210313336,
+      "delivery_price": 2574.1264250420663,
+      "guarantee_lost": -145.45781600808226,
+      "court_fee": 0.0
+     },
+     "boundary_real": 1960.7713469308528,
+     "boundary_decisions": 4,
+     "pre_boundary_real": 336.44001221824686,
+     "suspension_charges": [],
+     "work_side": false
+    },
+    "slot_suspensions": 0,
+    "learner_identities": 1,
+    "learner_returns": 0,
+    "learner_leaves_chosen": 0,
+    "learner_leaves_refused": 0,
+    "learner_float_minted_real": 0.0,
+    "learner_lifetime_real": 2632.819,
+    "learner_departed_now": 0,
+    "care_share": 0.0,
+    "approve_blind_share": 1.0,
+    "reject_blind_share": 0.0,
+    "plants_seen": 0,
+    "plants_stamped": 0,
+    "real_seen": 101,
+    "real_stamped": 101,
+    "false_approvals_run": 243,
+    "learner_false_approvals": 19,
+    "slot_departed": 0,
+    "slot_rho": 0.9314,
+    "slot_plant_failures": 0.0,
+    "suspensions_run": 0,
+    "idle_for_bond_ticks": 53,
+    "idle_for_bond_names": 10,
+    "error": null
+   },
+   {
+    "seed": 36,
+    "decisions": 104,
+    "lifetime_real_wealth": 1904.9927946345072,
+    "odds_at_stamps_mean": 1.0,
+    "odds_at_cares_mean": null,
+    "stamps_by_odds_band": {
+     "0.0-0.3": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.3-0.5": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.5-0.7": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.7-1.0": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "pinned": {
+      "decisions": 104,
+      "stamps": 104
+     }
+    },
+    "suspensions_seen": 0,
+    "admissions_seen": 0,
+    "ticks_between_admissions_mean": null,
+    "stamps_while_member": 104,
+    "stamps_while_not_member": 0,
+    "boundary_decisions": 4,
+    "leaves_chosen": 0,
+    "pred_vs_realized": {
+     "0": {
+      "n": 0,
+      "realized_mean": null,
+      "attributed_mean": null,
+      "pred_r_mean": null,
+      "pred_r_taken_mean": null,
+      "plan_cost_mean": null
+     },
+     "1": {
+      "n": 104,
+      "realized_mean": 14.060602586144288,
+      "attributed_mean": 4.691529496388476,
+      "pred_r_mean": null,
+      "pred_r_taken_mean": null,
+      "plan_cost_mean": null
+     },
+     "2": {
+      "n": 0,
+      "realized_mean": null,
+      "attributed_mean": null,
+      "pred_r_mean": null,
+      "pred_r_taken_mean": null,
+      "plan_cost_mean": null
+     }
+    },
+    "attributed_sum": 1748.5563069629204,
+    "attribution": {
+     "by_source": {
+      "review_fee": 189.91108792807822,
+      "emission": 298.00797969632316,
+      "effort_cost": -1206.1847182411896,
+      "delivery_price": 2640.6942179082353,
+      "guarantee_lost": -173.87226032852868,
+      "court_fee": 0.0
+     },
+     "boundary_by_source": {
+      "effort_cost": -1206.1847182411896,
+      "delivery_price": 2640.6942179082353,
+      "guarantee_lost": -173.87226032852868,
+      "court_fee": 0.0
+     },
+     "boundary_real": 1260.6372393385154,
+     "boundary_decisions": 4,
+     "pre_boundary_real": 348.290562863475,
+     "suspension_charges": [],
+     "work_side": false
+    },
+    "slot_suspensions": 0,
+    "learner_identities": 1,
+    "learner_returns": 0,
+    "learner_leaves_chosen": 0,
+    "learner_leaves_refused": 0,
+    "learner_float_minted_real": 0.0,
+    "learner_lifetime_real": 1904.993,
+    "learner_departed_now": 0,
+    "care_share": 0.0,
+    "approve_blind_share": 1.0,
+    "reject_blind_share": 0.0,
+    "plants_seen": 0,
+    "plants_stamped": 0,
+    "real_seen": 104,
+    "real_stamped": 104,
+    "false_approvals_run": 203,
+    "learner_false_approvals": 18,
+    "slot_departed": 0,
+    "slot_rho": 0.902,
+    "slot_plant_failures": 0.0,
+    "suspensions_run": 0,
+    "idle_for_bond_ticks": 87,
+    "idle_for_bond_names": 11,
+    "error": null
+   },
+   {
+    "seed": 37,
+    "decisions": 102,
+    "lifetime_real_wealth": 1906.3249342562278,
+    "odds_at_stamps_mean": 1.0,
+    "odds_at_cares_mean": null,
+    "stamps_by_odds_band": {
+     "0.0-0.3": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.3-0.5": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.5-0.7": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.7-1.0": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "pinned": {
+      "decisions": 102,
+      "stamps": 102
+     }
+    },
+    "suspensions_seen": 0,
+    "admissions_seen": 0,
+    "ticks_between_admissions_mean": null,
+    "stamps_while_member": 102,
+    "stamps_while_not_member": 0,
+    "boundary_decisions": 4,
+    "leaves_chosen": 0,
+    "pred_vs_realized": {
+     "0": {
+      "n": 0,
+      "realized_mean": null,
+      "attributed_mean": null,
+      "pred_r_mean": null,
+      "pred_r_taken_mean": null,
+      "plan_cost_mean": null
+     },
+     "1": {
+      "n": 102,
+      "realized_mean": 14.137051565678629,
+      "attributed_mean": 4.312454641374743,
+      "pred_r_mean": null,
+      "pred_r_taken_mean": null,
+      "plan_cost_mean": null
+     },
+     "2": {
+      "n": 0,
+      "realized_mean": null,
+      "attributed_mean": null,
+      "pred_r_mean": null,
+      "pred_r_taken_mean": null,
+      "plan_cost_mean": null
+     }
+    },
+    "attributed_sum": 1752.2665629831479,
+    "attribution": {
+     "by_source": {
+      "review_fee": 190.11334995246182,
+      "emission": 249.75702346776188,
+      "effort_cost": -796.987968600436,
+      "delivery_price": 2229.180720941163,
+      "guarantee_lost": -119.79656277780494,
+      "court_fee": 0.0
+     },
+     "boundary_by_source": {
+      "effort_cost": -796.987968600436,
+      "delivery_price": 2229.180720941163,
+      "guarantee_lost": -119.79656277780494,
+      "court_fee": 0.0
+     },
+     "boundary_real": 1312.3961895629243,
+     "boundary_decisions": 4,
+     "pre_boundary_real": 300.4204889424526,
+     "suspension_charges": [],
+     "work_side": false
+    },
+    "slot_suspensions": 0,
+    "learner_identities": 1,
+    "learner_returns": 0,
+    "learner_leaves_chosen": 0,
+    "learner_leaves_refused": 0,
+    "learner_float_minted_real": 0.0,
+    "learner_lifetime_real": 1906.325,
+    "learner_departed_now": 0,
+    "care_share": 0.0,
+    "approve_blind_share": 1.0,
+    "reject_blind_share": 0.0,
+    "plants_seen": 0,
+    "plants_stamped": 0,
+    "real_seen": 102,
+    "real_stamped": 102,
+    "false_approvals_run": 234,
+    "learner_false_approvals": 20,
+    "slot_departed": 0,
+    "slot_rho": 0.9412,
+    "slot_plant_failures": 0.0,
+    "suspensions_run": 0,
+    "idle_for_bond_ticks": 135,
+    "idle_for_bond_names": 11,
+    "error": null
+   },
+   {
+    "seed": 38,
+    "decisions": 97,
+    "lifetime_real_wealth": 1243.807124531903,
+    "odds_at_stamps_mean": 1.0,
+    "odds_at_cares_mean": null,
+    "stamps_by_odds_band": {
+     "0.0-0.3": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.3-0.5": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.5-0.7": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.7-1.0": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "pinned": {
+      "decisions": 97,
+      "stamps": 97
+     }
+    },
+    "suspensions_seen": 0,
+    "admissions_seen": 0,
+    "ticks_between_admissions_mean": null,
+    "stamps_while_member": 97,
+    "stamps_while_not_member": 0,
+    "boundary_decisions": 4,
+    "leaves_chosen": 0,
+    "pred_vs_realized": {
+     "0": {
+      "n": 0,
+      "realized_mean": null,
+      "attributed_mean": null,
+      "pred_r_mean": null,
+      "pred_r_taken_mean": null,
+      "plan_cost_mean": null
+     },
+     "1": {
+      "n": 97,
+      "realized_mean": 10.238231375860327,
+      "attributed_mean": 4.171604228775452,
+      "pred_r_mean": null,
+      "pred_r_taken_mean": null,
+      "plan_cost_mean": null
+     },
+     "2": {
+      "n": 0,
+      "realized_mean": null,
+      "attributed_mean": null,
+      "pred_r_mean": null,
+      "pred_r_taken_mean": null,
+      "plan_cost_mean": null
+     }
+    },
+    "attributed_sum": 1254.5510153576986,
+    "attribution": {
+     "by_source": {
+      "review_fee": 162.81258392305548,
+      "emission": 241.83302626816328,
+      "effort_cost": -1377.2608017794541,
+      "delivery_price": 2354.622600486328,
+      "guarantee_lost": -127.45639354039659,
+      "court_fee": 0.0
+     },
+     "boundary_by_source": {
+      "effort_cost": -1377.2608017794541,
+      "delivery_price": 2354.622600486328,
+      "guarantee_lost": -127.45639354039659,
+      "court_fee": 0.0
+     },
+     "boundary_real": 849.9054051664816,
+     "boundary_decisions": 4,
+     "pre_boundary_real": -16.550040659740247,
+     "suspension_charges": [],
+     "work_side": false
+    },
+    "slot_suspensions": 0,
+    "learner_identities": 1,
+    "learner_returns": 0,
+    "learner_leaves_chosen": 0,
+    "learner_leaves_refused": 0,
+    "learner_float_minted_real": 0.0,
+    "learner_lifetime_real": 1243.807,
+    "learner_departed_now": 0,
+    "care_share": 0.0,
+    "approve_blind_share": 1.0,
+    "reject_blind_share": 0.0,
+    "plants_seen": 0,
+    "plants_stamped": 0,
+    "real_seen": 97,
+    "real_stamped": 97,
+    "false_approvals_run": 220,
+    "learner_false_approvals": 16,
+    "slot_departed": 0,
+    "slot_rho": 0.9118,
+    "slot_plant_failures": 0.0,
+    "suspensions_run": 0,
+    "idle_for_bond_ticks": 215,
+    "idle_for_bond_names": 12,
+    "error": null
+   },
+   {
+    "seed": 39,
+    "decisions": 78,
+    "lifetime_real_wealth": 1515.2137234043155,
+    "odds_at_stamps_mean": 1.0,
+    "odds_at_cares_mean": null,
+    "stamps_by_odds_band": {
+     "0.0-0.3": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.3-0.5": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.5-0.7": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.7-1.0": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "pinned": {
+      "decisions": 78,
+      "stamps": 78
+     }
+    },
+    "suspensions_seen": 0,
+    "admissions_seen": 0,
+    "ticks_between_admissions_mean": null,
+    "stamps_while_member": 78,
+    "stamps_while_not_member": 0,
+    "boundary_decisions": 4,
+    "leaves_chosen": 0,
+    "pred_vs_realized": {
+     "0": {
+      "n": 0,
+      "realized_mean": null,
+      "attributed_mean": null,
+      "pred_r_mean": null,
+      "pred_r_taken_mean": null,
+      "plan_cost_mean": null
+     },
+     "1": {
+      "n": 78,
+      "realized_mean": 14.311626963633952,
+      "attributed_mean": 5.248253241795045,
+      "pred_r_mean": null,
+      "pred_r_taken_mean": null,
+      "plan_cost_mean": null
+     },
+     "2": {
+      "n": 0,
+      "realized_mean": null,
+      "attributed_mean": null,
+      "pred_r_mean": null,
+      "pred_r_taken_mean": null,
+      "plan_cost_mean": null
+     }
+    },
+    "attributed_sum": 1896.974758080573,
+    "attribution": {
+     "by_source": {
+      "review_fee": 173.78690971376918,
+      "emission": 235.57684314624433,
+      "effort_cost": -994.9840107226725,
+      "delivery_price": 2658.541686157224,
+      "guarantee_lost": -174.13505155870635,
+      "court_fee": -1.8116186552877445
+     },
+     "boundary_by_source": {
+      "effort_cost": -994.9840107226725,
+      "delivery_price": 2658.541686157224,
+      "guarantee_lost": -174.13505155870635,
+      "court_fee": -1.8116186552877445
+     },
+     "boundary_real": 1487.6110052205581,
+     "boundary_decisions": 4,
+     "pre_boundary_real": 31.25521265959184,
+     "suspension_charges": [],
+     "work_side": false
+    },
+    "slot_suspensions": 0,
+    "learner_identities": 1,
+    "learner_returns": 0,
+    "learner_leaves_chosen": 0,
+    "learner_leaves_refused": 0,
+    "learner_float_minted_real": 0.0,
+    "learner_lifetime_real": 1515.214,
+    "learner_departed_now": 0,
+    "care_share": 0.0,
+    "approve_blind_share": 1.0,
+    "reject_blind_share": 0.0,
+    "plants_seen": 0,
+    "plants_stamped": 0,
+    "real_seen": 78,
+    "real_stamped": 78,
+    "false_approvals_run": 206,
+    "learner_false_approvals": 18,
+    "slot_departed": 0,
+    "slot_rho": 0.8922,
+    "slot_plant_failures": 0.0,
+    "suspensions_run": 0,
+    "idle_for_bond_ticks": 114,
+    "idle_for_bond_names": 13,
+    "error": null
+   },
+   {
+    "seed": 40,
+    "decisions": 117,
+    "lifetime_real_wealth": 2013.7263869975095,
+    "odds_at_stamps_mean": 1.0,
+    "odds_at_cares_mean": null,
+    "stamps_by_odds_band": {
+     "0.0-0.3": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.3-0.5": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.5-0.7": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "0.7-1.0": {
+      "decisions": 0,
+      "stamps": 0
+     },
+     "pinned": {
+      "decisions": 117,
+      "stamps": 117
+     }
+    },
+    "suspensions_seen": 0,
+    "admissions_seen": 0,
+    "ticks_between_admissions_mean": null,
+    "stamps_while_member": 117,
+    "stamps_while_not_member": 0,
+    "boundary_decisions": 4,
+    "leaves_chosen": 0,
+    "pred_vs_realized": {
+     "0": {
+      "n": 0,
+      "realized_mean": null,
+      "attributed_mean": null,
+      "pred_r_mean": null,
+      "pred_r_taken_mean": null,
+      "plan_cost_mean": null
+     },
+     "1": {
+      "n": 117,
+      "realized_mean": 9.233873482432413,
+      "attributed_mean": 4.067693148298503,
+      "pred_r_mean": null,
+      "pred_r_taken_mean": null,
+      "plan_cost_mean": null
+     },
+     "2": {
+      "n": 0,
+      "realized_mean": null,
+      "attributed_mean": null,
+      "pred_r_mean": null,
+      "pred_r_taken_mean": null,
+      "plan_cost_mean": null
+     }
+    },
+    "attributed_sum": 1953.0031171223416,
+    "attribution": {
+     "by_source": {
+      "review_fee": 185.94138094445324,
+      "emission": 289.9787174064718,
+      "effort_cost": -716.6306627054634,
+      "delivery_price": 2395.5229291308788,
+      "guarantee_lost": -201.80924765399723,
+      "court_fee": 0.0
+     },
+     "boundary_by_source": {
+      "effort_cost": -716.6306627054634,
+      "delivery_price": 2395.5229291308788,
+      "guarantee_lost": -201.80924765399723,
+      "court_fee": 0.0
+     },
+     "boundary_real": 1477.0830187714182,
+     "boundary_decisions": 4,
+     "pre_boundary_real": 250.55389604455942,
+     "suspension_charges": [],
+     "work_side": false
+    },
+    "slot_suspensions": 0,
+    "learner_identities": 1,
+    "learner_returns": 0,
+    "learner_leaves_chosen": 0,
+    "learner_leaves_refused": 0,
+    "learner_float_minted_real": 0.0,
+    "learner_lifetime_real": 2013.726,
+    "learner_departed_now": 0,
+    "care_share": 0.0,
+    "approve_blind_share": 1.0,
+    "reject_blind_share": 0.0,
+    "plants_seen": 0,
+    "plants_stamped": 0,
+    "real_seen": 117,
+    "real_stamped": 117,
+    "false_approvals_run": 189,
+    "learner_false_approvals": 26,
+    "slot_departed": 0,
+    "slot_rho": 0.9118,
+    "slot_plant_failures": 0.0,
+    "suspensions_run": 0,
+    "idle_for_bond_ticks": 87,
+    "idle_for_bond_names": 10,
+    "error": null
+   }
+  ]
+ }
+}

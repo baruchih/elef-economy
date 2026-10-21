@@ -2399,9 +2399,15 @@ at a review decision over the review-side head alone, at a boundary over the bou
 the trainer's and the online loop's default; version 3's checkpoints load as `one`); (b) a leave the economy refuses recorded as the action
 effected, a stay, the choice logged beside (`chosen` in the data, `leaves_effected` beside `leaves_chosen` in the eval); (c) the stopping rule — one
 calibration on the same budget: if (a) clears it is the instrument; if not, the head alone over the latent (the greedy policy, read in the same
-final) is the planner and there is no version 5 of the CEM planner. The direct stays the diagnostic. In flight: `results/redteam/Q1/calibration-v4/`,
-then Q1's line in the re-arrival cell (`rearrive-v4/`) by an automatic gate on the world model's final (above the careful by 2 SE, within 3 SE of the
-stamper); Q1's line and Q3 only on a world model that clears, the reading the reviewer's.
+final) is the planner and there is no version 5 of the CEM planner. The direct stays the diagnostic. **Version 4's calibration read (October 21, 2026; `results/redteam/Q1/calibration-v4/`; notes §15): the CEM
+planner clears** — +680 ± 145 against the careful (the ideal +733 ± 119), −53 ± 74 against the stamper paired, 0.06 care / 0.93 blind approval, its rounds
++733, +583, +733, +722, +680 where version 3's wandered; the whole gap to the stamper is one seed's admitted leave (seed 29, −1,152), the other nineteen +5 ± 49.
+The head alone over the same latent walks the stamper's line to the decimal on every seed; the direct +608 ± 132 (2.1 SE below the stamper). The planner's
+cost at a review decision now reads a gap of 5.2 between approve and care (the head's 4.5; version 3's 1.7) and the boundary head predicts stay 330 against
+leave 78 on the data's boundaries (the admitted leaves 0 to the decimal under (b)). By the stopping rule the CEM planner over the two-headed model is the
+instrument. One residual for the reviewer, not reached by the rule: the planner chose a leave at 11 of the final's 80 boundaries (the head alone at none) and
+the economy refused ten of them for a live commitment — the rollout after an imagined leave is the CEM's noise. Q1's line in the re-arrival cell ran by the
+gate behind the final (`rearrive-v4/`; notes §16).
 
 ## Maps
 

@@ -542,7 +542,10 @@ consolidated into one standalone spec with the accepted revision kept verbatim i
   `train`/`online --heads two`, the default; a review-side reward and value head, a boundary reward and value head, the targets split by the decision's kind, the
   planner's cost and the head alone reading the side of the decision at hand); a refused leave recorded as the action effected, a stay, the choice beside
   (`chosen`, `leaves_effected`); the stopping rule — if the CEM planner does not clear this one calibration, the head alone over the latent is the planner and
-  there is no version 5 of it. Q1's line and Q3 only on a world model that clears (`results/redteam/Q1/calibration-v4/`, then `rearrive-v4/`).
+  there is no version 5 of it. Q1's line and Q3 only on a world model that clears. **Version 4's calibration read (October 21, 2026; notes §15; `results/redteam/Q1/calibration-v4/`): the CEM
+  planner clears** — +680 ± 145 against the careful (the ideal +733 ± 119), −53 ± 74 against the stamper, the rounds steady on the stamper's line, the gap one seed's admitted leave;
+  the head alone over the same latent is the stamper to the decimal; the direct +608 ± 132. By the stopping rule the CEM planner over the two-headed model is the instrument. The
+  residual reported: the planner chose a leave at 11 of 80 boundaries where the head alone chose none, ten refused by the economy for a commitment. Q1's line on it in `rearrive-v4/`.
 - Money is checked by invariant I1 (conservation) — never silently create or lose credits.
 
 ## Vocabulary (spec Appendix C has the full notation)

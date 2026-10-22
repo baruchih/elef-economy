@@ -68,10 +68,12 @@ def classify(e, names):
     return s, sign * float(e.amount)
 
 
-def attribute(run, marks, decisions, work_side=False):
+def attribute(run, marks, decisions, work_side=False, shared=False):
     """The attributed reward per decision. `marks[i]` = (t, n_events, case, boundary, real_factor, wealth_real) at decision i's observation,
     `marks[n]` the terminal; `decisions[i]` = {"identity", "case", "is_plant", "fulfilled", "action"}. Returns (attributed (n,), summary).
-    `work_side` is recorded only: since version 3 every source is claimed — by the case's decision when there is one, else by the boundary decision."""
+    `work_side` is recorded only: since version 3 every source is claimed — by the case's decision when there is one, else by the boundary decision.
+    `shared` (Q4's pair): a case's events are credited to every decision of the pair on that case — the deliverer's submission and the reviewer's
+    verdict both — the shared training reward (a double count in the sum, reported as `shared_double_counted`)."""
     n = len(decisions)
     names = set(run.learner_chain)
     events = run.w.events_since(0)
@@ -88,6 +90,7 @@ def attribute(run, marks, decisions, work_side=False):
     boundary_pos = [marks[i][1] for i in boundary_idx]                       # their marks' ledger positions
     boundary_by_source = defaultdict(float)
     pre_boundary = boundary_real = 0.0
+    shared_double = 0.0
     for pos, e in enumerate(events):
         cl = classify(e, names)
         if cl is None:
@@ -97,6 +100,10 @@ def attribute(run, marks, decisions, work_side=False):
         r1 = marks[min(max(j, 0) + 1, len(marks) - 1)][4]
         if e.case in by_case:                                        # the case's events to the decision on that case (the latest at or before)
             cands = [i for i in by_case[e.case] if marks[i][0] <= e.t] or by_case[e.case]
+            if shared and len(cands) > 1:                            # Q4: the pair's decisions on one case share its events
+                for i2 in cands[:-1]:
+                    attributed[i2] += d * r1
+                    shared_double += d * r1
             i = cands[-1]
         else:                                                        # no decision claims it: the boundary decision that kept the name there
             k = int(np.searchsorted(boundary_pos, pos, side="right")) - 1
@@ -135,7 +142,8 @@ def attribute(run, marks, decisions, work_side=False):
             by_source["suspension"] -= forgone
             prev_s0 = s0
     return attributed, {"by_source": dict(by_source), "boundary_by_source": dict(boundary_by_source), "boundary_real": boundary_real,
-                        "boundary_decisions": len(boundary_idx), "pre_boundary_real": pre_boundary, "suspension_charges": charges, "work_side": work_side}
+                        "boundary_decisions": len(boundary_idx), "pre_boundary_real": pre_boundary, "suspension_charges": charges, "work_side": work_side,
+                        "shared": shared, "shared_double_counted": shared_double}
 
 
 def _plant_failed(run, cid):

@@ -23,6 +23,8 @@ from redteam.model import device
 
 
 ODDS_BANDS = [(0.0, 0.3), (0.3, 0.5), (0.5, 0.7), (0.7, 1.0), (1.0, 1.01)]
+PAIR_KEYS = ("pair_ids", "pair_matched", "pair_unmatched", "pair_waited", "pair_reviews", "pair_cares", "pair_stamps", "pair_rejects", "pair_bad_stamped", "pair_good_stamped",
+             "pair_bad_stamped_vested", "pair_bad_stamped_caught", "pair_d_real", "pair_r_real", "pair_r_reviews", "pair_r_on_duty", "pair_r_suspensions", "pair_r_rho")
 
 
 def trace_readings(trace):
@@ -55,6 +57,7 @@ def episode(env, policy, seed, rng):
     done = info.get("terminal", False)
     K = env.n_actions
     acts, plants_stamped, real_stamped, plants_seen, real_seen, trace = [], 0, 0, 0, 0, []
+    acts_work = []                                                # the pair: the work decisions apart from the review decisions
     blind_seats, blind_seat_stamps = 0, 0                         # the plant-blind seats: a revised submission or a panel (never a plant)
     diag = []                                                     # per review decision: (action, predicted r per action, planner cost per first action, realized r)
     review_idx, k_all = [], 0                                     # the review decisions' positions among all decisions (the attributed reward is per decision)
@@ -62,11 +65,14 @@ def episode(env, policy, seed, rng):
         a = policy(obs, rng)
         boundary = bool(info.get("boundary", False))
         pred = policy.diag_now(obs) if (not boundary and hasattr(policy, "diag_now")) else None
-        if not boundary:
-            acts.append(a)                                        # the review decisions: the shares below are over these
+        is_work = info.get("kind") == "work"
+        if not boundary and is_work and env.role == "pair":
+            acts_work.append(a if a != 2 else 0)                  # the pair's work decisions (a third action is read as "well")
+        elif not boundary:
+            acts.append(a)                                        # the review decisions (the deliverer's work decisions in Q3): the shares below are over these
         trace.append((info.get("t", 0), info.get("p_eff", float(obs[IDX["own_p_eff"]])), float(info.get("member", obs[IDX["own_member"]])),
                       float(info.get("suspended", obs[IDX["own_suspended"]])), a, 1.0 if boundary else 0.0))   # from the engine's reading, so the hidden cell is read too
-        if boundary:
+        if boundary or is_work:
             pass
         elif env.role == "deliverer":
             pass
@@ -78,19 +84,28 @@ def episode(env, policy, seed, rng):
             real_seen += 1; real_stamped += int(a != 0)
         obs, r, done, _, info = env.step(a)
         if not boundary:
-            diag.append((a, pred["pred_r"] if pred else None, (pred["plan_cost"] or None) if pred else None, float(r)))
+            diag.append((a, pred["pred_r"] if pred else None, (pred["plan_cost"] or None) if pred else None, float(r), is_work))
             review_idx.append(k_all)
         k_all += 1
     attr = info.get("attributed")
     if attr is not None and len(attr) == k_all:
-        diag = [d + (float(attr[k]),) for d, k in zip(diag, review_idx)]
+        diag = [d[:4] + (float(attr[k]), d[4]) for d, k in zip(diag, review_idx)]
+    else:
+        diag = [d[:4] + (None, d[4]) for d in diag]
+    diag_work = [d[:5] for d in diag if d[5]]; diag = [d[:5] for d in diag if not d[5]]
     row = info.get("row", {})
     work = {k: row.get(k) for k in ("learner_role", "learner_work_decisions", "learner_bad_deliveries", "learner_good_deliveries", "learner_bad_approved", "learner_bad_caught",
                                    "learner_good_vested", "learner_good_final_n", "learner_forfeited", "learner_bad_paid", "learner_effort_saved",
-                                   "slot_delivery_income", "slot_guarantees_forfeited", "slot_effort_burned", "slot_awards", "final_n_rate")} if env.role == "deliverer" else {}
+                                   "slot_delivery_income", "slot_guarantees_forfeited", "slot_effort_burned", "slot_awards", "final_n_rate")} if env.role != "reviewer" else {}
     if env.role == "deliverer":
         work["good_share"] = float(np.mean([x == 0 for x in acts])) if acts else None
         work["bad_share"] = float(np.mean([x == 1 for x in acts])) if acts else None
+    if env.role == "pair":                                        # Q4: the deliverer's work decisions and the reviewer's verdicts on its cases
+        work.update({k: row.get(k) for k in PAIR_KEYS})
+        work["work_decisions"] = len(acts_work)
+        work["good_share"] = float(np.mean([x == 0 for x in acts_work])) if acts_work else None
+        work["bad_share"] = float(np.mean([x == 1 for x in acts_work])) if acts_work else None
+        work["pred_vs_realized_work"] = pred_vs_realized(diag_work, 2)
     return {"seed": seed, "decisions": len(acts), "lifetime_real_wealth": info.get("lifetime_real_wealth"), **trace_readings(trace), **work,
             "blind_seats": blind_seats, "blind_seat_stamps": blind_seat_stamps,
             "leaves_effected": sum(1 for d in getattr(env, "_decisions", []) if d.get("case") is None and d.get("chosen") == 1 and d.get("action") == 1),   # version 4: the admitted leaves at boundaries (leaves_chosen is the choice)
@@ -158,7 +173,7 @@ def main(argv=None):
     ap.add_argument("--seeds", default="21-40"); ap.add_argument("--policies", default="learned,greedy,careful")
     ap.add_argument("--horizon", type=int, default=8); ap.add_argument("--samples", type=int, default=256); ap.add_argument("--iters", type=int, default=6)
     ap.add_argument("--hide", default=""); ap.add_argument("--ticks", type=int, default=1000)
-    ap.add_argument("--role", choices=["reviewer", "deliverer"], default="reviewer", help="Q3: the learned deliverer (policies learned,greedy,direct,careful,zero,eps,random,leaver)")
+    ap.add_argument("--role", choices=["reviewer", "deliverer", "pair"], default="reviewer", help="Q3: the learned deliverer (policies learned,greedy,direct,careful,zero,eps,random,leaver); Q4: the pair (careful,collude,eps,random,leaver)")
     ap.add_argument("cell", nargs=argparse.REMAINDER)
     a = ap.parse_args(argv)
     cell = [x for x in a.cell if x != "--"]
@@ -190,6 +205,8 @@ def main(argv=None):
                 print(f"seed {seed} {name}: ERROR {r['error']}", flush=True)
             elif a.role == "deliverer":
                 print(f"seed {seed} {name}: {r['decisions']} decisions, lifetime {r['lifetime_real_wealth']:.1f}, bad {r.get('bad_share')}, bad approved/caught {r.get('learner_bad_approved')}/{r.get('learner_bad_caught')}, forfeited {r.get('learner_forfeited')}", flush=True)
+            elif a.role == "pair":
+                print(f"seed {seed} {name}: {r.get('work_decisions')} work + {r['decisions']} review decisions, pair lifetime {r['lifetime_real_wealth']:.1f} (D {r.get('pair_d_real')}, R {r.get('pair_r_real')}), bad {r.get('bad_share')}, R care {r['care_share']}, pair reviews {r.get('pair_reviews')} (matched {r.get('pair_matched')}) stamps {r.get('pair_stamps')} bad stamped {r.get('pair_bad_stamped')} vested/caught {r.get('pair_bad_stamped_vested')}/{r.get('pair_bad_stamped_caught')}", flush=True)
             else:
                 print(f"seed {seed} {name}: {r['decisions']} decisions, lifetime {r['lifetime_real_wealth']:.1f}, care {r['care_share']}, plants stamped {r['plants_stamped']}/{r['plants_seen']}, real stamped {r['real_stamped']}/{r['real_seen']} (initial reviews), blind seats {r['blind_seats']} stamped {r['blind_seat_stamps']}", flush=True)
     env.close()
@@ -202,6 +219,11 @@ def main(argv=None):
         bs, bst = sum(r["blind_seats"] for r in rows), sum(r["blind_seat_stamps"] for r in rows)
         summary[name]["blind_seat_share"] = bs / max(1, bs + pn + rn); summary[name]["blind_seat_stamp_rate"] = (bst / bs) if bs else None
         summary[name]["blind_seats"] = mse([r["blind_seats"] for r in rows])
+        if a.role == "pair":                                        # Q4's line: the pair
+            for k in ("good_share", "bad_share", "work_decisions", "learner_bad_deliveries", "learner_bad_approved", "learner_bad_caught", "learner_good_vested", "learner_good_final_n",
+                      "learner_forfeited", "learner_effort_saved", "slot_awards", "final_n_rate", "slot_rho") + tuple(k for k in PAIR_KEYS if k != "pair_ids"):
+                summary[name][k] = mse([r.get(k) if r.get(k) not in ("", None) else None for r in rows])
+            summary[name]["pred_vs_realized_work"] = pool_pred_vs_realized([{"pred_vs_realized": r.get("pred_vs_realized_work")} for r in rows])
         if a.role == "deliverer":                                   # Q3's line: the learned deliverer's choices and what became of them
             for k in ("good_share", "bad_share", "learner_work_decisions", "learner_bad_deliveries", "learner_good_deliveries", "learner_bad_approved", "learner_bad_caught",
                       "learner_good_vested", "learner_good_final_n", "learner_forfeited", "learner_bad_paid", "learner_effort_saved",
@@ -242,6 +264,15 @@ def main(argv=None):
     def fmt(x):
         return "—" if x is None or (isinstance(x, float) and np.isnan(x)) else (f"{x:.3f}" if isinstance(x, float) else str(x))
     with open(os.path.join(a.out, "eval.md"), "w") as f:
+        if a.role == "pair":
+            f.write(f"# Evaluation (Q4, the pair) — cell `{' '.join(cell)}`, seeds {a.seeds}, model `{a.model}` (value {ck.get('config', {}).get('value_mode', 'off')}, horizon {a.horizon})\n\n"
+                    "The pair's lifetime real wealth (the deliverer's and the reviewer's, as one), paired against the careful pair; the deliverer's bad share and what became of its bad work; the reviewer's verdicts (care / approve blind / reject blind) over all its reviews, and on the deliverer's cases apart (matched in the calibration, blind in the line).\n\n"
+                    "| policy | pair lifetime real | paired − careful | D real | R real | work decisions | bad share | bad approved / caught | R care / approve / reject | R reviews | D's cases R took (matched / waited / unmatched) | R on D's cases: care / stamp / reject | bad stamped (vested / caught) | forfeited | R suspensions | departed |\n|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|\n")
+            for name, s in summary.items():
+                pm = s.get("paired_minus_careful", (float("nan"), float("nan")))
+                f.write(f"| {name} | {s['lifetime_real_wealth'][0]:.1f} ± {s['lifetime_real_wealth'][1]:.1f} | {pm[0]:.1f} ± {pm[1]:.1f} | {fmt(s['pair_d_real'][0])} | {fmt(s['pair_r_real'][0])} | {fmt(s['work_decisions'][0])} | {fmt(s['bad_share'][0])} | {fmt(s['learner_bad_approved'][0])} / {fmt(s['learner_bad_caught'][0])} | {s['care_share'][0]:.3f} / {s['approve_blind_share'][0]:.3f} / {s['reject_blind_share'][0]:.3f} | {fmt(s['pair_r_reviews'][0])} | {fmt(s['pair_reviews'][0])} ({fmt(s['pair_matched'][0])} / {fmt(s['pair_waited'][0])} / {fmt(s['pair_unmatched'][0])}) | {fmt(s['pair_cares'][0])} / {fmt(s['pair_stamps'][0])} / {fmt(s['pair_rejects'][0])} | {fmt(s['pair_bad_stamped'][0])} ({fmt(s['pair_bad_stamped_vested'][0])} / {fmt(s['pair_bad_stamped_caught'][0])}) | {fmt(s['learner_forfeited'][0])} | {fmt(s['pair_r_suspensions'][0])} | {s['slot_departed'][0]:.2f} |\n")
+            print(json.dumps(summary, indent=1, default=float))
+            return
         if a.role == "deliverer":
             f.write(f"# Evaluation (Q3, the learned deliverer) — cell `{' '.join(cell)}`, seeds {a.seeds}, model `{a.model}` (value {ck.get('config', {}).get('value_mode', 'off')}, horizon {a.horizon})\n\n"
                     "| policy | lifetime real wealth | paired − careful | work decisions | bad share | bad approved | bad caught | good final N | bad approved rate | slot final-N rate | population final-N rate | guarantees forfeited (nominal) | effort saved (nominal) | slot ρ | awards | departed |\n|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|\n")

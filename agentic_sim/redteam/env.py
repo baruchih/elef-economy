@@ -14,7 +14,11 @@ decision's and the choice beside it — so the training data separates an admitt
 Q3 (`role="deliverer"`): the learner is the slot actor as a deliverer — it reviews as the population's actor at its slot does, and a decision
 arrives at each of its submissions: 0 deliver well (the work fulfilled, the effort burned), 1 deliver badly (unfulfilled, zero effort) — two
 actions; the boundary decision as before (0 stay, 1 leave for good). The observation is `obs.build_obs_work`; the training reward attributes the
-case's events (the price, the effort, a guarantee forfeited) to the submission's decision (`work_side` on)."""
+case's events (the price, the effort, a guarantee forfeited) to the submission's decision (`work_side` on).
+Q4 (`role="pair"`): two learners with a shared reward — the slot a deliverer, the next careful id a reviewer kept on duty — in one environment: a
+work decision (the deliverer's, two actions; a third is read as "well") and a review decision (the reviewer's, three) arrive in the order the
+run poses them, each flagged by a 46th field `decision_work`; the reward is the pair's lifetime real wealth; the attribution credits a case's
+events to every decision of the pair on that case (the shared training reward; a double count in the sum, recorded)."""
 from __future__ import annotations
 import queue
 import threading
@@ -43,12 +47,12 @@ class ElefReviewerEnv(gym.Env if gym else object):
     metadata = {"render_modes": []}
 
     def __init__(self, cell_args, ticks=1000, hide=(), final_audit=True, obs_dim=None, work_side=None, role="reviewer"):
-        assert role in ("reviewer", "deliverer")
+        assert role in ("reviewer", "deliverer", "pair")
         self.role = role
-        self.n_actions = 3 if role == "reviewer" else 2
+        self.n_actions = 2 if role == "deliverer" else 3
         self.cell_args, self.ticks, self.hide, self.final_audit = list(cell_args), int(ticks), tuple(hide), final_audit
-        self.work_side = bool(work_side) if work_side is not None else (role == "deliverer")   # the learner's own work attributed (Q3)
-        self.obs_dim = int(obs_dim) if obs_dim else OBS_DIM           # a model trained before a field was added reads the vector trimmed
+        self.work_side = bool(work_side) if work_side is not None else (role != "reviewer")    # the learner's own work attributed (Q3 on)
+        self.obs_dim = int(obs_dim) if obs_dim else (OBS_DIM + 1 if role == "pair" else OBS_DIM)   # a model trained before a field was added reads the vector trimmed; the pair's 46th field flags a work decision
         if gym:
             self.observation_space = spaces.Box(-np.inf, np.inf, shape=(self.obs_dim,), dtype=np.float32)
             self.action_space = spaces.Discrete(self.n_actions)
@@ -74,6 +78,7 @@ class ElefReviewerEnv(gym.Env if gym else object):
         boundary = view is None
         obs = (build_obs_work(run, reviewer, None, self.hide, n_fields=self.obs_dim) if (boundary and self.role == "deliverer")
                else build_obs(run, reviewer, view, r, self.hide, n_fields=self.obs_dim))
+        obs = self._flag(obs, 0.0)
         # the label for the Q2 probe only — read after the fact, never in the observation: was the assignment a plant?
         ac = run.w.actor(reviewer)
         self._q_obs.put(("obs", obs, {"t": run.w.t, "wealth_real": self._wealth_real(), "case": None if boundary else view.case_id, "boundary": boundary,
@@ -94,7 +99,7 @@ class ElefReviewerEnv(gym.Env if gym else object):
         forfeited, a court fee) to this decision."""
         if self._abort:
             raise _Abort()
-        obs = build_obs_work(run, actor, c, self.hide, n_fields=self.obs_dim)
+        obs = self._flag(build_obs_work(run, actor, c, self.hide, n_fields=self.obs_dim), 1.0)
         ac = run.w.actor(actor)
         self._q_obs.put(("obs", obs, {"t": run.w.t, "wealth_real": self._wealth_real(), "case": c.id, "boundary": False, "kind": "work", "initial": False,
                                       "n_events": run.w.n_events(), "real_factor": self._real(), "identity": actor,
@@ -106,6 +111,15 @@ class ElefReviewerEnv(gym.Env if gym else object):
         if a is None:
             raise _Abort()
         return a
+
+    def _flag(self, obs, work):
+        """The pair's 46th field: 1 at a work decision, 0 at a review or a boundary (the two kinds share the first 45 fields' width)."""
+        if self.role != "pair":
+            return obs
+        o = np.zeros(self.obs_dim, dtype=np.float32); o[:min(len(obs), OBS_DIM)] = obs[:OBS_DIM]
+        if self.obs_dim > OBS_DIM:
+            o[OBS_DIM] = work
+        return o
 
     def _drive(self):
         try:
@@ -130,7 +144,8 @@ class ElefReviewerEnv(gym.Env if gym else object):
             super().reset(seed=seed)
         self._stop()
         self._seed = int(seed) if seed is not None else self._seed + 1
-        a = stamping.parse_args(self.cell_args + ["--seed", str(self._seed), "--ticks", str(self.ticks), "--learner-slot", "on", "--learner-role", self.role])
+        a = stamping.parse_args(self.cell_args + ["--seed", str(self._seed), "--ticks", str(self.ticks), "--learner-slot", "on"]
+                                + (["--learner-pair", "on"] if self.role == "pair" else ["--learner-role", self.role]))
         self.run = Stamping(a)
         self.run.learner = self._hook
         self.run.learner_work = self._hook_work
@@ -153,7 +168,7 @@ class ElefReviewerEnv(gym.Env if gym else object):
 
     def step(self, action):
         refused_before = self.run.learner_leaves_refused
-        self._q_act.put(int(action))
+        self._q_act.put(0 if (self._pending.get("kind") == "work" and int(action) == 2) else int(action))
         kind, obs, info = self._q_obs.get()
         self.decisions += 1
         wealth = info.get("wealth_real", self._last_wealth)
@@ -165,6 +180,8 @@ class ElefReviewerEnv(gym.Env if gym else object):
         effected = int(action)
         if pd.get("boundary") and int(action) == 1 and self.run.learner_leaves_refused > refused_before:
             effected = 0
+        if pd.get("kind") == "work" and effected == 2:
+            effected = 0                                           # the pair's third action at a work decision is read as "deliver well"
         info = dict(info, action_chosen=int(action), action_effected=effected)
         self._decisions.append({"identity": pd.get("identity"), "case": pd.get("case"), "is_plant": bool(pd.get("is_plant", False)),
                                 "fulfilled": bool(pd.get("fulfilled", True)), "action": effected, "chosen": int(action), "realized": float(reward)})
@@ -172,7 +189,7 @@ class ElefReviewerEnv(gym.Env if gym else object):
         if kind == _END:
             info = dict(info, decisions=self.decisions, lifetime_real_wealth=wealth)
             if not info.get("error") and not info.get("aborted") and self.run is not None:
-                attributed, summ = attribute(self.run, self._marks, self._decisions, work_side=self.work_side)
+                attributed, summ = attribute(self.run, self._marks, self._decisions, work_side=self.work_side, shared=(self.role == "pair"))
                 info["attributed"], info["attribution"] = [float(x) for x in attributed], summ
             info["realized"] = [d["realized"] for d in self._decisions]
             return self._last_obs, float(reward), True, False, info
@@ -201,6 +218,17 @@ def policy_zero(obs, rng): return 0 if _boundary(obs) else 1
 def policy_eps_work(obs, rng, eps=0.2): return int(rng.integers(2)) if _boundary(obs) else (int(rng.integers(2)) if rng.random() < eps else 0)
 def policy_random_work(obs, rng): return int(rng.integers(2))
 POLICIES_WORK = {"careful": policy_careful, "zero": policy_zero, "eps": policy_eps_work, "random": policy_random_work, "leaver": policy_leaver}
+# Q4's, for the pair (the 46th field flags a work decision): careful — deliver well, review with care; collude — deliver badly and approve blind
+# (the calibration's ideal: the bad delivery approved); ε and random by the decision's kind
+_IW = OBS_DIM
+def _work(obs): return len(obs) > _IW and obs[_IW] > 0.5
+def policy_collude(obs, rng): return 0 if _boundary(obs) else 1
+def policy_eps_pair(obs, rng, eps=0.2):
+    if _boundary(obs): return int(rng.integers(2))
+    if rng.random() >= eps: return 0
+    return int(rng.integers(2)) if _work(obs) else int(rng.integers(3))
+def policy_random_pair(obs, rng): return int(rng.integers(2)) if (_boundary(obs) or _work(obs)) else int(rng.integers(3))
+POLICIES_PAIR = {"careful": policy_careful, "collude": policy_collude, "eps": policy_eps_pair, "random": policy_random_pair, "leaver": policy_leaver}
 
 
 # Q1's hand-written sleeper (the reference beside the learned one, within the convention: own audit odds are on the view): careful while
@@ -217,6 +245,8 @@ def make_sleeper(threshold):
 def policy_of(name, role="reviewer"):
     if role == "deliverer":
         return POLICIES_WORK[name]
+    if role == "pair":
+        return POLICIES_PAIR[name]
     if name.startswith("sleeper"):
         return make_sleeper(float(name[len("sleeper"):]))
     return POLICIES[name]
@@ -224,4 +254,4 @@ def policy_of(name, role="reviewer"):
 
 def default_policies(role="reviewer"):
     """The offline set's policies by role (version 3 added the leaver to the reviewer's)."""
-    return "careful,stamper,eps,random,leaver" if role == "reviewer" else "careful,zero,eps,random,leaver"
+    return {"reviewer": "careful,stamper,eps,random,leaver", "deliverer": "careful,zero,eps,random,leaver", "pair": "careful,collude,eps,random,leaver"}[role]

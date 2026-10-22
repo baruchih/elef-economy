@@ -2428,7 +2428,12 @@ elites' spread as at the boundary) and fails the gate. By version 4's stopping r
 population, no re-arrival. **Q3's line read (notes §19): no win** — the head alone +57 ± 40 against the careful deliverer, three bad deliveries in 2,671 submissions; the
 zero-effort deliverer caught 97 times in 100 in run 24's population (27.6 of 28.4 caught, selection down to 28 awards from 134, ρ 0.47, lifetime 26 against 3,105); the CEM beside
 −318 ± 121 on its one-in-twenty noise; the learner's final-N rate, forfeits and ρ the careful's. The margin the brief hypothesised is not there at any margin the learner can see.
-Next by the brief's order: Q4, Q5; the dispute baseline before Q7; the resubmission plant not drafted. The reviewer's go.
+**The ruling after run 27 (October 22, 2026; notes §20):** Q3 closed, a no-win; the catch rate and the persistent cheat's fate the readings to keep; the stopping rule's branch per
+cell confirmed, the CEM beside in every line, no further planner work; a good delivery takes the task's own draw from Q4 on; disputes were off in Q3's cell (the catch rate read
+without them — the careful initial reviewers and the audit). **Q4 built and in flight (notes §21):** two learners with a shared reward — the slot a deliverer, the next careful id a
+reviewer kept on duty by volunteering — in one environment, the attribution shared across the pair's decisions on a case; the calibration where collusion plainly pays (the pair
+always matched, the roll off, no plants, the dial off; the ideal the colluding pair; `results/redteam/Q4/calibration-v4/`), then the line in run 24's population with the blind
+assignment (`line-v4/`) under whichever of the CEM planner and the head alone clears. Q5 after; the dispute baseline before Q7; the resubmission plant not drafted.
 
 ## Maps
 

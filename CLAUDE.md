@@ -560,7 +560,13 @@ consolidated into one standalone spec with the accepted revision kept verbatim i
   Q3's calibration read (notes §18): the head alone and the direct are the ideal to the decimal, the CEM planner 93% of the gain (−100 ± 11 against the ideal, paired) — by
   version 4's stopping rule the head alone is the planner for Q3's line (`online --plan greedy`; `results/redteam/Q3/line-v4/`, run 24's population, no re-arrival). **Q3's line
   read (notes §19): no win** — +57 ± 40 against the careful deliverer, three bad deliveries in 2,671; a bad delivery is caught 97 times in 100 in run 24's population (the
-  zero-effort deliverer: 26 real of lifetime against 3,105, selection down to 28 awards). Next: Q4, Q5 on the reviewer's go.
+  zero-effort deliverer: 26 real of lifetime against 3,105, selection down to 28 awards). **The ruling after run 27 (notes §20):** Q3 closed; the stopping rule's branch per
+  cell confirmed, the CEM beside in every line, no further planner work; from Q4 on a good delivery takes the task's own draw (`--good-delivery draw`, the default; Q3 ran `certain`);
+  disputes were off in Q3's cell (the catch rate read without them). **Q4 built (notes §21): the pair** — `--learner-pair on`: the slot a deliverer, the next careful id a reviewer kept on
+  duty by volunteering (`--pair-volunteer`), both `LEARNER`, the lifetime read as one; `--match-pair on` the calibration's matched assignment (the deliverer's case waits a tick for the
+  pair's reviewer); the env's `role="pair"` — work and review decisions in one stream, a 46th field flagging the kind, three actions, the attribution shared across the pair's decisions on
+  a case (`attrib.attribute(shared=True)`); the policies `careful` / `collude` / `eps` / `random` / `leaver`; the driver's `pair_*` columns. Calibration `--entry-pool 20 --stampers 0.6
+  --pi0 0 --dial off --audit-roll off --match-pair on` (`results/redteam/Q4/calibration-v4/`), the line in run 24's population with the blind assignment (`line-v4/`). Q5 after.
 - Money is checked by invariant I1 (conservation) — never silently create or lose credits.
 
 ## Vocabulary (spec Appendix C has the full notation)

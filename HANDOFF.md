@@ -2437,7 +2437,12 @@ assignment (`line-v4/`) under whichever of the CEM planner and the head alone cl
 careful pair (the effort saved, the guarantees not forfeited under the draw, and the awards kept — the colluding deliverer's price income 3,895 against 2,689); the head alone
 colludes and clears (+2,113 ± 164; −455 ± 183 against the ideal; the reviewer approving blind at 98%, the deliverer bad at 85%, 122 bad deliveries vested a run), the direct the
 same on a wide error (−650 ± 315, one departure), the CEM planner fails (−1,649 ± 221, bad at 0.43). The line runs under the head alone (the branch per cell), the CEM beside.
-Q5 after; the dispute baseline before Q7; the resubmission plant not drafted.
+**Q4's line, first read (notes §23): no win** — the head alone −924 ± 248 against the careful pair; under the blind assignment the pair's cases meet one time in seven and the
+pair does nothing with it (D bad at 0.8%, R stamping D's cases at 18% against 24% of everyone's); the colluding pair destroyed (R suspended 7.8 times a run, D down to 31 awards,
+a lifetime of 250 against 4,998). The pair's loss is the reviewer's suspensions and the pair's departures at the boundary — and a fault in the pair's boundary attribution was
+found (a member's period could land on its partner's boundary decision; an admitted leave carrying the partner's work) and corrected (`attrib.attribute(lineages=…)`: a name's
+unclaimed events to its own lineage's latest boundary decision; one lineage is version 3's rule exactly). The line re-run with the correction (`line-v4b/`, in flight). Q5 after;
+the dispute baseline before Q7; the resubmission plant not drafted.
 
 ## Maps
 

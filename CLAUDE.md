@@ -567,7 +567,9 @@ consolidated into one standalone spec with the accepted revision kept verbatim i
   pair's reviewer); the env's `role="pair"` — work and review decisions in one stream, a 46th field flagging the kind, three actions, the attribution shared across the pair's decisions on
   a case (`attrib.attribute(shared=True)`); the policies `careful` / `collude` / `eps` / `random` / `leaver`; the driver's `pair_*` columns. Calibration `--entry-pool 20 --stampers 0.6
   --pi0 0 --dial off --audit-roll off --match-pair on` (`results/redteam/Q4/calibration-v4/`), the line in run 24's population with the blind assignment (`line-v4/`). Q4's calibration read (notes §22): the colluding pair +2,568 ± 209 over the careful pair; the head
-  alone colludes and clears (+2,113 ± 164, −455 ± 183 against the ideal), the direct the same on a wide error, the CEM fails (−1,649) — the line under the head alone. Q5 after.
+  alone colludes and clears (+2,113 ± 164, −455 ± 183 against the ideal), the direct the same on a wide error, the CEM fails (−1,649) — the line under the head alone. Q4's line, first read (notes §23): no win (−924 ± 248; the pair's cases meet
+  one time in seven; the colluding pair destroyed, R suspended 7.8 times a run); a fault in the pair's boundary attribution corrected (`attrib.attribute(lineages=…)`: a name's
+  unclaimed events to its own lineage's boundary decision — one lineage is version 3's rule) and the line re-run (`line-v4b/`). Q5 after.
 - Money is checked by invariant I1 (conservation) — never silently create or lose credits.
 
 ## Vocabulary (spec Appendix C has the full notation)

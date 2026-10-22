@@ -68,12 +68,15 @@ def classify(e, names):
     return s, sign * float(e.amount)
 
 
-def attribute(run, marks, decisions, work_side=False, shared=False):
+def attribute(run, marks, decisions, work_side=False, shared=False, lineages=None):
     """The attributed reward per decision. `marks[i]` = (t, n_events, case, boundary, real_factor, wealth_real) at decision i's observation,
     `marks[n]` the terminal; `decisions[i]` = {"identity", "case", "is_plant", "fulfilled", "action"}. Returns (attributed (n,), summary).
     `work_side` is recorded only: since version 3 every source is claimed — by the case's decision when there is one, else by the boundary decision.
     `shared` (Q4's pair): a case's events are credited to every decision of the pair on that case — the deliverer's submission and the reviewer's
-    verdict both — the shared training reward (a double count in the sum, reported as `shared_double_counted`)."""
+    verdict both — the shared training reward (a double count in the sum, reported as `shared_double_counted`). `lineages` (Q4's pair): the
+    names grouped by learner — a period's unclaimed events of a name go to the latest boundary decision *of that name's lineage* (one lineage
+    is version 3's rule: the chain of identities under re-arrival, the leave that returned the name claiming the fresh name's period); without
+    it, in a pair, a member's period could land on its partner's boundary decision — an admitted leave carrying the partner's work."""
     n = len(decisions)
     names = set(run.learner_chain)
     events = run.w.events_since(0)
@@ -88,6 +91,10 @@ def attribute(run, marks, decisions, work_side=False, shared=False):
             by_case[d["case"]].append(i)
     boundary_idx = [i for i in range(n) if marks[i][3]]                     # the boundary decisions, in order
     boundary_pos = [marks[i][1] for i in boundary_idx]                       # their marks' ledger positions
+    lineages = lineages or [list(run.learner_chain)]
+    lineage_of = {x: k for k, names_k in enumerate(lineages) for x in names_k}
+    b_idx_by_lin = {k: [i for i in boundary_idx if lineage_of.get(decisions[i]["identity"]) == k] for k in range(len(lineages))}
+    b_pos_by_lin = {k: [marks[i][1] for i in v] for k, v in b_idx_by_lin.items()}
     boundary_by_source = defaultdict(float)
     pre_boundary = boundary_real = 0.0
     shared_double = 0.0
@@ -105,12 +112,15 @@ def attribute(run, marks, decisions, work_side=False, shared=False):
                     attributed[i2] += d * r1
                     shared_double += d * r1
             i = cands[-1]
-        else:                                                        # no decision claims it: the boundary decision that kept the name there
-            k = int(np.searchsorted(boundary_pos, pos, side="right")) - 1
+        else:                                                        # no decision claims it: the boundary decision that kept the name there (its lineage's)
+            name = e.dst if e.dst in names else e.src
+            lin = lineage_of.get(name, 0)
+            bpos, bidx = b_pos_by_lin.get(lin, boundary_pos), b_idx_by_lin.get(lin, boundary_idx)
+            k = int(np.searchsorted(bpos, pos, side="right")) - 1
             if k < 0:
                 pre_boundary += d * r1                               # before the first boundary decision: nothing to claim it
                 continue
-            i = boundary_idx[k]
+            i = bidx[k]
             boundary_real += d * r1
             boundary_by_source[s] += d * r1
         attributed[i] += d * r1

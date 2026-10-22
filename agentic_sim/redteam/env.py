@@ -189,7 +189,8 @@ class ElefReviewerEnv(gym.Env if gym else object):
         if kind == _END:
             info = dict(info, decisions=self.decisions, lifetime_real_wealth=wealth)
             if not info.get("error") and not info.get("aborted") and self.run is not None:
-                attributed, summ = attribute(self.run, self._marks, self._decisions, work_side=self.work_side, shared=(self.role == "pair"))
+                lineages = [[x] for x in self.run.learner_pair] if (self.role == "pair" and self.run.learner_pair) else None   # the pair: each member's own boundary
+                attributed, summ = attribute(self.run, self._marks, self._decisions, work_side=self.work_side, shared=(self.role == "pair"), lineages=lineages)
                 info["attributed"], info["attribution"] = [float(x) for x in attributed], summ
             info["realized"] = [d["realized"] for d in self._decisions]
             return self._last_obs, float(reward), True, False, info

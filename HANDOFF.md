@@ -2433,7 +2433,11 @@ cell confirmed, the CEM beside in every line, no further planner work; a good de
 without them — the careful initial reviewers and the audit). **Q4 built and in flight (notes §21):** two learners with a shared reward — the slot a deliverer, the next careful id a
 reviewer kept on duty by volunteering — in one environment, the attribution shared across the pair's decisions on a case; the calibration where collusion plainly pays (the pair
 always matched, the roll off, no plants, the dial off; the ideal the colluding pair; `results/redteam/Q4/calibration-v4/`), then the line in run 24's population with the blind
-assignment (`line-v4/`) under whichever of the CEM planner and the head alone clears. Q5 after; the dispute baseline before Q7; the resubmission plant not drafted.
+assignment (`line-v4/`) under whichever of the CEM planner and the head alone clears. **The calibration read (notes §22):** the colluding pair +2,568 ± 209 over the
+careful pair (the effort saved, the guarantees not forfeited under the draw, and the awards kept — the colluding deliverer's price income 3,895 against 2,689); the head alone
+colludes and clears (+2,113 ± 164; −455 ± 183 against the ideal; the reviewer approving blind at 98%, the deliverer bad at 85%, 122 bad deliveries vested a run), the direct the
+same on a wide error (−650 ± 315, one departure), the CEM planner fails (−1,649 ± 221, bad at 0.43). The line runs under the head alone (the branch per cell), the CEM beside.
+Q5 after; the dispute baseline before Q7; the resubmission plant not drafted.
 
 ## Maps
 

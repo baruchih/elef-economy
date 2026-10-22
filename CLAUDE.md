@@ -558,7 +558,9 @@ consolidated into one standalone spec with the accepted revision kept verbatim i
   `random` / `leaver`; the driver's `learner_bad_*`, `learner_good_*`, `learner_forfeited`, `learner_effort_saved`, `final_n_rate` columns; `--effort-cost` the calibration knob (unused:
   the ideal clears by 13.6 SE). The calibration cell `--entry-pool 20 --stampers 1.0 --entry-stampers 1.0 --pi0 0 --dial off --audit-roll off` (`results/redteam/Q3/calibration-v4/`), then
   Q3's calibration read (notes §18): the head alone and the direct are the ideal to the decimal, the CEM planner 93% of the gain (−100 ± 11 against the ideal, paired) — by
-  version 4's stopping rule the head alone is the planner for Q3's line (`online --plan greedy`; `results/redteam/Q3/line-v4/`, run 24's population, no re-arrival).
+  version 4's stopping rule the head alone is the planner for Q3's line (`online --plan greedy`; `results/redteam/Q3/line-v4/`, run 24's population, no re-arrival). **Q3's line
+  read (notes §19): no win** — +57 ± 40 against the careful deliverer, three bad deliveries in 2,671; a bad delivery is caught 97 times in 100 in run 24's population (the
+  zero-effort deliverer: 26 real of lifetime against 3,105, selection down to 28 awards). Next: Q4, Q5 on the reviewer's go.
 - Money is checked by invariant I1 (conservation) — never silently create or lose credits.
 
 ## Vocabulary (spec Appendix C has the full notation)

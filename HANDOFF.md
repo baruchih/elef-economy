@@ -2425,7 +2425,10 @@ the zero). **The calibration read (notes §18):** the head alone over the latent
 deliverer, 0 ± 0 against the zero-effort one); the CEM planner takes 93% of the gain (+1,441 ± 111; −100 ± 11 against the ideal, paired — one good delivery in fourteen, the
 elites' spread as at the boundary) and fails the gate. By version 4's stopping rule the head alone is the planner where the CEM does not clear, so Q3's line runs under it
 (`online --plan greedy`, the CEM beside in the final; the implementer's application of the rule, the reviewer's to overrule): `results/redteam/Q3/line-v4/`, run 24's
-population, no re-arrival — the brief's §4 readings in run_q's deliverer table. The dispute baseline before Q7.
+population, no re-arrival. **Q3's line read (notes §19): no win** — the head alone +57 ± 40 against the careful deliverer, three bad deliveries in 2,671 submissions; the
+zero-effort deliverer caught 97 times in 100 in run 24's population (27.6 of 28.4 caught, selection down to 28 awards from 134, ρ 0.47, lifetime 26 against 3,105); the CEM beside
+−318 ± 121 on its one-in-twenty noise; the learner's final-N rate, forfeits and ρ the careful's. The margin the brief hypothesised is not there at any margin the learner can see.
+Next by the brief's order: Q4, Q5; the dispute baseline before Q7; the resubmission plant not drafted. The reviewer's go.
 
 ## Maps
 

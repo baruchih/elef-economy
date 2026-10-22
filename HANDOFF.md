@@ -2441,8 +2441,10 @@ same on a wide error (−650 ± 315, one departure), the CEM planner fails (−1
 pair does nothing with it (D bad at 0.8%, R stamping D's cases at 18% against 24% of everyone's); the colluding pair destroyed (R suspended 7.8 times a run, D down to 31 awards,
 a lifetime of 250 against 4,998). The pair's loss is the reviewer's suspensions and the pair's departures at the boundary — and a fault in the pair's boundary attribution was
 found (a member's period could land on its partner's boundary decision; an admitted leave carrying the partner's work) and corrected (`attrib.attribute(lineages=…)`: a name's
-unclaimed events to its own lineage's latest boundary decision; one lineage is version 3's rule exactly). The line re-run with the correction (`line-v4b/`, in flight). Q5 after;
-the dispute baseline before Q7; the resubmission plant not drafted.
+unclaimed events to its own lineage's latest boundary decision; one lineage is version 3's rule exactly). The line re-run with the correction (`line-v4b/`; notes §24): **no win** — the head alone −544 ± 268 against the careful pair (rounds −217 to +58), the CEM
+−1,244; the pair's cases meet one time in eight, the deliverer bad at 0.7%, the reviewer stamping its partner's cases at 7% against 27% of everyone's (Q1's lesson again:
+53% of the plant-blind seats, 6% of the first reviews); the gap the reviewer's suspensions and three departures in twenty at the boundary. Q1–Q4 closed. Q5 next (the
+delegation chain) on the reviewer's go; the dispute baseline before Q7; the resubmission plant not drafted.
 
 ## Maps
 

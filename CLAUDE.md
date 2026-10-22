@@ -569,7 +569,8 @@ consolidated into one standalone spec with the accepted revision kept verbatim i
   --pi0 0 --dial off --audit-roll off --match-pair on` (`results/redteam/Q4/calibration-v4/`), the line in run 24's population with the blind assignment (`line-v4/`). Q4's calibration read (notes §22): the colluding pair +2,568 ± 209 over the careful pair; the head
   alone colludes and clears (+2,113 ± 164, −455 ± 183 against the ideal), the direct the same on a wide error, the CEM fails (−1,649) — the line under the head alone. Q4's line, first read (notes §23): no win (−924 ± 248; the pair's cases meet
   one time in seven; the colluding pair destroyed, R suspended 7.8 times a run); a fault in the pair's boundary attribution corrected (`attrib.attribute(lineages=…)`: a name's
-  unclaimed events to its own lineage's boundary decision — one lineage is version 3's rule) and the line re-run (`line-v4b/`). Q5 after.
+  unclaimed events to its own lineage's boundary decision — one lineage is version 3's rule) and the line re-run (`line-v4b/`; notes §24): **no win** (−544 ± 268; the pair's cases meet one in eight; R stamps the plant-blind seats at 53%
+  and the first reviews at 6%; three R departures in twenty). Q1–Q4 closed; Q5 (the delegation chain) next on the reviewer's go.
 - Money is checked by invariant I1 (conservation) — never silently create or lose credits.
 
 ## Vocabulary (spec Appendix C has the full notation)

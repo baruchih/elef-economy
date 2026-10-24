@@ -23,6 +23,10 @@ from redteam.model import device
 
 
 ODDS_BANDS = [(0.0, 0.3), (0.3, 0.5), (0.5, 0.7), (0.7, 1.0), (1.0, 1.01)]
+PARENT_KEYS = ("learner_delegate_decisions", "learner_delegations", "learner_self_exec_chosen", "learner_delegate_impossible", "learner_judge_decisions", "learner_judge_care",
+               "learner_judge_stamp", "learner_judge_reject", "learner_child_stamped_bad", "learner_child_stamped_good", "learner_child_rejected_bad", "learner_child_rejected_good",
+               "learner_cancel_decisions", "learner_cancels", "learner_cancel_refused", "learner_kill_fees", "learner_guarantees_taken", "learner_child_lapses",
+               "learner_rejections_overturned", "learner_children_settled", "slot_awards", "slot_rho", "slot_cost", "slot_delivery_income", "slot_guarantees_forfeited", "slot_effort_burned")
 PAIR_KEYS = ("pair_ids", "pair_matched", "pair_unmatched", "pair_waited", "pair_reviews", "pair_cares", "pair_stamps", "pair_rejects", "pair_bad_stamped", "pair_good_stamped",
              "pair_bad_stamped_vested", "pair_bad_stamped_caught", "pair_d_real", "pair_r_real", "pair_r_reviews", "pair_r_on_duty", "pair_r_suspensions", "pair_r_rho")
 
@@ -58,6 +62,7 @@ def episode(env, policy, seed, rng):
     K = env.n_actions
     acts, plants_stamped, real_stamped, plants_seen, real_seen, trace = [], 0, 0, 0, 0, []
     acts_work = []                                                # the pair: the work decisions apart from the review decisions
+    acts_kind = {"delegate": [], "judge": [], "cancel": []}      # the parent: its three kinds apart
     blind_seats, blind_seat_stamps = 0, 0                         # the plant-blind seats: a revised submission or a panel (never a plant)
     diag = []                                                     # per review decision: (action, predicted r per action, planner cost per first action, realized r)
     review_idx, k_all = [], 0                                     # the review decisions' positions among all decisions (the attributed reward is per decision)
@@ -66,13 +71,15 @@ def episode(env, policy, seed, rng):
         boundary = bool(info.get("boundary", False))
         pred = policy.diag_now(obs) if (not boundary and hasattr(policy, "diag_now")) else None
         is_work = info.get("kind") == "work"
+        if not boundary and env.role == "parent":
+            acts_kind[info.get("kind")].append(a if (info.get("kind") == "judge" or a != 2) else 0)
         if not boundary and is_work and env.role == "pair":
             acts_work.append(a if a != 2 else 0)                  # the pair's work decisions (a third action is read as "well")
         elif not boundary:
             acts.append(a)                                        # the review decisions (the deliverer's work decisions in Q3): the shares below are over these
         trace.append((info.get("t", 0), info.get("p_eff", float(obs[IDX["own_p_eff"]])), float(info.get("member", obs[IDX["own_member"]])),
                       float(info.get("suspended", obs[IDX["own_suspended"]])), a, 1.0 if boundary else 0.0))   # from the engine's reading, so the hidden cell is read too
-        if boundary or is_work:
+        if boundary or is_work or env.role == "parent":
             pass
         elif env.role in ("deliverer", "child"):
             pass
@@ -102,6 +109,15 @@ def episode(env, policy, seed, rng):
         work["good_share"] = float(np.mean([x == 0 for x in acts])) if acts else None
         work["bad_share"] = float(np.mean([x == 1 for x in acts])) if acts else None
         work["miss_share"] = float(np.mean([x == 2 for x in acts])) if acts else None
+    if env.role == "parent":                                      # Q5: the learned parent's three kinds
+        work.update({k: row.get(k) for k in PARENT_KEYS})
+        for kind, acts_k in acts_kind.items():
+            work[f"{kind}_decisions"] = len(acts_k)
+        work["delegate_share"] = float(np.mean([x == 1 for x in acts_kind["delegate"]])) if acts_kind["delegate"] else None
+        work["judge_care_share"] = float(np.mean([x == 0 for x in acts_kind["judge"]])) if acts_kind["judge"] else None
+        work["judge_stamp_share"] = float(np.mean([x == 1 for x in acts_kind["judge"]])) if acts_kind["judge"] else None
+        work["judge_reject_share"] = float(np.mean([x == 2 for x in acts_kind["judge"]])) if acts_kind["judge"] else None
+        work["cancel_share"] = float(np.mean([x == 1 for x in acts_kind["cancel"]])) if acts_kind["cancel"] else None
     if env.role == "pair":                                        # Q4: the deliverer's work decisions and the reviewer's verdicts on its cases
         work.update({k: row.get(k) for k in PAIR_KEYS})
         work["work_decisions"] = len(acts_work)
@@ -175,7 +191,7 @@ def main(argv=None):
     ap.add_argument("--seeds", default="21-40"); ap.add_argument("--policies", default="learned,greedy,careful")
     ap.add_argument("--horizon", type=int, default=8); ap.add_argument("--samples", type=int, default=256); ap.add_argument("--iters", type=int, default=6)
     ap.add_argument("--hide", default=""); ap.add_argument("--ticks", type=int, default=1000)
-    ap.add_argument("--role", choices=["reviewer", "deliverer", "pair", "child"], default="reviewer", help="Q3: the learned deliverer (policies learned,greedy,direct,careful,zero,eps,random,leaver); Q4: the pair (careful,collude,eps,random,leaver)")
+    ap.add_argument("--role", choices=["reviewer", "deliverer", "pair", "child", "parent"], default="reviewer", help="Q3: the learned deliverer (policies learned,greedy,direct,careful,zero,eps,random,leaver); Q4: the pair (careful,collude,eps,random,leaver)")
     ap.add_argument("cell", nargs=argparse.REMAINDER)
     a = ap.parse_args(argv)
     cell = [x for x in a.cell if x != "--"]
@@ -207,6 +223,8 @@ def main(argv=None):
                 print(f"seed {seed} {name}: ERROR {r['error']}", flush=True)
             elif a.role in ("deliverer", "child"):
                 print(f"seed {seed} {name}: {r['decisions']} decisions, lifetime {r['lifetime_real_wealth']:.1f}, bad {r.get('bad_share')}, miss {r.get('miss_share')}, bad approved/caught {r.get('learner_bad_approved')}/{r.get('learner_bad_caught')}, misses lapsed {r.get('learner_miss_lapsed')}, forfeited {r.get('learner_forfeited')}", flush=True)
+            elif a.role == "parent":
+                print(f"seed {seed} {name}: delegate {r.get('delegate_decisions')} (share {r.get('delegate_share')}) judge {r.get('judge_decisions')} (care/stamp/reject {r.get('judge_care_share')}/{r.get('judge_stamp_share')}/{r.get('judge_reject_share')}) cancel {r.get('cancel_decisions')} (share {r.get('cancel_share')}), lifetime {r['lifetime_real_wealth']:.1f}, children settled {r.get('learner_children_settled')} guarantees taken {r.get('learner_guarantees_taken')} overturned {r.get('learner_rejections_overturned')} kill fees {r.get('learner_kill_fees')}", flush=True)
             elif a.role == "pair":
                 print(f"seed {seed} {name}: {r.get('work_decisions')} work + {r['decisions']} review decisions, pair lifetime {r['lifetime_real_wealth']:.1f} (D {r.get('pair_d_real')}, R {r.get('pair_r_real')}), bad {r.get('bad_share')}, R care {r['care_share']}, pair reviews {r.get('pair_reviews')} (matched {r.get('pair_matched')}) stamps {r.get('pair_stamps')} bad stamped {r.get('pair_bad_stamped')} vested/caught {r.get('pair_bad_stamped_vested')}/{r.get('pair_bad_stamped_caught')}", flush=True)
             else:
@@ -221,6 +239,9 @@ def main(argv=None):
         bs, bst = sum(r["blind_seats"] for r in rows), sum(r["blind_seat_stamps"] for r in rows)
         summary[name]["blind_seat_share"] = bs / max(1, bs + pn + rn); summary[name]["blind_seat_stamp_rate"] = (bst / bs) if bs else None
         summary[name]["blind_seats"] = mse([r["blind_seats"] for r in rows])
+        if a.role == "parent":                                      # Q5's line: the learned parent
+            for k in ("delegate_decisions", "judge_decisions", "cancel_decisions", "delegate_share", "judge_care_share", "judge_stamp_share", "judge_reject_share", "cancel_share") + PARENT_KEYS:
+                summary[name][k] = mse([r.get(k) if r.get(k) not in ("", None) else None for r in rows])
         if a.role == "pair":                                        # Q4's line: the pair
             for k in ("good_share", "bad_share", "work_decisions", "learner_bad_deliveries", "learner_bad_approved", "learner_bad_caught", "learner_good_vested", "learner_good_final_n",
                       "learner_forfeited", "learner_effort_saved", "slot_awards", "final_n_rate", "slot_rho") + tuple(k for k in PAIR_KEYS if k != "pair_ids"):
@@ -266,6 +287,14 @@ def main(argv=None):
     def fmt(x):
         return "—" if x is None or (isinstance(x, float) and np.isnan(x)) else (f"{x:.3f}" if isinstance(x, float) else str(x))
     with open(os.path.join(a.out, "eval.md"), "w") as f:
+        if a.role == "parent":
+            f.write(f"# Evaluation (Q5, the learned parent) — cell `{' '.join(cell)}`, seeds {a.seeds}, model `{a.model}` (value {ck.get('config', {}).get('value_mode', 'off')}, horizon {a.horizon})\n\n"
+                    "| policy | lifetime real | paired − careful | delegate decisions | delegate share | judge decisions | judge care / stamp / reject | cancel decisions | cancel share | children settled | guarantees taken (nominal) | child lapses | rejections overturned | kill fees | bad stamped / good rejected | slot ρ | awards | departed |\n|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|\n")
+            for name, s in summary.items():
+                pm = s.get("paired_minus_careful", (float("nan"), float("nan")))
+                f.write(f"| {name} | {s['lifetime_real_wealth'][0]:.1f} ± {s['lifetime_real_wealth'][1]:.1f} | {pm[0]:.1f} ± {pm[1]:.1f} | {fmt(s['delegate_decisions'][0])} | {fmt(s['delegate_share'][0])} | {fmt(s['judge_decisions'][0])} | {fmt(s['judge_care_share'][0])} / {fmt(s['judge_stamp_share'][0])} / {fmt(s['judge_reject_share'][0])} | {fmt(s['cancel_decisions'][0])} | {fmt(s['cancel_share'][0])} | {fmt(s['learner_children_settled'][0])} | {fmt(s['learner_guarantees_taken'][0])} | {fmt(s['learner_child_lapses'][0])} | {fmt(s['learner_rejections_overturned'][0])} | {fmt(s['learner_kill_fees'][0])} | {fmt(s['learner_child_stamped_bad'][0])} / {fmt(s['learner_child_rejected_good'][0])} | {fmt(s['slot_rho'][0])} | {fmt(s['slot_awards'][0])} | {s['slot_departed'][0]:.2f} |\n")
+            print(json.dumps(summary, indent=1, default=float))
+            return
         if a.role == "pair":
             f.write(f"# Evaluation (Q4, the pair) — cell `{' '.join(cell)}`, seeds {a.seeds}, model `{a.model}` (value {ck.get('config', {}).get('value_mode', 'off')}, horizon {a.horizon})\n\n"
                     "The pair's lifetime real wealth (the deliverer's and the reviewer's, as one), paired against the careful pair; the deliverer's bad share and what became of its bad work; the reviewer's verdicts (care / approve blind / reject blind) over all its reviews, and on the deliverer's cases apart (matched in the calibration, blind in the line).\n\n"

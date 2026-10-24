@@ -29,7 +29,7 @@ def main(argv=None):
     ap.add_argument("--heads", choices=["one", "two"], default="two", help="version 4: the review-side head and the boundary head (the trainer's); `one` is version 3's")
     ap.add_argument("--eval-policies", default="learned,careful")
     ap.add_argument("--learner", choices=["wm", "direct"], default="wm", help="the ladder's rung (b): `direct` trains redteam.direct in place of the world model and plans nothing")
-    ap.add_argument("--role", choices=["reviewer", "deliverer", "pair", "child"], default="reviewer", help="Q3: the learned deliverer")
+    ap.add_argument("--role", choices=["reviewer", "deliverer", "pair", "child", "parent"], default="reviewer", help="Q3: the learned deliverer")
     ap.add_argument("--plan", choices=["cem", "greedy"], default="cem", help="the collecting policy on the world model: the CEM planner, or the head alone over the latent (version 4's stopping rule)")
     ap.add_argument("cell", nargs=argparse.REMAINDER)
     a = ap.parse_args(argv)

@@ -180,6 +180,8 @@ class Task:
     learner_work: Optional[int] = None       # Q3 (the learned deliverer): the slot's quality decision on this case — 0 good, 1 bad (zero effort)
     pair_review: bool = False                # Q4: the pair's reviewer took the initial review of the pair's deliverer's case
     learner_miss: bool = False               # Q5 (the learned child): the child chose to miss — never submits; the lapse at the deadline
+    parent_learner: bool = False             # Q5 (the learned parent): this nested case is the learned parent's child
+    parent_rejected_blind: bool = False      # Q5: … and the parent rejected it blind
     pair_stamped: bool = False               # Q4: … and approved it blind
 
 
@@ -309,10 +311,14 @@ class Stamping:
         # the slot: the actor that is (or, in a control run, would be) the single tell-reader — the same id, cost and tie-break position
         # on the same seed, so a control run's slot is the paired comparison the brief's "same cost and split" asks for
         self.tell_slot = ids_t[0] if ids_t else (self.actors[0] if (a.learner_slot == "on" and self.actors) else None)   # Q3's calibration: every reviewer a stamper — the slot the first actor
+        if a.learner_slot == "on" and a.learner_role == "parent" and ids_t and a.parent_slot != "first":
+            ranked = sorted(ids_t, key=lambda x: (self.c_d_of[x], x))          # Q5: the learned parent's slot by cost — a declared construction (a cheap parent cannot post a child)
+            self.tell_slot = ranked[-1] if a.parent_slot == "costliest" else ranked[len(ranked) // 2]
         # the learned red team (redteam.env): the slot actor's reviewing decisions come from a policy — `self.learner(run, reviewer, view, r)`
         # returns 0 (care: the careful disposition's signal at its cost), 1 (approve blind), 2 (reject blind); the truth is never shown to it
         self.learner = None
         self.learner_work = None                      # Q3: the slot's quality decision at each of its submissions — `self.learner_work(run, actor, case)` → 0 good, 1 bad
+        self.learner_parent = None                    # Q5: the learned parent — `self.learner_parent(run, parent, kind, root, child)`: kind delegate (0 self-execute, 1 delegate), judge (0 care, 1 stamp, 2 reject blind), cancel (0 wait, 1 cancel)
         self.learner_id = None
         self.learner_review_kind = CAREFUL            # the slot's reviewing disposition when the learner is a deliverer (the population's at that slot)
         self.learner_role_of: dict[str, str] = {}     # each learner identity's role (Q4's pair: the slot a deliverer, the next careful id a reviewer)
@@ -425,6 +431,12 @@ class Stamping:
                   "pair_bad_stamped_vested": 0, "pair_bad_stamped_caught": 0, "pair_good_stamped": 0,
                   # Q5 — the learned child (--learner-role child): its nested awards, misses and the lapses; the population knobs' counts
                   "learner_nested_awards": 0, "learner_nested_offers": 0, "learner_misses": 0, "learner_miss_lapsed": 0, "parent_judge_override": 0, "child_appeals_suppressed": 0,
+                  # Q5 — the learned parent (--learner-role parent): its three kinds of decision and what became of them
+                  "learner_delegate_decisions": 0, "learner_delegations": 0, "learner_self_exec_chosen": 0, "learner_delegate_impossible": 0,
+                  "learner_judge_decisions": 0, "learner_judge_care": 0, "learner_judge_stamp": 0, "learner_judge_reject": 0,
+                  "learner_child_stamped_bad": 0, "learner_child_stamped_good": 0, "learner_child_rejected_bad": 0, "learner_child_rejected_good": 0,
+                  "learner_cancel_decisions": 0, "learner_cancels": 0, "learner_cancel_refused": 0, "learner_kill_fees": 0.0,
+                  "learner_guarantees_taken": 0.0, "learner_child_lapses": 0, "learner_rejections_overturned": 0, "learner_children_settled": 0,
                   # 2.3.0: the supply side
                   "arrivals": 0, "departures": 0, "departed_cost_sum": 0.0, "nested_posted": 0, "nested_awarded": 0, "nested_unaffordable": 0, "accomplice_unaffordable": 0,
                   "nested_self_executed": 0, "nested_judged": 0, "nested_false_approvals": 0, "nested_false_rejections": 0,
@@ -465,7 +477,7 @@ class Stamping:
         an unaffordable purchase whole). Accuracy is a parameter of the disposition, not of the
         money spent; the shortfall is counted as `underfunded_careful_reviews`."""
         kind = self.kind[reviewer]
-        if kind == LEARNER and self.learner_role_of.get(reviewer) in ("deliverer", "child"):
+        if kind == LEARNER and self.learner_role_of.get(reviewer) in ("deliverer", "child", "parent"):
             kind = self.learner_review_kind          # Q3: the learned deliverer reviews as the population's actor at its slot does
         if kind == STAMPER:
             if self.a.stamper_mode == "reformer" and self.w.actor(reviewer).probation:
@@ -809,7 +821,19 @@ class Stamping:
             cost = self.cost_now(parent)
             child_bid = self.expected_child_bid()
             beta_n = round(cost - self.nested_overhead(child_bid), 2)
-            if beta_n <= 1.0 or child_bid > beta_n:
+            learner_parent = self.kind.get(parent) == LEARNER and self.learner_role_of.get(parent) == "parent" and self.learner_parent is not None
+            if learner_parent:
+                # Q5: the learned parent decides — delegate (post at the rule's ceiling, whether or not a child is expected to bid) or self-execute
+                if beta_n <= 1.0:
+                    self.c["learner_delegate_impossible"] += 1
+                    continue
+                act = int(self.learner_parent(self, parent, "delegate", c, None))
+                self.c["learner_delegate_decisions"] += 1
+                if act != 1:
+                    self.c["learner_self_exec_chosen"] += 1
+                    continue
+                self.c["learner_delegations"] += 1
+            elif beta_n <= 1.0 or child_bid > beta_n:
                 continue
             try:
                 nid = w.post_nested(cid, beta_n)
@@ -823,6 +847,7 @@ class Stamping:
             self.tasks[nid].nested = True
             self.active[nid] = True
             self.c["nested_posted"] += 1
+            self.tasks[nid].parent_learner = learner_parent
             self.c["nested_posted_by_stamper" if self.kind[parent] == STAMPER else "nested_posted_by_careful"] += 1
             self.parent_delegated[parent] = self.parent_delegated.get(parent, 0) + 1
         # 2. children bid on open nested requests; a request unawarded for T_wait is withdrawn and the parent executes itself
@@ -884,7 +909,26 @@ class Stamping:
             root = w.case(self.nested_parent[nid])
             parent = root.actor
             truth = self.tasks[nid].fulfilled
-            if a.parent_judge != "careful":
+            if self.kind.get(parent) == LEARNER and self.learner_role_of.get(parent) == "parent" and self.learner_parent is not None:
+                # Q5: the learned parent judges its child — care (the careful signal at its cost), stamp (F, nothing spent), reject blind (N)
+                act = int(self.learner_parent(self, parent, "judge", root, c))
+                self.c["learner_judge_decisions"] += 1
+                self.c[("learner_judge_care", "learner_judge_stamp", "learner_judge_reject")[act]] += 1
+                if act == 1:
+                    v = F
+                    self.c["learner_child_stamped_good" if truth else "learner_child_stamped_bad"] += 1
+                elif act == 2:
+                    v = N
+                    self.tasks[nid].parent_rejected_blind = True
+                    self.c["learner_child_rejected_good" if truth else "learner_child_rejected_bad"] += 1
+                else:
+                    v = F if (truth == (self.rng.random() < a.accuracy)) else N
+                    have = max(0.0, math.floor((w.unlocked(parent) - 1e-6) * 100) / 100)
+                    pay = min(2.0, have)
+                    if pay > 0:
+                        w.spend(parent, pay, self.nested_parent[nid])
+                        self.c["effort_burned"] = round(self.c["effort_burned"] + pay, 6)
+            elif a.parent_judge != "careful":
                 v = F if a.parent_judge == "stamp" else N   # Q5's calibration knob: every parent stamps (or rejects) its child blind, at no cost
                 self.c["parent_judge_override"] += 1
             elif parent in self.greedy:
@@ -1625,6 +1669,31 @@ class Stamping:
         # 2.4.0 §8 (run 18 §7.4): `--parent-cancel early` — after this tick's submissions, a parent cancels a child that reached its
         # deadline without submitting (an honest child submits at its deadline, in the loop above; a lowballer never does; the engine
         # would finalize it N at this tick's end) and self-executes with its own deadline still ahead
+        if self.learner_parent is not None:
+            # Q5: the learned parent's cancel decision — asked each tick its child is committed and has not submitted, while the engine admits it
+            for cid, nid in list(self.parent_waiting.items()):
+                root = w.case(cid)
+                if self.kind.get(root.actor) != LEARNER or self.learner_role_of.get(root.actor) != "parent":
+                    continue
+                child = w.case(nid)
+                if child.state != "COMMITTED" or child.deadline is None or w.t >= child.deadline:
+                    continue
+                act = int(self.learner_parent(self, root.actor, "cancel", root, child))
+                self.c["learner_cancel_decisions"] += 1
+                if act != 1:
+                    continue
+                try:
+                    before = root.actor_cost
+                    w.cancel_nested(nid)
+                    fee = w.case(cid).actor_cost - before
+                    self.c["learner_cancels"] += 1
+                    self.c["learner_kill_fees"] = round(self.c["learner_kill_fees"] + fee, 6)
+                    self.c["parent_cancellations"] += 1
+                    self.c["kill_fees_paid"] = round(self.c["kill_fees_paid"] + fee, 6)
+                    self.parent_waiting.pop(cid, None)
+                    self.parent_self_exec.add(cid)
+                except (RuleError, LedgerError):
+                    self.c["learner_cancel_refused"] += 1
         if a.parent_cancel in ("early", "eve"):
             for cid, nid in list(self.parent_waiting.items()):
                 child = w.case(nid)
@@ -1847,6 +1916,14 @@ class Stamping:
                 continue
             if c.state in ("VESTED", "FINAL_N"):
                 correct = (c.outcome_or_verdict() == F) == task.fulfilled
+                if task.parent_learner:                                 # Q5: what became of the learned parent's child
+                    self.c["learner_children_settled"] += 1
+                    if c.state == "FINAL_N":
+                        self.c["learner_guarantees_taken"] = round(self.c["learner_guarantees_taken"] + (c.G_award if c.G_award is not None else c.G), 6)
+                        if c.t_submit is None:
+                            self.c["learner_child_lapses"] += 1
+                    elif task.parent_rejected_blind:
+                        self.c["learner_rejections_overturned"] += 1    # the child appealed and won: the parent's rejection bond forfeited
                 if task.pair_stamped and task.learner_work == 1:        # Q4: the deliverer's bad work the pair's reviewer approved blind
                     self.c["pair_bad_stamped_vested" if c.state == "VESTED" else "pair_bad_stamped_caught"] += 1
                 if task.learner_work is not None:                      # Q3: what became of the learned deliverer's choice
@@ -2110,6 +2187,14 @@ class Stamping:
                     "learner_forfeited": round(self.c["learner_forfeited"], 3), "learner_bad_paid": round(self.c["learner_bad_paid"], 3), "learner_effort_saved": round(self.c["learner_effort_saved"], 3),
                     "learner_nested_awards": self.c["learner_nested_awards"], "learner_misses": self.c["learner_misses"], "learner_miss_lapsed": self.c["learner_miss_lapsed"],
                     "parent_judge_override": self.c["parent_judge_override"], "child_appeals_suppressed": self.c["child_appeals_suppressed"],
+                    "learner_delegate_decisions": self.c["learner_delegate_decisions"], "learner_delegations": self.c["learner_delegations"], "learner_self_exec_chosen": self.c["learner_self_exec_chosen"],
+                    "learner_delegate_impossible": self.c["learner_delegate_impossible"], "learner_judge_decisions": self.c["learner_judge_decisions"],
+                    "learner_judge_care": self.c["learner_judge_care"], "learner_judge_stamp": self.c["learner_judge_stamp"], "learner_judge_reject": self.c["learner_judge_reject"],
+                    "learner_child_stamped_bad": self.c["learner_child_stamped_bad"], "learner_child_stamped_good": self.c["learner_child_stamped_good"],
+                    "learner_child_rejected_bad": self.c["learner_child_rejected_bad"], "learner_child_rejected_good": self.c["learner_child_rejected_good"],
+                    "learner_cancel_decisions": self.c["learner_cancel_decisions"], "learner_cancels": self.c["learner_cancels"], "learner_cancel_refused": self.c["learner_cancel_refused"],
+                    "learner_kill_fees": round(self.c["learner_kill_fees"], 3), "learner_guarantees_taken": round(self.c["learner_guarantees_taken"], 3), "learner_child_lapses": self.c["learner_child_lapses"],
+                    "learner_rejections_overturned": self.c["learner_rejections_overturned"], "learner_children_settled": self.c["learner_children_settled"],
                     "slot_delivery_income": (round(self.tally[self.tell_slot].delivery, 3) if self.tell_slot else ""),
                     "slot_guarantees_forfeited": (round(self.tally[self.tell_slot].guarantees_forfeited, 3) if self.tell_slot else ""),
                     "slot_effort_burned": (round(self.tally[self.tell_slot].costs, 3) if self.tell_slot else ""),
@@ -2418,7 +2503,7 @@ def build_parser():
     ap.add_argument("--arrival-loan", choices=["on", "off"], default="on",
                     help="2.7.0: the arrival float is a loan of the bank's — repaid from the name's income first, recovered at departure, the shortfall the bank's default; off is 2.6.1's grant (the control; --rules 2.6.0 too)")
     ap.add_argument("--learner-slot", choices=["on", "off"], default="off", help="the learned red team: the slot actor's reviewing decisions come from the policy redteam.env supplies (nothing changes without it)")
-    ap.add_argument("--learner-role", choices=["reviewer", "deliverer", "child"], default="reviewer",
+    ap.add_argument("--learner-role", choices=["reviewer", "deliverer", "child", "parent"], default="reviewer",
                     help="Q3 (the learned deliverer): `deliverer` — the slot reviews as the population's actor at its slot does, and its quality decision "
                          "at each submission comes from the policy (0 deliver well, the effort burned; 1 deliver badly at zero effort); `reviewer` is Q1/Q2's")
     ap.add_argument("--effort-cost", type=float, default=1.0, help="Q3's calibration knob: a multiple on every actor's effort cost (as --care-cost is on the care cost)")
@@ -2426,6 +2511,8 @@ def build_parser():
                     help="the learned deliverer's good delivery: `draw` — the task's own draw at b (the ruling after run 27, from Q4 on); `certain` — fulfilled (Q3's reading)")
     ap.add_argument("--child-prefers-nested", choices=["on", "off"], default="off",
                     help="Q5: the learned child offers for nested requests only, never for roots (a declared construction: the slot is committed on roots most of the run otherwise)")
+    ap.add_argument("--parent-slot", choices=["first", "costliest", "median"], default="costliest",
+                    help="Q5 (the learned parent): the slot — the first careful id, or the costliest careful actor (the default: a cheap parent cannot post a child at the rule's ceiling)")
     ap.add_argument("--parent-judge", choices=["careful", "stamp", "reject"], default="careful",
                     help="Q5's calibration knob: every parent's judgment of its child — by disposition (careful), approve blind (stamp) or reject blind (reject)")
     ap.add_argument("--child-appeal", choices=["truthful", "none"], default="truthful", help="Q5's calibration knob: a rejected child appeals truthfully (2.3.0 §2.4, declared) or never")

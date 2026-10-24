@@ -33,7 +33,7 @@ except ImportError:  # the project's own Python has no gymnasium; the environmen
 from drivers import stamping
 from drivers.stamping import Stamping
 from sim import check_all
-from .obs import build_obs, build_obs_work, OBS_DIM, IDX
+from .obs import build_obs, build_obs_work, build_obs_parent, OBS_DIM, IDX, IDX_PARENT
 from .attrib import attribute
 
 _END = "end"
@@ -47,9 +47,9 @@ class ElefReviewerEnv(gym.Env if gym else object):
     metadata = {"render_modes": []}
 
     def __init__(self, cell_args, ticks=1000, hide=(), final_audit=True, obs_dim=None, work_side=None, role="reviewer"):
-        assert role in ("reviewer", "deliverer", "pair", "child")
+        assert role in ("reviewer", "deliverer", "pair", "child", "parent")
         self.role = role
-        self.n_actions = 2 if role == "deliverer" else 3           # the child's three: well / badly / miss
+        self.n_actions = 2 if role == "deliverer" else 3           # the child's three: well / badly / miss; the parent's judge has three, its other kinds two
         self.cell_args, self.ticks, self.hide, self.final_audit = list(cell_args), int(ticks), tuple(hide), final_audit
         self.work_side = bool(work_side) if work_side is not None else (role != "reviewer")    # the learner's own work attributed (Q3 on)
         self.obs_dim = int(obs_dim) if obs_dim else (OBS_DIM + 1 if role == "pair" else OBS_DIM)   # a model trained before a field was added reads the vector trimmed; the pair's 46th field flags a work decision
@@ -76,8 +76,12 @@ class ElefReviewerEnv(gym.Env if gym else object):
         if self._abort:
             raise _Abort()
         boundary = view is None
-        obs = (build_obs_work(run, reviewer, None, self.hide, n_fields=self.obs_dim) if (boundary and self.role in ("deliverer", "child"))
-               else build_obs(run, reviewer, view, r, self.hide, n_fields=self.obs_dim))
+        if boundary and self.role in ("deliverer", "child"):
+            obs = build_obs_work(run, reviewer, None, self.hide, n_fields=self.obs_dim)
+        elif boundary and self.role == "parent":
+            obs = build_obs_parent(run, reviewer, None, None, None, self.hide, n_fields=self.obs_dim)
+        else:
+            obs = build_obs(run, reviewer, view, r, self.hide, n_fields=self.obs_dim)
         obs = self._flag(obs, 0.0)
         # the label for the Q2 probe only — read after the fact, never in the observation: was the assignment a plant?
         ac = run.w.actor(reviewer)
@@ -107,6 +111,24 @@ class ElefReviewerEnv(gym.Env if gym else object):
                                       "price": float(c.B), "bond": float(c.G_award if c.G_award is not None else c.G), "nested": not c.is_root,
                                       "cost": float(run.cost_now(actor)),
                                       "p_eff": float(run.w.p_effective(actor)), "member": bool(ac.is_member), "suspended": ac.suspended_until is not None}))
+        a = self._q_act.get()
+        if a is None:
+            raise _Abort()
+        return a
+
+    def _hook_parent(self, run, parent, kind, root, child):
+        """Q5: the learned parent's decision of one of three kinds — delegate (on the root just awarded), judge (on the child's submission), cancel
+        (each tick the child is committed and unsubmitted, while admissible). Recorded with the case the decision is on (the root for delegate,
+        the child for judge and cancel), so the attribution credits each case's events to the parent's decision on it."""
+        if self._abort:
+            raise _Abort()
+        obs = build_obs_parent(run, parent, kind, root, child, self.hide, n_fields=self.obs_dim)
+        ac = run.w.actor(parent)
+        case = root.id if kind == "delegate" else child.id
+        self._q_obs.put(("obs", obs, {"t": run.w.t, "wealth_real": self._wealth_real(), "case": case, "boundary": False, "kind": kind, "initial": False,
+                                      "n_events": run.w.n_events(), "real_factor": self._real(), "identity": parent,
+                                      "is_plant": False, "fulfilled": True if child is None else bool(run.tasks[child.id].fulfilled),
+                                      "p_eff": float(run.w.p_effective(parent)), "member": bool(ac.is_member), "suspended": ac.suspended_until is not None}))
         a = self._q_act.get()
         if a is None:
             raise _Abort()
@@ -149,6 +171,7 @@ class ElefReviewerEnv(gym.Env if gym else object):
         self.run = Stamping(a)
         self.run.learner = self._hook
         self.run.learner_work = self._hook_work
+        self.run.learner_parent = self._hook_parent
         self._q_obs, self._q_act, self._abort = queue.Queue(), queue.Queue(), False
         self._thread = threading.Thread(target=self._drive, daemon=True)
         self._thread.start()
@@ -168,7 +191,9 @@ class ElefReviewerEnv(gym.Env if gym else object):
 
     def step(self, action):
         refused_before = self.run.learner_leaves_refused
-        self._q_act.put(0 if (self.role == "pair" and self._pending.get("kind") == "work" and int(action) == 2) else int(action))
+        pk = self._pending.get("kind")
+        two_way = (self.role == "pair" and pk == "work") or (self.role == "parent" and pk in ("delegate", "cancel"))
+        self._q_act.put(0 if (two_way and int(action) == 2) else int(action))
         kind, obs, info = self._q_obs.get()
         self.decisions += 1
         wealth = info.get("wealth_real", self._last_wealth)
@@ -182,6 +207,8 @@ class ElefReviewerEnv(gym.Env if gym else object):
             effected = 0
         if self.role == "pair" and pd.get("kind") == "work" and effected == 2:
             effected = 0                                           # the pair's third action at a work decision is read as "deliver well" (the child's third is a miss)
+        if self.role == "parent" and pd.get("kind") in ("delegate", "cancel") and effected == 2:
+            effected = 0                                           # the parent's third action at a two-way decision is read as the first (self-execute / wait)
         info = dict(info, action_chosen=int(action), action_effected=effected)
         self._decisions.append({"identity": pd.get("identity"), "case": pd.get("case"), "is_plant": bool(pd.get("is_plant", False)),
                                 "fulfilled": bool(pd.get("fulfilled", True)), "action": effected, "chosen": int(action), "realized": float(reward)})
@@ -236,6 +263,39 @@ def policy_miss(obs, rng): return 0 if _boundary(obs) else 2
 def policy_eps_child(obs, rng, eps=0.2): return int(rng.integers(2)) if _boundary(obs) else (int(rng.integers(3)) if rng.random() < eps else 0)
 def policy_random_child(obs, rng): return int(rng.integers(2)) if _boundary(obs) else int(rng.integers(3))
 POLICIES_CHILD = {"careful": policy_careful, "zero": policy_zero, "miss": policy_miss, "eps": policy_eps_child, "random": policy_random_child, "leaver": policy_leaver}
+# Q5's, for the learned parent (the kind read from the observation's flags): careful — the hand-written parent (delegate when its cost exceeds the
+# expected child's bid plus the overhead, judge with care, never cancel); rejecter — delegate always, reject blind (run 17's greedy parent);
+# stamper — delegate always, approve blind; ε and random by the decision's kind
+_ID, _IJ, _IC = IDX_PARENT["pr_kind_delegate"], IDX_PARENT["pr_kind_judge"], IDX_PARENT["pr_kind_cancel"]
+_ICOST, _IBID, _IOVH = IDX_PARENT["pr_own_cost_rel"], IDX_PARENT["pr_child_bid_exp_rel"], IDX_PARENT["pr_overhead_rel"]
+def _pkind(obs):
+    if _boundary(obs): return "boundary"
+    return "delegate" if obs[_ID] > 0.5 else ("judge" if obs[_IJ] > 0.5 else "cancel")
+def policy_parent_careful(obs, rng):
+    k = _pkind(obs)
+    if k == "delegate": return 1 if obs[_ICOST] > obs[_IBID] + obs[_IOVH] else 0
+    return 0
+def policy_rejecter(obs, rng):
+    k = _pkind(obs); return {"boundary": 0, "delegate": 1, "judge": 2, "cancel": 0}[k]
+def policy_parent_stamper(obs, rng):
+    k = _pkind(obs); return {"boundary": 0, "delegate": 1, "judge": 1, "cancel": 0}[k]
+def policy_eps_parent(obs, rng, eps=0.2):
+    k = _pkind(obs)
+    if k == "boundary": return int(rng.integers(2))
+    if rng.random() >= eps: return policy_parent_careful(obs, rng)
+    return int(rng.integers(3)) if k == "judge" else int(rng.integers(2))
+def policy_random_parent(obs, rng):
+    k = _pkind(obs); return int(rng.integers(3)) if k == "judge" else int(rng.integers(2))
+_IG, _ICP = IDX_PARENT["pr_child_bond_rel"], IDX_PARENT["pr_child_price_rel"]
+def policy_selective(obs, rng):
+    """The selective rejecter written by hand: delegate always; at the judgment reject blind when the child's guarantee covers what self-execution
+    costs over the child's price (G ≥ own cost − overhead − the child's bid), else judge with care; never cancel."""
+    k = _pkind(obs)
+    if k == "delegate": return 1
+    if k == "judge": return 2 if obs[_IG] >= obs[_ICOST] - obs[_IOVH] - obs[_ICP] else 0
+    return 0
+POLICIES_PARENT = {"careful": policy_parent_careful, "rejecter": policy_rejecter, "stamper": policy_parent_stamper, "selective": policy_selective,
+                   "eps": policy_eps_parent, "random": policy_random_parent, "leaver": policy_leaver}
 
 
 # Q1's hand-written sleeper (the reference beside the learned one, within the convention: own audit odds are on the view): careful while
@@ -256,6 +316,8 @@ def policy_of(name, role="reviewer"):
         return POLICIES_PAIR[name]
     if role == "child":
         return POLICIES_CHILD[name]
+    if role == "parent":
+        return POLICIES_PARENT[name]
     if name.startswith("sleeper"):
         return make_sleeper(float(name[len("sleeper"):]))
     return POLICIES[name]
@@ -264,4 +326,4 @@ def policy_of(name, role="reviewer"):
 def default_policies(role="reviewer"):
     """The offline set's policies by role (version 3 added the leaver to the reviewer's)."""
     return {"reviewer": "careful,stamper,eps,random,leaver", "deliverer": "careful,zero,eps,random,leaver", "pair": "careful,collude,eps,random,leaver",
-            "child": "careful,zero,miss,eps,random,leaver"}[role]
+            "child": "careful,zero,miss,eps,random,leaver", "parent": "careful,rejecter,stamper,eps,random,leaver"}[role]

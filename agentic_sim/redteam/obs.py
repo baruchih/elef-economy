@@ -38,7 +38,16 @@ OBS_FIELDS_WORK = OBS_FIELDS[:N_SHARED] + [
 ]
 assert len(OBS_FIELDS_WORK) == OBS_DIM
 IDX_WORK = {k: i for i, k in enumerate(OBS_FIELDS_WORK)}
-FIELDS_BY_ROLE = {"reviewer": OBS_FIELDS, "deliverer": OBS_FIELDS_WORK}
+OBS_FIELDS_PARENT = OBS_FIELDS[:N_SHARED] + [
+    # Q5 — the learned parent: the decision's kind (one of three; a boundary is the 45th), the root it holds, its own cost against the child's expected
+    # bid and the overhead (the rule's terms), the child's case once awarded, and its own record as a parent
+    "pr_kind_delegate", "pr_kind_judge", "pr_kind_cancel", "pr_root_price_rel", "pr_root_slack", "pr_own_cost_rel", "pr_child_bid_exp_rel", "pr_overhead_rel",
+    "pr_child_price_rel", "pr_child_bond_rel", "pr_child_since_award", "pr_child_slack", "pr_own_children",
+    "decision_boundary",
+]
+assert len(OBS_FIELDS_PARENT) == OBS_DIM
+IDX_PARENT = {k: i for i, k in enumerate(OBS_FIELDS_PARENT)}
+FIELDS_BY_ROLE = {"reviewer": OBS_FIELDS, "deliverer": OBS_FIELDS_WORK, "child": OBS_FIELDS_WORK, "parent": OBS_FIELDS_PARENT}
 
 
 def _shared(run, actor: str, o, put, idx):
@@ -114,4 +123,27 @@ def build_obs_work(run, actor: str, c, hide=(), n_fields=None) -> np.ndarray:
     put("wk_own_settled", (cc["learner_bad_approved"] + cc["learner_bad_caught"] + cc["learner_good_vested"] + cc["learner_good_final_n"]) / 20.0)
     put("wk_own_bad_approved", cc["learner_bad_approved"] / 10.0); put("wk_own_bad_caught", cc["learner_bad_caught"] / 10.0)
     put("wk_own_forfeited", cc["learner_forfeited"] * real / 100.0)
+    return o if n_fields is None else o[:n_fields]
+
+
+def build_obs_parent(run, parent: str, kind, root, child, hide=(), n_fields=None) -> np.ndarray:
+    """Q5: the learned parent's observation — at a delegate decision (the root just awarded; `child` None), a judge decision (the child
+    submitted) or a cancel decision (the child committed, not yet submitted); `kind` None with `root` None is a period-boundary decision."""
+    o = np.zeros(OBS_DIM, dtype=np.float32)
+    def put(k, v):
+        o[IDX_PARENT[k]] = 0.0 if (v is None or k in hide) else float(v)
+    mk, P0, Pt, real = _shared(run, parent, o, put, IDX_PARENT)
+    w = run.w
+    if kind is None:
+        put("decision_boundary", 1.0)
+        return o if n_fields is None else o[:n_fields]
+    put({"delegate": "pr_kind_delegate", "judge": "pr_kind_judge", "cancel": "pr_kind_cancel"}[kind], 1.0)
+    put("pr_root_price_rel", root.B / P0); put("pr_root_slack", ((root.deadline - w.t) / 10.0) if root.deadline is not None else 0.0)
+    cost = run.cost_now(parent); bid = run.expected_child_bid()
+    put("pr_own_cost_rel", cost / P0); put("pr_child_bid_exp_rel", bid / P0); put("pr_overhead_rel", run.nested_overhead(bid) / P0)
+    if child is not None:
+        put("pr_child_price_rel", child.B / P0); put("pr_child_bond_rel", (child.G_award if child.G_award is not None else child.G) / P0)
+        put("pr_child_since_award", ((w.t - child.t_award) / 10.0) if child.t_award is not None else 0.0)
+        put("pr_child_slack", ((child.deadline - w.t) / 10.0) if child.deadline is not None else 0.0)
+    put("pr_own_children", run.parent_delegated.get(parent, 0) / 10.0)
     return o if n_fields is None else o[:n_fields]

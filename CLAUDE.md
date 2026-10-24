@@ -596,8 +596,10 @@ consolidated into one standalone spec with the accepted revision kept verbatim i
   (`calibration-v4c/`), then the world model's line if a branch clears (`line-v4c/`); the direct's line under the rules beside the hand (`line-v4b/direct/`; notes §34): **no win**, −312 ± 91 against the careful
   parent — it self-executed every award on the costliest slot (the attributed signal at the delegate decision reads self-execution +3.1 above delegation −1.8 on the careful's own
   choices; the careful parent's gain is the slot's reviewing income at the boundary, 612 against 372 real a life, which a wallet thinned by self-execution forfeits to the bond — a
-  cross-decision effect the per-decision attribution cannot carry, recorded as the construction's limit); the parent's half closes on whichever clears, a win in any line stands.
-  Then the dispute baseline, Q6, Q7 (the reviewer's).
+  cross-decision effect the per-decision attribution cannot carry, recorded as the construction's limit). The kind-conditioned calibration (`calibration-v4c/`; notes §35): **the
+  head alone over the kind-conditioned latent clears** (+300 ± 138 against the careful parent, −1.9 ± 83 against the ideal: it is the rejecter; the aliasing gone), the CEM fails
+  (−125 ± 117; the boundary residual at its worst, 13 slots of 20 departing) — by the branch rule the world model's line under the rules runs under the head alone (`line-v4c/`, the
+  CEM beside in the final; notes §36). The parent's half closes on whichever clears, a win in any line stands. Then the dispute baseline, Q6, Q7 (the reviewer's).
 - Money is checked by invariant I1 (conservation) — never silently create or lose credits.
 
 ## Vocabulary (spec Appendix C has the full notation)

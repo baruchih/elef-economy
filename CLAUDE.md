@@ -581,7 +581,9 @@ consolidated into one standalone spec with the accepted revision kept verbatim i
   (the rejecter −71 ± 89, the stamper −139 ± 56) — recorded as a finding by hand (the ruling after it, notes §27); the child's guarantee fraction the
   calibration knob (`--child-g-frac`; `Params.G_frac_nested`, None by default — the rule's G_frac otherwise; the engine's `award` reads it for a nested case): at 2.0 the rejecter clears
   the careful parent by 3.1 SE (+302 ± 99) and the parent's calibration runs there (`results/redteam/Q5/parent/calibration-v4/`), the line under the rules on the costliest slot (`line-v4/`). The child's calibration read (notes §28): the head alone and the direct the ideal to the decimal, the CEM at the ideal
-  through round 8 then departing in half the runs — the child's line under the head alone (`Q5/child/line-v4/`).
+  through round 8 then departing in half the runs — the child's line under the head alone (`Q5/child/line-v4/`). **The child's line read (notes §29): no win** — −31 ± 34 against
+  the careful child (the head learned to deliver well; the CEM beside −81 ± 40, four departures); a child's bad work caught 99 in 100 under the rules (the audit on a stamped nested
+  review, the careful parents), the bad child −200 ± 85 and the missing child −251 ± 74 (the lapse the costlier route). The parent's calibration and line in flight (`Q5/parent/`).
 - Money is checked by invariant I1 (conservation) — never silently create or lose credits.
 
 ## Vocabulary (spec Appendix C has the full notation)

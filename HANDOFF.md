@@ -2456,8 +2456,11 @@ child's guarantee fraction raised in the parent's calibration cell only (`--chil
 pays: at 2.0 +302 ± 99 (3.1 SE; 1.5: +129 ± 86; 1.0: −48). The parent's calibration runs there (`results/redteam/Q5/parent/calibration-v4/`), then the line under the rules on the
 costliest slot (`line-v4/`). **The child's calibration read (notes §28):** the head alone and the direct are the ideal (the bad delivery, +218 ± 50 over the careful
 child) to the decimal; the CEM planner at the ideal through round 8, then leaving for good in ten runs of twenty (−163 ± 61) — the boundary residual at its costliest; the missing
-child destroyed. The child's line runs under the head alone (`Q5/child/line-v4/`). The gates' strict inequality corrected (a head exactly at the ideal had failed it). The
-dispute baseline before Q7; the resubmission plant not drafted.
+child destroyed. The gates' strict inequality corrected (a head exactly at the ideal had failed it). **The child's line read (notes §29): no win** — the head alone
+−31 ± 34 against the careful child under the rules (it learned to deliver well: bad 1.5%, miss 2.4%, every bad delivery caught), the CEM beside −81 ± 40 with four departures in
+twenty; a child's bad work is caught 99 times in 100 (57.0 of 57.7 a run: the audit on a stamped nested review, the careful parents), the bad child −200 ± 85 (237 nominal of
+guarantees forfeited a run, ρ 0.70, selection 72 → 58 awards), the missing child −251 ± 74 (every lapse forfeits). The parent's calibration at G_frac_nested 2.0 and then its
+line (`Q5/parent/`) in flight. The dispute baseline before Q7; the resubmission plant not drafted.
 
 ## Maps
 

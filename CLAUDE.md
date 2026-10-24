@@ -583,7 +583,10 @@ consolidated into one standalone spec with the accepted revision kept verbatim i
   the careful parent by 3.1 SE (+302 ± 99) and the parent's calibration runs there (`results/redteam/Q5/parent/calibration-v4/`), the line under the rules on the costliest slot (`line-v4/`). The child's calibration read (notes §28): the head alone and the direct the ideal to the decimal, the CEM at the ideal
   through round 8 then departing in half the runs — the child's line under the head alone (`Q5/child/line-v4/`). **The child's line read (notes §29): no win** — −31 ± 34 against
   the careful child (the head learned to deliver well; the CEM beside −81 ± 40, four departures); a child's bad work caught 99 in 100 under the rules (the audit on a stamped nested
-  review, the careful parents), the bad child −200 ± 85 and the missing child −251 ± 74 (the lapse the costlier route). The parent's calibration and line in flight (`Q5/parent/`).
+  review, the careful parents), the bad child −200 ± 85 and the missing child −251 ± 74 (the lapse the costlier route). **The parent's calibration at G_frac_nested 2.0 (notes §30): no learner clears** — every learner judges as the rejecter and none delegates; the cause the
+  attribution by case (a nested case's events on the judge and cancel decisions, never on the delegate decision that made the child) — corrected as a construction,
+  `attrib.attribute(tree=True)` for the parent role (the child's events reach the delegate decision on its root too; `tree_double_counted`). In flight: the uncalibrated line
+  per the ruling (`Q5/parent/line-v4/`) and the calibration again under the corrected attribution (`calibration-v4b/`, then `line-v4b/`).
 - Money is checked by invariant I1 (conservation) — never silently create or lose credits.
 
 ## Vocabulary (spec Appendix C has the full notation)

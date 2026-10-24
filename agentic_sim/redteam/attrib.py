@@ -68,7 +68,7 @@ def classify(e, names):
     return s, sign * float(e.amount)
 
 
-def attribute(run, marks, decisions, work_side=False, shared=False, lineages=None):
+def attribute(run, marks, decisions, work_side=False, shared=False, lineages=None, tree=False):
     """The attributed reward per decision. `marks[i]` = (t, n_events, case, boundary, real_factor, wealth_real) at decision i's observation,
     `marks[n]` the terminal; `decisions[i]` = {"identity", "case", "is_plant", "fulfilled", "action"}. Returns (attributed (n,), summary).
     `work_side` is recorded only: since version 3 every source is claimed — by the case's decision when there is one, else by the boundary decision.
@@ -76,7 +76,13 @@ def attribute(run, marks, decisions, work_side=False, shared=False, lineages=Non
     verdict both — the shared training reward (a double count in the sum, reported as `shared_double_counted`). `lineages` (Q4's pair): the
     names grouped by learner — a period's unclaimed events of a name go to the latest boundary decision *of that name's lineage* (one lineage
     is version 3's rule: the chain of identities under re-arrival, the leave that returned the name claiming the fresh name's period); without
-    it, in a pair, a member's period could land on its partner's boundary decision — an admitted leave carrying the partner's work."""
+    it, in a pair, a member's period could land on its partner's boundary decision — an admitted leave carrying the partner's work. `tree` (Q5's
+    parent): a nested case's events are credited to the parent's decision on it (judge, cancel — the latest at or before, as for any case) **and**
+    to the delegate decision on its root, the decision that made the child exist — without it the delegate decision compares self-execution
+    (the root's price less the effort) with delegation seen as the root's price alone, the child's costs at its award and the guarantee it
+    forfeits landing on the judge and cancel decisions, so no learner reads a reason to delegate (the parent's first calibration, notes §30);
+    a nested case no decision claims (none was asked on it) goes to the delegate decision on its root before the boundary. The double count
+    is reported as `tree_double_counted`."""
     n = len(decisions)
     names = set(run.learner_chain)
     events = run.w.events_since(0)
@@ -97,7 +103,20 @@ def attribute(run, marks, decisions, work_side=False, shared=False, lineages=Non
     b_pos_by_lin = {k: [marks[i][1] for i in v] for k, v in b_idx_by_lin.items()}
     boundary_by_source = defaultdict(float)
     pre_boundary = boundary_real = 0.0
-    shared_double = 0.0
+    shared_double = tree_double = 0.0
+    parent_cache = {}
+
+    def parent_of(cid):                                                  # the nested case's parent on the public surface (None for a root)
+        if cid not in parent_cache:
+            try:
+                parent_cache[cid] = run.w.case(cid).parent
+            except Exception:
+                parent_cache[cid] = None
+        return parent_cache[cid]
+
+    def latest_on(cid, t):
+        cands = [i for i in by_case[cid] if marks[i][0] <= t] or by_case[cid]
+        return cands, cands[-1]
     for pos, e in enumerate(events):
         cl = classify(e, names)
         if cl is None:
@@ -105,13 +124,19 @@ def attribute(run, marks, decisions, work_side=False, shared=False, lineages=Non
         s, d = cl
         j = int(np.searchsorted(bounds, pos, side="right")) - 1     # the window the event landed in; its closing index prices it
         r1 = marks[min(max(j, 0) + 1, len(marks) - 1)][4]
+        pid = parent_of(e.case) if (tree and e.case is not None) else None
         if e.case in by_case:                                        # the case's events to the decision on that case (the latest at or before)
-            cands = [i for i in by_case[e.case] if marks[i][0] <= e.t] or by_case[e.case]
+            cands, i = latest_on(e.case, e.t)
             if shared and len(cands) > 1:                            # Q4: the pair's decisions on one case share its events
                 for i2 in cands[:-1]:
                     attributed[i2] += d * r1
                     shared_double += d * r1
-            i = cands[-1]
+            if pid is not None and pid in by_case:                   # Q5's parent: the child's events also to the delegate decision on its root
+                _, i2 = latest_on(pid, e.t)
+                attributed[i2] += d * r1
+                tree_double += d * r1
+        elif pid is not None and pid in by_case:                     # a child no decision was asked on: the delegate decision that made it
+            _, i = latest_on(pid, e.t)
         else:                                                        # no decision claims it: the boundary decision that kept the name there (its lineage's)
             name = e.dst if e.dst in names else e.src
             lin = lineage_of.get(name, 0)
@@ -153,7 +178,7 @@ def attribute(run, marks, decisions, work_side=False, shared=False, lineages=Non
             prev_s0 = s0
     return attributed, {"by_source": dict(by_source), "boundary_by_source": dict(boundary_by_source), "boundary_real": boundary_real,
                         "boundary_decisions": len(boundary_idx), "pre_boundary_real": pre_boundary, "suspension_charges": charges, "work_side": work_side,
-                        "shared": shared, "shared_double_counted": shared_double}
+                        "shared": shared, "shared_double_counted": shared_double, "tree": tree, "tree_double_counted": tree_double}
 
 
 def _plant_failed(run, cid):

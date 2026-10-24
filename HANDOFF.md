@@ -2459,8 +2459,13 @@ child) to the decimal; the CEM planner at the ideal through round 8, then leavin
 child destroyed. The gates' strict inequality corrected (a head exactly at the ideal had failed it). **The child's line read (notes §29): no win** — the head alone
 −31 ± 34 against the careful child under the rules (it learned to deliver well: bad 1.5%, miss 2.4%, every bad delivery caught), the CEM beside −81 ± 40 with four departures in
 twenty; a child's bad work is caught 99 times in 100 (57.0 of 57.7 a run: the audit on a stamped nested review, the careful parents), the bad child −200 ± 85 (237 nominal of
-guarantees forfeited a run, ρ 0.70, selection 72 → 58 awards), the missing child −251 ± 74 (every lapse forfeits). The parent's calibration at G_frac_nested 2.0 and then its
-line (`Q5/parent/`) in flight. The dispute baseline before Q7; the resubmission plant not drafted.
+guarantees forfeited a run, ρ 0.70, selection 72 → 58 awards), the missing child −251 ± 74 (every lapse forfeits). **The parent's calibration at G_frac_nested 2.0 read (notes §30): no learner clears** — the CEM +101 ± 95 against the
+careful parent (the ideal +302 ± 99), the head alone −52, the direct +13; every learner judges as the rejecter (91–100% blind rejection) and none delegates (shares 0.48 / 0.17 / 0.22
+against the rejecter's 1.0). The cause in the attributed training reward: a nested case's events landed on the parent's decisions on the child (the guarantee +40 on the judge, the
+child's costs −25 on the cancels), never on the delegate decision that made it, which read no difference between delegating and self-executing (+1.8 against +2–5). Corrected as
+a construction (`attrib.attribute(tree=True)`, the parent role: the child's events reach the delegate decision on its root too; the rejecter's delegate decision now +13.4 ± 1.3).
+In flight: the uncalibrated line under the head alone per §27's ruling (`Q5/parent/line-v4/`) and the calibration again under the corrected attribution (`calibration-v4b/`, then
+`line-v4b/` if a branch clears). The dispute baseline before Q7; the resubmission plant not drafted.
 
 ## Maps
 

@@ -2448,8 +2448,11 @@ cell with appeals on; calibrations where the behaviour plainly pays. **The child
 declared construction that the child offers for nested work only (otherwise it is committed on roots and reaches one nested decision a run; with it ~100); the population knobs
 (parents that stamp, children that never appeal). A reading on the way: a parent's blind approval of its child's work is audited at the parent's odds and the troops reject it — 45 of
 48 bad deliveries caught under stamping parents alone — so the child's calibration takes the roll off and the cell's effort cost ×2 (the ideal, the bad delivery, +218 ± 50 over the
-careful child, 4.4 SE); `results/redteam/Q5/child/calibration-v4/`, then the line (`line-v4/`) under whichever of the CEM planner and the head alone clears. The learned parent after
-the child's line is read; the dispute baseline before Q7; the resubmission plant not drafted.
+careful child, 4.4 SE); `results/redteam/Q5/child/calibration-v4/`, then the line (`line-v4/`) under whichever of the CEM planner and the head alone clears. **The learned parent built** (notes §26; a0336b40): three kinds of decision (delegate / judge / cancel), the references careful / rejecter / stamper / selective,
+the slot by cost (a declared construction). In the parent's calibration cell (children that never appeal, no audit on the tree) **no hand-written cheat clears the careful
+parent** on seeds 21–40 — the rejecter takes 188 nominal of guarantees a run and ends −71 ± 89 (it must then do the work itself at its own cost), the stamper −139 ± 56, the
+selective −116 ± 46; with a median-cost slot the parent rarely has a child at all. There is no ideal to calibrate the parent against as the ruling frames it — the reviewer's call.
+The dispute baseline before Q7; the resubmission plant not drafted.
 
 ## Maps
 

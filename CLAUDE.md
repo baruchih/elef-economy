@@ -576,7 +576,9 @@ consolidated into one standalone spec with the accepted revision kept verbatim i
   it is committed on roots and reaches one nested decision a run; with it ~100). A reading on the way: a parent's blind approval of its child's work is audited and the troops
   reject it (45 of 48 caught), so the child's calibration takes the roll off and `--effort-cost 2` (the ideal +218 ± 50, 4.4 SE); the cell `--entry-pool 20 --stampers 0.6
   --delegation on --c-d-sigma 0.8 --child-prefers-nested on --parent-judge stamp --audit-roll off --effort-cost 2` (`results/redteam/Q5/child/calibration-v4/`), the line in the σ 0.8
-  cell with appeals on (`line-v4/`).
+  cell with appeals on (`line-v4/`). The learned parent built (`--learner-role parent`: delegate / judge / cancel; `--parent-slot`; the references
+  careful / rejecter / stamper / selective; notes §26): in its calibration cell (`--child-appeal none --audit-roll off`) no hand-written cheat clears the careful parent
+  (the rejecter −71 ± 89, the stamper −139 ± 56) — no ideal; the reviewer's call.
 - Money is checked by invariant I1 (conservation) — never silently create or lose credits.
 
 ## Vocabulary (spec Appendix C has the full notation)

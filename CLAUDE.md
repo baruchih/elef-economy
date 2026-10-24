@@ -580,7 +580,8 @@ consolidated into one standalone spec with the accepted revision kept verbatim i
   careful / rejecter / stamper / selective; notes §26): in its calibration cell (`--child-appeal none --audit-roll off`) no hand-written cheat clears the careful parent
   (the rejecter −71 ± 89, the stamper −139 ± 56) — recorded as a finding by hand (the ruling after it, notes §27); the child's guarantee fraction the
   calibration knob (`--child-g-frac`; `Params.G_frac_nested`, None by default — the rule's G_frac otherwise; the engine's `award` reads it for a nested case): at 2.0 the rejecter clears
-  the careful parent by 3.1 SE (+302 ± 99) and the parent's calibration runs there (`results/redteam/Q5/parent/calibration-v4/`), the line under the rules on the costliest slot (`line-v4/`).
+  the careful parent by 3.1 SE (+302 ± 99) and the parent's calibration runs there (`results/redteam/Q5/parent/calibration-v4/`), the line under the rules on the costliest slot (`line-v4/`). The child's calibration read (notes §28): the head alone and the direct the ideal to the decimal, the CEM at the ideal
+  through round 8 then departing in half the runs — the child's line under the head alone (`Q5/child/line-v4/`).
 - Money is checked by invariant I1 (conservation) — never silently create or lose credits.
 
 ## Vocabulary (spec Appendix C has the full notation)

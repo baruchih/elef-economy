@@ -2454,7 +2454,10 @@ parent** on seeds 21–40 — the rejecter takes 188 nominal of guarantees a run
 selective −116 ± 46; with a median-cost slot the parent rarely has a child at all. **The ruling on the references (notes §27):** a finding by hand — in the most favourable cell under the rules no greedy parent beats a careful one; the
 child's guarantee fraction raised in the parent's calibration cell only (`--child-g-frac`; `Params.G_frac_nested`, None by default — the goldens do not move) until the rejecter plainly
 pays: at 2.0 +302 ± 99 (3.1 SE; 1.5: +129 ± 86; 1.0: −48). The parent's calibration runs there (`results/redteam/Q5/parent/calibration-v4/`), then the line under the rules on the
-costliest slot (`line-v4/`). The dispute baseline before Q7; the resubmission plant not drafted.
+costliest slot (`line-v4/`). **The child's calibration read (notes §28):** the head alone and the direct are the ideal (the bad delivery, +218 ± 50 over the careful
+child) to the decimal; the CEM planner at the ideal through round 8, then leaving for good in ten runs of twenty (−163 ± 61) — the boundary residual at its costliest; the missing
+child destroyed. The child's line runs under the head alone (`Q5/child/line-v4/`). The gates' strict inequality corrected (a head exactly at the ideal had failed it). The
+dispute baseline before Q7; the resubmission plant not drafted.
 
 ## Maps
 

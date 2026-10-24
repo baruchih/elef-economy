@@ -2443,8 +2443,13 @@ a lifetime of 250 against 4,998). The pair's loss is the reviewer's suspensions 
 found (a member's period could land on its partner's boundary decision; an admitted leave carrying the partner's work) and corrected (`attrib.attribute(lineages=…)`: a name's
 unclaimed events to its own lineage's latest boundary decision; one lineage is version 3's rule exactly). The line re-run with the correction (`line-v4b/`; notes §24): **no win** — the head alone −544 ± 268 against the careful pair (rounds −217 to +58), the CEM
 −1,244; the pair's cases meet one time in eight, the deliverer bad at 0.7%, the reviewer stamping its partner's cases at 7% against 27% of everyone's (Q1's lesson again:
-53% of the plant-blind seats, 6% of the first reviews); the gap the reviewer's suspensions and three departures in twenty at the boundary. Q1–Q4 closed. Q5 next (the
-delegation chain) on the reviewer's go; the dispute baseline before Q7; the resubmission plant not drafted.
+53% of the plant-blind seats, 6% of the first reviews); the gap the reviewer's suspensions and three departures in twenty at the boundary. Q1–Q4 closed. **The ruling after run 28 (October 24, 2026; notes §25): Q5's go** — the learned child first, then the learned parent, in the σ 0.8 delegation
+cell with appeals on; calibrations where the behaviour plainly pays. **The child built and in flight:** three actions at a nested submission (well / badly / miss — the lapse); the
+declared construction that the child offers for nested work only (otherwise it is committed on roots and reaches one nested decision a run; with it ~100); the population knobs
+(parents that stamp, children that never appeal). A reading on the way: a parent's blind approval of its child's work is audited at the parent's odds and the troops reject it — 45 of
+48 bad deliveries caught under stamping parents alone — so the child's calibration takes the roll off and the cell's effort cost ×2 (the ideal, the bad delivery, +218 ± 50 over the
+careful child, 4.4 SE); `results/redteam/Q5/child/calibration-v4/`, then the line (`line-v4/`) under whichever of the CEM planner and the head alone clears. The learned parent after
+the child's line is read; the dispute baseline before Q7; the resubmission plant not drafted.
 
 ## Maps
 

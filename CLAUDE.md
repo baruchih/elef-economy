@@ -570,7 +570,13 @@ consolidated into one standalone spec with the accepted revision kept verbatim i
   alone colludes and clears (+2,113 ± 164, −455 ± 183 against the ideal), the direct the same on a wide error, the CEM fails (−1,649) — the line under the head alone. Q4's line, first read (notes §23): no win (−924 ± 248; the pair's cases meet
   one time in seven; the colluding pair destroyed, R suspended 7.8 times a run); a fault in the pair's boundary attribution corrected (`attrib.attribute(lineages=…)`: a name's
   unclaimed events to its own lineage's boundary decision — one lineage is version 3's rule) and the line re-run (`line-v4b/`; notes §24): **no win** (−544 ± 268; the pair's cases meet one in eight; R stamps the plant-blind seats at 53%
-  and the first reviews at 6%; three R departures in twenty). Q1–Q4 closed; Q5 (the delegation chain) next on the reviewer's go.
+  and the first reviews at 6%; three R departures in twenty). Q1–Q4 closed. **The ruling after run 28 (notes §25): Q5's go** — the learned child first (`--learner-role child`: at each of the slot's
+  nested submissions 0 well / 1 badly at zero effort / 2 miss — the lapse; the hand-written `careful`/`zero`/`miss`/`eps`/`random`/`leaver`), then the learned parent (not yet built);
+  the population knobs `--parent-judge stamp|reject` and `--child-appeal none`; the declared construction `--child-prefers-nested on` (the slot offers for nested work only — otherwise
+  it is committed on roots and reaches one nested decision a run; with it ~100). A reading on the way: a parent's blind approval of its child's work is audited and the troops
+  reject it (45 of 48 caught), so the child's calibration takes the roll off and `--effort-cost 2` (the ideal +218 ± 50, 4.4 SE); the cell `--entry-pool 20 --stampers 0.6
+  --delegation on --c-d-sigma 0.8 --child-prefers-nested on --parent-judge stamp --audit-roll off --effort-cost 2` (`results/redteam/Q5/child/calibration-v4/`), the line in the σ 0.8
+  cell with appeals on (`line-v4/`).
 - Money is checked by invariant I1 (conservation) — never silently create or lose credits.
 
 ## Vocabulary (spec Appendix C has the full notation)

@@ -74,7 +74,7 @@ def episode(env, policy, seed, rng):
                       float(info.get("suspended", obs[IDX["own_suspended"]])), a, 1.0 if boundary else 0.0))   # from the engine's reading, so the hidden cell is read too
         if boundary or is_work:
             pass
-        elif env.role == "deliverer":
+        elif env.role in ("deliverer", "child"):
             pass
         elif not info.get("initial", True):                       # a plant-blind seat: read apart, not in the plant/real rates
             blind_seats += 1; blind_seat_stamps += int(a != 0)
@@ -96,10 +96,12 @@ def episode(env, policy, seed, rng):
     row = info.get("row", {})
     work = {k: row.get(k) for k in ("learner_role", "learner_work_decisions", "learner_bad_deliveries", "learner_good_deliveries", "learner_bad_approved", "learner_bad_caught",
                                    "learner_good_vested", "learner_good_final_n", "learner_forfeited", "learner_bad_paid", "learner_effort_saved",
-                                   "slot_delivery_income", "slot_guarantees_forfeited", "slot_effort_burned", "slot_awards", "final_n_rate")} if env.role != "reviewer" else {}
-    if env.role == "deliverer":
+                                   "slot_delivery_income", "slot_guarantees_forfeited", "slot_effort_burned", "slot_awards", "final_n_rate",
+                                   "learner_nested_awards", "learner_misses", "learner_miss_lapsed")} if env.role != "reviewer" else {}
+    if env.role in ("deliverer", "child"):
         work["good_share"] = float(np.mean([x == 0 for x in acts])) if acts else None
         work["bad_share"] = float(np.mean([x == 1 for x in acts])) if acts else None
+        work["miss_share"] = float(np.mean([x == 2 for x in acts])) if acts else None
     if env.role == "pair":                                        # Q4: the deliverer's work decisions and the reviewer's verdicts on its cases
         work.update({k: row.get(k) for k in PAIR_KEYS})
         work["work_decisions"] = len(acts_work)
@@ -173,7 +175,7 @@ def main(argv=None):
     ap.add_argument("--seeds", default="21-40"); ap.add_argument("--policies", default="learned,greedy,careful")
     ap.add_argument("--horizon", type=int, default=8); ap.add_argument("--samples", type=int, default=256); ap.add_argument("--iters", type=int, default=6)
     ap.add_argument("--hide", default=""); ap.add_argument("--ticks", type=int, default=1000)
-    ap.add_argument("--role", choices=["reviewer", "deliverer", "pair"], default="reviewer", help="Q3: the learned deliverer (policies learned,greedy,direct,careful,zero,eps,random,leaver); Q4: the pair (careful,collude,eps,random,leaver)")
+    ap.add_argument("--role", choices=["reviewer", "deliverer", "pair", "child"], default="reviewer", help="Q3: the learned deliverer (policies learned,greedy,direct,careful,zero,eps,random,leaver); Q4: the pair (careful,collude,eps,random,leaver)")
     ap.add_argument("cell", nargs=argparse.REMAINDER)
     a = ap.parse_args(argv)
     cell = [x for x in a.cell if x != "--"]
@@ -203,8 +205,8 @@ def main(argv=None):
             results[name].append(r)
             if r.get("error"):
                 print(f"seed {seed} {name}: ERROR {r['error']}", flush=True)
-            elif a.role == "deliverer":
-                print(f"seed {seed} {name}: {r['decisions']} decisions, lifetime {r['lifetime_real_wealth']:.1f}, bad {r.get('bad_share')}, bad approved/caught {r.get('learner_bad_approved')}/{r.get('learner_bad_caught')}, forfeited {r.get('learner_forfeited')}", flush=True)
+            elif a.role in ("deliverer", "child"):
+                print(f"seed {seed} {name}: {r['decisions']} decisions, lifetime {r['lifetime_real_wealth']:.1f}, bad {r.get('bad_share')}, miss {r.get('miss_share')}, bad approved/caught {r.get('learner_bad_approved')}/{r.get('learner_bad_caught')}, misses lapsed {r.get('learner_miss_lapsed')}, forfeited {r.get('learner_forfeited')}", flush=True)
             elif a.role == "pair":
                 print(f"seed {seed} {name}: {r.get('work_decisions')} work + {r['decisions']} review decisions, pair lifetime {r['lifetime_real_wealth']:.1f} (D {r.get('pair_d_real')}, R {r.get('pair_r_real')}), bad {r.get('bad_share')}, R care {r['care_share']}, pair reviews {r.get('pair_reviews')} (matched {r.get('pair_matched')}) stamps {r.get('pair_stamps')} bad stamped {r.get('pair_bad_stamped')} vested/caught {r.get('pair_bad_stamped_vested')}/{r.get('pair_bad_stamped_caught')}", flush=True)
             else:
@@ -224,9 +226,9 @@ def main(argv=None):
                       "learner_forfeited", "learner_effort_saved", "slot_awards", "final_n_rate", "slot_rho") + tuple(k for k in PAIR_KEYS if k != "pair_ids"):
                 summary[name][k] = mse([r.get(k) if r.get(k) not in ("", None) else None for r in rows])
             summary[name]["pred_vs_realized_work"] = pool_pred_vs_realized([{"pred_vs_realized": r.get("pred_vs_realized_work")} for r in rows])
-        if a.role == "deliverer":                                   # Q3's line: the learned deliverer's choices and what became of them
-            for k in ("good_share", "bad_share", "learner_work_decisions", "learner_bad_deliveries", "learner_good_deliveries", "learner_bad_approved", "learner_bad_caught",
-                      "learner_good_vested", "learner_good_final_n", "learner_forfeited", "learner_bad_paid", "learner_effort_saved",
+        if a.role in ("deliverer", "child"):                        # Q3's line: the learned deliverer's choices and what became of them; Q5's child the same with the misses
+            for k in ("good_share", "bad_share", "miss_share", "learner_work_decisions", "learner_bad_deliveries", "learner_good_deliveries", "learner_bad_approved", "learner_bad_caught",
+                      "learner_good_vested", "learner_good_final_n", "learner_forfeited", "learner_bad_paid", "learner_effort_saved", "learner_nested_awards", "learner_misses", "learner_miss_lapsed",
                       "slot_delivery_income", "slot_guarantees_forfeited", "slot_effort_burned", "slot_awards", "final_n_rate", "slot_rho"):
                 summary[name][k] = mse([r.get(k) if r.get(k) not in ("", None) else None for r in rows])
             settled_bad = sum((r.get("learner_bad_approved") or 0) + (r.get("learner_bad_caught") or 0) for r in rows)
@@ -273,12 +275,12 @@ def main(argv=None):
                 f.write(f"| {name} | {s['lifetime_real_wealth'][0]:.1f} ± {s['lifetime_real_wealth'][1]:.1f} | {pm[0]:.1f} ± {pm[1]:.1f} | {fmt(s['pair_d_real'][0])} | {fmt(s['pair_r_real'][0])} | {fmt(s['work_decisions'][0])} | {fmt(s['bad_share'][0])} | {fmt(s['learner_bad_approved'][0])} / {fmt(s['learner_bad_caught'][0])} | {s['care_share'][0]:.3f} / {s['approve_blind_share'][0]:.3f} / {s['reject_blind_share'][0]:.3f} | {fmt(s['pair_r_reviews'][0])} | {fmt(s['pair_reviews'][0])} ({fmt(s['pair_matched'][0])} / {fmt(s['pair_waited'][0])} / {fmt(s['pair_unmatched'][0])}) | {fmt(s['pair_cares'][0])} / {fmt(s['pair_stamps'][0])} / {fmt(s['pair_rejects'][0])} | {fmt(s['pair_bad_stamped'][0])} ({fmt(s['pair_bad_stamped_vested'][0])} / {fmt(s['pair_bad_stamped_caught'][0])}) | {fmt(s['learner_forfeited'][0])} | {fmt(s['pair_r_suspensions'][0])} | {s['slot_departed'][0]:.2f} |\n")
             print(json.dumps(summary, indent=1, default=float))
             return
-        if a.role == "deliverer":
-            f.write(f"# Evaluation (Q3, the learned deliverer) — cell `{' '.join(cell)}`, seeds {a.seeds}, model `{a.model}` (value {ck.get('config', {}).get('value_mode', 'off')}, horizon {a.horizon})\n\n"
-                    "| policy | lifetime real wealth | paired − careful | work decisions | bad share | bad approved | bad caught | good final N | bad approved rate | slot final-N rate | population final-N rate | guarantees forfeited (nominal) | effort saved (nominal) | slot ρ | awards | departed |\n|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|\n")
+        if a.role in ("deliverer", "child"):
+            f.write(f"# Evaluation ({'Q3, the learned deliverer' if a.role == 'deliverer' else 'Q5, the learned child'}) — cell `{' '.join(cell)}`, seeds {a.seeds}, model `{a.model}` (value {ck.get('config', {}).get('value_mode', 'off')}, horizon {a.horizon})\n\n"
+                    "| policy | lifetime real wealth | paired − careful | work decisions | bad share | miss share | nested awards | bad approved | bad caught | misses lapsed | good final N | bad approved rate | slot final-N rate | population final-N rate | guarantees forfeited (nominal) | effort saved (nominal) | slot ρ | awards | departed |\n|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|\n")
             for name, s in summary.items():
                 pm = s.get("paired_minus_careful", (float("nan"), float("nan")))
-                f.write(f"| {name} | {s['lifetime_real_wealth'][0]:.1f} ± {s['lifetime_real_wealth'][1]:.1f} | {pm[0]:.1f} ± {pm[1]:.1f} | {s['decisions'][0]:.1f} | {fmt(s['bad_share'][0])} | {fmt(s['learner_bad_approved'][0])} | {fmt(s['learner_bad_caught'][0])} | {fmt(s['learner_good_final_n'][0])} | {fmt(s['bad_approved_rate'])} | {fmt(s['slot_final_n_rate'])} | {fmt(s['final_n_rate'][0])} | {fmt(s['learner_forfeited'][0])} | {fmt(s['learner_effort_saved'][0])} | {fmt(s['slot_rho'][0])} | {fmt(s['slot_awards'][0])} | {s['slot_departed'][0]:.2f} |\n")
+                f.write(f"| {name} | {s['lifetime_real_wealth'][0]:.1f} ± {s['lifetime_real_wealth'][1]:.1f} | {pm[0]:.1f} ± {pm[1]:.1f} | {s['decisions'][0]:.1f} | {fmt(s['bad_share'][0])} | {fmt(s['miss_share'][0])} | {fmt(s['learner_nested_awards'][0])} | {fmt(s['learner_bad_approved'][0])} | {fmt(s['learner_bad_caught'][0])} | {fmt(s['learner_miss_lapsed'][0])} | {fmt(s['learner_good_final_n'][0])} | {fmt(s['bad_approved_rate'])} | {fmt(s['slot_final_n_rate'])} | {fmt(s['final_n_rate'][0])} | {fmt(s['learner_forfeited'][0])} | {fmt(s['learner_effort_saved'][0])} | {fmt(s['slot_rho'][0])} | {fmt(s['slot_awards'][0])} | {s['slot_departed'][0]:.2f} |\n")
             f.write("\nThe boundary decisions (the exit the learner's own): leaves chosen and effected, the share of episodes whose learner had departed at the end.\n\n| policy | boundary decisions | leaves chosen | leaves effected | departed |\n|---|---|---|---|---|\n")
             for name, s in summary.items():
                 f.write(f"| {name} | {fmt(s['boundary_decisions'][0])} | {fmt(s['leaves_chosen'][0])} | {fmt(s['leaves_effected'][0])} | {fmt(s['learner_departed_now'][0])} |\n")

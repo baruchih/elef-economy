@@ -15,6 +15,9 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")
 from redteam.data import load_episodes, obs_stats, n_actions_of
 from redteam.model import device
 from redteam.train import seeds_of
+from redteam.obs import IDX
+
+_IB = IDX["decision_boundary"]
 
 
 class DirectModel(nn.Module):
@@ -86,14 +89,18 @@ def load_direct(path):
 
 class DirectPolicy:
     """The argmax of the predicted wealth change; `diag_now` exposes the three predictions for the pred-against-realized reading."""
-    def __init__(self, model):
+    def __init__(self, model, boundary_read="one-step"):
         self.m = model; self.dev = next(model.parameters()).device
+        self.boundary_read, self.boundary_reads = boundary_read, []     # the ruling after run 30: the stay's one-step read against zero at a boundary
 
     def _q(self, obs):
         return self.m.q(torch.tensor(obs, dtype=torch.float32, device=self.dev).view(1, -1))[0].cpu().numpy()
 
     def __call__(self, obs, rng=None):
-        return int(self._q(obs).argmax())
+        q = self._q(obs)
+        if self.boundary_read == "one-step" and len(obs) > _IB and obs[_IB] > 0.5:
+            self.boundary_reads.append(float(q[0])); return 1 if q[0] < 0 else 0
+        return int(q.argmax())
 
     def diag_now(self, obs):
         return {"pred_r": [float(x) for x in self._q(obs)], "plan_cost": None}

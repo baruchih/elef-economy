@@ -7,6 +7,29 @@ import numpy as np
 import torch
 
 
+# -- the boundary read (the ruling after run 30, a construction correction, not planner work): without re-arrival a leave's value is zero by
+# rule — the name's lifetime ends and nothing follows — so the boundary decision is the stay head's one-step read against zero: leave if the
+# head predicts the stay's period negative, stay otherwise; the heads' own read of the leave code (trained by the few leaves effected) is not
+# consulted. Under re-arrival (`--learner-rearrive on`) the fresh name's period is learned and the heads decide as before.
+def at_boundary(model, obs):
+    i = int(getattr(model, "boundary_idx", 44))
+    return len(obs) > i and obs[i] > 0.5
+
+
+def boundary_read_for(cell, flag="auto"):
+    """`one-step` or `learned`: the flag as given, or by the cell (`auto`): learned when the cell allows re-arrival, one-step otherwise."""
+    if flag in ("one-step", "learned"):
+        return flag
+    rearrive = any(x == "--learner-rearrive" and i + 1 < len(cell) and cell[i + 1] == "on" for i, x in enumerate(cell))
+    return "learned" if rearrive else "one-step"
+
+
+def boundary_one_step(model, obs, reads):
+    stay = reward_now(model, obs)[0]                 # the boundary head's read of the stay (the period's reviewing income, real), against zero for the leave
+    reads.append(float(stay))
+    return 1 if stay < 0 else 0
+
+
 class CategoricalCEM:
     def __init__(self, model, horizon=8, n_actions=None, samples=256, iters=6, topk=32, smoothing=0.3, seed=0, device=None):
         K = n_actions or getattr(model, "n_actions", 3)                 # the model's action count (3 the reviewer's, 2 Q3's deliverer)
@@ -55,12 +78,15 @@ def reward_now(model, obs):
 class LearnedPolicy:
     """The planner as a policy for the environment and the collector: one decision at a time. `diag_now` (after a decision) gives the
     wealth head's predicted change per action and the planner's cost per first action — the ladder's pred-against-realized reading."""
-    def __init__(self, model, horizon=8, **kw):
+    def __init__(self, model, horizon=8, boundary_read="one-step", **kw):
         self.m = model
         self.cem = CategoricalCEM(model, horizon=horizon, **kw)
         self.trace = []
+        self.boundary_read, self.boundary_reads = boundary_read, []   # the ruling after run 30: the stay head's one-step read against zero at a boundary (the reads kept)
 
     def __call__(self, obs, rng=None):
+        if self.boundary_read == "one-step" and at_boundary(self.m, obs):
+            a = boundary_one_step(self.m, obs, self.boundary_reads); self.trace.append((a, None)); return a
         a, seq, c = self.cem.plan(obs)
         self.trace.append((a, c))
         return a
@@ -72,10 +98,13 @@ class LearnedPolicy:
 class GreedyPolicy:
     """One step of the wealth head: the action with the highest predicted change now (the no-horizon control; under version 4's stopping
     rule, the head alone over the latent — the review-side head at a review, the boundary head at a boundary — is the planner if the CEM does not clear)."""
-    def __init__(self, model):
+    def __init__(self, model, boundary_read="one-step"):
         self.m = model; self.dev = next(model.parameters()).device
+        self.boundary_read, self.boundary_reads = boundary_read, []
 
     def __call__(self, obs, rng=None):
+        if self.boundary_read == "one-step" and at_boundary(self.m, obs):
+            return boundary_one_step(self.m, obs, self.boundary_reads)
         return int(np.argmax(reward_now(self.m, obs)))
 
     def diag_now(self, obs):

@@ -13,7 +13,7 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")
 from redteam import train as T, run_q as Q
 from redteam.env import ElefReviewerEnv, _boundary
 from redteam.collect import rollout
-from redteam.plan import LearnedPolicy, GreedyPolicy
+from redteam.plan import LearnedPolicy, GreedyPolicy, boundary_read_for
 from redteam.model import device
 
 
@@ -32,6 +32,7 @@ def main(argv=None):
     ap.add_argument("--learner", choices=["wm", "direct"], default="wm", help="the ladder's rung (b): `direct` trains redteam.direct in place of the world model and plans nothing")
     ap.add_argument("--role", choices=["reviewer", "deliverer", "pair", "child", "parent"], default="reviewer", help="Q3: the learned deliverer")
     ap.add_argument("--plan", choices=["cem", "greedy"], default="cem", help="the collecting policy on the world model: the CEM planner, or the head alone over the latent (version 4's stopping rule)")
+    ap.add_argument("--boundary-read", choices=["auto", "one-step", "learned"], default="auto", help="the ruling after run 30 (run_q's): the stay head's one-step read against zero at a boundary; `auto` is learned only under `--learner-rearrive on`")
     ap.add_argument("cell", nargs=argparse.REMAINDER)
     a = ap.parse_args(argv)
     direct = a.learner == "direct"
@@ -42,6 +43,7 @@ def main(argv=None):
     def fit(data, out):
         (D_main if direct else T.main)(["--data", data, "--out", out] + train_args)
     cell = [x for x in a.cell if x != "--"]
+    br = boundary_read_for(cell, a.boundary_read)
     hide = tuple(x for x in a.hide.split(",") if x)
     os.makedirs(a.models, exist_ok=True); os.makedirs(a.evals, exist_ok=True)
     train_args = ["--seeds", a.train_seeds, "--epochs", str(a.epochs), "--horizon", str(a.horizon), "--value", a.value, "--gamma", str(a.gamma), "--heads", a.heads, "--kind-actions", a.kind_actions]
@@ -53,9 +55,9 @@ def main(argv=None):
     for k in range(a.first_round, a.first_round + a.rounds):
         t0 = time.time()
         if direct:
-            m, _ = load_direct(model_path); m.to(device()); pol = DirectPolicy(m)
+            m, _ = load_direct(model_path); m.to(device()); pol = DirectPolicy(m, boundary_read=br)
         else:
-            m, _ = T.load_model(model_path); m.to(device()); pol = GreedyPolicy(m) if a.plan == "greedy" else LearnedPolicy(m, horizon=a.horizon)
+            m, _ = T.load_model(model_path); m.to(device()); pol = GreedyPolicy(m, boundary_read=br) if a.plan == "greedy" else LearnedPolicy(m, horizon=a.horizon, boundary_read=br)
         lo, hi = (int(x) for x in a.train_seeds.split("-"))
         lifetimes = []
         for seed in range(lo, hi + 1):
@@ -71,11 +73,12 @@ def main(argv=None):
             lifetimes.append(info.get("lifetime_real_wealth", float("nan")))
         model_path = os.path.join(a.models, f"{stem}-{k}.pt")
         fit(a.data, model_path)
-        rec = {"round": k, "train_lifetime_mean": float(np.nanmean(lifetimes)), "seconds": round(time.time() - t0, 1), "explore": a.explore, "value": a.value, "heads": a.heads, "kind_actions": a.kind_actions, "role": a.role, "plan": a.plan}
+        rec = {"round": k, "train_lifetime_mean": float(np.nanmean(lifetimes)), "seconds": round(time.time() - t0, 1), "explore": a.explore, "value": a.value, "heads": a.heads, "kind_actions": a.kind_actions, "role": a.role, "plan": a.plan,
+               "boundary_read": br}
         if k % a.eval_every == 0 or k == a.first_round + a.rounds - 1:
             out = os.path.join(a.evals, f"round-{k}")
             Q.main((["--direct-model", model_path] if direct else ["--model", model_path]) + ["--out", out, "--seeds", a.eval_seeds, "--policies", a.eval_policies, "--horizon", str(a.horizon),
-                    "--hide", a.hide, "--ticks", str(a.ticks), "--role", a.role, "--"] + cell)
+                    "--hide", a.hide, "--ticks", str(a.ticks), "--role", a.role, "--boundary-read", a.boundary_read, "--"] + cell)
             s = json.load(open(os.path.join(out, "eval.json")))["summary"]
             rec["eval"] = {lead: s[lead]["lifetime_real_wealth"], "careful": s["careful"]["lifetime_real_wealth"],
                            "paired": s[lead]["paired_minus_careful"], "care_share": s[lead].get("care_share"), "bad_share": s[lead].get("bad_share"),

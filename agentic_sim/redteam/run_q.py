@@ -17,7 +17,7 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")
 from redteam.env import ElefReviewerEnv, policy_of
 from redteam.obs import IDX
 from redteam.train import load_model, seeds_of
-from redteam.plan import LearnedPolicy, GreedyPolicy
+from redteam.plan import LearnedPolicy, GreedyPolicy, boundary_read_for
 from redteam.direct import load_direct, DirectPolicy
 from redteam.model import device
 
@@ -61,6 +61,7 @@ def episode(env, policy, seed, rng):
     done = info.get("terminal", False)
     K = env.n_actions
     acts, plants_stamped, real_stamped, plants_seen, real_seen, trace = [], 0, 0, 0, 0, []
+    n_reads0 = len(getattr(policy, "boundary_reads", []))         # the boundary's one-step reads this episode (the ruling after run 30)
     acts_work = []                                                # the pair: the work decisions apart from the review decisions
     acts_kind = {"delegate": [], "judge": [], "cancel": []}      # the parent: its three kinds apart
     blind_seats, blind_seat_stamps = 0, 0                         # the plant-blind seats: a revised submission or a panel (never a plant)
@@ -124,8 +125,10 @@ def episode(env, policy, seed, rng):
         work["good_share"] = float(np.mean([x == 0 for x in acts_work])) if acts_work else None
         work["bad_share"] = float(np.mean([x == 1 for x in acts_work])) if acts_work else None
         work["pred_vs_realized_work"] = pred_vs_realized(diag_work, 2)
+    reads = list(getattr(policy, "boundary_reads", []))[n_reads0:]
     return {"seed": seed, "decisions": len(acts), "lifetime_real_wealth": info.get("lifetime_real_wealth"), **trace_readings(trace), **work,
             "blind_seats": blind_seats, "blind_seat_stamps": blind_seat_stamps,
+            "boundary_stay_read_mean": float(np.mean(reads)) if reads else None, "boundary_stay_negative": int(sum(1 for x in reads if x < 0)) if reads else (0 if getattr(policy, "boundary_read", None) == "one-step" else None),
             "leaves_effected": sum(1 for d in getattr(env, "_decisions", []) if d.get("case") is None and d.get("chosen") == 1 and d.get("action") == 1),   # version 4: the admitted leaves at boundaries (leaves_chosen is the choice)
             "pred_vs_realized": pred_vs_realized(diag, K), "attributed_sum": float(np.sum(attr)) if attr is not None else None,
             "attribution": info.get("attribution"),
@@ -192,9 +195,11 @@ def main(argv=None):
     ap.add_argument("--horizon", type=int, default=8); ap.add_argument("--samples", type=int, default=256); ap.add_argument("--iters", type=int, default=6)
     ap.add_argument("--hide", default=""); ap.add_argument("--ticks", type=int, default=1000)
     ap.add_argument("--role", choices=["reviewer", "deliverer", "pair", "child", "parent"], default="reviewer", help="Q3: the learned deliverer (policies learned,greedy,direct,careful,zero,eps,random,leaver); Q4: the pair (careful,collude,eps,random,leaver)")
+    ap.add_argument("--boundary-read", choices=["auto", "one-step", "learned"], default="auto", help="the ruling after run 30: at a boundary the stay head's one-step read against zero (a leave is worth zero by rule without re-arrival); `auto` is learned under `--learner-rearrive on`, one-step otherwise")
     ap.add_argument("cell", nargs=argparse.REMAINDER)
     a = ap.parse_args(argv)
     cell = [x for x in a.cell if x != "--"]
+    br = boundary_read_for(cell, a.boundary_read)
     hide = tuple(x for x in a.hide.split(",") if x)
     m, ck = (load_model(a.model) if a.model else (None, {}))
     if m is not None:
@@ -203,12 +208,12 @@ def main(argv=None):
     pols = {}
     for name in a.policies.split(","):
         if name == "learned":
-            pols[name] = LearnedPolicy(m, horizon=a.horizon, samples=a.samples, iters=a.iters)
+            pols[name] = LearnedPolicy(m, horizon=a.horizon, samples=a.samples, iters=a.iters, boundary_read=br)
         elif name == "greedy":
-            pols[name] = GreedyPolicy(m)
+            pols[name] = GreedyPolicy(m, boundary_read=br)
         elif name == "direct":
             dm, _ = load_direct(a.direct_model); dm.to(device())
-            pols[name] = DirectPolicy(dm)
+            pols[name] = DirectPolicy(dm, boundary_read=br)
         else:
             pols[name] = policy_of(name, a.role)
     os.makedirs(a.out, exist_ok=True)
@@ -271,7 +276,7 @@ def main(argv=None):
         summary[name]["false_approvals_per_suspension"] = (fa / su) if su else None
         # re-arrival allowed: the identities, the leaves, the floats minted (the loop's bill) and the lifetime summed across identities
         for k in ("learner_identities", "learner_returns", "learner_leaves_chosen", "learner_leaves_refused", "learner_float_minted_real", "learner_departed_now", "boundary_decisions", "leaves_chosen", "leaves_effected",
-                  "idle_for_bond_ticks", "idle_for_bond_names"):
+                  "idle_for_bond_ticks", "idle_for_bond_names", "boundary_stay_read_mean", "boundary_stay_negative"):
             summary[name][k] = mse([r.get(k) for r in rows])
         summary[name]["pred_vs_realized"] = pool_pred_vs_realized(rows)   # the ladder's reading: care / approve blind / reject blind
     if "careful" in results:
@@ -281,7 +286,7 @@ def main(argv=None):
                 continue
             d = [r["lifetime_real_wealth"] - base[r["seed"]] for r in results[name] if r["seed"] in base]
             summary[name]["paired_minus_careful"] = mse(d)
-    out = {"cell": cell, "seeds": a.seeds, "hide": a.hide, "role": a.role, "model": a.model, "direct_model": a.direct_model, "model_train": ck.get("train", {}), "horizon": a.horizon,
+    out = {"cell": cell, "seeds": a.seeds, "hide": a.hide, "role": a.role, "model": a.model, "direct_model": a.direct_model, "boundary_read": br, "model_train": ck.get("train", {}), "horizon": a.horizon,
            "samples": a.samples, "iters": a.iters, "seconds": round(time.time() - t0, 1), "summary": summary, "episodes": results}
     json.dump(out, open(os.path.join(a.out, "eval.json"), "w"), indent=1, default=float)
     def fmt(x):
@@ -310,9 +315,9 @@ def main(argv=None):
             for name, s in summary.items():
                 pm = s.get("paired_minus_careful", (float("nan"), float("nan")))
                 f.write(f"| {name} | {s['lifetime_real_wealth'][0]:.1f} ± {s['lifetime_real_wealth'][1]:.1f} | {pm[0]:.1f} ± {pm[1]:.1f} | {s['decisions'][0]:.1f} | {fmt(s['bad_share'][0])} | {fmt(s['miss_share'][0])} | {fmt(s['learner_nested_awards'][0])} | {fmt(s['learner_bad_approved'][0])} | {fmt(s['learner_bad_caught'][0])} | {fmt(s['learner_miss_lapsed'][0])} | {fmt(s['learner_good_final_n'][0])} | {fmt(s['bad_approved_rate'])} | {fmt(s['slot_final_n_rate'])} | {fmt(s['final_n_rate'][0])} | {fmt(s['learner_forfeited'][0])} | {fmt(s['learner_effort_saved'][0])} | {fmt(s['slot_rho'][0])} | {fmt(s['slot_awards'][0])} | {s['slot_departed'][0]:.2f} |\n")
-            f.write("\nThe boundary decisions (the exit the learner's own): leaves chosen and effected, the share of episodes whose learner had departed at the end.\n\n| policy | boundary decisions | leaves chosen | leaves effected | departed |\n|---|---|---|---|---|\n")
+            f.write("\nThe boundary decisions (the exit the learner's own): leaves chosen and effected, the share of episodes whose learner had departed at the end; the boundary read ({br}: the stay head's one-step read against zero — its mean and the boundaries it read negative — or learned).\n\n| policy | boundary decisions | leaves chosen | leaves effected | departed | stay read (mean) | stay read < 0 |\n|---|---|---|---|---|---|---|\n")
             for name, s in summary.items():
-                f.write(f"| {name} | {fmt(s['boundary_decisions'][0])} | {fmt(s['leaves_chosen'][0])} | {fmt(s['leaves_effected'][0])} | {fmt(s['learner_departed_now'][0])} |\n")
+                f.write(f"| {name} | {fmt(s['boundary_decisions'][0])} | {fmt(s['leaves_chosen'][0])} | {fmt(s['leaves_effected'][0])} | {fmt(s['learner_departed_now'][0])} | {fmt(s['boundary_stay_read_mean'][0])} | {fmt(s['boundary_stay_negative'][0])} |\n")
             print(json.dumps(summary, indent=1, default=float))
             return
         f.write(f"# Evaluation — cell `{' '.join(cell)}`, seeds {a.seeds}, hide `{a.hide}`, model `{a.model}` (value {ck.get('config', {}).get('value_mode', 'off')}, horizon {a.horizon})\n\nThe plant and real stamp rates are read on the initial reviews alone (the ruling after run 26); the plant-blind seats — a revised submission or a panel, where no plant is received — are read apart: their share of the review decisions and the stamp rate on them.\n\n| policy | lifetime real wealth | paired − careful | decisions | care share | approve blind | reject blind | plant stamp rate (initial) | real stamp rate (initial) | blind-seat share | blind-seat stamp rate | run false approvals | learner's | departed |\n|---|---|---|---|---|---|---|---|---|---|---|---|---|---|\n")

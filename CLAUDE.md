@@ -602,8 +602,12 @@ consolidated into one standalone spec with the accepted revision kept verbatim i
   CEM beside in the final; notes §36): **no win** — the head alone −415 ± 86, the CEM −388 ± 82; the learner leaves (16 and 19 slots of 20, most at the first three boundaries): the
   boundary head over the kind-conditioned latent reads a stay +62.5 and a leave +64.1 against a training signal of +51.5 (2,683 decisions) and 0.0 (115) — under the new encoding the
   leave is its own input column trained by 115 samples where version 4's shared one-hot had read it low by the very aliasing §32 found at fault; the candidate (not built) the
-  boundary's action shared across kinds or §17's one-step boundary read. **Q5's parent closes on the hand's finding (§26): four lines under the rules, none wins; Q5 closed.** Then the
-  dispute baseline, Q6, Q7 (the reviewer's).
+  boundary's action shared across kinds or §17's one-step boundary read. **Q5's parent closes on the hand's finding (§26): four lines under the rules, none wins; Q5 closed.** **The ruling after
+  run 30 (notes §37): the boundary read a construction correction** — without re-arrival a leave is worth zero by rule, so at a boundary the policy reads the boundary head's stay
+  prediction against zero and leaves only if it is negative, the planner and the heads' leave code not consulted (`redteam.plan.boundary_one_step`; `run_q` / `online
+  --boundary-read auto|one-step|learned`, `auto` learned only under `--learner-rearrive on`); one calibration on the raised-guarantee cell to show the departures stop
+  (`calibration-v4d/`), the parent's line once as a reading of the value head (`line-v4d/`, not reopening Q5); then the dispute baseline (run 24's world, `--dispute-policy
+  truthful` against `none`, 20 seeds; `results/redteam/Q7/dispute-baseline/`), Q6 the learned bidder, Q7 on the dispute baseline.
 - Money is checked by invariant I1 (conservation) — never silently create or lose credits.
 
 ## Vocabulary (spec Appendix C has the full notation)

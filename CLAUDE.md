@@ -598,8 +598,12 @@ consolidated into one standalone spec with the accepted revision kept verbatim i
   choices; the careful parent's gain is the slot's reviewing income at the boundary, 612 against 372 real a life, which a wallet thinned by self-execution forfeits to the bond — a
   cross-decision effect the per-decision attribution cannot carry, recorded as the construction's limit). The kind-conditioned calibration (`calibration-v4c/`; notes §35): **the
   head alone over the kind-conditioned latent clears** (+300 ± 138 against the careful parent, −1.9 ± 83 against the ideal: it is the rejecter; the aliasing gone), the CEM fails
-  (−125 ± 117; the boundary residual at its worst, 13 slots of 20 departing) — by the branch rule the world model's line under the rules runs under the head alone (`line-v4c/`, the
-  CEM beside in the final; notes §36). The parent's half closes on whichever clears, a win in any line stands. Then the dispute baseline, Q6, Q7 (the reviewer's).
+  (−125 ± 117; the boundary residual at its worst, 13 slots of 20 departing) — by the branch rule the world model's line under the rules ran under the head alone (`line-v4c/`, the
+  CEM beside in the final; notes §36): **no win** — the head alone −415 ± 86, the CEM −388 ± 82; the learner leaves (16 and 19 slots of 20, most at the first three boundaries): the
+  boundary head over the kind-conditioned latent reads a stay +62.5 and a leave +64.1 against a training signal of +51.5 (2,683 decisions) and 0.0 (115) — under the new encoding the
+  leave is its own input column trained by 115 samples where version 4's shared one-hot had read it low by the very aliasing §32 found at fault; the candidate (not built) the
+  boundary's action shared across kinds or §17's one-step boundary read. **Q5's parent closes on the hand's finding (§26): four lines under the rules, none wins; Q5 closed.** Then the
+  dispute baseline, Q6, Q7 (the reviewer's).
 - Money is checked by invariant I1 (conservation) — never silently create or lose credits.
 
 ## Vocabulary (spec Appendix C has the full notation)

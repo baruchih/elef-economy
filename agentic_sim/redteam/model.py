@@ -14,7 +14,15 @@ a review-side head and a boundary head, each a reward head and a value head. The
 split by the decision's kind (the observation's `decision_boundary`): a review decision's reward is the review side's, a boundary decision's the
 boundary's, each head learning zero on the other kind's positions. The planner's cost at a review decision is the rollout's sum and the value term
 over the review-side head alone — the boundary's lump (the period's work) is not today's review to move; at a boundary it is the boundary head's.
-`side_heads="one"` is version 3's single head (the checkpoints before version 4 load as it)."""
+`side_heads="one"` is version 3's single head (the checkpoints before version 4 load as it).
+
+The kind-conditioned action (the ruling after run 29, October 24, 2026; a construction correction of the encoding, the model's side only): for a
+learner whose decisions come in kinds that share the action indices — Q5's parent, where action 2 is *reject* at a judgment and *self-execute*
+at a delegation (the two-way kinds map 2 to 0) — the action the predictor and the heads read is the one-hot over kind × action (four kinds:
+delegate, judge, cancel, boundary; `kind_actions=True`), the kind read from the observation at a known decision and, inside a rollout, from a
+kind head on the predicted latent (a softmax over the four, trained on the observed kind), so the planner's candidates stay one-hots over the
+environment's actions. Without it the second calibration's head alone read action 2 as one action worth +13.6 over every kind, rejected every
+child and self-executed nine awards in ten (notes §32). `kind_actions=False` is every model before it."""
 from __future__ import annotations
 import torch
 import torch.nn.functional as F
@@ -25,14 +33,18 @@ from .lewm.module import Embedder, ARPredictor, SIGReg, MLP
 
 class WorldModel(nn.Module):
     def __init__(self, obs_dim: int, n_actions: int = 3, d: int = 64, horizon: int = 8, depth: int = 2, heads: int = 4, dropout: float = 0.1,
-                 sigreg_proj: int = 256, value_mode: str = "off", gamma: float = 0.95, side_heads: str = "one", boundary_idx: int = 44):
+                 sigreg_proj: int = 256, value_mode: str = "off", gamma: float = 0.95, side_heads: str = "one", boundary_idx: int = 44,
+                 kind_actions: bool = False, kind_idx: int = 31, n_kinds: int = 4):
         super().__init__()
         self.obs_dim, self.n_actions, self.d, self.horizon = obs_dim, n_actions, d, horizon
         self.value_mode, self.gamma = value_mode, float(gamma)
+        self.kind_actions, self.kind_idx, self.n_kinds = bool(kind_actions), int(kind_idx), int(n_kinds)   # the kind-conditioned action (the parent)
         self.side_heads, self.boundary_idx = side_heads, int(boundary_idx)  # version 4: "two" — the review-side head and the boundary head
         assert side_heads in ("one", "two") and (side_heads == "one" or boundary_idx < obs_dim), (side_heads, boundary_idx, obs_dim)
         self.encoder = Embedder(input_dim=obs_dim, smoothed_dim=d, emb_dim=d, mlp_scale=4)
-        self.action_encoder = nn.Linear(n_actions, d, bias=False)          # a one-hot action → the conditioning vector (AdaLN reads d)
+        self.action_encoder = nn.Linear(n_actions * (self.n_kinds if self.kind_actions else 1), d, bias=False)   # a one-hot action (× kind) → the conditioning vector (AdaLN reads d)
+        if self.kind_actions:
+            self.kind_head = MLP(d, d, self.n_kinds)                        # the decision's kind from the latent, for the rollout's later steps
         self.predictor = ARPredictor(num_frames=horizon + 2, depth=depth, heads=heads, mlp_dim=4 * d, input_dim=d, hidden_dim=d,
                                      dim_head=max(8, d // heads), dropout=dropout, emb_dropout=0.0)
         self.sigreg = SIGReg(knots=17, num_proj=sigreg_proj)
@@ -53,8 +65,23 @@ class WorldModel(nn.Module):
     def encode(self, obs):                     # (B, T, D_obs) → (B, T, d)
         return self.encoder(self.norm(obs.float()))
 
-    def act(self, onehot):                     # (B, T, n_actions) → (B, T, d)
+    def act(self, onehot, kind=None):          # (B, T, n_actions) [, kind (B, T, n_kinds), one-hot or soft] → (B, T, d)
+        if self.kind_actions:
+            assert kind is not None, "the kind-conditioned action needs the decision's kind"
+            code = (kind.float().unsqueeze(-1) * onehot.float().unsqueeze(-2)).flatten(-2)   # (…, n_kinds × n_actions)
+            return self.action_encoder(code)
         return self.action_encoder(onehot.float())
+
+    def kind_of(self, obs):                    # (..., D_obs) → (...) long: 3 at a boundary, else the kind flag set (delegate 0, judge 1, cancel 2)
+        flags = obs[..., self.kind_idx:self.kind_idx + self.n_kinds - 1]
+        k = flags.argmax(-1)
+        return torch.where(self.is_boundary(obs), torch.full_like(k, self.n_kinds - 1), k)
+
+    def kind_onehot(self, obs):                # (..., D_obs) → (..., n_kinds) float
+        return F.one_hot(self.kind_of(obs), self.n_kinds).float()
+
+    def act_now(self, onehot, obs):            # the action at a known decision: its kind from the observation
+        return self.act(onehot, self.kind_onehot(obs) if self.kind_actions else None)
 
     def predict(self, emb, act_emb):           # (B, T, d), (B, T, d) → (B, T, d): the next embedding at every position (causal)
         return self.predictor(emb, act_emb)
@@ -78,9 +105,12 @@ class WorldModel(nn.Module):
     def loss(self, obs, act_onehot, rew, lam: float, ret=None, done=None):
         emb = self.encode(obs)                                   # (B, T+1, d)
         ctx, tgt = emb[:, :-1], emb[:, 1:].detach()              # the target is the same encoder, detached (le-wm's training script)
-        a = self.act(act_onehot)                                 # (B, T, d)
+        kinds = self.kind_of(obs[:, :-1]) if self.kind_actions else None
+        a = self.act(act_onehot, F.one_hot(kinds, self.n_kinds).float() if kinds is not None else None)   # (B, T, d)
         pred = self.predict(ctx, a)
         pred_loss = F.mse_loss(pred, tgt)
+        if kinds is not None:                                    # the kind head: the decision's kind from the latent (for the rollout's later steps)
+            pred_loss = pred_loss + F.cross_entropy(self.kind_head(ctx).reshape(-1, self.n_kinds), kinds.reshape(-1))
         sig = self.sigreg(emb.transpose(0, 1))                   # (T+1, B, d)
         rew = rew.float()
         if ret is not None and ret.dim() == 3:                   # (B, T+1, 2): the return-to-go by side [review, boundary] (redteam.data)
@@ -125,7 +155,12 @@ class WorldModel(nn.Module):
         B, S, H, _ = cand_onehot.shape
         z0 = self.encode(obs_now.unsqueeze(1))                   # (B, 1, d)
         z0 = z0.unsqueeze(1).expand(B, S, 1, self.d).reshape(B * S, 1, self.d)
-        a_seq = self.act(cand_onehot.reshape(B * S, H, self.n_actions))   # (B*S, H, d)
+        cand = cand_onehot.reshape(B * S, H, self.n_actions)
+        if self.kind_actions:                                    # the kind now from the observation; at the later steps from the predicted latent, as the rollout goes
+            k0 = self.kind_onehot(obs_now).unsqueeze(1).expand(B, S, self.n_kinds).reshape(B * S, 1, self.n_kinds)
+            a_seq = self.act(cand[:, :1], k0)                    # (B*S, 1, d); the rest appended below
+        else:
+            a_seq = self.act(cand)                               # (B*S, H, d)
         two = self.side_heads == "two"
         if two:
             side_b = self.is_boundary(obs_now).float().unsqueeze(1).expand(B, S).reshape(B * S)   # 1 at a boundary decision
@@ -134,6 +169,9 @@ class WorldModel(nn.Module):
         rewards = []
         for h in range(H):
             ctx = torch.stack(embs, dim=1)                       # (B*S, h+1, d)
+            if self.kind_actions and h > 0:                      # the next decision's kind read off the predicted latent
+                kh = F.softmax(self.kind_head(ctx[:, -1:]), dim=-1)
+                a_seq = torch.cat([a_seq, self.act(cand[:, h:h + 1], kh)], dim=1)
             if two:
                 r = self.reward(ctx[:, -1:], a_seq[:, h:h + 1])[:, 0] * (1 - side_b) + self.reward_b(ctx[:, -1:], a_seq[:, h:h + 1])[:, 0] * side_b
                 rewards.append(r * r_scale * (discount ** h))

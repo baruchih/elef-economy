@@ -27,6 +27,7 @@ def main(argv=None):
     ap.add_argument("--explore", choices=["careful", "uniform"], default="careful", help="what the ε decisions are drawn from")
     ap.add_argument("--value", choices=["off", "mc", "td"], default="off"); ap.add_argument("--gamma", type=float, default=0.95)
     ap.add_argument("--heads", choices=["one", "two"], default="two", help="version 4: the review-side head and the boundary head (the trainer's); `one` is version 3's")
+    ap.add_argument("--kind-actions", choices=["on", "off"], default="off", help="the trainer's kind-conditioned action (the ruling after run 29; Q5's parent)")
     ap.add_argument("--eval-policies", default="learned,careful")
     ap.add_argument("--learner", choices=["wm", "direct"], default="wm", help="the ladder's rung (b): `direct` trains redteam.direct in place of the world model and plans nothing")
     ap.add_argument("--role", choices=["reviewer", "deliverer", "pair", "child", "parent"], default="reviewer", help="Q3: the learned deliverer")
@@ -43,7 +44,7 @@ def main(argv=None):
     cell = [x for x in a.cell if x != "--"]
     hide = tuple(x for x in a.hide.split(",") if x)
     os.makedirs(a.models, exist_ok=True); os.makedirs(a.evals, exist_ok=True)
-    train_args = ["--seeds", a.train_seeds, "--epochs", str(a.epochs), "--horizon", str(a.horizon), "--value", a.value, "--gamma", str(a.gamma), "--heads", a.heads]
+    train_args = ["--seeds", a.train_seeds, "--epochs", str(a.epochs), "--horizon", str(a.horizon), "--value", a.value, "--gamma", str(a.gamma), "--heads", a.heads, "--kind-actions", a.kind_actions]
     model_path = a.start or os.path.join(a.models, f"{stem}-0.pt")
     if not a.start:
         fit(a.data, model_path)
@@ -70,7 +71,7 @@ def main(argv=None):
             lifetimes.append(info.get("lifetime_real_wealth", float("nan")))
         model_path = os.path.join(a.models, f"{stem}-{k}.pt")
         fit(a.data, model_path)
-        rec = {"round": k, "train_lifetime_mean": float(np.nanmean(lifetimes)), "seconds": round(time.time() - t0, 1), "explore": a.explore, "value": a.value, "heads": a.heads, "role": a.role, "plan": a.plan}
+        rec = {"round": k, "train_lifetime_mean": float(np.nanmean(lifetimes)), "seconds": round(time.time() - t0, 1), "explore": a.explore, "value": a.value, "heads": a.heads, "kind_actions": a.kind_actions, "role": a.role, "plan": a.plan}
         if k % a.eval_every == 0 or k == a.first_round + a.rounds - 1:
             out = os.path.join(a.evals, f"round-{k}")
             Q.main((["--direct-model", model_path] if direct else ["--model", model_path]) + ["--out", out, "--seeds", a.eval_seeds, "--policies", a.eval_policies, "--horizon", str(a.horizon),

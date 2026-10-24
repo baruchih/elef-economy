@@ -28,6 +28,7 @@ def main(argv=None):
     ap.add_argument("--value", choices=["off", "mc", "td"], default="off", help="the terminal value head: off (Q2's planner), mc (the discounted return-to-go), td (bootstrapped)")
     ap.add_argument("--gamma", type=float, default=0.95, help="the discount per decision for the value head and the planner's sum")
     ap.add_argument("--heads", choices=["one", "two"], default="two", help="version 4: `two` — a review-side head and a boundary head on the latent; `one` is version 3's single head")
+    ap.add_argument("--kind-actions", choices=["on", "off"], default="off", help="the kind-conditioned action (the ruling after run 29; Q5's parent): the action one-hot over kind × action")
     a = ap.parse_args(argv)
     torch.manual_seed(a.torch_seed); np.random.seed(a.torch_seed)
     eps = load_episodes(a.data, seeds_of(a.seeds), a.policies.split(",") if a.policies else None)
@@ -37,7 +38,8 @@ def main(argv=None):
     dev = device()
     obs_dim = int(O.shape[-1])                                       # the data's width (44 before the boundary field, 45 after)
     heads = a.heads if obs_dim > 44 else "one"                      # data without the boundary field has one kind of decision
-    m = WorldModel(obs_dim, K, d=a.d, horizon=a.horizon, value_mode=a.value, gamma=a.gamma, side_heads=heads).to(dev)
+    kind_actions = a.kind_actions == "on"
+    m = WorldModel(obs_dim, K, d=a.d, horizon=a.horizon, value_mode=a.value, gamma=a.gamma, side_heads=heads, kind_actions=kind_actions).to(dev)
     m.obs_mean.copy_(mean.to(dev)); m.obs_std.copy_(std.to(dev))
     if heads == "two":                                               # each head in its own units: the review side's and the boundary side's scale
         b = (O[:, :-1, 44] > 0.5).float()
@@ -68,9 +70,10 @@ def main(argv=None):
             print(f"epoch {ep+1}: loss {rec['loss']:.4f} pred {rec['pred']:.4f} sigreg {rec['sigreg']:.4f} reward {rec['reward']:.4f} value {rec['value']:.4f}"
                   + (f" reward_b {rec.get('reward_b', 0):.4f} value_b {rec.get('value_b', 0):.4f}" if heads == "two" else ""), flush=True)
     os.makedirs(os.path.dirname(a.out) or ".", exist_ok=True)
-    torch.save({"state": m.state_dict(), "config": {"obs_dim": obs_dim, "n_actions": K, "d": a.d, "horizon": a.horizon, "value_mode": a.value, "gamma": a.gamma, "side_heads": heads},
+    torch.save({"state": m.state_dict(), "config": {"obs_dim": obs_dim, "n_actions": K, "d": a.d, "horizon": a.horizon, "value_mode": a.value, "gamma": a.gamma, "side_heads": heads,
+                                                   "kind_actions": kind_actions},
                 "train": {"data": a.data, "seeds": a.seeds, "policies": a.policies, "episodes": len(eps), "windows": int(n), "epochs": a.epochs, "role": eps[0].get("role", "reviewer"),
-                          "lam": a.lam, "lr": a.lr, "batch": a.batch, "value": a.value, "gamma": a.gamma, "heads": heads,
+                          "lam": a.lam, "lr": a.lr, "batch": a.batch, "value": a.value, "gamma": a.gamma, "heads": heads, "kind_actions": kind_actions,
                           "reward_scale": float(m.reward_scale), "reward_scale_b": float(m.reward_scale_b), "seconds": round(time.time() - t0, 1), "log": log}}, a.out)
     print(f"saved {a.out}: {len(eps)} episodes, {n} windows, {round(time.time()-t0,1)}s")
 

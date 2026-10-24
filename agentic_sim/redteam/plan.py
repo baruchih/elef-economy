@@ -38,7 +38,8 @@ class CategoricalCEM:
 
 def reward_now(model, obs):
     """The wealth head's predicted change in real wealth for each action from this observation (real units). Version 4 (two heads): the head
-    of the decision's kind — the review-side head at a review, the boundary head at a boundary."""
+    of the decision's kind — the review-side head at a review, the boundary head at a boundary. The kind-conditioned action (the parent) reads
+    the decision's kind from the observation."""
     dev = next(model.parameters()).device
     with torch.no_grad():
         o = torch.tensor(obs, dtype=torch.float32, device=dev).view(1, 1, -1)
@@ -46,8 +47,8 @@ def reward_now(model, obs):
         head, scale = model.reward, model.reward_scale
         if getattr(model, "side_heads", "one") == "two" and bool(model.is_boundary(o[0, 0])):
             head, scale = model.reward_b, model.reward_scale_b
-        r = torch.stack([head(z, model.act(torch.nn.functional.one_hot(torch.tensor([[k]]), model.n_actions).float().to(dev)))[0, 0]
-                         for k in range(model.n_actions)]) * scale
+        r = torch.stack([head(z, model.act_now(torch.nn.functional.one_hot(torch.tensor([[k]]), model.n_actions).float().to(dev), o))[0, 0]
+                         for k in range(model.n_actions)]) * scale                    # the kind-conditioned action reads the decision's kind from the observation
     return [float(x) for x in r.cpu().numpy()]
 
 

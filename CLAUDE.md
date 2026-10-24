@@ -590,7 +590,11 @@ consolidated into one standalone spec with the accepted revision kept verbatim i
   the award in its tick): under `tree` the "before" test reads the ledger's position and the parent's decisions on one child share its later events as Q4's pair did. The rejecter
   under the rules −492 ± 101 (82% overturned). The calibration again under the corrected construction (`calibration-v4b/`; notes §32): the direct clears (+252 ± 103; it rejects every child and delegates half), the world model
   does not (CEM −6 ± 75, the head alone −7 ± 90: action 2 is reject at a judgment and self-execute at a delegation, and the latent does not separate them) — the model at fault by the
-  method ruling, no planner work by the stopping rule; the kind-conditioned action the named candidate, not built. The parent's question closes on the hand unless ruled otherwise.
+  method ruling, no planner work by the stopping rule; **The ruling after run 29 (notes §33):** the child closed, the parent's references the finding, the three attribution corrections
+  adopted, the kind-conditioned action adopted as a construction correction of the encoding — built, `WorldModel(kind_actions=True)` (`--kind-actions on`: the action one-hot over
+  kind × action, the kind from the observation at a known decision and from a kind head on the latent at a rollout's later steps) — one calibration on v4b's offline set
+  (`calibration-v4c/`), then the world model's line if a branch clears (`line-v4c/`); the direct's line under the rules beside the hand (`line-v4b/direct/`); the parent's half
+  closes on whichever clears, a win in any line stands. Then the dispute baseline, Q6, Q7 (the reviewer's).
 - Money is checked by invariant I1 (conservation) — never silently create or lose credits.
 
 ## Vocabulary (spec Appendix C has the full notation)

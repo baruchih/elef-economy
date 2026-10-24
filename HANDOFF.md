@@ -2471,8 +2471,12 @@ stands. Corrected twice more for the parent role: the "before" test by the ledge
 (`attrib.attribute(tree=True)`: the rejecter's signal now +45 let run / +25 cancel / +13 delegate). The calibration again under it (`calibration-v4b/`; notes §32): **the direct clears** (+252 ± 103 against the careful parent, the ideal
 +302 ± 99; it rejects every child and delegates half) **and the world model does not** (the CEM −6 ± 75, the head alone −7 ± 90 — it rejects every child but delegates one award in ten:
 the head's action 2 is reject at a judgment and self-execute at a delegation, and the latent does not separate them) — by the method ruling the model is at fault, by the stopping
-rule no planner work; the named candidate (not built) a kind-conditioned action for the parent's heads. Q5's parent closes on the hand unless the reviewer rules otherwise
-(the direct's line beside, or the kind-conditioned action and one more calibration). The dispute baseline before Q7; the resubmission plant not drafted.
+rule no planner work; the named candidate (not built) a kind-conditioned action for the parent's heads. **The ruling after run 29 (notes §33):** the child closed, a no-win bounded by hand; the parent's references the finding; the three attribution
+corrections adopted as construction corrections; the kind-conditioned action adopted as a construction correction of the encoding (built: `WorldModel(kind_actions=True)`, the one-hot
+over kind × action, the kind from the observation at a known decision and from a kind head on the latent inside a rollout; `--kind-actions on`) with one calibration at the raised
+guarantee fraction on v4b's offline set (`calibration-v4c/`, the direct's v4b result beside), then the world model's line if a branch clears (`line-v4c/`); the direct's line under
+the rules on the costliest slot as the reading beside the hand (`line-v4b/direct/`). The parent's half closes on whichever clears; a win in any line stands. Both in flight. **Next
+(the reviewer's): the dispute baseline, Q6, Q7.** The resubmission plant not drafted.
 
 ## Maps
 

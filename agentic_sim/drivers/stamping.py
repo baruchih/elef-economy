@@ -1537,7 +1537,7 @@ class Stamping:
                     if aid_b != actor and self.kind.get(aid_b) == LEARNER and self.learner_role_of.get(aid_b) == "bidder":
                         self.c["learner_bids_lost"] += 1
                 if self.kind.get(actor) == LEARNER and self.learner_role_of.get(actor) == "bidder":
-                    self.learner_last_bid_case = (t, cid)          # Q6: the case this tick's bid decision won (redteam.env credits it to the decision)
+                    self.learner_last_bid_case = (w.t, cid)        # Q6: the case this tick's bid decision won (redteam.env credits it to the decision; the world's clock, as the hook's)
                     self.c["learner_bid_awards"] += 1; self.c["learner_bid_award_sum"] += bid; self.c["learner_bid_cost_sum"] += self.cost_now(actor)
                 self.parent_awards[actor] = self.parent_awards.get(actor, 0) + 1
                 self.margin[actor] = round(self.margin[actor] + a.margin_up, 6)

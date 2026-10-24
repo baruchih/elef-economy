@@ -28,7 +28,7 @@ PARENT_KEYS = ("learner_delegate_decisions", "learner_delegations", "learner_sel
                "learner_cancel_decisions", "learner_cancels", "learner_cancel_refused", "learner_kill_fees", "learner_guarantees_taken", "learner_child_lapses",
                "learner_rejections_overturned", "learner_children_settled", "slot_awards", "slot_rho", "slot_cost", "slot_delivery_income", "slot_guarantees_forfeited", "slot_effort_burned")
 BID_KEYS = ("learner_bid_decisions", "learner_bid_ratchet", "learner_bid_undercut", "learner_bid_withheld", "learner_bid_awards", "learner_bids_lost", "learner_bid_mean_over_cost",
-            "learner_held_real_mean", "slot_awards", "slot_rho", "slot_cost", "slot_delivery_income", "slot_guarantees_forfeited", "slot_effort_burned", "P_t", "member_price_mean", "awarded")
+            "learner_held_real_mean", "slot_awards", "slot_reviews", "slot_rho", "slot_cost", "slot_delivery_income", "slot_guarantees_forfeited", "slot_effort_burned", "P_t", "member_price_mean", "awarded")
 PAIR_KEYS = ("pair_ids", "pair_matched", "pair_unmatched", "pair_waited", "pair_reviews", "pair_cares", "pair_stamps", "pair_rejects", "pair_bad_stamped", "pair_good_stamped",
              "pair_bad_stamped_vested", "pair_bad_stamped_caught", "pair_d_real", "pair_r_real", "pair_r_reviews", "pair_r_on_duty", "pair_r_suspensions", "pair_r_rho")
 

@@ -607,7 +607,12 @@ consolidated into one standalone spec with the accepted revision kept verbatim i
   prediction against zero and leaves only if it is negative, the planner and the heads' leave code not consulted (`redteam.plan.boundary_one_step`; `run_q` / `online
   --boundary-read auto|one-step|learned`, `auto` learned only under `--learner-rearrive on`); one calibration on the raised-guarantee cell to show the departures stop
   (`calibration-v4d/`), the parent's line once as a reading of the value head (`line-v4d/`, not reopening Q5); then the dispute baseline (run 24's world, `--dispute-policy
-  truthful` against `none`, 20 seeds; `results/redteam/Q7/dispute-baseline/`), Q6 the learned bidder, Q7 on the dispute baseline.
+  truthful` against `none`, 20 seeds; `results/redteam/Q7/dispute-baseline/`), Q6 the learned bidder, Q7 on the dispute baseline. **The dispute baseline read (notes §38; `results/redteam/Q7/dispute-baseline/`):** truthful disputes catch
+  89 of the 92 false approvals a run they contest, the standing false approvals fall 10.7 → 3.2, Ω +361, the requesters −50, nothing else moves. **Q6 built (the learned bidder;
+  `--learner-role bidder`, `--bidder-slot cheapest|median|costliest|first`, `--undercut 0.2`):** once a tick when the slot is free and a root is affordable, the policy sets the
+  tick's bid rule — 0 the ratchet's (the reference), 1 the undercut ((1 − δ) B̄ floored at cost), 2 withhold; the root the bid wins is credited to the decision (`learner_last_bid_case`,
+  patched into the env's decision record); `obs.build_obs_bid`; policies careful / undercut / withhold / eps / random / leaver; readings `learner_bid_*`, `learner_held_real_mean`
+  (hoarding) and `P_t` beside. The references on the cheapest slot first (`results/redteam/Q6/refs/`, λ the calibration knob).
 - Money is checked by invariant I1 (conservation) — never silently create or lose credits.
 
 ## Vocabulary (spec Appendix C has the full notation)

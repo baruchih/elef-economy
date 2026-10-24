@@ -27,6 +27,8 @@ PARENT_KEYS = ("learner_delegate_decisions", "learner_delegations", "learner_sel
                "learner_judge_stamp", "learner_judge_reject", "learner_child_stamped_bad", "learner_child_stamped_good", "learner_child_rejected_bad", "learner_child_rejected_good",
                "learner_cancel_decisions", "learner_cancels", "learner_cancel_refused", "learner_kill_fees", "learner_guarantees_taken", "learner_child_lapses",
                "learner_rejections_overturned", "learner_children_settled", "slot_awards", "slot_rho", "slot_cost", "slot_delivery_income", "slot_guarantees_forfeited", "slot_effort_burned")
+BID_KEYS = ("learner_bid_decisions", "learner_bid_ratchet", "learner_bid_undercut", "learner_bid_withheld", "learner_bid_awards", "learner_bids_lost", "learner_bid_mean_over_cost",
+            "learner_held_real_mean", "slot_awards", "slot_rho", "slot_cost", "slot_delivery_income", "slot_guarantees_forfeited", "slot_effort_burned", "P_t", "member_price_mean", "awarded")
 PAIR_KEYS = ("pair_ids", "pair_matched", "pair_unmatched", "pair_waited", "pair_reviews", "pair_cares", "pair_stamps", "pair_rejects", "pair_bad_stamped", "pair_good_stamped",
              "pair_bad_stamped_vested", "pair_bad_stamped_caught", "pair_d_real", "pair_r_real", "pair_r_reviews", "pair_r_on_duty", "pair_r_suspensions", "pair_r_rho")
 
@@ -110,6 +112,11 @@ def episode(env, policy, seed, rng):
         work["good_share"] = float(np.mean([x == 0 for x in acts])) if acts else None
         work["bad_share"] = float(np.mean([x == 1 for x in acts])) if acts else None
         work["miss_share"] = float(np.mean([x == 2 for x in acts])) if acts else None
+    if env.role == "bidder":                                      # Q6: the learned bidder — its rule by tick, the awards it won, the price level beside
+        work.update({k: row.get(k) for k in BID_KEYS})
+        work["ratchet_share"] = float(np.mean([x == 0 for x in acts])) if acts else None
+        work["undercut_share"] = float(np.mean([x == 1 for x in acts])) if acts else None
+        work["withhold_share"] = float(np.mean([x == 2 for x in acts])) if acts else None
     if env.role == "parent":                                      # Q5: the learned parent's three kinds
         work.update({k: row.get(k) for k in PARENT_KEYS})
         for kind, acts_k in acts_kind.items():
@@ -194,7 +201,7 @@ def main(argv=None):
     ap.add_argument("--seeds", default="21-40"); ap.add_argument("--policies", default="learned,greedy,careful")
     ap.add_argument("--horizon", type=int, default=8); ap.add_argument("--samples", type=int, default=256); ap.add_argument("--iters", type=int, default=6)
     ap.add_argument("--hide", default=""); ap.add_argument("--ticks", type=int, default=1000)
-    ap.add_argument("--role", choices=["reviewer", "deliverer", "pair", "child", "parent"], default="reviewer", help="Q3: the learned deliverer (policies learned,greedy,direct,careful,zero,eps,random,leaver); Q4: the pair (careful,collude,eps,random,leaver)")
+    ap.add_argument("--role", choices=["reviewer", "deliverer", "pair", "child", "parent", "bidder"], default="reviewer", help="Q3: the learned deliverer (policies learned,greedy,direct,careful,zero,eps,random,leaver); Q4: the pair (careful,collude,eps,random,leaver)")
     ap.add_argument("--boundary-read", choices=["auto", "one-step", "learned"], default="auto", help="the ruling after run 30: at a boundary the stay head's one-step read against zero (a leave is worth zero by rule without re-arrival); `auto` is learned under `--learner-rearrive on`, one-step otherwise")
     ap.add_argument("cell", nargs=argparse.REMAINDER)
     a = ap.parse_args(argv)
@@ -228,6 +235,8 @@ def main(argv=None):
                 print(f"seed {seed} {name}: ERROR {r['error']}", flush=True)
             elif a.role in ("deliverer", "child"):
                 print(f"seed {seed} {name}: {r['decisions']} decisions, lifetime {r['lifetime_real_wealth']:.1f}, bad {r.get('bad_share')}, miss {r.get('miss_share')}, bad approved/caught {r.get('learner_bad_approved')}/{r.get('learner_bad_caught')}, misses lapsed {r.get('learner_miss_lapsed')}, forfeited {r.get('learner_forfeited')}", flush=True)
+            elif a.role == "bidder":
+                print(f"seed {seed} {name}: {r['decisions']} bid decisions (ratchet/undercut/withhold {r.get('ratchet_share')}/{r.get('undercut_share')}/{r.get('withhold_share')}), awards {r.get('learner_bid_awards')} of {r.get('slot_awards')}, bid/cost {r.get('learner_bid_mean_over_cost')}, lost {r.get('learner_bids_lost')}, held {r.get('learner_held_real_mean')}, P_t {r.get('P_t')}, lifetime {r['lifetime_real_wealth']:.1f}, departed {r.get('slot_departed')}", flush=True)
             elif a.role == "parent":
                 print(f"seed {seed} {name}: delegate {r.get('delegate_decisions')} (share {r.get('delegate_share')}) judge {r.get('judge_decisions')} (care/stamp/reject {r.get('judge_care_share')}/{r.get('judge_stamp_share')}/{r.get('judge_reject_share')}) cancel {r.get('cancel_decisions')} (share {r.get('cancel_share')}), lifetime {r['lifetime_real_wealth']:.1f}, children settled {r.get('learner_children_settled')} guarantees taken {r.get('learner_guarantees_taken')} overturned {r.get('learner_rejections_overturned')} kill fees {r.get('learner_kill_fees')}", flush=True)
             elif a.role == "pair":
@@ -246,6 +255,9 @@ def main(argv=None):
         summary[name]["blind_seats"] = mse([r["blind_seats"] for r in rows])
         if a.role == "parent":                                      # Q5's line: the learned parent
             for k in ("delegate_decisions", "judge_decisions", "cancel_decisions", "delegate_share", "judge_care_share", "judge_stamp_share", "judge_reject_share", "cancel_share") + PARENT_KEYS:
+                summary[name][k] = mse([r.get(k) if r.get(k) not in ("", None) else None for r in rows])
+        if a.role == "bidder":                                      # Q6's line: the learned bidder
+            for k in ("ratchet_share", "undercut_share", "withhold_share") + BID_KEYS:
                 summary[name][k] = mse([r.get(k) if r.get(k) not in ("", None) else None for r in rows])
         if a.role == "pair":                                        # Q4's line: the pair
             for k in ("good_share", "bad_share", "work_decisions", "learner_bad_deliveries", "learner_bad_approved", "learner_bad_caught", "learner_good_vested", "learner_good_final_n",
@@ -298,6 +310,19 @@ def main(argv=None):
             for name, s in summary.items():
                 pm = s.get("paired_minus_careful", (float("nan"), float("nan")))
                 f.write(f"| {name} | {s['lifetime_real_wealth'][0]:.1f} ± {s['lifetime_real_wealth'][1]:.1f} | {pm[0]:.1f} ± {pm[1]:.1f} | {fmt(s['delegate_decisions'][0])} | {fmt(s['delegate_share'][0])} | {fmt(s['judge_decisions'][0])} | {fmt(s['judge_care_share'][0])} / {fmt(s['judge_stamp_share'][0])} / {fmt(s['judge_reject_share'][0])} | {fmt(s['cancel_decisions'][0])} | {fmt(s['cancel_share'][0])} | {fmt(s['learner_children_settled'][0])} | {fmt(s['learner_guarantees_taken'][0])} | {fmt(s['learner_child_lapses'][0])} | {fmt(s['learner_rejections_overturned'][0])} | {fmt(s['learner_kill_fees'][0])} | {fmt(s['learner_child_stamped_bad'][0])} / {fmt(s['learner_child_rejected_good'][0])} | {fmt(s['slot_rho'][0])} | {fmt(s['slot_awards'][0])} | {s['slot_departed'][0]:.2f} |\n")
+            print(json.dumps(summary, indent=1, default=float))
+            return
+        if a.role == "bidder":
+            f.write(f"# Evaluation (Q6, the learned bidder) — cell `{' '.join(cell)}`, seeds {a.seeds}, model `{a.model}` (value {ck.get('config', {}).get('value_mode', 'off')}, horizon {a.horizon})\n\n"
+                    "The bidder's lifetime real wealth paired against the careful (the ratchet); its rule by tick (the ratchet's bid / at cost / no offer), the awards its bids won and the bid over cost at them, the offers lost, "
+                    "the wealth it held (real, a tick), the price level and the members' mean price at the close (hoarding and P_t beside).\n\n"
+                    "| policy | lifetime real | paired − careful | bid decisions | ratchet / undercut / withhold | awards won | of slot awards | bid / cost | offers lost | held (real) | slot ρ | slot cost | delivery income | effort burned | P_t close | members' price | awarded (all) | departed |\n"
+                    "|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|\n")
+            for name, s in summary.items():
+                pm = s.get("paired_minus_careful", (float("nan"), float("nan")))
+                f.write(f"| {name} | {s['lifetime_real_wealth'][0]:.1f} ± {s['lifetime_real_wealth'][1]:.1f} | {pm[0]:.1f} ± {pm[1]:.1f} | {fmt(s['decisions'][0])} | {fmt(s['ratchet_share'][0])} / {fmt(s['undercut_share'][0])} / {fmt(s['withhold_share'][0])} | "
+                        f"{fmt(s['learner_bid_awards'][0])} | {fmt(s['slot_awards'][0])} | {fmt(s['learner_bid_mean_over_cost'][0])} | {fmt(s['learner_bids_lost'][0])} | {fmt(s['learner_held_real_mean'][0])} | {fmt(s['slot_rho'][0])} | {fmt(s['slot_cost'][0])} | "
+                        f"{fmt(s['slot_delivery_income'][0])} | {fmt(s['slot_effort_burned'][0])} | {fmt(s['P_t'][0])} | {fmt(s['member_price_mean'][0])} | {fmt(s['awarded'][0])} | {fmt(s['slot_departed'][0])} |\n")
             print(json.dumps(summary, indent=1, default=float))
             return
         if a.role == "pair":

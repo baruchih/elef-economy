@@ -47,7 +47,16 @@ OBS_FIELDS_PARENT = OBS_FIELDS[:N_SHARED] + [
 ]
 assert len(OBS_FIELDS_PARENT) == OBS_DIM
 IDX_PARENT = {k: i for i, k in enumerate(OBS_FIELDS_PARENT)}
-FIELDS_BY_ROLE = {"reviewer": OBS_FIELDS, "deliverer": OBS_FIELDS_WORK, "child": OBS_FIELDS_WORK, "parent": OBS_FIELDS_PARENT}
+OBS_FIELDS_BID = OBS_FIELDS[:N_SHARED] + [
+    # Q6 — the learned bidder: its own cost and the ratchet's state (its margin, the bid the rule would make), what is for sale (the best ceiling it
+    # fits under, the roots it could bid on, the free rivals), the market price over its cost, its idle ticks and the period's remainder, its own record as a bidder
+    "bd_own_cost_rel", "bd_own_margin", "bd_ratchet_bid_rel", "bd_best_ceiling_rel", "bd_roots_affordable", "bd_free_rivals", "bd_price_over_cost",
+    "bd_idle_ticks", "bd_ticks_to_boundary", "bd_own_bid_awards", "bd_own_bids_lost", "bd_own_held_real", "bd_last_won",
+    "decision_boundary",
+]
+assert len(OBS_FIELDS_BID) == OBS_DIM
+IDX_BID = {k: i for i, k in enumerate(OBS_FIELDS_BID)}
+FIELDS_BY_ROLE = {"reviewer": OBS_FIELDS, "deliverer": OBS_FIELDS_WORK, "child": OBS_FIELDS_WORK, "parent": OBS_FIELDS_PARENT, "bidder": OBS_FIELDS_BID}
 
 
 def _shared(run, actor: str, o, put, idx):
@@ -146,4 +155,30 @@ def build_obs_parent(run, parent: str, kind, root, child, hide=(), n_fields=None
         put("pr_child_since_award", ((w.t - child.t_award) / 10.0) if child.t_award is not None else 0.0)
         put("pr_child_slack", ((child.deadline - w.t) / 10.0) if child.deadline is not None else 0.0)
     put("pr_own_children", run.parent_delegated.get(parent, 0) / 10.0)
+    return o if n_fields is None else o[:n_fields]
+
+
+def build_obs_bid(run, actor: str, roots, hide=(), n_fields=None) -> np.ndarray:
+    """Q6: the learned bidder's observation at the tick's bid decision — the shared fields, then its own cost and margin, what is for sale and its own
+    record as a bidder; `roots` None is a period-boundary decision."""
+    o = np.zeros(OBS_DIM, dtype=np.float32)
+    def put(k, v):
+        o[IDX_BID[k]] = 0.0 if (v is None or k in hide) else float(v)
+    mk, P0, Pt, real = _shared(run, actor, o, put, IDX_BID)
+    w = run.w
+    if roots is None:
+        put("decision_boundary", 1.0)
+        return o if n_fields is None else o[:n_fields]
+    cost = run.cost_now(actor); m = run.margin.get(actor, 0.0)
+    put("bd_own_cost_rel", cost / P0); put("bd_own_margin", m); put("bd_ratchet_bid_rel", cost * (1.0 + m) / P0)
+    put("bd_best_ceiling_rel", max(c.beta for c in roots) / P0); put("bd_roots_affordable", len(roots) / 10.0)
+    put("bd_free_rivals", (len(run.free_members()) - 1) / 20.0); put("bd_price_over_cost", (mk["B_bar"] or Pt) / cost)
+    put("bd_idle_ticks", run.idle.get(actor, 0) / 10.0)
+    per = w.dial()["period"]
+    put("bd_ticks_to_boundary", (per["start"] + w.params.period_ticks - w.t) / max(1, w.params.period_ticks))
+    cc = run.c
+    put("bd_own_bid_awards", cc["learner_bid_awards"] / 20.0); put("bd_own_bids_lost", cc["learner_bids_lost"] / 20.0)
+    put("bd_own_held_real", w.unlocked(actor) * real / 1000.0)
+    lw = run.learner_last_bid_case
+    put("bd_last_won", 1.0 if (lw is not None and lw[0] >= w.t - 1) else 0.0)
     return o if n_fields is None else o[:n_fields]

@@ -35,7 +35,7 @@ def main(argv=None):
     ap.add_argument("--out", required=True)
     ap.add_argument("--seeds", default="1-20")
     ap.add_argument("--policies", default=None, help="by role: careful,stamper,eps,random,leaver (the reviewer; version 3 added the leaver) / careful,zero,eps,random,leaver (Q3's deliverer)")
-    ap.add_argument("--role", choices=["reviewer", "deliverer", "pair", "child", "parent"], default="reviewer", help="Q3: `deliverer` — the slot's quality decisions (0 well, 1 badly at zero effort)")
+    ap.add_argument("--role", choices=["reviewer", "deliverer", "pair", "child", "parent", "bidder"], default="reviewer", help="Q3: `deliverer` — the slot's quality decisions (0 well, 1 badly at zero effort)")
     ap.add_argument("--ticks", type=int, default=1000)
     ap.add_argument("--hide", default="", help="observation fields zeroed (comma-separated), e.g. own_p_eff for Q1's hidden-odds cell")
     ap.add_argument("cell", nargs=argparse.REMAINDER, help="the stamping driver's cell arguments after --")

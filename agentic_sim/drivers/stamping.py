@@ -314,11 +314,18 @@ class Stamping:
         if a.learner_slot == "on" and a.learner_role == "parent" and ids_t and a.parent_slot != "first":
             ranked = sorted(ids_t, key=lambda x: (self.c_d_of[x], x))          # Q5: the learned parent's slot by cost — a declared construction (a cheap parent cannot post a child)
             self.tell_slot = ranked[-1] if a.parent_slot == "costliest" else ranked[len(ranked) // 2]
+        if a.learner_slot == "on" and a.learner_role == "bidder" and ids_t and a.bidder_slot != "first":
+            ranked = sorted(ids_t, key=lambda x: (self.c_d_of[x], x))          # Q6: the learned bidder's slot by cost (the cheapest by default — a declared construction)
+            self.tell_slot = {"cheapest": ranked[0], "costliest": ranked[-1], "median": ranked[len(ranked) // 2]}[a.bidder_slot]
         # the learned red team (redteam.env): the slot actor's reviewing decisions come from a policy — `self.learner(run, reviewer, view, r)`
         # returns 0 (care: the careful disposition's signal at its cost), 1 (approve blind), 2 (reject blind); the truth is never shown to it
         self.learner = None
         self.learner_work = None                      # Q3: the slot's quality decision at each of its submissions — `self.learner_work(run, actor, case)` → 0 good, 1 bad
         self.learner_parent = None                    # Q5: the learned parent — `self.learner_parent(run, parent, kind, root, child)`: kind delegate (0 self-execute, 1 delegate), judge (0 care, 1 stamp, 2 reject blind), cancel (0 wait, 1 cancel)
+        self.learner_bid = None                       # Q6: the learned bidder — `self.learner_bid(run, actor, roots)` once a tick when the slot is free and a root is available it could bid under:
+                                                      # 0 the ratchet's bid (c_D (1 + m), the population's rule), 1 undercut ((1 − δ) B̄ floored at c_D, --undercut), 2 withhold (no offer this tick)
+        self.learner_bid_mode = 0                     # the bidder's rule for the tick's offers
+        self.learner_last_bid_case = None             # (t, cid): the root the bidder's decision at t won — read by redteam.env to credit the case to that decision
         self.learner_id = None
         self.learner_review_kind = CAREFUL            # the slot's reviewing disposition when the learner is a deliverer (the population's at that slot)
         self.learner_role_of: dict[str, str] = {}     # each learner identity's role (Q4's pair: the slot a deliverer, the next careful id a reviewer)
@@ -432,6 +439,9 @@ class Stamping:
                   # Q5 — the learned child (--learner-role child): its nested awards, misses and the lapses; the population knobs' counts
                   "learner_nested_awards": 0, "learner_nested_offers": 0, "learner_misses": 0, "learner_miss_lapsed": 0, "parent_judge_override": 0, "child_appeals_suppressed": 0,
                   # Q5 — the learned parent (--learner-role parent): its three kinds of decision and what became of them
+                  # Q6 — the learned bidder (--learner-role bidder): its decisions by kind, the awards they won and at what bid over cost, the offers lost, the wealth held
+                  "learner_bid_decisions": 0, "learner_bid_ratchet": 0, "learner_bid_undercut": 0, "learner_bid_withheld": 0, "learner_bid_awards": 0,
+                  "learner_bid_award_sum": 0.0, "learner_bid_cost_sum": 0.0, "learner_bids_lost": 0, "learner_held_sum": 0.0, "learner_held_n": 0,
                   "learner_delegate_decisions": 0, "learner_delegations": 0, "learner_self_exec_chosen": 0, "learner_delegate_impossible": 0,
                   "learner_judge_decisions": 0, "learner_judge_care": 0, "learner_judge_stamp": 0, "learner_judge_reject": 0,
                   "learner_child_stamped_bad": 0, "learner_child_stamped_good": 0, "learner_child_rejected_bad": 0, "learner_child_rejected_good": 0,
@@ -477,7 +487,7 @@ class Stamping:
         an unaffordable purchase whole). Accuracy is a parameter of the disposition, not of the
         money spent; the shortfall is counted as `underfunded_careful_reviews`."""
         kind = self.kind[reviewer]
-        if kind == LEARNER and self.learner_role_of.get(reviewer) in ("deliverer", "child", "parent"):
+        if kind == LEARNER and self.learner_role_of.get(reviewer) in ("deliverer", "child", "parent", "bidder"):
             kind = self.learner_review_kind          # Q3: the learned deliverer reviews as the population's actor at its slot does
         if kind == STAMPER:
             if self.a.stamper_mode == "reformer" and self.w.actor(reviewer).probation:
@@ -627,6 +637,13 @@ class Stamping:
         """2.0.0 §2.2: c_D (1 + m), or the ceiling under --bid ceiling (the 1.x behaviour); 2.3.0: the actor's own c_D."""
         if self.a.bid == "ceiling":
             return beta
+        if self.kind.get(aid) == LEARNER and self.learner_role_of.get(aid) == "bidder" and self.learner_bid is not None:
+            # Q6: the learned bidder's rule for the tick — 0 the ratchet's bid (below), 1 the undercut (the market price cut by --undercut, floored at cost), 2 no offer
+            if self.learner_bid_mode == 1:
+                mk = self.w.market()
+                return round(max(self.cost_now(aid), (1.0 - self.a.undercut) * (mk["B_bar"] or mk["P_t"])), 6)
+            if self.learner_bid_mode == 2:
+                return math.inf
         if self.a.bid == "floor-plus":
             # 2.4.0 §8.7 red team: the members collude to bid just above the state's floor on every request — those whose cost allows it;
             # the others bid their own c_D (1 + m), since nobody bids below cost on purpose here
@@ -953,6 +970,27 @@ class Stamping:
                 self.tasks[self.nested_parent[nid]].fulfilled = False      # the parent built on bad work (§9.2)
             if v == N and truth:
                 self.c["nested_false_rejections"] += 1
+
+    def learner_bid_step(self, t: int):
+        """Q6: the learned bidder's decision for the tick — asked once, when the slot is free and at least one root is available whose ceiling
+        its cost fits under; the answer is the rule its offers follow this tick (`bid_of`). The wealth it holds is read every tick it is alive."""
+        a = self.a
+        if self.learner_bid is None or self.learner_id is None or a.learner_role != "bidder" or self.learner_id not in self.actors:
+            return
+        aid = self.learner_id
+        w = self.w
+        self.c["learner_held_sum"] += w.unlocked(aid) * self.p.P0 / (w.market()["P_t"] or self.p.P0); self.c["learner_held_n"] += 1
+        if aid not in self.free_members():
+            return
+        cost = self.cost_now(aid)
+        roots = [w.case(cid) for cid in self.active if cid not in self.nested_parent]
+        roots = [c for c in roots if c.state == "AVAILABLE" and c.beta + 1e-9 >= cost]
+        if not roots:
+            return
+        act = int(self.learner_bid(self, aid, roots))
+        self.learner_bid_mode = act
+        self.c["learner_bid_decisions"] += 1
+        self.c[{0: "learner_bid_ratchet", 1: "learner_bid_undercut"}.get(act, "learner_bid_withheld")] += 1
 
     def offers_for(self, cid: str) -> list[tuple[str, float]]:
         """Free members whose bid is at or under the ceiling and who can fund the guarantee at it."""
@@ -1466,6 +1504,7 @@ class Stamping:
                         for aid in free_readers:
                             if (aid, cid) not in self.seen:
                                 self.seen[(aid, cid)] = (w.t, cc.beta, P_now)
+        self.learner_bid_step(t)                         # Q6: the learned bidder's rule for this tick's offers
         # orchestrator awards
         for cid in list(self.active):
             if w.case(cid).state != "AVAILABLE" or cid in self.nested_parent:
@@ -1495,6 +1534,11 @@ class Stamping:
                 for aid_b, _ in bids:
                     if aid_b in self.readers and aid_b != actor:
                         self.lost_bid[(aid_b, cid)] = w.t
+                    if aid_b != actor and self.kind.get(aid_b) == LEARNER and self.learner_role_of.get(aid_b) == "bidder":
+                        self.c["learner_bids_lost"] += 1
+                if self.kind.get(actor) == LEARNER and self.learner_role_of.get(actor) == "bidder":
+                    self.learner_last_bid_case = (t, cid)          # Q6: the case this tick's bid decision won (redteam.env credits it to the decision)
+                    self.c["learner_bid_awards"] += 1; self.c["learner_bid_award_sum"] += bid; self.c["learner_bid_cost_sum"] += self.cost_now(actor)
                 self.parent_awards[actor] = self.parent_awards.get(actor, 0) + 1
                 self.margin[actor] = round(self.margin[actor] + a.margin_up, 6)
                 self.idle[actor] = 0
@@ -2172,6 +2216,11 @@ class Stamping:
                     "learner_decisions": self.learner_decisions, "learner_false_approvals": self.c["learner_false_approvals"],
                     # Q3: the learned deliverer's line — its quality decisions, what became of them, the guarantees it forfeited, the effort it saved
                     "learner_role": (("pair" if self.learner_pair else self.a.learner_role) if self.learner_id else ""), "learner_work_decisions": self.c["learner_work_decisions"],
+                    # Q6: the learned bidder — its decisions by kind, the awards its bids won and the bid over cost at them, the offers lost, the wealth held (real, a tick)
+                    "learner_bid_decisions": self.c["learner_bid_decisions"], "learner_bid_ratchet": self.c["learner_bid_ratchet"], "learner_bid_undercut": self.c["learner_bid_undercut"],
+                    "learner_bid_withheld": self.c["learner_bid_withheld"], "learner_bid_awards": self.c["learner_bid_awards"], "learner_bids_lost": self.c["learner_bids_lost"],
+                    "learner_bid_mean_over_cost": (round(self.c["learner_bid_award_sum"] / self.c["learner_bid_cost_sum"], 4) if self.c["learner_bid_cost_sum"] else ""),
+                    "learner_held_real_mean": (round(self.c["learner_held_sum"] / self.c["learner_held_n"], 3) if self.c["learner_held_n"] else ""),
                     # Q4: the pair
                     "pair_ids": ("+".join(self.learner_pair) if self.learner_pair else ""), "pair_matched": self.c["pair_matched"], "pair_unmatched": self.c["pair_unmatched"], "pair_waited": self.c["pair_waited"],
                     "pair_reviews": self.c["pair_reviews"], "pair_cares": self.c["pair_cares"], "pair_stamps": self.c["pair_stamps"], "pair_rejects": self.c["pair_rejects"],
@@ -2503,7 +2552,7 @@ def build_parser():
     ap.add_argument("--arrival-loan", choices=["on", "off"], default="on",
                     help="2.7.0: the arrival float is a loan of the bank's — repaid from the name's income first, recovered at departure, the shortfall the bank's default; off is 2.6.1's grant (the control; --rules 2.6.0 too)")
     ap.add_argument("--learner-slot", choices=["on", "off"], default="off", help="the learned red team: the slot actor's reviewing decisions come from the policy redteam.env supplies (nothing changes without it)")
-    ap.add_argument("--learner-role", choices=["reviewer", "deliverer", "child", "parent"], default="reviewer",
+    ap.add_argument("--learner-role", choices=["reviewer", "deliverer", "child", "parent", "bidder"], default="reviewer",
                     help="Q3 (the learned deliverer): `deliverer` — the slot reviews as the population's actor at its slot does, and its quality decision "
                          "at each submission comes from the policy (0 deliver well, the effort burned; 1 deliver badly at zero effort); `reviewer` is Q1/Q2's")
     ap.add_argument("--effort-cost", type=float, default=1.0, help="Q3's calibration knob: a multiple on every actor's effort cost (as --care-cost is on the care cost)")
@@ -2513,6 +2562,10 @@ def build_parser():
                     help="Q5: the learned child offers for nested requests only, never for roots (a declared construction: the slot is committed on roots most of the run otherwise)")
     ap.add_argument("--child-g-frac", type=float, default=None,
                     help="Q5's parent calibration knob (the ruling after the parent's references): a nested case's guarantee fraction in place of G_frac (0.5) — raised in the calibration cell only")
+    ap.add_argument("--undercut", type=float, default=0.2,
+                    help="Q6: the undercut's bid — the market price B̄ cut by this fraction, floored at the actor's cost (the ratchet, by contrast, bids its cost times 1 + m and lets m climb to the price)")
+    ap.add_argument("--bidder-slot", choices=["first", "cheapest", "median", "costliest"], default="cheapest",
+                    help="Q6 (the learned bidder): the slot — the cheapest careful actor by default (where undercutting the ratchet has the most room), the median, the costliest, or the first careful id")
     ap.add_argument("--parent-slot", choices=["first", "costliest", "median"], default="costliest",
                     help="Q5 (the learned parent): the slot — the first careful id, or the costliest careful actor (the default: a cheap parent cannot post a child at the rule's ceiling)")
     ap.add_argument("--parent-judge", choices=["careful", "stamp", "reject"], default="careful",

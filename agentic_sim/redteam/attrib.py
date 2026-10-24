@@ -82,7 +82,14 @@ def attribute(run, marks, decisions, work_side=False, shared=False, lineages=Non
     (the root's price less the effort) with delegation seen as the root's price alone, the child's costs at its award and the guarantee it
     forfeits landing on the judge and cancel decisions, so no learner reads a reason to delegate (the parent's first calibration, notes §30);
     a nested case no decision claims (none was asked on it) goes to the delegate decision on its root before the boundary. The double count
-    is reported as `tree_double_counted`."""
+    is reported as `tree_double_counted`. Under `tree` the "at or before" test reads the ledger's position, not the tick: the parent's decisions
+    on a child come in the ticks of the child's events (the cancel decision of the award's tick is asked after the award), so an event before
+    every decision on the child — its posting and award, the parent's pots and fee — is the delegate decision's alone, not the first cancel's
+    (which, charged with them, read "let it run" as −25 against "cancel" as nothing, and the uncalibrated line's head alone cancelled every
+    child it posted). And the parent's decisions on one child — the cancel decisions each tick, then the judge at its submission — share the
+    child's later events as Q4's pair shared a case's (an event to every decision on the case taken before it): a cancel decision that let
+    the child run is credited with what the judgment then brought, where alone it read the pots returned on a cancellation (+27) against
+    nothing. The other roles keep the tick test and the one-decision rule, the construction their questions were read under."""
     n = len(decisions)
     names = set(run.learner_chain)
     events = run.w.events_since(0)
@@ -114,9 +121,9 @@ def attribute(run, marks, decisions, work_side=False, shared=False, lineages=Non
                 parent_cache[cid] = None
         return parent_cache[cid]
 
-    def latest_on(cid, t):
-        cands = [i for i in by_case[cid] if marks[i][0] <= t] or by_case[cid]
-        return cands, cands[-1]
+    def latest_on(cid, t, pos):                                          # the decisions on the case taken before the event: by the ledger's position under `tree`, by the tick otherwise
+        cands = [i for i in by_case[cid] if (marks[i][1] <= pos if tree else marks[i][0] <= t)]
+        return cands, (cands[-1] if cands else None)
     for pos, e in enumerate(events):
         cl = classify(e, names)
         if cl is None:
@@ -125,18 +132,28 @@ def attribute(run, marks, decisions, work_side=False, shared=False, lineages=Non
         j = int(np.searchsorted(bounds, pos, side="right")) - 1     # the window the event landed in; its closing index prices it
         r1 = marks[min(max(j, 0) + 1, len(marks) - 1)][4]
         pid = parent_of(e.case) if (tree and e.case is not None) else None
-        if e.case in by_case:                                        # the case's events to the decision on that case (the latest at or before)
-            cands, i = latest_on(e.case, e.t)
-            if shared and len(cands) > 1:                            # Q4: the pair's decisions on one case share its events
+        on_root = pid is not None and pid in by_case                 # Q5's parent: the child's root carries a delegate decision
+        cands, i = latest_on(e.case, e.t, pos) if e.case in by_case else ([], None)
+        if e.case in by_case and i is None and not on_root:
+            cands, i = by_case[e.case], by_case[e.case][-1]          # before every decision on the case and no delegate decision: the case's own (the earlier rule)
+        if i is not None:                                            # the case's events to the decision on that case (the latest before the event)
+            if (shared or tree) and len(cands) > 1:                  # Q4: the pair's decisions on one case share its events; Q5: the parent's decisions on one child too
                 for i2 in cands[:-1]:
                     attributed[i2] += d * r1
-                    shared_double += d * r1
-            if pid is not None and pid in by_case:                   # Q5's parent: the child's events also to the delegate decision on its root
-                _, i2 = latest_on(pid, e.t)
+                    if shared:
+                        shared_double += d * r1
+                    else:
+                        tree_double += d * r1
+            if on_root:                                              # Q5's parent: the child's events also to the delegate decision on its root
+                _, i2 = latest_on(pid, e.t, pos)
+                if i2 is None:
+                    i2 = by_case[pid][-1]
                 attributed[i2] += d * r1
                 tree_double += d * r1
-        elif pid is not None and pid in by_case:                     # a child no decision was asked on: the delegate decision that made it
-            _, i = latest_on(pid, e.t)
+        elif on_root:                                                # a child's event before any decision on it (its posting, its award), or a child never asked on: the delegate decision that made it
+            _, i = latest_on(pid, e.t, pos)
+            if i is None:
+                i = by_case[pid][-1]
         else:                                                        # no decision claims it: the boundary decision that kept the name there (its lineage's)
             name = e.dst if e.dst in names else e.src
             lin = lineage_of.get(name, 0)

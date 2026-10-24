@@ -2464,8 +2464,12 @@ careful parent (the ideal +302 ± 99), the head alone −52, the direct +13; eve
 against the rejecter's 1.0). The cause in the attributed training reward: a nested case's events landed on the parent's decisions on the child (the guarantee +40 on the judge, the
 child's costs −25 on the cancels), never on the delegate decision that made it, which read no difference between delegating and self-executing (+1.8 against +2–5). Corrected as
 a construction (`attrib.attribute(tree=True)`, the parent role: the child's events reach the delegate decision on its root too; the rejecter's delegate decision now +13.4 ± 1.3).
-In flight: the uncalibrated line under the head alone per §27's ruling (`Q5/parent/line-v4/`) and the calibration again under the corrected attribution (`calibration-v4b/`, then
-`line-v4b/` if a branch clears). The dispute baseline before Q7; the resubmission plant not drafted.
+**The uncalibrated line read (notes §31): no win** — the head alone −59 ± 87 against the careful parent; it delegated 57% and cancelled every child it posted (the
+construction's second fault: the child's award costs charged to the first cancel decision, asked in the award's tick after the award); the CEM beside −208 ± 95 with nine departures;
+the rejecter under the rules −492 ± 101 (82% of its rejections overturned on the child's appeal, selection 48 → 21 awards), the selective −403, the stamper −71. The hand's finding
+stands. Corrected twice more for the parent role: the "before" test by the ledger's position, and the parent's decisions on one child sharing its later events as Q4's pair did
+(`attrib.attribute(tree=True)`: the rejecter's signal now +45 let run / +25 cancel / +13 delegate). The calibration restarted under it (`calibration-v4b/`, then `line-v4b/`) — in
+flight, read in §32. The dispute baseline before Q7; the resubmission plant not drafted.
 
 ## Maps
 

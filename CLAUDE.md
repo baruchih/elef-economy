@@ -585,8 +585,10 @@ consolidated into one standalone spec with the accepted revision kept verbatim i
   the careful child (the head learned to deliver well; the CEM beside −81 ± 40, four departures); a child's bad work caught 99 in 100 under the rules (the audit on a stamped nested
   review, the careful parents), the bad child −200 ± 85 and the missing child −251 ± 74 (the lapse the costlier route). **The parent's calibration at G_frac_nested 2.0 (notes §30): no learner clears** — every learner judges as the rejecter and none delegates; the cause the
   attribution by case (a nested case's events on the judge and cancel decisions, never on the delegate decision that made the child) — corrected as a construction,
-  `attrib.attribute(tree=True)` for the parent role (the child's events reach the delegate decision on its root too; `tree_double_counted`). In flight: the uncalibrated line
-  per the ruling (`Q5/parent/line-v4/`) and the calibration again under the corrected attribution (`calibration-v4b/`, then `line-v4b/`).
+  `attrib.attribute(tree=True)` for the parent role (the child's events reach the delegate decision on its root too; `tree_double_counted`). The uncalibrated line per the ruling (`Q5/parent/line-v4/`;
+  notes §31): no win, −59 ± 87 — the head alone cancelled every child it posted, the construction's second fault (the child's award costs on the first cancel decision, asked after
+  the award in its tick): under `tree` the "before" test reads the ledger's position and the parent's decisions on one child share its later events as Q4's pair did. The rejecter
+  under the rules −492 ± 101 (82% overturned). The calibration restarted under the corrected construction (`calibration-v4b/`, then `line-v4b/`), in flight.
 - Money is checked by invariant I1 (conservation) — never silently create or lose credits.
 
 ## Vocabulary (spec Appendix C has the full notation)

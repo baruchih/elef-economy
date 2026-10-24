@@ -236,7 +236,7 @@ class Stamping:
             a.duty_cap = "twothirds" if rev7 else "half"
         if a.tie_break is None:
             a.tie_break = "draw" if rev12 else "id"                      # 2.6.0 §2.3: the tie after κ by a seeded draw; `id` the control
-        p = Params(Res0=a.res0, X=a.on_duty, G_V=a.gv, p_start=a.p_start, p_cap=a.p_cap, p_floor=a.p_floor, band=a.band,
+        p = Params(Res0=a.res0, X=a.on_duty, G_V=a.gv, p_start=a.p_start, p_cap=a.p_cap, p_floor=a.p_floor, band=a.band, G_frac_nested=a.child_g_frac,
                    record_dir=a.record_dir, f_fee=a.fee, phi_E_root=a.phi_e, phi_F_root=a.phi_f,
                    pi0=a.pi0, dial=(a.dial == "on"), beta_P=a.beta_p, Omega0=a.omega0,
                    membership=rev3, duty_fund=(rev3 and a.fund == "on"), net_plant_capital=rev3, m_max=a.m_max,
@@ -872,7 +872,7 @@ class Stamping:
                     bid = round(min(c.beta, cost * (1.0 + self.margin[aid])), 6)   # batch C: bid down to the parent's ceiling
                 else:
                     bid = self.bid_of(aid, c.beta)
-                if bid <= c.beta + 1e-9 and w.unlocked(aid) + 1e-9 >= max(1.0, math.ceil(self.p.G_frac * bid)):
+                if bid <= c.beta + 1e-9 and w.unlocked(aid) + 1e-9 >= max(1.0, math.ceil((self.p.G_frac_nested if self.p.G_frac_nested is not None else self.p.G_frac) * bid)):
                     offers.append((aid, bid))
                     if self.kind.get(aid) == LEARNER:
                         self.c["learner_nested_offers"] += 1
@@ -2511,6 +2511,8 @@ def build_parser():
                     help="the learned deliverer's good delivery: `draw` — the task's own draw at b (the ruling after run 27, from Q4 on); `certain` — fulfilled (Q3's reading)")
     ap.add_argument("--child-prefers-nested", choices=["on", "off"], default="off",
                     help="Q5: the learned child offers for nested requests only, never for roots (a declared construction: the slot is committed on roots most of the run otherwise)")
+    ap.add_argument("--child-g-frac", type=float, default=None,
+                    help="Q5's parent calibration knob (the ruling after the parent's references): a nested case's guarantee fraction in place of G_frac (0.5) — raised in the calibration cell only")
     ap.add_argument("--parent-slot", choices=["first", "costliest", "median"], default="costliest",
                     help="Q5 (the learned parent): the slot — the first careful id, or the costliest careful actor (the default: a cheap parent cannot post a child at the rule's ceiling)")
     ap.add_argument("--parent-judge", choices=["careful", "stamp", "reject"], default="careful",

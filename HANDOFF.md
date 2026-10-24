@@ -2451,8 +2451,10 @@ declared construction that the child offers for nested work only (otherwise it i
 careful child, 4.4 SE); `results/redteam/Q5/child/calibration-v4/`, then the line (`line-v4/`) under whichever of the CEM planner and the head alone clears. **The learned parent built** (notes §26; a0336b40): three kinds of decision (delegate / judge / cancel), the references careful / rejecter / stamper / selective,
 the slot by cost (a declared construction). In the parent's calibration cell (children that never appeal, no audit on the tree) **no hand-written cheat clears the careful
 parent** on seeds 21–40 — the rejecter takes 188 nominal of guarantees a run and ends −71 ± 89 (it must then do the work itself at its own cost), the stamper −139 ± 56, the
-selective −116 ± 46; with a median-cost slot the parent rarely has a child at all. There is no ideal to calibrate the parent against as the ruling frames it — the reviewer's call.
-The dispute baseline before Q7; the resubmission plant not drafted.
+selective −116 ± 46; with a median-cost slot the parent rarely has a child at all. **The ruling on the references (notes §27):** a finding by hand — in the most favourable cell under the rules no greedy parent beats a careful one; the
+child's guarantee fraction raised in the parent's calibration cell only (`--child-g-frac`; `Params.G_frac_nested`, None by default — the goldens do not move) until the rejecter plainly
+pays: at 2.0 +302 ± 99 (3.1 SE; 1.5: +129 ± 86; 1.0: −48). The parent's calibration runs there (`results/redteam/Q5/parent/calibration-v4/`), then the line under the rules on the
+costliest slot (`line-v4/`). The dispute baseline before Q7; the resubmission plant not drafted.
 
 ## Maps
 

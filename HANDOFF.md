@@ -2468,8 +2468,11 @@ a construction (`attrib.attribute(tree=True)`, the parent role: the child's even
 construction's second fault: the child's award costs charged to the first cancel decision, asked in the award's tick after the award); the CEM beside −208 ± 95 with nine departures;
 the rejecter under the rules −492 ± 101 (82% of its rejections overturned on the child's appeal, selection 48 → 21 awards), the selective −403, the stamper −71. The hand's finding
 stands. Corrected twice more for the parent role: the "before" test by the ledger's position, and the parent's decisions on one child sharing its later events as Q4's pair did
-(`attrib.attribute(tree=True)`: the rejecter's signal now +45 let run / +25 cancel / +13 delegate). The calibration restarted under it (`calibration-v4b/`, then `line-v4b/`) — in
-flight, read in §32. The dispute baseline before Q7; the resubmission plant not drafted.
+(`attrib.attribute(tree=True)`: the rejecter's signal now +45 let run / +25 cancel / +13 delegate). The calibration again under it (`calibration-v4b/`; notes §32): **the direct clears** (+252 ± 103 against the careful parent, the ideal
++302 ± 99; it rejects every child and delegates half) **and the world model does not** (the CEM −6 ± 75, the head alone −7 ± 90 — it rejects every child but delegates one award in ten:
+the head's action 2 is reject at a judgment and self-execute at a delegation, and the latent does not separate them) — by the method ruling the model is at fault, by the stopping
+rule no planner work; the named candidate (not built) a kind-conditioned action for the parent's heads. Q5's parent closes on the hand unless the reviewer rules otherwise
+(the direct's line beside, or the kind-conditioned action and one more calibration). The dispute baseline before Q7; the resubmission plant not drafted.
 
 ## Maps
 

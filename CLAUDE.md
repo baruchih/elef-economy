@@ -588,7 +588,9 @@ consolidated into one standalone spec with the accepted revision kept verbatim i
   `attrib.attribute(tree=True)` for the parent role (the child's events reach the delegate decision on its root too; `tree_double_counted`). The uncalibrated line per the ruling (`Q5/parent/line-v4/`;
   notes §31): no win, −59 ± 87 — the head alone cancelled every child it posted, the construction's second fault (the child's award costs on the first cancel decision, asked after
   the award in its tick): under `tree` the "before" test reads the ledger's position and the parent's decisions on one child share its later events as Q4's pair did. The rejecter
-  under the rules −492 ± 101 (82% overturned). The calibration restarted under the corrected construction (`calibration-v4b/`, then `line-v4b/`), in flight.
+  under the rules −492 ± 101 (82% overturned). The calibration again under the corrected construction (`calibration-v4b/`; notes §32): the direct clears (+252 ± 103; it rejects every child and delegates half), the world model
+  does not (CEM −6 ± 75, the head alone −7 ± 90: action 2 is reject at a judgment and self-execute at a delegation, and the latent does not separate them) — the model at fault by the
+  method ruling, no planner work by the stopping rule; the kind-conditioned action the named candidate, not built. The parent's question closes on the hand unless ruled otherwise.
 - Money is checked by invariant I1 (conservation) — never silently create or lose credits.
 
 ## Vocabulary (spec Appendix C has the full notation)

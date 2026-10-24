@@ -16,6 +16,7 @@ class Params:
 
     # Guarantees, bonds, fees, caps (t=0 credits; frozen per case at its first lock, §4.5)
     G_frac: float = 0.5    # G = ceil(G_frac * B), min 1
+    G_frac_nested: Optional[float] = None   # a nested case's guarantee fraction when set (the red team's Q5 calibration knob; None: G_frac — the rule)
     G_V: float = 5.0       # reviewer bond = total liability
     D: float = 2.0         # court fee (<= G_V by construction)
     K: float = 5.0         # reimbursement cap, all roles

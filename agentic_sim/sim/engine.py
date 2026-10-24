@@ -1327,7 +1327,8 @@ class World:
             raise RuleError(f"award: {actor_id} is on verification duty")
         if actor_id == c.requester:
             raise RuleError("an actor cannot be awarded its own request")
-        G = max(1.0, math.ceil(self.p.G_frac * B))
+        g_frac = self.p.G_frac_nested if (not c.is_root and self.p.G_frac_nested is not None) else self.p.G_frac
+        G = max(1.0, math.ceil(g_frac * B))
         omega_base = self.p.omega_rate * B
         omega = omega_base * self.m_t                      # ω_t = ω_0 · m_t (1.2.0 §2.3)
         # 1.3.0 §2.4: Ω keeps the base; the raised part goes to the duty fund

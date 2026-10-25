@@ -33,7 +33,8 @@ REQ_KEYS = ("req_decisions", "req_rule_market", "req_rule_floor", "req_rule_pati
 POP_KEYS = ("learner_pop", "learner_pop_total", "learner_pop_n", "pop_departed", "pop_surplus_nominal", "pop_wealth_nominal_mean", "pop_tasks_received", "pop_req_spent_nominal",
             "pop_tasks_per_1000", "state_share", "awards_below_floor_share", "state_price_over_market", "false_approvals", "arrivals", "departures", "requester_wallet_mean",
             "undercut_awards", "awards_below_floor", "idle_for_bond_ticks", "learner_mix_by_period")   # the learned population (the ruling after run 32)
-REV_POP_KEYS = tuple(dict.fromkeys(POP_KEYS + ("P_t", "member_price_mean", "awarded", "departures", "arrivals", "requester_wallet_mean", "awards_below_floor_share", "state_price_over_market", "state_share",
+LIFE_KEYS = tuple(f"life_{k}_{st}" for k in ("real", "plant") for st in ("n", "post_award", "award_submit", "submit_seat", "raised_share", "seen_share", "seen_ticks")) + ("life_real_troop_share", "life_plant_floor_share")   # the plant's life by stage (the ruling after run 34)
+REV_POP_KEYS = tuple(dict.fromkeys(POP_KEYS + LIFE_KEYS + ("P_t", "member_price_mean", "awarded", "departures", "arrivals", "requester_wallet_mean", "awards_below_floor_share", "state_price_over_market", "state_share",
                                              "false_approvals", "suspensions", "bad_plants_approved", "good_plants_rejected", "audits_held", "audits_overturning", "audit_overturn_rate", "F_hat")))   # the reviewers in self-play (the ruling after run 33): honesty first
 BID_KEYS = ("learner_bid_decisions", "learner_bid_ratchet", "learner_bid_undercut", "learner_bid_withheld", "learner_bid_awards", "learner_bids_lost", "learner_bid_mean_over_cost",
             "learner_held_real_mean", "slot_awards", "slot_reviews", "slot_rho", "slot_cost", "slot_delivery_income", "slot_guarantees_forfeited", "slot_effort_burned", "P_t", "member_price_mean", "awarded")
@@ -278,6 +279,9 @@ def main(argv=None):
             for k in tuple(k for k in REV_POP_KEYS if k not in ("learner_pop", "learner_mix_by_period", "F_hat")):
                 summary[name][k] = mse([r.get(k) if r.get(k) not in ("", None) else None for r in rows])
             summary[name]["F_hat"] = mse([float(r["F_hat"]) if r.get("F_hat") not in ("", None) else None for r in rows])
+            for st in ("post_award", "award_submit", "submit_seat", "raised_share", "seen_share", "seen_ticks"):   # the plant's life by stage: plant − real per seed
+                d = [float(r[f"life_plant_{st}"]) - float(r[f"life_real_{st}"]) for r in rows if r.get(f"life_plant_{st}") not in ("", None) and r.get(f"life_real_{st}") not in ("", None)]
+                summary[name][f"life_d_{st}"] = mse(d) if len(d) > 1 else (float("nan"), float("nan"))
         if a.role in ("bidder", "reviewer") and rows and rows[0].get("learner_pop") not in (None, "", "off"):
             summary[name]["learner_pop"] = rows[0].get("learner_pop")
             mixes = [json.loads(r["learner_mix_by_period"]) for r in rows if r.get("learner_mix_by_period")]   # the action mix by period, pooled over the seeds
@@ -395,10 +399,11 @@ def main(argv=None):
                 f.write("\nThe learned population — N learner slots sharing one policy in self-play (`--learner-pop`); the measures the ruling after run 32 fixed for population cells: the members in nominal surplus "
                         "(the slots' wealth now or out, less their wealth in, nominal credits), the customers in tasks per credit (every requester's settled fulfilled deliveries per 1,000 nominal credits spent); "
                         "P_t and the members' price, the state's share of the deliveries, the awards under the floor and the state's price over the market (the floor's binding), honesty, arrivals and departures. Paired columns are against the all-ratchet (`careful`).\n\n"
-                        "| policy | slots (alive / total) | nominal surplus | paired | wealth nominal (mean, alive) | departed | tasks per 1,000 (customers) | paired | P_t close | paired | members' price | paired | state share | awards under floor (share) | state price − B̄ | false approvals | arrivals | departures | requesters' wallet | idle for bond |\n"
-                        "|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|\n")
+                        "| policy | slots (alive / total) | nominal surplus | paired | real (the slots' lifetime) | paired | wealth nominal (mean, alive) | departed | tasks per 1,000 (customers) | paired | P_t close | paired | members' price | paired | state share | awards under floor (share) | state price − B̄ | false approvals | arrivals | departures | requesters' wallet | idle for bond |\n"
+                        "|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|\n")
                 for name, s in summary.items():
-                    f.write(f"| {name} | {fmt(s['learner_pop_n'][0])} / {fmt(s['learner_pop_total'][0])} | {fmt(s['pop_surplus_nominal'][0])} ± {fmt(s['pop_surplus_nominal'][1])} | {pp(s, 'pop_surplus_nominal')} | {fmt(s['pop_wealth_nominal_mean'][0])} | {fmt(s['pop_departed'][0])} | "
+                    pm = s.get("paired_minus_careful"); real_p = f"{pm[0]:+.1f} ± {pm[1]:.1f}" if pm else "—"
+                    f.write(f"| {name} | {fmt(s['learner_pop_n'][0])} / {fmt(s['learner_pop_total'][0])} | {fmt(s['pop_surplus_nominal'][0])} ± {fmt(s['pop_surplus_nominal'][1])} | {pp(s, 'pop_surplus_nominal')} | {s['lifetime_real_wealth'][0]:.1f} ± {s['lifetime_real_wealth'][1]:.1f} | {real_p} | {fmt(s['pop_wealth_nominal_mean'][0])} | {fmt(s['pop_departed'][0])} | "
                             f"{fmt(s['pop_tasks_per_1000'][0])} | {pp(s, 'pop_tasks_per_1000')} | {fmt(s['P_t'][0])} ± {fmt(s['P_t'][1])} | {pp(s, 'P_t')} | {fmt(s['member_price_mean'][0])} | {pp(s, 'member_price_mean')} | {fmt(s['state_share'][0])} | "
                             f"{fmt(s['awards_below_floor'][0])} ({fmt(s['awards_below_floor_share'][0])}) | {fmt(s['state_price_over_market'][0])} | {fmt(s['false_approvals'][0])} | {fmt(s['arrivals'][0])} | {fmt(s['departures'][0])} | {fmt(s['requester_wallet_mean'][0])} | {fmt(s['idle_for_bond_ticks'][0])} |\n")
                 f.write("\nThe action mix by period (ratchet / undercut / withhold, pooled over the seeds; the decisions a period, mean over the seeds):\n\n")
@@ -446,19 +451,37 @@ def main(argv=None):
             f.write("\nThe reviewers in self-play — every member a learner slot sharing one policy (`--learner-pop all --learner-role reviewer`); the references on the same slots: `careful` (all-careful), `stamper` (all-stamper), `hand` (each slot's disposition by hand — run 24's 60/40). "
                     "Honesty first: the run's standing false approvals, the bad plants approved and the good rejected (the plant record), the dial's F̂, the suspensions, the audit layer's overturn rate (settled roots with an audit seat whose initial approval it overturned, over those with a seat); "
                     "then the members' nominal surplus and the customers' tasks per 1,000 nominal credits, P_t and the members' price, the state's share, arrivals and departures. Paired columns are against `careful`.\n\n"
-                    "| policy | slots (alive / total) | false approvals (run) | paired | bad plants approved | paired | good plants rejected | F̂ | suspensions | paired | audits held | overturn rate | paired | nominal surplus | paired | tasks per 1,000 (customers) | paired | P_t close | paired | members' price | state share | awarded | arrivals | departures | paired | requesters' wallet | idle for bond |\n"
-                    "|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|\n")
+                    "| policy | slots (alive / total) | false approvals (run) | paired | bad plants approved | paired | good plants rejected | F̂ | suspensions | paired | audits held | overturn rate | paired | nominal surplus | paired | real (the slots' lifetime) | paired | tasks per 1,000 (customers) | paired | P_t close | paired | members' price | state share | awarded | arrivals | departures | paired | requesters' wallet | idle for bond |\n"
+                    "|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|\n")
             for name, s in summary.items():
                 if (s.get("learner_pop") or "off") == "off":
                     continue
+                pm = s.get("paired_minus_careful")
+                real_p = f"{pm[0]:+.1f} ± {pm[1]:.1f}" if pm else "—"
                 f.write(f"| {name} | {fmt(s['learner_pop_n'][0])} / {fmt(s['learner_pop_total'][0])} | {fmt(s['false_approvals'][0])} ± {fmt(s['false_approvals'][1])} | {pp(s, 'false_approvals')} | {fmt(s['bad_plants_approved'][0])} | {pp(s, 'bad_plants_approved')} | {fmt(s['good_plants_rejected'][0])} | {fmt(s['F_hat'][0])} | "
-                        f"{fmt(s['suspensions'][0])} | {pp(s, 'suspensions')} | {fmt(s['audits_held'][0])} | {fmt(s['audit_overturn_rate'][0])} | {pp(s, 'audit_overturn_rate')} | {fmt(s['pop_surplus_nominal'][0])} ± {fmt(s['pop_surplus_nominal'][1])} | {pp(s, 'pop_surplus_nominal')} | "
+                        f"{fmt(s['suspensions'][0])} | {pp(s, 'suspensions')} | {fmt(s['audits_held'][0])} | {fmt(s['audit_overturn_rate'][0])} | {pp(s, 'audit_overturn_rate')} | {fmt(s['pop_surplus_nominal'][0])} ± {fmt(s['pop_surplus_nominal'][1])} | {pp(s, 'pop_surplus_nominal')} | {s['lifetime_real_wealth'][0]:.1f} ± {s['lifetime_real_wealth'][1]:.1f} | {real_p} | "
                         f"{fmt(s['pop_tasks_per_1000'][0])} | {pp(s, 'pop_tasks_per_1000')} | {fmt(s['P_t'][0])} ± {fmt(s['P_t'][1])} | {pp(s, 'P_t')} | {fmt(s['member_price_mean'][0])} | {fmt(s['state_share'][0])} | {fmt(s['awarded'][0])} | {fmt(s['arrivals'][0])} | {fmt(s['departures'][0])} | {pp(s, 'departures')} | {fmt(s['requester_wallet_mean'][0])} | {fmt(s['idle_for_bond_ticks'][0])} |\n")
             f.write("\nThe action mix by period (care / approve blind / reject blind, pooled over the seeds; the decisions a period, mean over the seeds):\n\n")
             for name, s in summary.items():
                 mix = s.get("mix_by_period")
                 if mix:
                     f.write(f"- **{name}**: " + "; ".join(f"p{i} {fmt(m[0])}/{fmt(m[1])}/{fmt(m[2])} ({d:.0f})" for i, (m, d) in enumerate(zip(mix, s["decisions_by_period"]))) + "\n")
+            if any(s.get("life_real_n") for s in summary.values()):   # the plant's life by stage beside a real root's (the ruling after run 34)
+                def lf(s, k, nd=2):
+                    v = s.get(k); return f"{v[0]:.{nd}f}" if v and v[0] is not None and not np.isnan(v[0]) else "—"
+                def ld(s, st, nd=2):
+                    v = s.get(f"life_d_{st}"); return f"{v[0]:+.{nd}f} ± {v[1]:.{nd}f}" if v and not np.isnan(v[0]) else "—"
+                f.write("\nThe plant's life by stage beside a real root's (the ruling after run 34; a conformance diagnostic on the instrument — a plant takes every step in the pass a real root would): per root that reached its first initial seat, by case kind, "
+                        "the ticks posted → awarded, awarded → submitted, submitted → seated (the review's assignment), the share raised, the share at the floor (a plant unbid for w_A) or delivered by a troop (a real root unbid for w_A), the share whose reviewer had the case in its seen set and the ticks from the sighting to the seat. "
+                        "Each stage as real / plant, then plant − real paired by seed (mean ± SE).\n\n"
+                        "| policy | roots seated (real / plant) | posted → awarded | Δ | awarded → submitted | Δ | submitted → seated | Δ | raised share | Δ | troop (real) / floor (plant) | seen share | Δ | ticks since sighting | Δ |\n"
+                        "|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|\n")
+                for name, s in summary.items():
+                    if not s.get("life_real_n"):
+                        continue
+                    f.write(f"| {name} | {lf(s, 'life_real_n', 1)} / {lf(s, 'life_plant_n', 1)} | {lf(s, 'life_real_post_award')} / {lf(s, 'life_plant_post_award')} | {ld(s, 'post_award')} | {lf(s, 'life_real_award_submit')} / {lf(s, 'life_plant_award_submit')} | {ld(s, 'award_submit')} | "
+                            f"{lf(s, 'life_real_submit_seat')} / {lf(s, 'life_plant_submit_seat')} | {ld(s, 'submit_seat')} | {lf(s, 'life_real_raised_share', 3)} / {lf(s, 'life_plant_raised_share', 3)} | {ld(s, 'raised_share', 3)} | {lf(s, 'life_real_troop_share', 3)} / {lf(s, 'life_plant_floor_share', 3)} | "
+                            f"{lf(s, 'life_real_seen_share', 3)} / {lf(s, 'life_plant_seen_share', 3)} | {ld(s, 'seen_share', 3)} | {lf(s, 'life_real_seen_ticks')} / {lf(s, 'life_plant_seen_ticks')} | {ld(s, 'seen_ticks')} |\n")
     print(json.dumps(summary, indent=1, default=float))
 
 

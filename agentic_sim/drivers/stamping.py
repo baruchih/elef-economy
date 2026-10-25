@@ -184,6 +184,10 @@ class Task:
     parent_learner: bool = False             # Q5 (the learned parent): this nested case is the learned parent's child
     parent_rejected_blind: bool = False      # Q5: … and the parent rejected it blind
     pair_stamped: bool = False               # Q4: … and approved it blind
+    t_seated: Optional[int] = None           # the plant's life by stage (the ruling after run 34): the tick the root's initial review was assigned
+    seated_seen: bool = False                #   … and whether that reviewer had the case in its seen set (a free member saw it available)
+    seated_seen_ticks: Optional[int] = None  #   … the ticks from the sighting to the seat
+    raised_n: int = 0                        #   the ceiling's raises (a plant is raised as the population's requesters raise, 2.6.1)
 
 
 @dataclass
@@ -490,6 +494,12 @@ class Stamping:
                   "state_rejections": 0, "troop_truth_redrawn": 0,
                   "tell_plant_read_plant": 0, "tell_plant_read_real": 0, "tell_real_read_plant": 0, "tell_real_read_real": 0, "tell_false_approvals": 0,
                   "plant_bids_lost": 0, "plant_lag_sum": 0, "plant_lag_n": 0, "learner_false_approvals": 0,
+                  # the plant's life by stage beside a real root's (the ruling after run 34; a conformance diagnostic on the instrument): at the root's first initial
+                  # review seat — posted → awarded, awarded → submitted, submitted → seated (the review's t_assign), the raises, the floor (a plant) or the
+                  # troop (a real root), the reviewer's seen set — by case kind
+                  "life_real_n": 0, "life_plant_n": 0, "life_real_post_award": 0, "life_plant_post_award": 0, "life_real_award_submit": 0, "life_plant_award_submit": 0,
+                  "life_real_submit_seat": 0, "life_plant_submit_seat": 0, "life_real_raised": 0, "life_plant_raised": 0, "life_real_troop": 0, "life_plant_floor": 0,
+                  "life_real_seen": 0, "life_plant_seen": 0, "life_real_seen_ticks": 0, "life_plant_seen_ticks": 0,
                   # Q3 — the learned deliverer (--learner-role deliverer): its quality decisions and what became of them
                   "learner_work_decisions": 0, "learner_bad_deliveries": 0, "learner_good_deliveries": 0, "learner_bad_approved": 0, "learner_bad_caught": 0,
                   "learner_good_vested": 0, "learner_good_final_n": 0, "learner_forfeited": 0.0, "learner_bad_paid": 0.0, "learner_effort_saved": 0.0,
@@ -544,6 +554,21 @@ class Stamping:
         self.title_n = 0
 
     # -- populations -------------------------------------------------------------
+    def _life_columns(self) -> dict:
+        """The plant's life by stage beside a real root's (the ruling after run 34): means per root that reached its first initial seat, by case kind."""
+        out = {}
+        for k in ("real", "plant"):
+            n = self.c[f"life_{k}_n"]
+            out[f"life_{k}_n"] = n
+            for st in ("post_award", "award_submit", "submit_seat"):
+                out[f"life_{k}_{st}"] = round(self.c[f"life_{k}_{st}"] / n, 4) if n else ""
+            out[f"life_{k}_raised_share"] = round(self.c[f"life_{k}_raised"] / n, 4) if n else ""
+            out[f"life_{k}_seen_share"] = round(self.c[f"life_{k}_seen"] / n, 4) if n else ""
+            out[f"life_{k}_seen_ticks"] = round(self.c[f"life_{k}_seen_ticks"] / self.c[f"life_{k}_seen"], 4) if self.c[f"life_{k}_seen"] else ""
+        out["life_real_troop_share"] = round(self.c["life_real_troop"] / self.c["life_real_n"], 4) if self.c["life_real_n"] else ""
+        out["life_plant_floor_share"] = round(self.c["life_plant_floor"] / self.c["life_plant_n"], 4) if self.c["life_plant_n"] else ""
+        return out
+
     def verdict(self, reviewer: str, truth: bool, view=None, r=None) -> tuple[str, float]:
         """A stamper answers F at no cost. A careful reviewer answers the truth with probability a
         and pays its care cost, 2 or 3 credits of real resources — or as much of it as its unlocked
@@ -1286,6 +1311,8 @@ class Stamping:
                 continue
             try:
                 w.raise_ceiling(cid, target)
+                if cid in self.tasks:
+                    self.tasks[cid].raised_n += 1
             except (RuleError, LedgerError):
                 pass                                         # the wallet does not allow it yet; the flag stands
 
@@ -1888,6 +1915,26 @@ class Stamping:
                             self.c["troop_panel_seats"] += 1
                         continue
                     on_probation = w.actor(r.reviewer).probation
+                    task = self.tasks[cid]
+                    if r.role == "initial" and task.t_seated is None and cid not in self.nested_parent and c.t_award is not None and c.t_submit is not None:
+                        # the plant's life by stage (the ruling after run 34): the root's first initial seat, by case kind
+                        task.t_seated = r.t_assign
+                        sn = self.seen.get((r.reviewer, cid))
+                        task.seated_seen = sn is not None
+                        k = "plant" if task.plant else "real"
+                        self.c[f"life_{k}_n"] += 1
+                        self.c[f"life_{k}_post_award"] += c.t_award - c.t_post
+                        self.c[f"life_{k}_award_submit"] += c.t_submit - c.t_award
+                        self.c[f"life_{k}_submit_seat"] += r.t_assign - c.t_submit
+                        self.c[f"life_{k}_raised"] += int(task.raised_n > 0)
+                        if task.plant:
+                            self.c["life_plant_floor"] += int(bool(c.plant_at_floor))
+                        else:
+                            self.c["life_real_troop"] += int(bool(c.troop_award))
+                        if sn is not None:
+                            task.seated_seen_ticks = r.t_assign - sn[0]
+                            self.c[f"life_{k}_seen"] += 1
+                            self.c[f"life_{k}_seen_ticks"] += task.seated_seen_ticks
                     v, cost = self.verdict(r.reviewer, self.tasks[cid].fulfilled, view=view, r=r)
                     if r.reviewer in self.state_rejecters and w.is_troop(c.actor) and not self.tasks[cid].plant:
                         v = N                            # 2.1.0 §8.9 red team: rejects the state's work (reads the case's actor — declared)
@@ -2571,6 +2618,7 @@ class Stamping:
                     "bad_plants_approved": self.c["bad_plants_approved"], "good_plants_rejected": self.c["good_plants_rejected"],
                     "audits_held": self.c["audits_held"], "audits_overturning": self.c["audits_overturning"],
                     "audit_overturn_rate": (round(self.c["audits_overturning"] / self.c["audits_held"], 4) if self.c["audits_held"] else ""),
+                    **self._life_columns(),
                     "learner_departed_now": (int(self.learner_id not in self.actors) if self.learner_id else ""),
                     "tell_plant_read_plant": self.c["tell_plant_read_plant"], "tell_plant_read_real": self.c["tell_plant_read_real"],
                     "tell_real_read_plant": self.c["tell_real_read_plant"], "tell_real_read_real": self.c["tell_real_read_real"],

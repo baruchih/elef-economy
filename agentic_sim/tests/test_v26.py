@@ -42,7 +42,9 @@ def test_a_plant_is_posted_as_a_root_in_sequence_under_a_fresh_name_with_the_pot
     c = w.cases[p]
     assert c.state == "AVAILABLE" and c.is_root and c.plant is False and c.plant_market and c.t_post == 0 and c.actor is None
     assert c.requester.startswith("plant_req:") and w.ledger.resolve(c.requester) == PLANT_REQ
-    assert c.beta == pytest.approx(w.price_level())              # before the first closed period: the drivers' default, P_t
+    assert c.beta == pytest.approx(45.0)                          # the real root posted so far: its ceiling relative to B̄ at posting (45/20) applied to the
+                                                                  # current B̄ (20) — before the first close the draws read the roots posted so far (the
+                                                                  # correction after run 34's addendum); the default P_t only before the first real root
     assert c.posting_lock == pytest.approx(c.beta + c.phi_E + c.phi_F)     # the all-in without a fee: a plant pays none
     assert w.ledger.lock_record(c.requester, f"post:{p}") == pytest.approx(c.posting_lock)
     assert any(e.kind == "mint_plant" and e.dst == PLANT_REQ and e.amount == pytest.approx(c.posting_lock) for e in w.ledger.events)
@@ -111,6 +113,8 @@ def test_a_good_plant_vests_its_price_to_the_plant_actor_and_everything_is_destr
 
 def test_a_plant_unbid_by_w_A_goes_to_its_actor_at_the_states_price_counted_apart_from_the_troops():
     w = make_world(w_A=3)
+    for who in ("A", "B"):                                            # the free members committed: a real root in the plant's place would go to a troop
+        w.award(w.post_root("H", 24), who, 20, 9)
     p = w.post_plant(True)
     w.advance(6)
     c = w.cases[p]
@@ -153,9 +157,9 @@ def test_the_draws_read_the_trailing_real_roots_after_a_closed_period():
     w.advance(3)
     w.submit(q)                                                   # a real delivery three ticks after its award
     w.advance(12)                                                 # the period closes: the trailing window holds β 24, τ 9, delivery 3
-    assert w._trailing and w._trailing[-1]["betas"] == [24.0] and w._trailing[-1]["taus"] == [9] and w._trailing[-1]["deliv"] == [3]
+    assert w._trailing and w._trailing[-1]["betas"] == [1.2] and w._trailing[-1]["taus"] == [9] and w._trailing[-1]["deliv"] == [3]   # 2.6.2: β/B̄ at posting (24/20)
     p = w.post_plant(True)
-    assert w.cases[p].beta == pytest.approx(24.0)                 # the ceiling drawn from the real roots'
+    assert w.cases[p].beta == pytest.approx(24.0)                 # the ceiling drawn from the real roots': the ratio 1.2 on the current B̄ (the last period's 20)
     w.award(p, "B", 18, 9)
     assert w.cases[p].plant_submit_at == w.t + 3                  # the plant actor's time to submission, the real deliveries'
 
@@ -176,7 +180,9 @@ def test_the_draws_read_a_rolling_window_of_the_last_k_real_roots_not_the_closed
     for _ in range(12):
         p = w.post_plant(True)
         drawn.add(w.cases[p].beta)
-    assert drawn <= {30.0, 40.0} and len(drawn) == 2, drawn       # both of the window, never the box's 24
+    window = {round(r * w.mean_awarded_price(), 6) for r in w._recent["betas"][-2:]}   # 2.6.2: the ratios β 30 / B̄ 20 and β 40 / B̄ 23 on the current B̄ 36
+    boxed = round(w._recent["betas"][0] * w.mean_awarded_price(), 6)                   # the box's 24 / 20 on it
+    assert drawn <= window and len(drawn) == 2 and boxed not in drawn, (drawn, window)   # both of the window, never the box's
     check_all(w)
 
 
@@ -186,13 +192,13 @@ def test_the_ceiling_window_reads_the_roots_ceilings_as_posted_and_the_plant_req
     population's requesters raise theirs: the difference minted as the posting was (no fee), locked, I29 and I39 holding."""
     w = make_world(period_ticks=10, period_plants=10_000)
     q = w.post_root("H", 24)                                      # posted, never awarded: in the window all the same
-    assert w._recent["betas"] == [24.0] and w._cur_trailing["betas"] == [24.0]
+    assert w._recent["betas"] == [1.2] and w._cur_trailing["betas"] == [1.2]   # 2.6.2: as posted, relative to B̄ at posting (24/20)
     w.award(q, "A", 20, 9)
     w.advance(3)
     w.submit(q)
     q2 = w.post_root("H", 12)
     w.raise_ceiling(q2, 30)                                       # raised: the window keeps the ceiling as posted
-    assert w._recent["betas"] == [24.0, 12.0] and w.cases[q2].beta == 30
+    assert w._recent["betas"] == [1.2, 0.6] and w.cases[q2].beta == 30           # (12/20; the raise does not rewrite the entry)
     w.advance(12)                                                 # the period closes: k = 2, the window β 24, 12
     p = w.post_plant(True)
     c = w.cases[p]
@@ -205,10 +211,77 @@ def test_the_ceiling_window_reads_the_roots_ceilings_as_posted_and_the_plant_req
     assert c.posting_lock == pytest.approx(before_lock + 6) and c.omega == 0 and w.plants_raised == 1
     if minted_before is not None:
         assert w.bank_minted["mint_plant"] == pytest.approx(minted_before + 6)
-    assert w._recent["betas"] == [24.0, 12.0]                     # a plant's ceiling never enters the window; the raise neither
+    assert w._recent["betas"] == [1.2, 0.6]                       # a plant's ceiling never enters the window; the raise neither
     check_all(w)
     w.award(p, "B", 18, 9)                                        # the market's report at the raised ceiling: the pots drawn, the lock gone
     assert w.ledger.lock_record(c.requester, f"post:{p}") == 0
+    check_all(w)
+
+
+def test_a_plant_past_w_A_joins_the_pass_and_is_left_to_the_market_while_a_free_fundable_member_exists():
+    """The conformance correction after run 34's addendum (Appendix S): a plant no bid has taken by w_A goes to the floor only where a real root
+    in its place would go to a troop — beyond the free fundable members, oldest first (1.7.1). 2.6.0–2.7.0 awarded every plant past w_A at the
+    floor at once: 14% of the plants in run 24's world against 0.8% of the real roots delivered by a troop (notes §50)."""
+    w = make_world(w_A=3)                                         # A and B free and fundable
+    p = w.post_plant(True)
+    w.advance(6)
+    c = w.cases[p]
+    assert c.state == "AVAILABLE" and c.actor is None and not c.plant_at_floor and w.plants_awarded_at_floor == 0
+    assert w.awards_left_to_members >= 1 and w.awards_waiting_now == 1 and w.members_free_now == 2   # the plant counted to the market, as a root is
+    check_all(w)
+    # one free member, a real root and a plant both past w_A: the older is the market's, the younger the state's — the plant at the floor
+    w2 = make_world(w_A=3)
+    w2.award(w2.post_root("H", 24), "B", 20, 9)                   # B committed: A the one free fundable member
+    q = w2.post_root("H", 24)
+    p2 = w2.post_plant(True)
+    w2.advance(6)
+    assert w2.cases[q].state == "AVAILABLE" and not w2.cases[q].troop_award          # the older, left to the one free member
+    assert w2.cases[p2].plant_at_floor and w2.plants_awarded_at_floor == 1           # the younger, beyond the count: the floor
+    assert w2.members_free_now == 1 and w2.cases[p2].state == "SUBMITTED"       # the floor's plant actor submits; the root still waits for A's bid
+    check_all(w2)
+    # the order reversed: the plant is the market's and the real root the state's
+    w3 = make_world(w_A=3)
+    w3.award(w3.post_root("H", 24), "B", 20, 9)                   # B committed: A the one free fundable member
+    p3 = w3.post_plant(True)
+    q3 = w3.post_root("H", 24)
+    w3.advance(6)
+    assert w3.cases[p3].state == "AVAILABLE" and not w3.cases[p3].plant_at_floor and w3.plants_awarded_at_floor == 0
+    assert w3.cases[q3].troop_award or w3.cases[q3].refused is not None            # summoned, or refused and told, as the pass has it
+    check_all(w3)
+
+
+def test_before_the_first_close_the_draws_read_the_real_roots_posted_so_far():
+    """The second correction after run 34's addendum: k counts the closed periods, so before the first close the pool was empty and the draw
+    fell to its default — τ for the submission (2 ticks, where every real delivery took one) and P_t for the ceiling; the first period's plants
+    submitted a tick late and were told by it (notes §50). Now the pool is the real roots posted so far; the default serves only before the
+    first real root."""
+    w = make_world()
+    q = w.post_root("H", 24)                                      # β/B̄ = 1.2 at the posting (no award yet: B̄ is P_t, 20)
+    w.award(q, "A", 20, 9)
+    w.advance(1)
+    w.submit(q)                                                   # a real delivery one tick after its award
+    assert not w._trailing and w._recent["deliv"] == [1]
+    p = w.post_plant(True)
+    assert w.cases[p].beta == pytest.approx(24.0)                 # the ratio on the current B̄ (20), not P_t by default
+    w.award(p, "B", 18, 9)
+    assert w.cases[p].plant_submit_at == w.t + 1                  # the real deliveries' one tick, not τ (9) by default
+    check_all(w)
+
+
+def test_erratum_2_6_2_the_ceiling_is_a_ratio_to_the_market_price_at_posting_applied_to_the_current_B_bar():
+    """Erratum 2.6.2 (§7.6): the window holds β/B̄ at posting and a plant applies the drawn ratio to the B̄ of its own posting — under a price
+    trend 2.6.1's drawn β lagged the live market rule and the plants were raised apart (10 points more often in §50's learned population)."""
+    w = make_world(period_ticks=10, period_plants=10_000)
+    q = w.post_root("H", 24)                                      # 1.2 × the market (20)
+    w.award(q, "A", 20, 9)
+    w.advance(3)
+    w.submit(q)
+    w.advance(12)                                                 # the period closes: k = 1, B̄ 20
+    q2 = w.post_root("H", 60)                                     # 3.0 × the market (20, the last period's)
+    w.award(q2, "B", 50, 9)                                       # the market moves: B̄ is now 50
+    assert w.mean_awarded_price() == pytest.approx(50.0) and w._recent["betas"][-1] == pytest.approx(3.0)
+    p = w.post_plant(True)
+    assert w.cases[p].beta == pytest.approx(150.0)                # 3.0 × 50 — relative to the market, not the 60 the root was posted at
     check_all(w)
 
 
@@ -290,6 +363,8 @@ def test_plant_market_off_is_2_5_0_create_plant_built_submitted_and_post_plant_r
 
 def test_a_plant_unbid_by_w_A_is_refused_for_capacity_as_a_root_would_be_and_takes_no_place_in_N_T():
     w = make_world(w_A=3, N_T=1)                                  # a delivery needs two places: the state refuses every award
+    for who in ("A", "B"):                                        # the free members committed: the plant reaches the floor's path
+        w.award(w.post_root("H", 24), who, 20, 9)
     p = w.post_plant(True)
     w.advance(8)
     c = w.cases[p]
@@ -304,6 +379,8 @@ def test_a_plant_unbid_by_w_A_is_refused_for_credit_above_the_wall_and_served_on
     w = make_world(w_A=3, period_ticks=10, period_plants=10_000, debt_bound_periods=1)
     w.advance(12)                                                 # a period closed: the wall is that period's fee income
     assert w._debt_bound() < float("inf")
+    for who in ("A", "B"):                                        # the free members committed: the plant reaches the floor's path
+        w.award(w.post_root("H", 24), who, 20, 9)
     p = w.post_plant(False)
     w._debt_bound = lambda: -1.0                                  # the wall below the debt (0): the pass refuses every delivery for credit
     w.advance(w.t + 4)

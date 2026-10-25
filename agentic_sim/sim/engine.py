@@ -1241,8 +1241,9 @@ class World:
                 self.below_market_flagged += 1
                 self.period["below_market"] += 1
             self._mark_reservation(c, self.t)           # 2.4.0 §2.2: the floor is a constant, so the mark is set from tick 0
-            self._cur_trailing["betas"].append(c.beta)  # 2.6.1 (erratum): a plant's ceiling is drawn from the real roots' ceilings AS POSTED
-            self._recent["betas"].append(c.beta)
+            B_bar_post = self.mean_awarded_price() or c.beta
+            self._cur_trailing["betas"].append(c.beta / B_bar_post)   # 2.6.2 (erratum): the ceiling AS POSTED relative to the market price at posting, β/B̄ —
+            self._recent["betas"].append(c.beta / B_bar_post)         # a plant draws the ratio and applies it to the B̄ of its own posting (2.6.1 drew β itself)
             self._log(c, f"posted root beta={beta}; all-in {all_in:g} locked at index {idx:g}, m {m_post:g}"
                       + (f"; flagged below market (B̄ {self.mean_awarded_price():g})" if c.below_market else "")
                       + (f"; marked below the state's reservation ({self.p.state_reservation:g})" if c.below_reservation else ""))
@@ -3030,7 +3031,10 @@ class World:
         last k real roots' terms, k the count the last `trailing_periods` closed periods hold — not the closed periods' own box, whose
         contents changed only at a boundary and so carried the period's rhythm into every plant's terms."""
         k = sum(len(per[key]) for per in self._trailing)
-        pool = self._recent[key][-k:] if k > 0 else []
+        # the conformance correction after run 34's addendum (Appendix S): before the first close — k 0 — the pool is the real roots posted so
+        # far, not empty; the default serves only before the first real root (the first period's plants submitted at τ, 2 ticks, where every
+        # real delivery took one, and posted at P_t; §50)
+        pool = self._recent[key][-k:] if k > 0 else list(self._recent[key])
         if not pool:
             return default
         h = int(hashlib.sha256(f"{self.history.head}|{salt}".encode()).hexdigest()[:12], 16)
@@ -3053,7 +3057,11 @@ class World:
             raise RuleError("post_plant: truth is True (good) or False (bad)")
         if not self.p.floating:
             raise RuleError("post_plant: a plant's life in the market needs the price of work (2.0.0)")
-        beta = round(float(self._plant_draw("betas", f"beta{self._n_case + 1}", self.price_level())), 6)
+        # 2.6.2 (erratum, the ruling after run 34's addendum): the ceiling is drawn as a ratio to the market price at posting (β/B̄, the real roots'
+        # as posted) and applied to the current B̄ — under a price trend 2.6.1's drawn β lagged the live market rule and the plants were raised
+        # apart (§50); the ratio default 1.0 before the first real root
+        B_bar_now = self.mean_awarded_price() or self.price_level()
+        beta = round(float(self._plant_draw("betas", f"beta{self._n_case + 1}", 1.0)) * B_bar_now, 6)
         idx = self.ledger.index()
         D, K, GV = self.p.D * idx, self.p.K * idx, self.p.G_V * idx
         phi_E, phi_F = self.p.phi_E_root * idx, self.p.phi_F_root * idx
@@ -3095,6 +3103,28 @@ class World:
         self.plants_posted += 1
         self.period["plants_posted"] += 1
         return cid
+
+    def _plant_floor_award(self, c: Case, tick: int):
+        """2.6.0 §2.1: a plant past w_A beyond the free fundable members goes to its plant actor at the state's price p_T and τ_T — the path
+        follows the summons pass, refusals included (Appendix S, the ruling after run 21): a plant the pass would refuse for capacity or credit
+        is marked and told as a real root would be and waits; it takes no place in N_T and draws no loan."""
+        pT = self._state_price(c.beta)
+        if self._capacity_refuses(2):
+            c.refused_capacity += 1
+            c.capacity_wait_max = max(c.capacity_wait_max, tick - c.t_post + 1)
+            if not c.capacity_told:
+                self._log(c, f"refused for capacity: {self._places_held()} of N_T = {self.p.N_T} places held; told; waited {tick - c.t_post + 1} seating steps")
+            self._mark_refused(c, "capacity", tick)
+            self.plants_refused_capacity += 1
+            return
+        if self.bank_on and self.debt > self._debt_bound() + 1e-9:
+            c.refused_credit += 1
+            if c.refused != "credit":
+                self._log(c, f"refused for credit: the state's debt {self.debt:g} is above the wall {self._debt_bound():g}; told")
+            self._mark_refused(c, "credit", tick)
+            self.plants_refused_credit += 1
+            return
+        self._award_plant(c, min(pT, c.beta), self.p.tau_T, at_floor=True)
 
     def _award_plant(self, c: Case, B: float, tau: int, report_by: Optional[str] = None, at_floor: bool = False):
         """2.6.0 §2.1: the plant actor — a fresh name aliasing the plant wallet — takes the award at the market's reported price and
@@ -3933,41 +3963,27 @@ class World:
         # the oldest request it can, so the oldest w_A-old requests, as many as there are free fundable members, are the
         # market's and the rest are the state's — summoned for, oldest first. (1.4.0–1.7.0 read the rule per tick: one
         # free member blocked every award summons that tick, however long the queue — run 9's 50/50 collapse.)
-        if self.p.plant_market:
-            # 2.6.0 §2.1: a plant no bid has taken by w_A goes to its plant actor at the state's price, as a real root would go to a
-            # troop — counted apart from the state's deliveries (it is not one); below the state's price it waits, as a real root does
-            for c in list(self._live_cases.values()):
-                if c.plant is not None and c.plant_market and c.state == "AVAILABLE" and tick - c.t_post + 1 >= self.p.w_A:
-                    pT = self._state_price(c.beta)
-                    if c.beta + 1e-9 < pT:
-                        continue                            # below the state's price: waits, as a real root does
-                    # Appendix S (the ruling after run 21): the p_T path follows the summons pass, refusals included — a plant is marked
-                    # refused for capacity or credit as a real root would be, told, and waits; it takes no place in N_T and draws no loan
-                    if self._capacity_refuses(2):
-                        c.refused_capacity += 1
-                        c.capacity_wait_max = max(c.capacity_wait_max, tick - c.t_post + 1)
-                        if not c.capacity_told:
-                            self._log(c, f"refused for capacity: {self._places_held()} of N_T = {self.p.N_T} places held; told; waited {tick - c.t_post + 1} seating steps")
-                        self._mark_refused(c, "capacity", tick)
-                        self.plants_refused_capacity += 1
-                        continue
-                    if self.bank_on and self.debt > self._debt_bound() + 1e-9:
-                        c.refused_credit += 1
-                        if c.refused != "credit":
-                            self._log(c, f"refused for credit: the state's debt {self.debt:g} is above the wall {self._debt_bound():g}; told")
-                        self._mark_refused(c, "credit", tick)
-                        self.plants_refused_credit += 1
-                        continue
-                    self._award_plant(c, min(pT, c.beta), self.p.tau_T, at_floor=True)
-        waiting = [c for c in self._live_cases.values()
-                   if c.plant is None and not any(a[3] == "override" for a in c.assessments)
-                   and c.state == "AVAILABLE" and c.is_root and self.p.troops and c.requester in self.requesters
-                   and tick - c.t_post + 1 >= self.p.w_A]
+        # 2.6.0 §2.1 and the conformance correction after run 34's addendum (Appendix S): the plants past w_A join the pass's waiting list
+        # and the free-member count — a plant no bid has taken by w_A goes to its plant actor at the state's price only where a real root in
+        # its place would go to a troop, beyond the free fundable members, oldest first (patch 1.7.1); below the state's price it waits, as
+        # a real root does. (2.6.0–2.7.0 awarded every plant past w_A at the floor at once — 14% of the plants in run 24's world against
+        # 0.8% of the real roots delivered by a troop, §50.) Counted apart from the state's deliveries (it is not one).
+        waiting = []
+        for c in self._live_cases.values():
+            if c.state != "AVAILABLE" or not c.is_root or tick - c.t_post + 1 < self.p.w_A:
+                continue
+            if c.plant is not None:
+                if self.p.plant_market and c.plant_market and c.beta + 1e-9 >= self._state_price(c.beta):
+                    waiting.append(c)
+                continue
+            if any(a[3] == "override" for a in c.assessments) or not self.p.troops or c.requester not in self.requesters:
+                continue
+            waiting.append(c)
         # 2.4.0 (the 1.7.1 conformance correction made at acceptance, Appendix Q): the pass gathers only what the state may take —
         # requests at β ≥ p_T — so a request below the state's price neither holds a member's slot nor pushes a fundable one past the count
         if waiting and self.p.floating:
             for c in waiting:
-                if c.beta + 1e-9 < self._state_price(c.beta) and c.beta + 1e-9 >= (self.mean_awarded_price() or c.beta):
+                if c.plant is None and c.beta + 1e-9 < self._state_price(c.beta) and c.beta + 1e-9 >= (self.mean_awarded_price() or c.beta):
                     self.summons_declined_floor += 1    # counted here, where the request leaves the pass
                     self.period["summons_declined_floor"] += 1
             waiting = [c for c in waiting if c.beta + 1e-9 >= self._state_price(c.beta)]
@@ -3980,7 +3996,10 @@ class World:
             self.period["awards_left_to_members"] += left
             self.awards_waiting_now, self.members_free_now = len(waiting), free
             for c in waiting[left:]:
-                self._summon_delivery(c, tick)
+                if c.plant is not None:
+                    self._plant_floor_award(c, tick)
+                else:
+                    self._summon_delivery(c, tick)
         else:
             self.awards_waiting_now, self.members_free_now = 0, None
         # 1.6.0 §2.2: younger liabilities after the pass; Ω's minimum balance is the period's solvency reading

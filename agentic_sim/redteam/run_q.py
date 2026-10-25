@@ -34,7 +34,8 @@ POP_KEYS = ("learner_pop", "learner_pop_total", "learner_pop_n", "pop_departed",
             "pop_tasks_per_1000", "state_share", "awards_below_floor_share", "state_price_over_market", "false_approvals", "arrivals", "departures", "requester_wallet_mean",
             "undercut_awards", "awards_below_floor", "idle_for_bond_ticks", "learner_mix_by_period")   # the learned population (the ruling after run 32)
 LIFE_KEYS = tuple(f"life_{k}_{st}" for k in ("real", "plant") for st in ("n", "post_award", "award_submit", "submit_seat", "raised_share", "seen_share", "seen_ticks")) + ("life_real_troop_share", "life_plant_floor_share")   # the plant's life by stage (the ruling after run 34)
-REV_POP_KEYS = tuple(dict.fromkeys(POP_KEYS + LIFE_KEYS + ("P_t", "member_price_mean", "awarded", "departures", "arrivals", "requester_wallet_mean", "awards_below_floor_share", "state_price_over_market", "state_share",
+POP_KEYS = POP_KEYS + LIFE_KEYS                                     # the stage-by-kind reading, a standing check in every population cell (the ruling after run 34's addendum)
+REV_POP_KEYS = tuple(dict.fromkeys(POP_KEYS + ("P_t", "member_price_mean", "awarded", "departures", "arrivals", "requester_wallet_mean", "awards_below_floor_share", "state_price_over_market", "state_share",
                                              "false_approvals", "suspensions", "bad_plants_approved", "good_plants_rejected", "audits_held", "audits_overturning", "audit_overturn_rate", "F_hat")))   # the reviewers in self-play (the ruling after run 33): honesty first
 BID_KEYS = ("learner_bid_decisions", "learner_bid_ratchet", "learner_bid_undercut", "learner_bid_withheld", "learner_bid_awards", "learner_bids_lost", "learner_bid_mean_over_cost",
             "learner_held_real_mean", "slot_awards", "slot_reviews", "slot_rho", "slot_cost", "slot_delivery_income", "slot_guarantees_forfeited", "slot_effort_burned", "P_t", "member_price_mean", "awarded")
@@ -211,6 +212,27 @@ def mse(xs):
     return float(np.mean(xs)), float(np.std(xs, ddof=1) / np.sqrt(len(xs))) if len(xs) > 1 else 0.0
 
 
+
+def write_life_table(f, summary):
+    """The plant's life by stage beside a real root's — a standing check in every population cell (the ruling after run 34's addendum)."""
+    if any(s.get("life_real_n") for s in summary.values()):   # the plant's life by stage beside a real root's (the ruling after run 34)
+        def lf(s, k, nd=2):
+            v = s.get(k); return f"{v[0]:.{nd}f}" if v and v[0] is not None and not np.isnan(v[0]) else "—"
+        def ld(s, st, nd=2):
+            v = s.get(f"life_d_{st}"); return f"{v[0]:+.{nd}f} ± {v[1]:.{nd}f}" if v and not np.isnan(v[0]) else "—"
+        f.write("\nThe plant's life by stage beside a real root's (the ruling after run 34; a conformance diagnostic on the instrument — a plant takes every step in the pass a real root would): per root that reached its first initial seat, by case kind, "
+                "the ticks posted → awarded, awarded → submitted, submitted → seated (the review's assignment), the share raised, the share at the floor (a plant unbid for w_A) or delivered by a troop (a real root unbid for w_A), the share whose reviewer had the case in its seen set and the ticks from the sighting to the seat. "
+                "Each stage as real / plant, then plant − real paired by seed (mean ± SE).\n\n"
+                "| policy | roots seated (real / plant) | posted → awarded | Δ | awarded → submitted | Δ | submitted → seated | Δ | raised share | Δ | troop (real) / floor (plant) | seen share | Δ | ticks since sighting | Δ |\n"
+                "|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|\n")
+        for name, s in summary.items():
+            if not s.get("life_real_n"):
+                continue
+            f.write(f"| {name} | {lf(s, 'life_real_n', 1)} / {lf(s, 'life_plant_n', 1)} | {lf(s, 'life_real_post_award')} / {lf(s, 'life_plant_post_award')} | {ld(s, 'post_award')} | {lf(s, 'life_real_award_submit')} / {lf(s, 'life_plant_award_submit')} | {ld(s, 'award_submit')} | "
+                    f"{lf(s, 'life_real_submit_seat')} / {lf(s, 'life_plant_submit_seat')} | {ld(s, 'submit_seat')} | {lf(s, 'life_real_raised_share', 3)} / {lf(s, 'life_plant_raised_share', 3)} | {ld(s, 'raised_share', 3)} | {lf(s, 'life_real_troop_share', 3)} / {lf(s, 'life_plant_floor_share', 3)} | "
+                    f"{lf(s, 'life_real_seen_share', 3)} / {lf(s, 'life_plant_seen_share', 3)} | {ld(s, 'seen_share', 3)} | {lf(s, 'life_real_seen_ticks')} / {lf(s, 'life_plant_seen_ticks')} | {ld(s, 'seen_ticks')} |\n")
+
+
 def main(argv=None):
     ap = argparse.ArgumentParser()
     ap.add_argument("--model", default=None, help="the world model (needed for the learned and greedy policies)"); ap.add_argument("--out", required=True)
@@ -279,11 +301,11 @@ def main(argv=None):
             for k in tuple(k for k in REV_POP_KEYS if k not in ("learner_pop", "learner_mix_by_period", "F_hat")):
                 summary[name][k] = mse([r.get(k) if r.get(k) not in ("", None) else None for r in rows])
             summary[name]["F_hat"] = mse([float(r["F_hat"]) if r.get("F_hat") not in ("", None) else None for r in rows])
+        if a.role in ("bidder", "reviewer") and rows and rows[0].get("learner_pop") not in (None, "", "off"):
+            summary[name]["learner_pop"] = rows[0].get("learner_pop")
             for st in ("post_award", "award_submit", "submit_seat", "raised_share", "seen_share", "seen_ticks"):   # the plant's life by stage: plant − real per seed
                 d = [float(r[f"life_plant_{st}"]) - float(r[f"life_real_{st}"]) for r in rows if r.get(f"life_plant_{st}") not in ("", None) and r.get(f"life_real_{st}") not in ("", None)]
                 summary[name][f"life_d_{st}"] = mse(d) if len(d) > 1 else (float("nan"), float("nan"))
-        if a.role in ("bidder", "reviewer") and rows and rows[0].get("learner_pop") not in (None, "", "off"):
-            summary[name]["learner_pop"] = rows[0].get("learner_pop")
             mixes = [json.loads(r["learner_mix_by_period"]) for r in rows if r.get("learner_mix_by_period")]   # the action mix by period, pooled over the seeds
             if mixes:
                 n_per = max(len(m) for m in mixes)
@@ -411,6 +433,7 @@ def main(argv=None):
                     mix = s.get("mix_by_period")
                     if mix:
                         f.write(f"- **{name}**: " + "; ".join(f"p{i} {fmt(m[0])}/{fmt(m[1])}/{fmt(m[2])} ({d:.0f})" for i, (m, d) in enumerate(zip(mix, s["decisions_by_period"]))) + "\n")
+                write_life_table(f, summary)
             print(json.dumps(summary, indent=1, default=float))
             return
         if a.role == "pair":
@@ -466,22 +489,7 @@ def main(argv=None):
                 mix = s.get("mix_by_period")
                 if mix:
                     f.write(f"- **{name}**: " + "; ".join(f"p{i} {fmt(m[0])}/{fmt(m[1])}/{fmt(m[2])} ({d:.0f})" for i, (m, d) in enumerate(zip(mix, s["decisions_by_period"]))) + "\n")
-            if any(s.get("life_real_n") for s in summary.values()):   # the plant's life by stage beside a real root's (the ruling after run 34)
-                def lf(s, k, nd=2):
-                    v = s.get(k); return f"{v[0]:.{nd}f}" if v and v[0] is not None and not np.isnan(v[0]) else "—"
-                def ld(s, st, nd=2):
-                    v = s.get(f"life_d_{st}"); return f"{v[0]:+.{nd}f} ± {v[1]:.{nd}f}" if v and not np.isnan(v[0]) else "—"
-                f.write("\nThe plant's life by stage beside a real root's (the ruling after run 34; a conformance diagnostic on the instrument — a plant takes every step in the pass a real root would): per root that reached its first initial seat, by case kind, "
-                        "the ticks posted → awarded, awarded → submitted, submitted → seated (the review's assignment), the share raised, the share at the floor (a plant unbid for w_A) or delivered by a troop (a real root unbid for w_A), the share whose reviewer had the case in its seen set and the ticks from the sighting to the seat. "
-                        "Each stage as real / plant, then plant − real paired by seed (mean ± SE).\n\n"
-                        "| policy | roots seated (real / plant) | posted → awarded | Δ | awarded → submitted | Δ | submitted → seated | Δ | raised share | Δ | troop (real) / floor (plant) | seen share | Δ | ticks since sighting | Δ |\n"
-                        "|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|\n")
-                for name, s in summary.items():
-                    if not s.get("life_real_n"):
-                        continue
-                    f.write(f"| {name} | {lf(s, 'life_real_n', 1)} / {lf(s, 'life_plant_n', 1)} | {lf(s, 'life_real_post_award')} / {lf(s, 'life_plant_post_award')} | {ld(s, 'post_award')} | {lf(s, 'life_real_award_submit')} / {lf(s, 'life_plant_award_submit')} | {ld(s, 'award_submit')} | "
-                            f"{lf(s, 'life_real_submit_seat')} / {lf(s, 'life_plant_submit_seat')} | {ld(s, 'submit_seat')} | {lf(s, 'life_real_raised_share', 3)} / {lf(s, 'life_plant_raised_share', 3)} | {ld(s, 'raised_share', 3)} | {lf(s, 'life_real_troop_share', 3)} / {lf(s, 'life_plant_floor_share', 3)} | "
-                            f"{lf(s, 'life_real_seen_share', 3)} / {lf(s, 'life_plant_seen_share', 3)} | {ld(s, 'seen_share', 3)} | {lf(s, 'life_real_seen_ticks')} / {lf(s, 'life_plant_seen_ticks')} | {ld(s, 'seen_ticks')} |\n")
+            write_life_table(f, summary)
     print(json.dumps(summary, indent=1, default=float))
 
 

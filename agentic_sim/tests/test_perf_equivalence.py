@@ -196,13 +196,18 @@ GOLDEN = {
     # (9e3fbbd1… / 8979 and 843ad304… / 9756). Both re-pinned once more with the conformance item after run 23 (the same day): the plant's
     # draws read a rolling window of the last k real roots, k the closed period's count, not the closed period's own box, so every plant's
     # ceiling and time to submission may differ and the whole path moves (381b09c5… / 9161 and 12bbf757… / 10302). Re-pinned once more
-    # for erratum 2.6.1 (October 21, 2026): the ceilings enter the window as posted, so every plant's drawn ceiling may differ again.
-    1: {"head": "9a7db073915e75d0e4eb8533439a8d712e0eee6c1d4d87a8073b961f7696a2b1", "entries": 9046,
-        "M": 120348.800683, "Res": 0.0,
-        "states": {"FINAL_N": 181, "VESTED": 48, "WITHDRAWN": 11, "PENDING": 7, "AVAILABLE": 8, "SUBMITTED": 1}},
-    2: {"head": "0408cb1996285b93e2bafec8072b062eb36698c05271ed2a2b2e2d560b79bb04", "entries": 9558,
-        "M": 120298.252136, "Res": 0.0,
-        "states": {"FINAL_N": 186, "VESTED": 69, "WITHDRAWN": 5, "CANCELLED": 3, "PENDING": 7, "SUBMITTED": 3, "AVAILABLE": 5}},
+    # for erratum 2.6.1 (October 21, 2026): the ceilings enter the window as posted, so every plant's drawn ceiling may differ again
+    # (9a7db073… / 9046 and 0408cb19… / 9558). Re-pinned once more after run 34's addendum (October 25, 2026; Appendix S): two conformance
+    # corrections — the plants past w_A join the pass's waiting list and the free-member count (a plant goes to the floor only beyond the free
+    # fundable members, as a real root goes to a troop), and before the first close the draws read the real roots posted so far (not τ and
+    # P_t by default) — and erratum 2.6.2 (the ceiling a ratio to the market price at posting, applied to the current B̄), so every plant's
+    # ceiling, award and submission may differ and the whole path moves.
+    1: {"head": "b08ab7985d2db35e0952a7b8e6286ac7f2d52120f5bae128a06ec93319efc92f", "entries": 9738,
+        "M": 119989.678292, "Res": 0.0,
+        "states": {"FINAL_N": 180, "VESTED": 63, "PENDING": 7, "WITHDRAWN": 11, "AVAILABLE": 6, "SUBMITTED": 1}},
+    2: {"head": "22acc2399a0dac21caea78e51a837b8270c9858aeb285aa0e9a70a01841e72ab", "entries": 10460,
+        "M": 120139.993459, "Res": 0.0,
+        "states": {"FINAL_N": 193, "VESTED": 79, "CANCELLED": 2, "WITHDRAWN": 7, "PENDING": 8, "COMMITTED": 3, "AVAILABLE": 2}},
 }
 
 
@@ -240,7 +245,8 @@ def test_full_audit_agrees_with_tick_check_and_behaviour_is_unchanged(seed):
     assert w.bank_on and w.deficit_created == 0 and w.bank_minted["loan"] >= w.bank_destroyed["repayment"] >= 0
     assert w.debt_created >= 0 and w.troop_refused_credit_seats == 0
     assert w.bank_minted["mint_plant"] > 0 and w.bank_destroyed["retire_plant"] > 0 and w._P_published_at is not None
-    assert w.pool_on and w.rebates_paid > 0 and not w.omega_liabilities and w.liabilities_accrued == 0     # 2.2.0: the pool, no stock
+    assert w.pool_on and not w.omega_liabilities and w.liabilities_accrued == 0                             # 2.2.0: the pool, no stock
+    assert w.rebates_paid > 0 or seed == 2     # after run 34's addendum's corrections seed 2's scenario has no late root, so no rebate to pay; seed 1 pays one
     assert w.supply_on and w.parent_pots and any(c.own_pots for c in w.cases.values()) and any(c.node_closed for c in w.cases.values())   # 2.3.0
     assert abs(w.ledger.wallet("DUTY-FUND").W - (w.fund_in - w.fund_out)) < 1e-6
     assert w.ledger.wallet(w.troop_wallet).W + w.troop_surplus_paid > 0          # the troops earned, and it is the state's

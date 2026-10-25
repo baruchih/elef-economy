@@ -29,11 +29,12 @@ def main(argv=None):
     ap.add_argument("--gamma", type=float, default=0.95, help="the discount per decision for the value head and the planner's sum")
     ap.add_argument("--heads", choices=["one", "two"], default="two", help="version 4: `two` — a review-side head and a boundary head on the latent; `one` is version 3's single head")
     ap.add_argument("--kind-actions", choices=["on", "off"], default="off", help="the kind-conditioned action (the ruling after run 29; Q5's parent): the action one-hot over kind × action")
+    ap.add_argument("--stride", type=int, default=1, help="the windows' stride along an episode (the learned population's data is N slots wide; a stride keeps it in memory)")
     a = ap.parse_args(argv)
     torch.manual_seed(a.torch_seed); np.random.seed(a.torch_seed)
     eps = load_episodes(a.data, seeds_of(a.seeds), a.policies.split(",") if a.policies else None)
     K = n_actions_of(eps)                                            # 3 for the reviewer, 2 for Q3's deliverer
-    O, A, R, G, D = windows(eps, a.horizon, n_actions=K, gamma=a.gamma)
+    O, A, R, G, D = windows(eps, a.horizon, n_actions=K, gamma=a.gamma, stride=a.stride)
     mean, std = obs_stats(eps)
     dev = device()
     obs_dim = int(O.shape[-1])                                       # the data's width (44 before the boundary field, 45 after)

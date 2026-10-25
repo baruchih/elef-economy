@@ -30,6 +30,9 @@ PARENT_KEYS = ("learner_delegate_decisions", "learner_delegations", "learner_sel
 REQ_KEYS = ("req_decisions", "req_rule_market", "req_rule_floor", "req_rule_patient", "req_posted", "req_unaffordable", "req_raised", "req_tasks_received", "req_paid_unfulfilled",
             "req_final_n", "req_free_fulfilled", "req_state_deliveries", "req_wait_mean", "req_waiting_ticks", "req_price_paid_mean", "req_disputes_filed", "req_disputes_won",
             "req_spent_real", "req_tasks_per_1000", "req_surplus_real", "req_wallet_real", "P_t", "member_price_mean", "awarded", "troop_delivered_vested", "false_approvals")
+POP_KEYS = ("learner_pop", "learner_pop_total", "learner_pop_n", "pop_departed", "pop_surplus_nominal", "pop_wealth_nominal_mean", "pop_tasks_received", "pop_req_spent_nominal",
+            "pop_tasks_per_1000", "state_share", "awards_below_floor_share", "state_price_over_market", "false_approvals", "arrivals", "departures", "requester_wallet_mean",
+            "undercut_awards", "awards_below_floor", "idle_for_bond_ticks", "learner_mix_by_period")   # the learned population (the ruling after run 32)
 BID_KEYS = ("learner_bid_decisions", "learner_bid_ratchet", "learner_bid_undercut", "learner_bid_withheld", "learner_bid_awards", "learner_bids_lost", "learner_bid_mean_over_cost",
             "learner_held_real_mean", "slot_awards", "slot_reviews", "slot_rho", "slot_cost", "slot_delivery_income", "slot_guarantees_forfeited", "slot_effort_burned", "P_t", "member_price_mean", "awarded")
 PAIR_KEYS = ("pair_ids", "pair_matched", "pair_unmatched", "pair_waited", "pair_reviews", "pair_cares", "pair_stamps", "pair_rejects", "pair_bad_stamped", "pair_good_stamped",
@@ -117,6 +120,7 @@ def episode(env, policy, seed, rng):
         work["miss_share"] = float(np.mean([x == 2 for x in acts])) if acts else None
     if env.role == "bidder":                                      # Q6: the learned bidder — its rule by tick, the awards it won, the price level beside
         work.update({k: row.get(k) for k in BID_KEYS})
+        work.update({k: row.get(k) for k in POP_KEYS})            # the learned population's readings (empty for a single slot)
         work["ratchet_share"] = float(np.mean([x == 0 for x in acts])) if acts else None
         work["undercut_share"] = float(np.mean([x == 1 for x in acts])) if acts else None
         work["withhold_share"] = float(np.mean([x == 2 for x in acts])) if acts else None
@@ -267,8 +271,18 @@ def main(argv=None):
             for k in ("delegate_decisions", "judge_decisions", "cancel_decisions", "delegate_share", "judge_care_share", "judge_stamp_share", "judge_reject_share", "cancel_share") + PARENT_KEYS:
                 summary[name][k] = mse([r.get(k) if r.get(k) not in ("", None) else None for r in rows])
         if a.role == "bidder":                                      # Q6's line: the learned bidder
-            for k in ("ratchet_share", "undercut_share", "withhold_share") + BID_KEYS:
+            for k in ("ratchet_share", "undercut_share", "withhold_share") + BID_KEYS + tuple(k for k in POP_KEYS if k not in ("learner_pop", "learner_mix_by_period")):
                 summary[name][k] = mse([r.get(k) if r.get(k) not in ("", None) else None for r in rows])
+            summary[name]["learner_pop"] = rows[0].get("learner_pop") if rows else None
+            mixes = [json.loads(r["learner_mix_by_period"]) for r in rows if r.get("learner_mix_by_period")]   # the action mix by period, pooled over the seeds
+            if mixes:
+                n_per = max(len(m) for m in mixes)
+                tot = [[0, 0, 0] for _ in range(n_per)]
+                for m in mixes:
+                    for i, trip in enumerate(m):
+                        for j in range(3): tot[i][j] += trip[j]
+                summary[name]["mix_by_period"] = [[(x / sum(trip)) if sum(trip) else None for x in trip] for trip in tot]
+                summary[name]["decisions_by_period"] = [sum(trip) / len(mixes) for trip in tot]
         if a.role == "requester":                                   # Q7's line: the learned requester
             for k in ("market_share", "floor_share", "patient_share") + REQ_KEYS:
                 summary[name][k] = mse([r.get(k) if r.get(k) not in ("", None) else None for r in rows])
@@ -311,6 +325,11 @@ def main(argv=None):
                 continue
             d = [r["lifetime_real_wealth"] - base[r["seed"]] for r in results[name] if r["seed"] in base]
             summary[name]["paired_minus_careful"] = mse(d)
+            if a.role == "bidder":                                  # the population's measures paired by seed: the members' nominal surplus, the customers' tasks per credit, the price
+                for k in ("pop_surplus_nominal", "pop_tasks_per_1000", "P_t", "member_price_mean", "state_share", "false_approvals", "awarded"):
+                    bk = {r["seed"]: r.get(k) for r in results["careful"]}
+                    dk = [float(r[k]) - float(bk[r["seed"]]) for r in results[name] if r["seed"] in bk and r.get(k) not in ("", None) and bk[r["seed"]] not in ("", None)]
+                    summary[name][f"paired_{k}"] = mse(dk)
     out = {"cell": cell, "seeds": a.seeds, "hide": a.hide, "role": a.role, "model": a.model, "direct_model": a.direct_model, "boundary_read": br, "model_train": ck.get("train", {}), "horizon": a.horizon,
            "samples": a.samples, "iters": a.iters, "seconds": round(time.time() - t0, 1), "summary": summary, "episodes": results}
     json.dump(out, open(os.path.join(a.out, "eval.json"), "w"), indent=1, default=float)
@@ -351,6 +370,23 @@ def main(argv=None):
                 f.write(f"| {name} | {s['lifetime_real_wealth'][0]:.1f} ± {s['lifetime_real_wealth'][1]:.1f} | {pm[0]:.1f} ± {pm[1]:.1f} | {fmt(s['decisions'][0])} | {fmt(s['ratchet_share'][0])} / {fmt(s['undercut_share'][0])} / {fmt(s['withhold_share'][0])} | "
                         f"{fmt(s['learner_bid_awards'][0])} | {fmt(s['slot_awards'][0])} | {fmt(s['learner_bid_mean_over_cost'][0])} | {fmt(s['learner_bids_lost'][0])} | {fmt(s['learner_held_real_mean'][0])} | {fmt(s['slot_rho'][0])} | {fmt(s['slot_cost'][0])} | "
                         f"{fmt(s['slot_delivery_income'][0])} | {fmt(s['slot_effort_burned'][0])} | {fmt(s['P_t'][0])} | {fmt(s['member_price_mean'][0])} | {fmt(s['awarded'][0])} | {fmt(s['slot_departed'][0])} |\n")
+            if any((s.get("learner_pop") or "off") != "off" for s in summary.values()):   # the learned population (the ruling after run 32): the equilibrium is the reading
+                def pp(s, k):
+                    v = s.get(f"paired_{k}"); return f"{v[0]:+.3f} ± {v[1]:.3f}" if v and not np.isnan(v[0]) else "—"
+                f.write("\nThe learned population — N learner slots sharing one policy in self-play (`--learner-pop`); the measures the ruling after run 32 fixed for population cells: the members in nominal surplus "
+                        "(the slots' wealth now or out, less their wealth in, nominal credits), the customers in tasks per credit (every requester's settled fulfilled deliveries per 1,000 nominal credits spent); "
+                        "P_t and the members' price, the state's share of the deliveries, the awards under the floor and the state's price over the market (the floor's binding), honesty, arrivals and departures. Paired columns are against the all-ratchet (`careful`).\n\n"
+                        "| policy | slots (alive / total) | nominal surplus | paired | wealth nominal (mean, alive) | departed | tasks per 1,000 (customers) | paired | P_t close | paired | members' price | paired | state share | awards under floor (share) | state price − B̄ | false approvals | arrivals | departures | requesters' wallet | idle for bond |\n"
+                        "|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|\n")
+                for name, s in summary.items():
+                    f.write(f"| {name} | {fmt(s['learner_pop_n'][0])} / {fmt(s['learner_pop_total'][0])} | {fmt(s['pop_surplus_nominal'][0])} ± {fmt(s['pop_surplus_nominal'][1])} | {pp(s, 'pop_surplus_nominal')} | {fmt(s['pop_wealth_nominal_mean'][0])} | {fmt(s['pop_departed'][0])} | "
+                            f"{fmt(s['pop_tasks_per_1000'][0])} | {pp(s, 'pop_tasks_per_1000')} | {fmt(s['P_t'][0])} ± {fmt(s['P_t'][1])} | {pp(s, 'P_t')} | {fmt(s['member_price_mean'][0])} | {pp(s, 'member_price_mean')} | {fmt(s['state_share'][0])} | "
+                            f"{fmt(s['awards_below_floor'][0])} ({fmt(s['awards_below_floor_share'][0])}) | {fmt(s['state_price_over_market'][0])} | {fmt(s['false_approvals'][0])} | {fmt(s['arrivals'][0])} | {fmt(s['departures'][0])} | {fmt(s['requester_wallet_mean'][0])} | {fmt(s['idle_for_bond_ticks'][0])} |\n")
+                f.write("\nThe action mix by period (ratchet / undercut / withhold, pooled over the seeds; the decisions a period, mean over the seeds):\n\n")
+                for name, s in summary.items():
+                    mix = s.get("mix_by_period")
+                    if mix:
+                        f.write(f"- **{name}**: " + "; ".join(f"p{i} {fmt(m[0])}/{fmt(m[1])}/{fmt(m[2])} ({d:.0f})" for i, (m, d) in enumerate(zip(mix, s["decisions_by_period"]))) + "\n")
             print(json.dumps(summary, indent=1, default=float))
             return
         if a.role == "pair":

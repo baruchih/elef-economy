@@ -15,7 +15,7 @@ def load_episodes(root, seeds=None, policies=None):
         if policies is not None and policy not in policies:
             continue
         eps.append({"obs": z["obs"], "action": z["action"], "reward": z["reward"], "is_plant": z["is_plant"], "fulfilled": z["fulfilled"],
-                    "t": z["t"], "seed": seed, "policy": policy, "lifetime": float(z["lifetime"]),
+                    "t": z["t"], "seed": seed, "policy": policy, "lifetime": float(z["lifetime"]), "slot": z["slot"] if "slot" in z.files else None,
                     "n_actions": int(z["n_actions"]) if "n_actions" in z.files else 3, "role": str(z["role"]) if "role" in z.files else "reviewer"})
     return eps
 
@@ -46,17 +46,31 @@ def split_by_side(e, boundary_idx=44):
     return r * (1 - b), r * b
 
 
-def windows(eps, horizon, n_actions=3, gamma=0.95):
+def by_slot(eps):
+    """The learned population (the ruling after run 32): an episode's decisions interleave the slots; the world model's windows run along one slot's
+    own sequence, so an episode with a `slot` array is split into one sub-episode per slot. Episodes without it pass through."""
+    out = []
+    for e in eps:
+        sl = e.get("slot")
+        if sl is None or len(sl) == 0:
+            out.append(e); continue
+        for k in np.unique(sl):
+            idx = np.where(sl == k)[0]
+            out.append({**e, "obs": e["obs"][idx], "action": e["action"][idx], "reward": e["reward"][idx], "is_plant": e["is_plant"][idx], "fulfilled": e["fulfilled"][idx], "t": e["t"][idx], "slot": None})
+    return out
+
+
+def windows(eps, horizon, n_actions=3, gamma=0.95, stride=1):
     """Every window of horizon+1 observations with the horizon actions and rewards between them (stride 1); beside them the discounted
     return-to-go at each of the horizon+1 positions — by side since version 4, (…, 2) = [review, boundary]; a one-head model sums them —
     and the episode's-end flag (1 at the last observation, which has no successor — the terminal value's targets). An episode shorter than
     the horizon contributes nothing."""
     O, A, R, G, D = [], [], [], [], []
-    for e in eps:
+    for e in by_slot(eps):
         T = len(e["action"])
         rr, rb = split_by_side(e)
         g = np.stack([returns_to_go(rr, gamma), returns_to_go(rb, gamma)], axis=-1)      # (T+1, 2)
-        for s in range(0, T - horizon):
+        for s in range(0, T - horizon, max(1, int(stride))):
             O.append(e["obs"][s:s + horizon + 1]); A.append(e["action"][s:s + horizon]); R.append(e["reward"][s:s + horizon])
             G.append(g[s:s + horizon + 1])
             d = np.zeros(horizon + 1, dtype=np.float32); d[-1] = 1.0 if s + horizon == T - 1 else 0.0   # the last obs of the episode sits at the window's end

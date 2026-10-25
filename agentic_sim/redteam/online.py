@@ -33,6 +33,7 @@ def main(argv=None):
     ap.add_argument("--role", choices=["reviewer", "deliverer", "pair", "child", "parent", "bidder", "requester"], default="reviewer", help="Q3: the learned deliverer; Q6: the learned bidder")
     ap.add_argument("--plan", choices=["cem", "greedy"], default="cem", help="the collecting policy on the world model: the CEM planner, or the head alone over the latent (version 4's stopping rule)")
     ap.add_argument("--boundary-read", choices=["auto", "one-step", "learned"], default="auto", help="the ruling after run 30 (run_q's): the stay head's one-step read against zero at a boundary; `auto` is learned only under `--learner-rearrive on`")
+    ap.add_argument("--stride", type=int, default=1, help="the trainer's window stride (the learned population's data)")
     ap.add_argument("cell", nargs=argparse.REMAINDER)
     a = ap.parse_args(argv)
     direct = a.learner == "direct"
@@ -46,7 +47,7 @@ def main(argv=None):
     br = boundary_read_for(cell, a.boundary_read)
     hide = tuple(x for x in a.hide.split(",") if x)
     os.makedirs(a.models, exist_ok=True); os.makedirs(a.evals, exist_ok=True)
-    train_args = ["--seeds", a.train_seeds, "--epochs", str(a.epochs), "--horizon", str(a.horizon), "--value", a.value, "--gamma", str(a.gamma), "--heads", a.heads, "--kind-actions", a.kind_actions]
+    train_args = ["--seeds", a.train_seeds, "--epochs", str(a.epochs), "--horizon", str(a.horizon), "--value", a.value, "--gamma", str(a.gamma), "--heads", a.heads, "--kind-actions", a.kind_actions, "--stride", str(a.stride)]
     model_path = a.start or os.path.join(a.models, f"{stem}-0.pt")
     if not a.start:
         fit(a.data, model_path)
@@ -69,7 +70,7 @@ def main(argv=None):
             O, A, R, P, F, Tk, info = rollout(env, explore, seed, rng)
             np.savez_compressed(os.path.join(a.data, f"online{k}-seed{seed}.npz"), obs=O, action=A, chosen=info["action_chosen"], reward=R, is_plant=P, fulfilled=F, t=Tk,
                                 realized=info.get("realized_rewards", R), lifetime=info.get("lifetime_real_wealth", float("nan")), seed=seed, policy=f"online{k}",
-                                role=a.role, n_actions=env.n_actions)
+                                role=a.role, n_actions=env.n_actions, slot=info["slot"])
             lifetimes.append(info.get("lifetime_real_wealth", float("nan")))
         model_path = os.path.join(a.models, f"{stem}-{k}.pt")
         fit(a.data, model_path)

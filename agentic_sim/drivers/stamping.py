@@ -97,6 +97,7 @@ vested / final N, the gain from trade, brokers (parents delegating more than hal
 """
 from __future__ import annotations
 import argparse
+import json
 import math
 import os
 import random
@@ -371,8 +372,33 @@ class Stamping:
                 self.learner_role_of[self.learner_id] = "deliverer"
                 self.learner_role_of[others[0]] = "reviewer"
                 self.kind[others[0]] = LEARNER
+        # the learned population (the ruling after run 32): N learner slots sharing one policy in self-play — every careful member at genesis, or half drawn once
+        # on the undercutters' stream (the same half as --undercut-share 0.5 on the seed); the slot id the cheapest of them; careful arrivals join by the same draw
+        self.learner_pop: list[str] = []
+        if a.learner_slot == "on" and a.learner_pop != "off" and a.learner_role == "bidder":
+            ids_p = list(self.careful_initial); self.under_rng.shuffle(ids_p)
+            take = ids_p if a.learner_pop == "all" else ids_p[: round(len(ids_p) * 0.5)]
+            if not take:
+                raise SystemExit("--learner-pop needs careful members at genesis")
+            if self.learner_id is not None and self.learner_id not in take:
+                self.kind[self.learner_id] = self.learner_review_kind; self.learner_role_of.pop(self.learner_id, None)
+            for x in take:
+                self.kind[x] = LEARNER; self.learner_role_of[x] = "bidder"
+            self.learner_pop = sorted(take, key=lambda x: (self.c_d_of[x], x))
+            self.learner_id = self.tell_slot = self.learner_pop[0]
+        self.learner_bid_mode_of: dict[str, int] = {}        # each learner bidder's rule for the tick (the population; the single slot keeps learner_bid_mode)
+        self.bid_awards_of: dict[str, int] = {}              # each learner bidder's own record (its observation's fields)
+        self.bids_lost_of: dict[str, int] = {}
+        self.last_won_of: dict[str, int] = {}
+        self.learner_won: list[tuple[int, str, str]] = []    # (t, name, case): the roots the learners' bids won this step — redteam.env credits each to the decision (t, name)
+        self.learner_mix_by_period: dict[int, list[int]] = {}   # period → [ratchet, undercut, withhold] over the learners' bid decisions (the action mix by period)
+        self.wealth_in_of: dict[str, float] = {}             # each learner slot's wealth in (genesis, read at the first tick; an arrival's float) — the nominal surplus
+        self.depart_wealth_nominal: dict[str, float] = {}
+        self.pop_counted: set[str] = set()
+        self.requesters_set = set(self.requesters)
+        self.pop_req_spent_nominal = 0.0                     # every requester's credits out less in, by their events (the customers' tasks per credit, nominal)
         self.learner_decisions = 0
-        self.learner_chain: list[str] = ([self.learner_id] if self.learner_id else []) + ([self.learner_pair[1]] if self.learner_pair else [])   # the learner's identities in order (re-arrival allowed after run 22); Q4: the pair, whose lifetime is read as one
+        self.learner_chain: list[str] = (list(self.learner_pop) if self.learner_pop else ([self.learner_id] if self.learner_id else [])) + ([self.learner_pair[1]] if self.learner_pair else [])   # the learner's identities in order (re-arrival allowed after run 22); Q4: the pair, whose lifetime is read as one
         self.learner_returns, self.learner_leaves_chosen, self.learner_leaves_refused, self.learner_boundary_decisions = 0, 0, 0, 0
         self.learner_float_minted, self.learner_float_minted_real = 0.0, 0.0
         self._last_boundary_t = None
@@ -432,6 +458,7 @@ class Stamping:
                   "duty_short_of_bond_ticks": 0,   # Σ over ticks of on-duty actors that cannot fund G^V (q6 solvency)
                   "departed_net": 0.0,             # 2.7.0: the wallets carried out by departing actors, net of the loans recovered
                   "unfundable_with_loan_ticks": 0, # 2.7.0 H2: Σ over ticks of free arrival-born members unfundable for an award while a loan stood
+                  "pop_tasks_received": 0,         # the customers' tasks received (every requester's settled deliveries whose truth is fulfilled)
                   "undercut_awards": 0, "undercut_awards_at_cost": 0, "awards_below_floor": 0, "awards_at_floor": 0, "below_floor_margin_sum": 0.0,
                   "below_floor_final_n": 0, "below_floor_g_lost": 0.0, "under_floor_posted": 0, "under_floor_awarded": 0, "under_floor_wait_sum": 0,
                   "under_floor_price_sum": 0.0, "under_floor_fulfilled": 0, "under_floor_final_n": 0, "under_floor_vested": 0,   # the stability track (run 31's ruling)
@@ -674,10 +701,11 @@ class Stamping:
             return beta
         if self.kind.get(aid) == LEARNER and self.learner_role_of.get(aid) == "bidder" and self.learner_bid is not None:
             # Q6: the learned bidder's rule for the tick — 0 the ratchet's bid (below), 1 the undercut (the market price cut by --undercut, floored at cost), 2 no offer
-            if self.learner_bid_mode == 1:
+            mode = self.learner_bid_mode_of.get(aid, 0) if self.learner_pop else self.learner_bid_mode
+            if mode == 1:
                 mk = self.w.market()
                 return round(max(self.cost_now(aid), (1.0 - self.a.undercut) * (mk["B_bar"] or mk["P_t"])), 6)
-            if self.learner_bid_mode == 2:
+            if mode == 2:
                 return math.inf
         if self.a.bid == "undercut" and aid in self.undercutters:
             # the stability track (the ruling after run 31): the undercutting population — Q6's rule for every careful member in the share: the market price
@@ -737,6 +765,10 @@ class Stamping:
                 self.kind[name] = cand["kind"]
                 if a.bid == "undercut" and cand["kind"] == CAREFUL and self.under_rng.random() < a.undercut_share:
                     self.undercutters.add(name)                   # the stability track: a careful arrival joins the undercutters by the same draw
+                if self.learner_pop and cand["kind"] == CAREFUL and (a.learner_pop == "all" or self.under_rng.random() < 0.5):
+                    self.kind[name] = LEARNER; self.learner_role_of[name] = "bidder"      # the learned population: a careful arrival is a learner slot by the same draw
+                    self.learner_pop.append(name); self.learner_chain.append(name)
+                    self.wealth_in_of[name] = w.wealth(name)
                 self.c_d_of[name] = cand["cost"]
                 self.margin[name], self.idle[name] = a.margin0, 0
                 self.tally[name] = Tally()
@@ -784,6 +816,7 @@ class Stamping:
                 except RuleError:
                     continue                             # an obligation is live; it departs after
                 self.depart_wealth_real[aid] = out * real
+                self.depart_wealth_nominal[aid] = out
                 self.c["departed_net"] += out
                 self.actors.remove(aid)
                 self.departed.append(aid)
@@ -1026,22 +1059,34 @@ class Stamping:
         """Q6: the learned bidder's decision for the tick — asked once, when the slot is free and at least one root is available whose ceiling
         its cost fits under; the answer is the rule its offers follow this tick (`bid_of`). The wealth it holds is read every tick it is alive."""
         a = self.a
-        if self.learner_bid is None or self.learner_id is None or a.learner_role != "bidder" or self.learner_id not in self.actors:
+        if self.learner_bid is None or self.learner_id is None or a.learner_role != "bidder":
             return
-        aid = self.learner_id
         w = self.w
-        self.c["learner_held_sum"] += w.unlocked(aid) * self.p.P0 / (w.market()["P_t"] or self.p.P0); self.c["learner_held_n"] += 1
-        if aid not in self.free_members():
+        slots = [x for x in (self.learner_pop or [self.learner_id]) if x in self.actors]
+        if not slots:
             return
-        cost = self.cost_now(aid)
-        roots = [w.case(cid) for cid in self.active if cid not in self.nested_parent]
-        roots = [c for c in roots if c.state == "AVAILABLE" and c.beta + 1e-9 >= cost]
-        if not roots:
-            return
-        act = int(self.learner_bid(self, aid, roots))
-        self.learner_bid_mode = act
-        self.c["learner_bid_decisions"] += 1
-        self.c[{0: "learner_bid_ratchet", 1: "learner_bid_undercut"}.get(act, "learner_bid_withheld")] += 1
+        real = self.p.P0 / (w.market()["P_t"] or self.p.P0)
+        free = set(self.free_members())
+        avail = [w.case(cid) for cid in self.active if cid not in self.nested_parent]
+        avail = [c for c in avail if c.state == "AVAILABLE"]
+        per = len(w.dial()["periods"])
+        for aid in slots:                                 # the population (the ruling after run 32): each slot its own decision on its own observation, one policy
+            self.c["learner_held_sum"] += w.unlocked(aid) * real; self.c["learner_held_n"] += 1
+            if self.learner_pop:
+                self.learner_bid_mode_of[aid] = 0
+            if aid not in free:
+                continue
+            cost = self.cost_now(aid)
+            roots = [c for c in avail if c.beta + 1e-9 >= cost]
+            if not roots:
+                continue
+            act = int(self.learner_bid(self, aid, roots))
+            self.learner_bid_mode_of[aid] = act
+            if aid == self.learner_id:
+                self.learner_bid_mode = act
+            self.c["learner_bid_decisions"] += 1
+            self.c[{0: "learner_bid_ratchet", 1: "learner_bid_undercut"}.get(act, "learner_bid_withheld")] += 1
+            self.learner_mix_by_period.setdefault(per, [0, 0, 0])[min(max(act, 0), 2)] += 1
 
     def offers_for(self, cid: str) -> list[tuple[str, float]]:
         """Free members whose bid is at or under the ceiling and who can fund the guarantee at it."""
@@ -1157,6 +1202,17 @@ class Stamping:
         all_in = [b + self.p.phi_root * mk["index"] + self.p.omega_rate * m * b for b in betas]
         return {"beta": betas, "all_in": all_in, "affordable": [b >= 1.0 and x <= U + 1e-9 for b, x in zip(betas, all_in)], "unlocked": U}
 
+    def pop_read_events(self, events):
+        """Every requester's credits out less in, nominal, by their own events — the issuance, the locks and releases and the genesis excluded (as `req_read_events`)."""
+        reqs = self.requesters_set
+        for e in events:
+            if e.t == 0 or e.kind in ("lock", "release", "issuance"):
+                continue
+            if e.src in reqs:
+                self.pop_req_spent_nominal += float(e.amount)
+            if e.dst in reqs:
+                self.pop_req_spent_nominal -= float(e.amount)
+
     def req_spent_real(self) -> float:
         """Q7: the learned requester's credits spent, real — its own events (out less in) at the index of each, accumulated by `req_read_events`; the wallet's
         revaluation by the index's drift is not a spend (the measure the attribution sums, the genesis funding apart)."""
@@ -1252,7 +1308,7 @@ class Stamping:
             return
         if a.learner_rearrive != "on" and a.learner_exit != "own":
             return
-        for aid in [x for x in dict.fromkeys(([self.learner_id] if self.learner_id else []) + list(self.learner_pair or ())) if x in self.actors]:
+        for aid in [x for x in dict.fromkeys(list(self.learner_pop) + ([self.learner_id] if self.learner_id else []) + list(self.learner_pair or ())) if x in self.actors]:
             self._learner_boundary_one(t, aid)
 
     def _learner_boundary_one(self, t: int, aid: str):
@@ -1270,6 +1326,7 @@ class Stamping:
             return
         self.learner_leaves_chosen += 1
         self.depart_wealth_real[aid] = out * real
+        self.depart_wealth_nominal[aid] = out
         self.c["departed_net"] += out
         self.actors.remove(aid)
         self.departed.append(aid)
@@ -1553,6 +1610,9 @@ class Stamping:
 
     def tick(self, t: int):
         a, w = self.a, self.w
+        for x in self.learner_chain:
+            if x not in self.wealth_in_of and x in self.actors:
+                self.wealth_in_of[x] = w.wealth(x)              # the slots' wealth in at the first tick (the nominal surplus's base)
         if self.req_w0 is None and self.learner_id and a.learner_role == "requester":
             self.req_w0 = w.wealth(self.learner_id)          # Q7: the requester's genesis wallet, before any posting (a reading beside the spend)
         self.move_dispositions(t)
@@ -1659,8 +1719,11 @@ class Stamping:
                         self.lost_bid[(aid_b, cid)] = w.t
                     if aid_b != actor and self.kind.get(aid_b) == LEARNER and self.learner_role_of.get(aid_b) == "bidder":
                         self.c["learner_bids_lost"] += 1
+                        self.bids_lost_of[aid_b] = self.bids_lost_of.get(aid_b, 0) + 1
                 if self.kind.get(actor) == LEARNER and self.learner_role_of.get(actor) == "bidder":
                     self.learner_last_bid_case = (w.t, cid)        # Q6: the case this tick's bid decision won (redteam.env credits it to the decision; the world's clock, as the hook's)
+                    self.learner_won.append((w.t, actor, cid))     # the population: by name too
+                    self.bid_awards_of[actor] = self.bid_awards_of.get(actor, 0) + 1; self.last_won_of[actor] = w.t
                     self.c["learner_bid_awards"] += 1; self.c["learner_bid_award_sum"] += bid; self.c["learner_bid_cost_sum"] += self.cost_now(actor)
                 self.parent_awards[actor] = self.parent_awards.get(actor, 0) + 1
                 self.margin[actor] = round(self.margin[actor] + a.margin_up, 6)
@@ -2047,6 +2110,7 @@ class Stamping:
         events = w.events_since(self.n_events)
         if self.learner_id and self.a.learner_role == "requester":
             self.req_read_events(events)                 # Q7: the learned requester's spend, by its own events at the index of each
+        self.pop_read_events(events)                     # every requester's spend, nominal (the customers' tasks per credit)
         for e in events:
             if e.dst in self.tally:
                 ty = self.tally[e.dst]
@@ -2125,6 +2189,10 @@ class Stamping:
                     if task.disputed:
                         self.c["req_disputes_filed"] += 1
                         self.c["req_disputes_won"] += int(c.state == "FINAL_N")
+                if self.owner.get(cid) in self.requesters_set and cid not in self.pop_counted:   # the customers' tasks per credit (the ruling after run 32): a task received by any requester
+                    self.pop_counted.add(cid)
+                    if task.fulfilled:
+                        self.c["pop_tasks_received"] += 1
                 if cid in self.below_floor_cases and cid not in self.bf_counted:   # the stability track: what a delivery under the floor cost its member
                     self.bf_counted.add(cid)
                     if c.state == "FINAL_N":
@@ -2395,6 +2463,15 @@ class Stamping:
                     "learner_bid_withheld": self.c["learner_bid_withheld"], "learner_bid_awards": self.c["learner_bid_awards"], "learner_bids_lost": self.c["learner_bids_lost"],
                     "learner_bid_mean_over_cost": (round(self.c["learner_bid_award_sum"] / self.c["learner_bid_cost_sum"], 4) if self.c["learner_bid_cost_sum"] else ""),
                     "learner_held_real_mean": (round(self.c["learner_held_sum"] / self.c["learner_held_n"], 3) if self.c["learner_held_n"] else ""),
+                    # the learned population (the ruling after run 32): the slots, their nominal surplus (wealth now or out, less wealth in), the action mix by period;
+                    # the customers' tasks per credit, nominal (every requester), in every row
+                    "learner_pop": self.a.learner_pop, "learner_pop_total": len(self.learner_pop), "learner_pop_n": sum(1 for x in self.learner_pop if x in self.actors),
+                    "pop_departed": sum(1 for x in self.learner_pop if x not in self.actors),
+                    "pop_surplus_nominal": (round(sum((w.wealth(x) if x in self.actors else self.depart_wealth_nominal.get(x, 0.0)) - self.wealth_in_of.get(x, 0.0) for x in self.learner_chain), 3) if self.learner_chain else ""),
+                    "pop_wealth_nominal_mean": (round(sum(w.wealth(x) for x in self.learner_pop if x in self.actors) / max(1, sum(1 for x in self.learner_pop if x in self.actors)), 3) if self.learner_pop else ""),
+                    "learner_mix_by_period": json.dumps([self.learner_mix_by_period.get(k, [0, 0, 0]) for k in range(max(self.learner_mix_by_period) + 1)]) if self.learner_mix_by_period else "",
+                    "pop_tasks_received": self.c["pop_tasks_received"], "pop_req_spent_nominal": round(self.pop_req_spent_nominal, 3),
+                    "pop_tasks_per_1000": (round(1000.0 * self.c["pop_tasks_received"] / self.pop_req_spent_nominal, 4) if self.pop_req_spent_nominal > 1e-9 else ""),
                     # Q7: the learned requester — its postings by rule, the tasks received, the credits spent, the surplus at --task-value, the wait and the price paid
                     "req_decisions": self.c["req_decisions"], "req_rule_market": self.c["req_rule_market"], "req_rule_floor": self.c["req_rule_floor"], "req_rule_patient": self.c["req_rule_patient"],
                     "req_posted": self.c["req_posted"], "req_unaffordable": self.c["req_unaffordable"], "req_raised": self.c["req_raised"], "req_tasks_received": self.c["req_tasks_received"],
@@ -2780,6 +2857,9 @@ def build_parser():
     ap.add_argument("--task-value", type=float, default=0.0,
                     help="Q7: the value to the learned requester of a task received (a settled delivery whose truth is fulfilled), real (P_0 units); its measure is the surplus "
                          "v·F − S — tasks per credit linearized: read at the careful requester's own credits per task, so the careful reads about zero and a cheaper requester above it")
+    ap.add_argument("--learner-pop", choices=["off", "all", "half"], default="off",
+                    help="the learned population (the ruling after run 32; with --learner-role bidder): every careful member — or half, drawn once as --undercut-share 0.5 draws — "
+                         "a learner slot sharing one policy in self-play, each on its own observation; careful arrivals join by the same draw; the lifetime summed over the slots")
     ap.add_argument("--bidder-slot", choices=["first", "cheapest", "median", "costliest"], default="cheapest",
                     help="Q6 (the learned bidder): the slot — the cheapest careful actor by default (where undercutting the ratchet has the most room), the median, the costliest, or the first careful id")
     ap.add_argument("--parent-slot", choices=["first", "costliest", "median"], default="costliest",

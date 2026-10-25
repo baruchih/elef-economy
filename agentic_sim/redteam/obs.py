@@ -205,11 +205,10 @@ def build_obs_bid(run, actor: str, roots, hide=(), n_fields=None) -> np.ndarray:
     put("bd_idle_ticks", run.idle.get(actor, 0) / 10.0)
     per = w.dial()["period"]
     put("bd_ticks_to_boundary", (per["start"] + w.params.period_ticks - w.t) / max(1, w.params.period_ticks))
-    cc = run.c
-    put("bd_own_bid_awards", cc["learner_bid_awards"] / 20.0); put("bd_own_bids_lost", cc["learner_bids_lost"] / 20.0)
+    put("bd_own_bid_awards", run.bid_awards_of.get(actor, 0) / 20.0); put("bd_own_bids_lost", run.bids_lost_of.get(actor, 0) / 20.0)   # the slot's own record (the population: each its own)
     put("bd_own_held_real", w.unlocked(actor) * real / 1000.0)
-    lw = run.learner_last_bid_case
-    put("bd_last_won", 1.0 if (lw is not None and lw[0] >= w.t - 1) else 0.0)
+    lw = run.last_won_of.get(actor)
+    put("bd_last_won", 1.0 if (lw is not None and lw >= w.t - 1) else 0.0)
     return o if n_fields is None else o[:n_fields]
 
 

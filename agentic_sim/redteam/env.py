@@ -254,10 +254,17 @@ class ElefReviewerEnv(gym.Env if gym else object):
                                 "fulfilled": bool(pd.get("fulfilled", True)), "action": effected, "chosen": int(action), "realized": float(reward)})
         if self.role in ("bidder", "requester"):                   # Q6: the root this tick's bid decision won is credited to it (the driver names it after the award pass); Q7: the case the posting decision posted
             if pd.get("kind") in ("bid", "post"):
-                self._bid_idx_by_t[pd.get("t")] = len(self._decisions) - 1
+                self._bid_idx_by_t[(pd.get("t"), pd.get("identity"))] = len(self._decisions) - 1
+            won = getattr(self.run, "learner_won", None)       # the population (the ruling after run 32): each won root to the decision of its name at that tick
+            if won:
+                for (t_w, name, cid) in won:
+                    i = self._bid_idx_by_t.get((t_w, name))
+                    if i is not None and self._decisions[i]["case"] is None:
+                        self._decisions[i]["case"] = cid
+                won.clear()
             lb = getattr(self.run, "learner_last_bid_case", None)
             if lb is not None:
-                i = self._bid_idx_by_t.get(lb[0])
+                i = self._bid_idx_by_t.get((lb[0], self.run.learner_id))
                 if i is not None and self._decisions[i]["case"] is None:
                     self._decisions[i]["case"] = lb[1]
                 self.run.learner_last_bid_case = None
@@ -266,6 +273,8 @@ class ElefReviewerEnv(gym.Env if gym else object):
             info = dict(info, decisions=self.decisions, lifetime_real_wealth=wealth)
             if not info.get("error") and not info.get("aborted") and self.run is not None:
                 lineages = [[x] for x in self.run.learner_pair] if (self.role == "pair" and self.run.learner_pair) else None   # the pair: each member's own boundary
+                if getattr(self.run, "learner_pop", None):
+                    lineages = [[x] for x in self.run.learner_chain]       # the population: each slot's unclaimed events to its own boundary decisions
                 attributed, summ = attribute(self.run, self._marks, self._decisions, work_side=self.work_side, shared=(self.role == "pair"), lineages=lineages,
                                              tree=(self.role == "parent"),                                # Q5's parent: the child's events reach the delegate decision too
                                              task_value=(self.run.a.task_value if self.role == "requester" else 0.0),

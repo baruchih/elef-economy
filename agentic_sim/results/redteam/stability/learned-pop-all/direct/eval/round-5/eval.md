@@ -1,0 +1,23 @@
+# Evaluation (Q6, the learned bidder) — cell `--entry-pool 20 --stampers 0.6 --undercut 0.1 --learner-pop all --learner-exit rule`, seeds 21-40, model `None` (value off, horizon 16)
+
+The bidder's lifetime real wealth paired against the careful (the ratchet); its rule by tick (the ratchet's bid / at cost / no offer), the awards its bids won and the bid over cost at them, the offers lost, the wealth it held (real, a tick), the price level and the members' mean price at the close (hoarding and P_t beside).
+
+| policy | lifetime real | paired − careful | bid decisions | ratchet / undercut / withhold | awards won | of slot awards | bid / cost | offers lost | held (real) | slot ρ | slot cost | delivery income | effort burned | P_t close | members' price | awarded (all) | departed |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| direct | 36238.5 ± 2397.3 | 8787.4 ± 2295.3 | 5203.950 | 0.230 / 0.676 / 0.094 | 2224.850 | 153.750 | 1.821 | 7698.150 | 668.233 | 0.899 | 4.122 | 1725.855 | 1140.477 | 11.232 | 14.533 | 2610.200 | 0.150 |
+| careful | 27451.1 ± 511.4 | nan ± nan | 6936.850 | 1.000 / 0.000 / 0.000 | 1975.800 | 131.700 | 2.492 | 8519.150 | 506.752 | 0.897 | 4.122 | 1939.251 | 983.534 | 20.562 | 19.879 | 2448.750 | 0.150 |
+| undercut | 25738.3 ± 789.0 | -1712.9 ± 824.5 | 5227.250 | 0.000 / 1.000 / 0.000 | 2222.500 | 146.150 | 1.355 | 9029.550 | 550.482 | 0.889 | 4.122 | 1268.191 | 1144.264 | 9.068 | 11.770 | 2618.050 | 0.150 |
+
+The learned population — N learner slots sharing one policy in self-play (`--learner-pop`); the measures the ruling after run 32 fixed for population cells: the members in nominal surplus (the slots' wealth now or out, less their wealth in, nominal credits), the customers in tasks per credit (every requester's settled fulfilled deliveries per 1,000 nominal credits spent); P_t and the members' price, the state's share of the deliveries, the awards under the floor and the state's price over the market (the floor's binding), honesty, arrivals and departures. Paired columns are against the all-ratchet (`careful`).
+
+| policy | slots (alive / total) | nominal surplus | paired | wealth nominal (mean, alive) | departed | tasks per 1,000 (customers) | paired | P_t close | paired | members' price | paired | state share | awards under floor (share) | state price − B̄ | false approvals | arrivals | departures | requesters' wallet | idle for bond |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| direct | 17.000 / 27.650 | 17992.916 ± 454.337 | -8345.922 ± 626.779 | 996.715 | 10.650 | 41.277 | +9.099 ± 0.608 | 11.232 ± 0.679 | -9.330 ± 0.813 | 14.533 | -5.346 ± 0.375 | 0.004 | 207.600 (0.079) | 0.107 | 13.200 | 19.650 | 22.650 | 1811.298 | 141.050 |
+| careful | 19.400 / 27.850 | 26338.838 ± 523.252 | — | 1329.366 | 8.450 | 32.178 | — | 20.562 ± 0.450 | — | 19.879 | — | 0.009 | 98.600 (0.040) | 0.000 | 11.350 | 19.850 | 20.450 | 108.558 | 179.200 |
+| undercut | 16.550 / 26.800 | 10471.755 ± 343.467 | -15867.083 ± 657.046 | 599.140 | 10.250 | 48.997 | +16.819 ± 0.917 | 9.068 ± 0.222 | -11.495 ± 0.540 | 11.770 | -8.109 ± 0.399 | 0.004 | 536.700 (0.205) | 0.055 | 11.700 | 18.800 | 22.250 | 3077.803 | 306.700 |
+
+The action mix by period (ratchet / undercut / withhold, pooled over the seeds; the decisions a period, mean over the seeds):
+
+- **direct**: p0 0.462/0.446/0.092 (609); p1 0.210/0.743/0.047 (232); p2 0.122/0.856/0.022 (167); p3 0.220/0.663/0.117 (345); p4 0.272/0.597/0.131 (388); p5 0.234/0.687/0.079 (356); p6 0.217/0.721/0.062 (388); p7 0.183/0.747/0.070 (402); p8 0.184/0.743/0.072 (415); p9 0.170/0.772/0.058 (437); p10 0.176/0.740/0.084 (493); p11 0.222/0.634/0.144 (532); p12 0.193/0.618/0.189 (322); p13 0.132/0.737/0.131 (75); p14 0.110/0.773/0.117 (41)
+- **careful**: p0 1.000/0.000/0.000 (650); p1 1.000/0.000/0.000 (414); p2 1.000/0.000/0.000 (297); p3 1.000/0.000/0.000 (406); p4 1.000/0.000/0.000 (479); p5 1.000/0.000/0.000 (474); p6 1.000/0.000/0.000 (525); p7 1.000/0.000/0.000 (547); p8 1.000/0.000/0.000 (601); p9 1.000/0.000/0.000 (641); p10 1.000/0.000/0.000 (674); p11 1.000/0.000/0.000 (650); p12 1.000/0.000/0.000 (448); p13 1.000/0.000/0.000 (126); p14 1.000/0.000/0.000 (6)
+- **undercut**: p0 0.000/1.000/0.000 (635); p1 0.000/1.000/0.000 (228); p2 0.000/1.000/0.000 (171); p3 0.000/1.000/0.000 (333); p4 0.000/1.000/0.000 (389); p5 0.000/1.000/0.000 (373); p6 0.000/1.000/0.000 (412); p7 0.000/1.000/0.000 (446); p8 0.000/1.000/0.000 (459); p9 0.000/1.000/0.000 (483); p10 0.000/1.000/0.000 (465); p11 0.000/1.000/0.000 (463); p12 0.000/1.000/0.000 (269); p13 0.000/1.000/0.000 (87); p14 0.000/1.000/0.000 (14)

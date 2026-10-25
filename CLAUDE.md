@@ -613,7 +613,7 @@ consolidated into one standalone spec with the accepted revision kept verbatim i
   `--learner-role bidder`, `--bidder-slot cheapest|median|costliest|first`, `--undercut 0.2`):** once a tick when the slot is free and a root is affordable, the policy sets the
   tick's bid rule — 0 the ratchet's (the reference), 1 the undercut ((1 − δ) B̄ floored at cost), 2 withhold; the root the bid wins is credited to the decision (`learner_last_bid_case`,
   patched into the env's decision record); `obs.build_obs_bid`; policies careful / undercut / withhold / eps / random / leaver; readings `learner_bid_*`, `learner_held_real_mean`
-  (hoarding) and `P_t` beside. The references on the cheapest slot first (`results/redteam/Q6/refs/`, λ the calibration knob).
+  (hoarding) and `P_t` beside. The references on the cheapest slot first (`results/redteam/Q6/refs/`, λ the calibration knob; notes §39): under the rules the ratchet is not plainly undercuttable (a 20% undercut +174 ± 130; the median slot loses; the costliest does as well not bidding); one cell meets three SE, a 10% undercut at λ 2.0 (+498 ± 168), and the calibration ran there (`calibration-v4/`; notes §41): **the direct clears at the gate's edge** (+309 ± 154, 2.0 SE; it is the undercut 89% of the time) **and the world model does not** (the CEM −123 ± 157; the head alone +330 ± 214, 1.5 SE, withholding one decision in five in a late-run trap — a thin margin and idleness read below zero where the training signal is positive); the line under the rules under the direct (`line-v4/direct/`), the head alone beside as a reading (`line-v4/wm/`).
 - Money is checked by invariant I1 (conservation) — never silently create or lose credits.
 
 ## Vocabulary (spec Appendix C has the full notation)

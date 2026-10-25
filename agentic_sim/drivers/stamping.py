@@ -308,6 +308,21 @@ class Stamping:
         for aid in self.tell_readers:
             self.kind[aid] = TELL
         self.careful_initial = [aid for aid in self.actors if self.kind[aid] == CAREFUL]   # the careful cohort at genesis (arrivals excluded)
+        # the stability track's first cells (the ruling after run 31; evaluations under fixed rules): a population of undercutters — the careful members in
+        # --undercut-share bidding Q6's rule, (1 − δ) B̄ floored at cost — drawn once on their own stream (a control run's draws untouched); arrivals join by the
+        # same draw; and the requesters that follow --ceiling-policy (the first --ceiling-requesters standing requesters; 0 every requester, as before)
+        self.under_rng = random.Random(a.seed * 15485863 + 31)
+        self.undercutters: set[str] = set()
+        if a.bid == "undercut":
+            ids_u = list(self.careful_initial); self.under_rng.shuffle(ids_u)
+            self.undercutters = set(ids_u[: round(len(ids_u) * a.undercut_share)])
+        self.policy_requesters = set(self.requesters[: a.ceiling_requesters]) if a.ceiling_requesters > 0 else set(self.requesters)
+        self.under_floor_cases: set[str] = set()                 # the requests posted under the reservation
+        self.below_floor_cases: dict[str, str] = {}              # awards at a bid under the floor → the member serving
+        self.below_floor_servers: set[str] = set()
+        self.bf_counted: set[str] = set()
+        self.uf_counted: set[str] = set()
+        self._mk_cache = (-1, None)
         # the slot: the actor that is (or, in a control run, would be) the single tell-reader — the same id, cost and tie-break position
         # on the same seed, so a control run's slot is the paired comparison the brief's "same cost and split" asks for
         self.tell_slot = ids_t[0] if ids_t else (self.actors[0] if (a.learner_slot == "on" and self.actors) else None)   # Q3's calibration: every reviewer a stamper — the slot the first actor
@@ -417,6 +432,9 @@ class Stamping:
                   "duty_short_of_bond_ticks": 0,   # Σ over ticks of on-duty actors that cannot fund G^V (q6 solvency)
                   "departed_net": 0.0,             # 2.7.0: the wallets carried out by departing actors, net of the loans recovered
                   "unfundable_with_loan_ticks": 0, # 2.7.0 H2: Σ over ticks of free arrival-born members unfundable for an award while a loan stood
+                  "undercut_awards": 0, "undercut_awards_at_cost": 0, "awards_below_floor": 0, "awards_at_floor": 0, "below_floor_margin_sum": 0.0,
+                  "below_floor_final_n": 0, "below_floor_g_lost": 0.0, "under_floor_posted": 0, "under_floor_awarded": 0, "under_floor_wait_sum": 0,
+                  "under_floor_price_sum": 0.0, "under_floor_fulfilled": 0, "under_floor_final_n": 0, "under_floor_vested": 0,   # the stability track (run 31's ruling)
                   "idle_for_bond_ticks": 0,        # members idle for want of a bond: Σ over ticks of free members whose unlocked balance is below G^V at the index
                   "disputes_filed": 0, "disputes_refused": 0, "disputes_won": 0, "disputes_lost": 0,
                   "false_approvals_disputed": 0, "false_approvals_overturned": 0,
@@ -661,6 +679,11 @@ class Stamping:
                 return round(max(self.cost_now(aid), (1.0 - self.a.undercut) * (mk["B_bar"] or mk["P_t"])), 6)
             if self.learner_bid_mode == 2:
                 return math.inf
+        if self.a.bid == "undercut" and aid in self.undercutters:
+            # the stability track (the ruling after run 31): the undercutting population — Q6's rule for every careful member in the share: the market price
+            # cut by --undercut, floored at the member's own cost (the view read once a tick)
+            mk = self.market_now()
+            return round(max(self.cost_now(aid), (1.0 - self.a.undercut) * (mk["B_bar"] or mk["P_t"])), 6)
         if self.a.bid == "floor-plus":
             # 2.4.0 §8.7 red team: the members collude to bid just above the state's floor on every request — those whose cost allows it;
             # the others bid their own c_D (1 + m), since nobody bids below cost on purpose here
@@ -671,6 +694,15 @@ class Stamping:
         if aid in self.lowballers:
             return round(0.5 * self.cost_now(aid), 6)   # below cost, to win awards and ρ (2.0.0 §8.8)
         return round(self.cost_now(aid) * (1.0 + self.margin[aid]), 6)
+
+    def _mean_wealth_real(self, ids, real):
+        return round(sum(self.w.wealth(x) for x in ids) / len(ids) * real, 3) if ids else ""
+
+    def market_now(self) -> dict:
+        """The view's market readings, read once a tick (the population's bids read it for every offer)."""
+        if self._mk_cache[0] != self.w.t:
+            self._mk_cache = (self.w.t, self.w.market())
+        return self._mk_cache[1]
 
     def median_cost(self, ids) -> float:
         xs = sorted(self.c_d_of[i] for i in ids if i in self.c_d_of)
@@ -703,6 +735,8 @@ class Stamping:
                 self.candidates.remove(cand)
                 self.actors.append(name)
                 self.kind[name] = cand["kind"]
+                if a.bid == "undercut" and cand["kind"] == CAREFUL and self.under_rng.random() < a.undercut_share:
+                    self.undercutters.add(name)                   # the stability track: a careful arrival joins the undercutters by the same draw
                 self.c_d_of[name] = cand["cost"]
                 self.margin[name], self.idle[name] = a.margin0, 0
                 self.tally[name] = Tally()
@@ -1054,6 +1088,7 @@ class Stamping:
         U = w.unlocked(r)
         mk = w.market()
         req_mode = None
+        policy = a.ceiling_policy if r in self.policy_requesters else "wallet"   # --ceiling-requesters: the others follow the wallet rule
         if r == self.learner_id and a.learner_role == "requester":
             self.c["req_waiting_ticks"] += sum(1 for x in self.active if self.owner.get(x) == r and w.case(x).state == "AVAILABLE")
         if r == self.learner_id and self.learner_req is not None and a.learner_role == "requester":
@@ -1064,15 +1099,20 @@ class Stamping:
             self.c["req_decisions"] += 1
             self.c[{0: "req_rule_market", 1: "req_rule_patient"}.get(req_mode, "req_rule_floor")] += 1
             beta = cands["beta"][req_mode]
-        elif a.ceiling_policy == "market":
+        elif policy == "market":
             # run 13 §3 (the reviewer's demand-unbound cell): a market-aware ceiling — a little above the market price, so a
             # posting locks less than the wallet rule's and the requester posts more; the wallet still has to carry the all-in
             beta = math.floor(min(a.beta_max, a.ceiling_mult * mk["B_bar"]) * 100) / 100
-        elif a.ceiling_policy == "floor":
+        elif policy == "floor":
             # 2.4.0 §8.7 red team: the requester cartel — every request at exactly the state's floor, never raised; the state must serve it at
             # the floor after w_A unless a member bids under it
             beta = math.floor(min(a.beta_max, max(1.0, mk.get("state_floor", 0.0) or mk["B_bar"])) * 100) / 100
-        elif a.ceiling_policy in ("patient", "patient-blind"):
+        elif policy == "under-floor":
+            # the stability track (the ruling after run 31): a requester posting under the state's reservation — --under-floor-frac of the floor, never
+            # raised; the state never serves it (p_T ≥ the floor) and its clock does not run while it waits there (2.4.0), so it clears only on a member
+            # bidding under the floor — the share of demand clearing below the floor and its cost to the members serving it, the readings
+            beta = math.floor(min(a.beta_max, max(1.0, a.under_floor_frac * (mk.get("state_floor", 0.0) or mk["B_bar"]))) * 100) / 100
+        elif policy in ("patient", "patient-blind"):
             # run 17 batch C: patient customers — 0.7 B̄, raised only after --patient-ticks unserved (raise_below_market): to max(B̄, the
             # state's floor) read from the view under `patient` (2.4.0), to B̄ alone under `patient-blind` (run 17's, deadlocking at the floor)
             beta = math.floor(min(a.beta_max, max(1.0, 0.7 * mk["B_bar"])) * 100) / 100
@@ -1091,6 +1131,9 @@ class Stamping:
             return
         cid = w.post_root(r, beta)
         self.owner[cid] = r
+        if policy == "under-floor":
+            self.under_floor_cases.add(cid)
+            self.c["under_floor_posted"] += 1
         if req_mode is not None:                        # Q7: the case the decision posted, named for redteam.env (the hook's clock) as the bidder's won root is
             self.req_mode[cid] = req_mode
             self.learner_last_bid_case = (w.t, cid)
@@ -1147,8 +1190,8 @@ class Stamping:
         # 2.4.0: a policy that reads the view raises to the state's price max(B̄, the floor); `patient-blind` and the 1.x-shaped policies
         # raise to B̄ alone (a wallet- or market-rule requester never posts below the floor unless its wallet is short)
         goal = mk.get("state_price", B_bar) if self.a.ceiling_policy == "patient" else B_bar
-        if self.a.ceiling_policy == "floor":
-            return                                       # the cartel never raises
+        if self.a.ceiling_policy in ("floor", "under-floor") and self.a.ceiling_requesters == 0:
+            return                                       # the cartel never raises (nor the plants, which follow the population)
         # 2.6.1 (erratum, §7.6): the plant requester raises as the population's requesters do — the plants are in the working set and take
         # this step in this pass, at the same timing; the engine mints the difference for a plant (a requester's wallet may refuse one)
         for cid in list(self.active):
@@ -1156,12 +1199,15 @@ class Stamping:
             mode = self.req_mode.get(cid)                 # Q7: the learned requester's case, by the rule it was posted under
             if mode == 2:
                 continue                                 # the floor: never raised (the floor, and stop)
-            goal_c = (mk.get("state_price") or B_bar) if mode == 1 else goal
+            pol = self.a.ceiling_requesters == 0 or self.owner.get(cid) in self.policy_requesters   # the owner follows --ceiling-policy (a plant follows the population)
+            if pol and self.a.ceiling_policy in ("floor", "under-floor"):
+                continue                                 # the floor and the under-floor requester never raise
+            goal_c = (mk.get("state_price") or B_bar) if mode == 1 else (goal if pol else B_bar)
             if c.state != "AVAILABLE" or c.beta + 1e-9 >= goal_c or self.owner.get(cid) in self.stingy or cid in self.nested_parent:
                 continue
-            if (patient or mode == 1) and self.w.t - c.t_post < self.a.patient_ticks:
+            if ((patient and pol) or mode == 1) and self.w.t - c.t_post < self.a.patient_ticks:
                 continue                                 # a patient customer waits T ticks before raising
-            if patient:
+            if patient and pol:
                 self.c["patient_raised"] += 1
             if mode is not None:
                 self.c["req_raised"] += 1
@@ -1623,6 +1669,25 @@ class Stamping:
                 self.c["awarded"] += 1
                 self.c["member_price_sum"] += bid
                 self.c["member_price_n"] += 1
+                # the stability track's readings: the undercutters' awards (and those at their cost — the cut floored), the awards at or under the state's
+                # reservation and the member's margin on them (does the reservation bind from below?), the under-floor requests' awards and wait
+                cost_a = self.cost_now(actor)
+                if actor in self.undercutters:
+                    self.c["undercut_awards"] += 1
+                    if bid <= cost_a + 1e-9:
+                        self.c["undercut_awards_at_cost"] += 1
+                fl = self.market_now().get("state_floor", 0.0) or 0.0
+                if fl > 0 and bid < fl - 1e-9:
+                    self.c["awards_below_floor"] += 1
+                    self.c["below_floor_margin_sum"] = round(self.c["below_floor_margin_sum"] + bid - cost_a, 6)
+                    self.below_floor_cases[cid] = actor
+                    self.below_floor_servers.add(actor)
+                elif fl > 0 and bid <= fl + 1e-9:
+                    self.c["awards_at_floor"] += 1
+                if cid in self.under_floor_cases:
+                    self.c["under_floor_awarded"] += 1
+                    self.c["under_floor_wait_sum"] += w.t - w.case(cid).t_post
+                    self.c["under_floor_price_sum"] = round(self.c["under_floor_price_sum"] + bid, 6)
                 continue
             offers = self.free_workers()
             if not offers:
@@ -2060,6 +2125,15 @@ class Stamping:
                     if task.disputed:
                         self.c["req_disputes_filed"] += 1
                         self.c["req_disputes_won"] += int(c.state == "FINAL_N")
+                if cid in self.below_floor_cases and cid not in self.bf_counted:   # the stability track: what a delivery under the floor cost its member
+                    self.bf_counted.add(cid)
+                    if c.state == "FINAL_N":
+                        self.c["below_floor_final_n"] += 1
+                        self.c["below_floor_g_lost"] = round(self.c["below_floor_g_lost"] + float((c.G_award if c.G_award is not None else c.G) or 0.0), 6)
+                if cid in self.under_floor_cases and cid not in self.uf_counted:
+                    self.uf_counted.add(cid)
+                    self.c["under_floor_fulfilled"] += int(bool(task.fulfilled))
+                    self.c["under_floor_final_n" if c.state == "FINAL_N" else "under_floor_vested"] += 1
                 if task.parent_learner:                                 # Q5: what became of the learned parent's child
                     self.c["learner_children_settled"] += 1
                     if c.state == "FINAL_N":
@@ -2330,6 +2404,25 @@ class Stamping:
                     "req_disputes_filed": self.c["req_disputes_filed"], "req_disputes_won": self.c["req_disputes_won"],
                     "req_spent_real": (round(self.req_spent_real(), 3) if (self.learner_id and self.a.learner_role == "requester") else ""),
                     "req_tasks_per_1000": (round(1000.0 * self.c["req_tasks_received"] / self.req_spent_real(), 4) if (self.learner_id and self.a.learner_role == "requester" and self.req_spent_real() > 1e-9) else ""),
+                    # the stability track (the ruling after run 31): the undercutting population and the requester under the reservation
+                    "undercutters_n": sum(1 for x in self.undercutters if x in self.actors),
+                    "undercut_awards": self.c["undercut_awards"], "undercut_awards_at_cost": self.c["undercut_awards_at_cost"],
+                    "undercutter_wealth_real": self._mean_wealth_real([x for x in self.undercutters if x in self.actors], real),
+                    "ratchet_careful_wealth_real": self._mean_wealth_real([x for x in self.actors if self.kind[x] == CAREFUL and x not in self.undercutters], real),
+                    "awards_below_floor": self.c["awards_below_floor"], "awards_at_floor": self.c["awards_at_floor"],
+                    "awards_below_floor_share": round(self.c["awards_below_floor"] / max(1, self.c["awarded"]), 4),
+                    "below_floor_margin_mean": round(self.c["below_floor_margin_sum"] / self.c["awards_below_floor"], 4) if self.c["awards_below_floor"] else "",
+                    "below_floor_servers_n": len(self.below_floor_servers),
+                    "below_floor_server_wealth_real": self._mean_wealth_real([x for x in self.below_floor_servers if x in self.actors], real),
+                    "below_floor_final_n": self.c["below_floor_final_n"], "below_floor_g_lost": round(self.c["below_floor_g_lost"], 3),
+                    "under_floor_posted": self.c["under_floor_posted"], "under_floor_awarded": self.c["under_floor_awarded"],
+                    "under_floor_waiting": sum(1 for x in self.under_floor_cases if x in self.active and w.case(x).state == "AVAILABLE"),
+                    "under_floor_wait_mean": round(self.c["under_floor_wait_sum"] / self.c["under_floor_awarded"], 3) if self.c["under_floor_awarded"] else "",
+                    "under_floor_price_mean": round(self.c["under_floor_price_sum"] / self.c["under_floor_awarded"], 4) if self.c["under_floor_awarded"] else "",
+                    "under_floor_fulfilled": self.c["under_floor_fulfilled"], "under_floor_final_n": self.c["under_floor_final_n"], "under_floor_vested": self.c["under_floor_vested"],
+                    "state_share": round(self.c["troop_deliveries"] / max(1, self.c["awarded"] + self.c["troop_deliveries"]), 4),
+                    "requester_wallet_real": round(sum(w.wealth(r) for r in reqs) / max(1, len(reqs)) * real, 3),
+                    "state_price_over_market": round(mk["state_price"] - mk["B_bar"], 4) if mk.get("state_price") is not None else "",
                     "req_surplus_real": (round(self.req_lifetime_real(), 3) if (self.learner_id and self.a.learner_role == "requester") else ""),
                     "req_wallet_real": (round(w.wealth(self.learner_id) * real, 3) if (self.learner_id and self.a.learner_role == "requester") else ""),
                     # Q4: the pair
@@ -2584,12 +2677,20 @@ def build_parser():
     ap.add_argument("--beta-max", type=float, default=40.0, help="β_max, the ceiling policy's cap")
     ap.add_argument("--ceiling-share", type=float, default=1.0 / 3.0, help="s: β = min(β_max, s × unlocked wallet)")
     ap.add_argument("--k-open", type=int, default=5, help="K_open: a requester posts while fewer than this many of its requests are open (0: no limit)")
-    ap.add_argument("--ceiling-policy", choices=["wallet", "market", "patient", "patient-blind", "floor"], default="wallet",
+    ap.add_argument("--ceiling-policy", choices=["wallet", "market", "patient", "patient-blind", "floor", "under-floor"], default="wallet",
                     help="the requesters' ceiling: min(β_max, share × unlocked wallet), or market-aware min(β_max, mult × B̄) (run 13 §3)")
     ap.add_argument("--ceiling-mult", type=float, default=1.2, help="the market-aware ceiling's multiple of B̄")
-    ap.add_argument("--bid", choices=["margin", "ceiling", "floor-plus"], default="margin",
+    ap.add_argument("--ceiling-requesters", type=int, default=0,
+                    help="the stability track (the ruling after run 31): the first N standing requesters follow --ceiling-policy, the rest the wallet rule (0: all, as before)")
+    ap.add_argument("--under-floor-frac", type=float, default=0.75,
+                    help="--ceiling-policy under-floor: the ceiling as a fraction of the state's reservation — posted under the floor, never raised; the state never serves it "
+                         "and its clock does not run (2.4.0), so it clears only on a member's bid under the floor")
+    ap.add_argument("--bid", choices=["margin", "ceiling", "floor-plus", "undercut"], default="margin",
                     help="members' bid policy: c_D (1 + m); at the ceiling (the 1.x behaviour, the control); or 2.4.0 §8.7's collusion — every member whose cost allows "
-                         "bids the state's floor × (1 + --bid-plus) on every request, the others c_D (1 + m)")
+                         "bids the state's floor × (1 + --bid-plus) on every request, the others c_D (1 + m); or the stability track's undercutting population "
+                         "(the ruling after run 31) — the careful members in --undercut-share bid (1 − --undercut) B̄ floored at their cost (Q6's rule), the rest the ratchet")
+    ap.add_argument("--undercut-share", type=float, default=1.0,
+                    help="--bid undercut: the share of the careful members that undercut (drawn once at genesis and at each careful arrival); 1.0 every careful member")
     ap.add_argument("--bid-plus", type=float, default=0.01, help="--bid floor-plus: the colluding members' bid above the floor, as a share of it")
     ap.add_argument("--c-d", type=float, default=8.0, help="c_D, a member's nominal effort cost per task (burned at submission)")
     ap.add_argument("--c-d-adaptive", choices=["on", "off"], default="off", help="the adaptive reservation: c_D follows P_t with a one-period lag (the spiral, swept)")

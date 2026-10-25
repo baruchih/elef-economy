@@ -299,8 +299,10 @@ def policy_eps(obs, rng, eps=0.2): return int(rng.integers(2)) if _boundary(obs)
 def policy_random(obs, rng): return int(rng.integers(3))
 def policy_harvester(obs, rng): return 1                       # the cycler written by hand: stamp every review, leave at every boundary (the float each return)
 def policy_leaver(obs, rng): return 1 if _boundary(obs) else 0  # the float alone: careful at every review, leave at every boundary
+def policy_eps_stamper(obs, rng, eps=0.2): return int(rng.integers(2)) if _boundary(obs) else (int(rng.integers(3)) if rng.random() < eps else 1)   # the basin test's stamper-weighted set: ε around the stamper
+def policy_hand(obs, rng): return 0 if _boundary(obs) else 3       # the reviewers in self-play: each slot answers as its disposition by hand would (the driver's learner_hand_kind) — a reference, never collected
 POLICIES = {"careful": policy_careful, "stamper": policy_stamper, "eps": policy_eps, "random": policy_random,
-            "harvester": policy_harvester, "leaver": policy_leaver}
+            "harvester": policy_harvester, "leaver": policy_leaver, "eps-stamper": policy_eps_stamper, "hand": policy_hand}
 # Q3's, for the deliverer (two actions: 0 deliver well, 1 deliver badly; at a boundary 0 stay, 1 leave for good): careful delivers well always;
 # `zero` is the zero-effort delivery — bad work every time, the calibration cell's ideal where no reviewer looks; ε and random as the reviewer's
 def policy_zero(obs, rng): return 0 if _boundary(obs) else 1

@@ -375,15 +375,17 @@ class Stamping:
         # the learned population (the ruling after run 32): N learner slots sharing one policy in self-play — every careful member at genesis, or half drawn once
         # on the undercutters' stream (the same half as --undercut-share 0.5 on the seed); the slot id the cheapest of them; careful arrivals join by the same draw
         self.learner_pop: list[str] = []
-        if a.learner_slot == "on" and a.learner_pop != "off" and a.learner_role == "bidder":
-            ids_p = list(self.careful_initial); self.under_rng.shuffle(ids_p)
+        self.learner_hand_kind: dict[str, str] = {}   # (ii) the reviewers in self-play: each slot's disposition by hand — the `hand` reference (action 3) answers with it, so run 24's 60/40 is read on the same slots
+        if a.learner_slot == "on" and a.learner_pop != "off" and a.learner_role in ("bidder", "reviewer"):
+            ids_p = list(self.careful_initial) if a.learner_role == "bidder" else list(ids); self.under_rng.shuffle(ids_p)   # the bidders: the careful members; the reviewers: every member (the 60/40 is a reference)
             take = ids_p if a.learner_pop == "all" else ids_p[: round(len(ids_p) * 0.5)]
             if not take:
-                raise SystemExit("--learner-pop needs careful members at genesis")
+                raise SystemExit("--learner-pop needs members at genesis")
             if self.learner_id is not None and self.learner_id not in take:
                 self.kind[self.learner_id] = self.learner_review_kind; self.learner_role_of.pop(self.learner_id, None)
             for x in take:
-                self.kind[x] = LEARNER; self.learner_role_of[x] = "bidder"
+                self.learner_hand_kind[x] = self.kind[x] if self.kind[x] != LEARNER else self.learner_review_kind
+                self.kind[x] = LEARNER; self.learner_role_of[x] = a.learner_role
             self.learner_pop = sorted(take, key=lambda x: (self.c_d_of[x], x))
             self.learner_id = self.tell_slot = self.learner_pop[0]
         self.learner_bid_mode_of: dict[str, int] = {}        # each learner bidder's rule for the tick (the population; the single slot keeps learner_bid_mode)
@@ -402,7 +404,7 @@ class Stamping:
         self.learner_returns, self.learner_leaves_chosen, self.learner_leaves_refused, self.learner_boundary_decisions = 0, 0, 0, 0
         self.learner_float_minted, self.learner_float_minted_real = 0.0, 0.0
         self._last_boundary_t = None
-        self.readers = set(self.tell_readers) | ({self.learner_id} if self.learner_id else set())   # who keeps a seen set and its bids
+        self.readers = set(self.tell_readers) | ({self.learner_id} if self.learner_id else set()) | (set(self.learner_pop) if a.learner_role == "reviewer" else set())   # who keeps a seen set and its bids
         self.tells = {"gap", "cap", "idage", "seen", "post", "price", "losttie"} if a.tell == "all" else set(a.tell.split("+"))   # `oracle` / `freshname`: outside the convention (declared)
         self.seen: dict[tuple, tuple] = {}            # (reader, case) -> (world tick first seen available, its ceiling, P_t then)
         self.my_bid: dict[tuple, float] = {}          # (reader, case) -> the reader's bid
@@ -475,7 +477,7 @@ class Stamping:
                   # 1.3.0: membership
                   "awards_refused_members_only_ticks": 0, "probation_false_approvals": 0,
                   # 1.4.0: troops
-                  "audit_obligations": 0, "troop_reviews": 0, "troop_audits": 0, "troop_deliveries": 0,
+                  "audit_obligations": 0, "audits_held": 0, "audits_overturning": 0, "troop_reviews": 0, "troop_audits": 0, "troop_deliveries": 0,
                   "troop_delivered_vested": 0, "troop_delivered_final_n": 0, "troop_false_approvals": 0,
                   # 1.6.0: panels held by troops; the red team's withdrawals
                   "troop_panel_seats": 0, "withdrawn_unawarded": 0,
@@ -551,6 +553,17 @@ class Stamping:
         kind = self.kind[reviewer]
         if kind == LEARNER and self.learner_role_of.get(reviewer) in ("deliverer", "child", "parent", "bidder"):
             kind = self.learner_review_kind          # Q3: the learned deliverer reviews as the population's actor at its slot does
+        action = None
+        if kind == LEARNER and view is not None and self.learner is not None:
+            action = int(self.learner(self, reviewer, view, r))
+            self.learner_decisions += 1
+            if self.learner_pop and self.a.learner_role == "reviewer":          # the reviewers in self-play: the action mix by period (care / approve blind / reject blind)
+                per = len(self.w.dial()["periods"])
+                self.learner_mix_by_period.setdefault(per, [0, 0, 0])
+                if 0 <= action < 3:
+                    self.learner_mix_by_period[per][action] += 1
+            if action == 3:                                                     # the `hand` reference: the slot answers as its disposition by hand would (run 24's population on the same slots)
+                kind = self.learner_hand_kind.get(reviewer, CAREFUL)
         if kind == STAMPER:
             if self.a.stamper_mode == "reformer" and self.w.actor(reviewer).probation:
                 pass                             # a reformer reviews carefully while on probation (1.3.0 §8 red team) ...
@@ -558,9 +571,7 @@ class Stamping:
                 if self.a.camouflage > 0 and self.rng.random() < self.a.camouflage:
                     return N, 0.0                # looks careful without looking (1.2.0 §8 red team)
                 return F, 0.0
-        if kind == LEARNER and view is not None and self.learner is not None:
-            action = int(self.learner(self, reviewer, view, r))
-            self.learner_decisions += 1
+        if action is not None and action != 3:
             if self.learner_pair and r is not None and r.role == "initial" and self.tasks[view.case_id].pair_review:
                 self.c[("pair_cares", "pair_stamps", "pair_rejects")[action]] += 1      # Q4: the reviewer's verdict on the deliverer's case
                 if action == 1:
@@ -765,9 +776,12 @@ class Stamping:
                 self.kind[name] = cand["kind"]
                 if a.bid == "undercut" and cand["kind"] == CAREFUL and self.under_rng.random() < a.undercut_share:
                     self.undercutters.add(name)                   # the stability track: a careful arrival joins the undercutters by the same draw
-                if self.learner_pop and cand["kind"] == CAREFUL and (a.learner_pop == "all" or self.under_rng.random() < 0.5):
-                    self.kind[name] = LEARNER; self.learner_role_of[name] = "bidder"      # the learned population: a careful arrival is a learner slot by the same draw
+                if self.learner_pop and (cand["kind"] == CAREFUL or a.learner_role == "reviewer") and (a.learner_pop == "all" or self.under_rng.random() < 0.5):
+                    self.learner_hand_kind[name] = cand["kind"]
+                    self.kind[name] = LEARNER; self.learner_role_of[name] = a.learner_role      # the learned population: a careful arrival is a learner slot by the same draw (the reviewers': every arrival)
                     self.learner_pop.append(name); self.learner_chain.append(name)
+                    if a.learner_role == "reviewer":
+                        self.readers.add(name)
                     self.wealth_in_of[name] = w.wealth(name)
                 self.c_d_of[name] = cand["cost"]
                 self.margin[name], self.idle[name] = a.margin0, 0
@@ -2263,6 +2277,11 @@ class Stamping:
                 if c.grade in self.by_grade:
                     self.by_grade[c.grade][0] += 1
                     self.by_grade[c.grade][1] += int(correct)
+                revs_c = [w.review(rid) for rid in c.reviews]
+                if any(x.role == "audit" for x in revs_c):                   # the audit layer's overturn rate (the ruling after run 33's honesty readings)
+                    self.c["audits_held"] += 1
+                    if any(x.role == "initial" and x.status == "overturned" for x in revs_c):
+                        self.c["audits_overturning"] += 1
                 for rid in c.reviews:
                     r = w.review(rid)
                     if r.reviewer not in self.tally:
@@ -2548,6 +2567,10 @@ class Stamping:
                     "acc_accomplice_loan": (round(w.loan_outstanding(self.acc_pair[1]), 3) if self.acc_pair and self.acc_pair[1] in self.actors else ""),
                     "accomplice_unaffordable": self.c["accomplice_unaffordable"],
                     "learner_suspensions": (sum(len(self.susp_log.get(x, [])) for x in self.learner_chain) if self.learner_chain else ""),
+                    # the honesty readings for the reviewers in self-play (the ruling after run 33): the plant record and the audit layer's overturn rate, run-wide
+                    "bad_plants_approved": self.c["bad_plants_approved"], "good_plants_rejected": self.c["good_plants_rejected"],
+                    "audits_held": self.c["audits_held"], "audits_overturning": self.c["audits_overturning"],
+                    "audit_overturn_rate": (round(self.c["audits_overturning"] / self.c["audits_held"], 4) if self.c["audits_held"] else ""),
                     "learner_departed_now": (int(self.learner_id not in self.actors) if self.learner_id else ""),
                     "tell_plant_read_plant": self.c["tell_plant_read_plant"], "tell_plant_read_real": self.c["tell_plant_read_real"],
                     "tell_real_read_plant": self.c["tell_real_read_plant"], "tell_real_read_real": self.c["tell_real_read_real"],
@@ -2859,7 +2882,8 @@ def build_parser():
                          "v·F − S — tasks per credit linearized: read at the careful requester's own credits per task, so the careful reads about zero and a cheaper requester above it")
     ap.add_argument("--learner-pop", choices=["off", "all", "half"], default="off",
                     help="the learned population (the ruling after run 32; with --learner-role bidder): every careful member — or half, drawn once as --undercut-share 0.5 draws — "
-                         "a learner slot sharing one policy in self-play, each on its own observation; careful arrivals join by the same draw; the lifetime summed over the slots")
+                         "a learner slot sharing one policy in self-play, each on its own observation; careful arrivals join by the same draw; the lifetime summed over the slots. "
+                         "With --learner-role reviewer (the ruling after run 33): every member, stampers included, and every arrival — the 60/40 is the `hand` reference on the same slots")
     ap.add_argument("--bidder-slot", choices=["first", "cheapest", "median", "costliest"], default="cheapest",
                     help="Q6 (the learned bidder): the slot — the cheapest careful actor by default (where undercutting the ratchet has the most room), the median, the costliest, or the first careful id")
     ap.add_argument("--parent-slot", choices=["first", "costliest", "median"], default="costliest",

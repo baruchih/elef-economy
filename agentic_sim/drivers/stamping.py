@@ -326,11 +326,24 @@ class Stamping:
                                                       # 0 the ratchet's bid (c_D (1 + m), the population's rule), 1 undercut ((1 − δ) B̄ floored at c_D, --undercut), 2 withhold (no offer this tick)
         self.learner_bid_mode = 0                     # the bidder's rule for the tick's offers
         self.learner_last_bid_case = None             # (t, cid): the root the bidder's decision at t won — read by redteam.env to credit the case to that decision
+        self.learner_req = None                       # Q7: the learned requester — `self.learner_req(run, requester, cands)` at each posting the rule admits: 0 the market rule's ceiling
+                                                      # (the population's, the reference), 1 patient (0.7 B̄, raised to the state's price after --patient-ticks — run 17's customer),
+                                                      # 2 the floor (the state's reservation, nominal, never raised — 2.4.0 §8.7's posting: served by a member bidding under it or not at all)
+        self.req_spent_nominal, self.req_spent_real_sum = 0.0, 0.0   # its credits out less in, by its own events at the index of each (the wallet's revaluation excluded)
+        self.req_mode: dict[str, int] = {}            # the learned requester's cases by the rule they were posted under
+        self.req_received_cases: list[str] = []       # its settled deliveries whose truth is fulfilled — the tasks received, each worth --task-value to the attribution
+        self.req_counted: set[str] = set()
+        self.req_w0 = None                            # its genesis wallet (nominal at P_0: real), read at the first tick before any posting
         self.learner_id = None
         self.learner_review_kind = CAREFUL            # the slot's reviewing disposition when the learner is a deliverer (the population's at that slot)
         self.learner_role_of: dict[str, str] = {}     # each learner identity's role (Q4's pair: the slot a deliverer, the next careful id a reviewer)
         self.learner_pair = None
-        if a.learner_slot == "on" and self.tell_slot is not None:
+        if a.learner_slot == "on" and a.learner_role == "requester":
+            if not self.requesters:
+                raise SystemExit("--learner-role requester needs a standing requester")
+            self.learner_id = self.requesters[min(a.requester_slot, len(self.requesters) - 1)]      # Q7: a requester, not an actor — no kind, no reviewing, no boundary decision
+            self.learner_role_of[self.learner_id] = "requester"
+        elif a.learner_slot == "on" and self.tell_slot is not None:
             self.learner_id = self.tell_slot
             self.learner_review_kind = self.kind[self.learner_id]
             self.kind[self.learner_id] = LEARNER
@@ -440,6 +453,10 @@ class Stamping:
                   "learner_nested_awards": 0, "learner_nested_offers": 0, "learner_misses": 0, "learner_miss_lapsed": 0, "parent_judge_override": 0, "child_appeals_suppressed": 0,
                   # Q5 — the learned parent (--learner-role parent): its three kinds of decision and what became of them
                   # Q6 — the learned bidder (--learner-role bidder): its decisions by kind, the awards they won and at what bid over cost, the offers lost, the wealth held
+                  # Q7 — the learned requester (--learner-role requester): its postings by rule, what became of them, the wait, the price paid
+                  "req_decisions": 0, "req_rule_market": 0, "req_rule_floor": 0, "req_rule_patient": 0, "req_posted": 0, "req_unaffordable": 0, "req_raised": 0,
+                  "req_tasks_received": 0, "req_paid_unfulfilled": 0, "req_final_n": 0, "req_free_fulfilled": 0, "req_state_deliveries": 0, "req_wait_sum": 0, "req_awards": 0,
+                  "req_price_paid_sum": 0.0, "req_disputes_filed": 0, "req_disputes_won": 0, "req_waiting_ticks": 0,
                   "learner_bid_decisions": 0, "learner_bid_ratchet": 0, "learner_bid_undercut": 0, "learner_bid_withheld": 0, "learner_bid_awards": 0,
                   "learner_bid_award_sum": 0.0, "learner_bid_cost_sum": 0.0, "learner_bids_lost": 0, "learner_held_sum": 0.0, "learner_held_n": 0,
                   "learner_delegate_decisions": 0, "learner_delegations": 0, "learner_self_exec_chosen": 0, "learner_delegate_impossible": 0,
@@ -1036,7 +1053,18 @@ class Stamping:
             return
         U = w.unlocked(r)
         mk = w.market()
-        if a.ceiling_policy == "market":
+        req_mode = None
+        if r == self.learner_id and a.learner_role == "requester":
+            self.c["req_waiting_ticks"] += sum(1 for x in self.active if self.owner.get(x) == r and w.case(x).state == "AVAILABLE")
+        if r == self.learner_id and self.learner_req is not None and a.learner_role == "requester":
+            # Q7: the learned requester chooses the rule its ceiling follows for this posting — 0 the population's market rule, 1 patient (0.7 B̄, raised
+            # to the state's price max(B̄, the floor) after --patient-ticks unserved), 2 the floor (the state's reservation, never raised — the floor, and stop)
+            cands = self.req_candidates(U, mk)
+            req_mode = int(self.learner_req(self, r, cands))
+            self.c["req_decisions"] += 1
+            self.c[{0: "req_rule_market", 1: "req_rule_patient"}.get(req_mode, "req_rule_floor")] += 1
+            beta = cands["beta"][req_mode]
+        elif a.ceiling_policy == "market":
             # run 13 §3 (the reviewer's demand-unbound cell): a market-aware ceiling — a little above the market price, so a
             # posting locks less than the wallet rule's and the requester posts more; the wallet still has to carry the all-in
             beta = math.floor(min(a.beta_max, a.ceiling_mult * mk["B_bar"]) * 100) / 100
@@ -1058,9 +1086,15 @@ class Stamping:
         all_in = beta + self.p.phi_root * mk["index"] + self.p.omega_rate * m * beta
         if beta < 1.0 or all_in > U + 1e-9:
             self.c["posts_unaffordable"] += 1
+            if req_mode is not None:
+                self.c["req_unaffordable"] += 1
             return
         cid = w.post_root(r, beta)
         self.owner[cid] = r
+        if req_mode is not None:                        # Q7: the case the decision posted, named for redteam.env (the hook's clock) as the bidder's won root is
+            self.req_mode[cid] = req_mode
+            self.learner_last_bid_case = (w.t, cid)
+            self.c["req_posted"] += 1
         self.title_n += 1
         self.tasks[cid] = Task(cid, f"task #{self.title_n}", fulfilled=self.rng.random() >= a.fail_rate)
         self.active[cid] = True
@@ -1068,6 +1102,39 @@ class Stamping:
         if self.repost_due.get(r, 0) > 0:               # 2.1.0 §2.6: a posting after a withdrawal at the mark is a repost
             self.repost_due[r] -= 1
             self.c["reposted_after_mark"] += 1
+
+    def req_candidates(self, U: float, mk: dict) -> dict:
+        """Q7: the three ceilings the learned requester chooses among at a posting — the market rule's, patient (0.7 B̄), the floor (the state's reservation,
+        nominal) — each with its all-in maximum and whether the unlocked wallet carries it."""
+        a = self.a
+        m = self.w.dial()["m"]
+        betas = [math.floor(min(a.beta_max, a.ceiling_mult * mk["B_bar"]) * 100) / 100,
+                 math.floor(min(a.beta_max, max(1.0, 0.7 * mk["B_bar"])) * 100) / 100,
+                 math.floor(min(a.beta_max, max(1.0, mk.get("state_floor", 0.0) or mk["B_bar"])) * 100) / 100]
+        all_in = [b + self.p.phi_root * mk["index"] + self.p.omega_rate * m * b for b in betas]
+        return {"beta": betas, "all_in": all_in, "affordable": [b >= 1.0 and x <= U + 1e-9 for b, x in zip(betas, all_in)], "unlocked": U}
+
+    def req_spent_real(self) -> float:
+        """Q7: the learned requester's credits spent, real — its own events (out less in) at the index of each, accumulated by `req_read_events`; the wallet's
+        revaluation by the index's drift is not a spend (the measure the attribution sums, the genesis funding apart)."""
+        return self.req_spent_real_sum
+
+    def req_read_events(self, events):
+        """Q7: the learned requester's spend from the tick's events — every event that moves its wealth (a lock or a release is not one; the genesis
+        funding at tick 0 is not a spend), out less in, nominal and at the index when it landed."""
+        r = self.learner_id
+        real = self.p.P0 / self.w.market()["P_t"]
+        for e in events:
+            if e.t == 0 or e.kind in ("lock", "release", "issuance") or r not in (e.src, e.dst) or e.src == e.dst:
+                continue                                 # the genesis budget and the issuance are not a spend; a lock moves nothing
+            d = float(e.amount) if e.src == r else -float(e.amount)
+            self.req_spent_nominal += d
+            self.req_spent_real_sum += d * real
+
+    def req_lifetime_real(self) -> float:
+        """Q7's measure (declared): the surplus v·F − S — the tasks received (settled deliveries whose truth is fulfilled) at --task-value each, real,
+        less the credits spent. Read at v = the careful requester's own credits per task it is tasks per credit linearized at the careful's rate."""
+        return self.a.task_value * self.c["req_tasks_received"] - self.req_spent_real()
 
     def raise_below_market(self):
         """2.0.0 §2.8: a requester whose request is below the market price raises it to the market price when it can. The
@@ -1086,13 +1153,19 @@ class Stamping:
         # this step in this pass, at the same timing; the engine mints the difference for a plant (a requester's wallet may refuse one)
         for cid in list(self.active):
             c = w.case(cid)
-            if c.state != "AVAILABLE" or c.beta + 1e-9 >= goal or self.owner.get(cid) in self.stingy or cid in self.nested_parent:
+            mode = self.req_mode.get(cid)                 # Q7: the learned requester's case, by the rule it was posted under
+            if mode == 2:
+                continue                                 # the floor: never raised (the floor, and stop)
+            goal_c = (mk.get("state_price") or B_bar) if mode == 1 else goal
+            if c.state != "AVAILABLE" or c.beta + 1e-9 >= goal_c or self.owner.get(cid) in self.stingy or cid in self.nested_parent:
                 continue
-            if patient and self.w.t - c.t_post < self.a.patient_ticks:
+            if (patient or mode == 1) and self.w.t - c.t_post < self.a.patient_ticks:
                 continue                                 # a patient customer waits T ticks before raising
             if patient:
                 self.c["patient_raised"] += 1
-            target = min(self.a.beta_max, math.ceil(goal * 100) / 100)
+            if mode is not None:
+                self.c["req_raised"] += 1
+            target = min(self.a.beta_max, math.ceil(goal_c * 100) / 100)
             if target <= c.beta + 1e-9:
                 continue
             try:
@@ -1185,7 +1258,9 @@ class Stamping:
 
     def learner_lifetime_real(self) -> float:
         """The brief's measure across the learner's identities: what each departed identity took out, plus the live one's wealth — since
-        2.7.0 net of its arrival loan outstanding, W − min(W, L), what it would carry out."""
+        2.7.0 net of its arrival loan outstanding, W − min(W, L), what it would carry out. Q7's requester: the surplus (`req_lifetime_real`)."""
+        if self.learner_id and self.a.learner_role == "requester":
+            return self.req_lifetime_real()
         w = self.w
         real = self.p.P0 / w.market()["P_t"]
         return sum(((w.wealth(x) - min(w.wealth(x), w.loan_outstanding(x))) * real) if x in self.actors else self.depart_wealth_real.get(x, 0.0)
@@ -1432,6 +1507,8 @@ class Stamping:
 
     def tick(self, t: int):
         a, w = self.a, self.w
+        if self.req_w0 is None and self.learner_id and a.learner_role == "requester":
+            self.req_w0 = w.wealth(self.learner_id)          # Q7: the requester's genesis wallet, before any posting (a reading beside the spend)
         self.move_dispositions(t)
         if self.floating:
             # 2.0.0: the margins decay while idle; the adaptive reservation follows the last period's price level
@@ -1902,7 +1979,10 @@ class Stamping:
     # -- bookkeeping from the public record ---------------------------------------
     def harvest(self):
         w = self.w
-        for e in w.events_since(self.n_events):
+        events = w.events_since(self.n_events)
+        if self.learner_id and self.a.learner_role == "requester":
+            self.req_read_events(events)                 # Q7: the learned requester's spend, by its own events at the index of each
+        for e in events:
             if e.dst in self.tally:
                 ty = self.tally[e.dst]
                 if e.kind == "escrow_out":
@@ -1960,6 +2040,26 @@ class Stamping:
                 continue
             if c.state in ("VESTED", "FINAL_N"):
                 correct = (c.outcome_or_verdict() == F) == task.fulfilled
+                if cid in self.req_mode and cid not in self.req_counted:    # Q7: what became of the learned requester's request
+                    self.req_counted.add(cid)
+                    if task.fulfilled:                                      # a task received: the delivery's truth, whatever the verdict (the requester holds the result)
+                        self.c["req_tasks_received"] += 1
+                        self.req_received_cases.append(cid)
+                        if c.state == "FINAL_N":
+                            self.c["req_free_fulfilled"] += 1
+                    elif c.state == "VESTED":
+                        self.c["req_paid_unfulfilled"] += 1
+                    if c.state == "FINAL_N":
+                        self.c["req_final_n"] += 1
+                    if c.t_award is not None:
+                        self.c["req_awards"] += 1
+                        self.c["req_wait_sum"] += c.t_award - c.t_post
+                        self.c["req_price_paid_sum"] = round(self.c["req_price_paid_sum"] + float(c.B or 0.0), 6)
+                    if c.actor is not None and w.is_troop(c.actor):
+                        self.c["req_state_deliveries"] += 1
+                    if task.disputed:
+                        self.c["req_disputes_filed"] += 1
+                        self.c["req_disputes_won"] += int(c.state == "FINAL_N")
                 if task.parent_learner:                                 # Q5: what became of the learned parent's child
                     self.c["learner_children_settled"] += 1
                     if c.state == "FINAL_N":
@@ -2221,6 +2321,17 @@ class Stamping:
                     "learner_bid_withheld": self.c["learner_bid_withheld"], "learner_bid_awards": self.c["learner_bid_awards"], "learner_bids_lost": self.c["learner_bids_lost"],
                     "learner_bid_mean_over_cost": (round(self.c["learner_bid_award_sum"] / self.c["learner_bid_cost_sum"], 4) if self.c["learner_bid_cost_sum"] else ""),
                     "learner_held_real_mean": (round(self.c["learner_held_sum"] / self.c["learner_held_n"], 3) if self.c["learner_held_n"] else ""),
+                    # Q7: the learned requester — its postings by rule, the tasks received, the credits spent, the surplus at --task-value, the wait and the price paid
+                    "req_decisions": self.c["req_decisions"], "req_rule_market": self.c["req_rule_market"], "req_rule_floor": self.c["req_rule_floor"], "req_rule_patient": self.c["req_rule_patient"],
+                    "req_posted": self.c["req_posted"], "req_unaffordable": self.c["req_unaffordable"], "req_raised": self.c["req_raised"], "req_tasks_received": self.c["req_tasks_received"],
+                    "req_paid_unfulfilled": self.c["req_paid_unfulfilled"], "req_final_n": self.c["req_final_n"], "req_free_fulfilled": self.c["req_free_fulfilled"], "req_state_deliveries": self.c["req_state_deliveries"],
+                    "req_wait_mean": (round(self.c["req_wait_sum"] / self.c["req_awards"], 3) if self.c["req_awards"] else ""), "req_waiting_ticks": self.c["req_waiting_ticks"],
+                    "req_price_paid_mean": (round(self.c["req_price_paid_sum"] / self.c["req_awards"], 3) if self.c["req_awards"] else ""),
+                    "req_disputes_filed": self.c["req_disputes_filed"], "req_disputes_won": self.c["req_disputes_won"],
+                    "req_spent_real": (round(self.req_spent_real(), 3) if (self.learner_id and self.a.learner_role == "requester") else ""),
+                    "req_tasks_per_1000": (round(1000.0 * self.c["req_tasks_received"] / self.req_spent_real(), 4) if (self.learner_id and self.a.learner_role == "requester" and self.req_spent_real() > 1e-9) else ""),
+                    "req_surplus_real": (round(self.req_lifetime_real(), 3) if (self.learner_id and self.a.learner_role == "requester") else ""),
+                    "req_wallet_real": (round(w.wealth(self.learner_id) * real, 3) if (self.learner_id and self.a.learner_role == "requester") else ""),
                     # Q4: the pair
                     "pair_ids": ("+".join(self.learner_pair) if self.learner_pair else ""), "pair_matched": self.c["pair_matched"], "pair_unmatched": self.c["pair_unmatched"], "pair_waited": self.c["pair_waited"],
                     "pair_reviews": self.c["pair_reviews"], "pair_cares": self.c["pair_cares"], "pair_stamps": self.c["pair_stamps"], "pair_rejects": self.c["pair_rejects"],
@@ -2552,7 +2663,7 @@ def build_parser():
     ap.add_argument("--arrival-loan", choices=["on", "off"], default="on",
                     help="2.7.0: the arrival float is a loan of the bank's — repaid from the name's income first, recovered at departure, the shortfall the bank's default; off is 2.6.1's grant (the control; --rules 2.6.0 too)")
     ap.add_argument("--learner-slot", choices=["on", "off"], default="off", help="the learned red team: the slot actor's reviewing decisions come from the policy redteam.env supplies (nothing changes without it)")
-    ap.add_argument("--learner-role", choices=["reviewer", "deliverer", "child", "parent", "bidder"], default="reviewer",
+    ap.add_argument("--learner-role", choices=["reviewer", "deliverer", "child", "parent", "bidder", "requester"], default="reviewer",
                     help="Q3 (the learned deliverer): `deliverer` — the slot reviews as the population's actor at its slot does, and its quality decision "
                          "at each submission comes from the policy (0 deliver well, the effort burned; 1 deliver badly at zero effort); `reviewer` is Q1/Q2's")
     ap.add_argument("--effort-cost", type=float, default=1.0, help="Q3's calibration knob: a multiple on every actor's effort cost (as --care-cost is on the care cost)")
@@ -2564,6 +2675,10 @@ def build_parser():
                     help="Q5's parent calibration knob (the ruling after the parent's references): a nested case's guarantee fraction in place of G_frac (0.5) — raised in the calibration cell only")
     ap.add_argument("--undercut", type=float, default=0.2,
                     help="Q6: the undercut's bid — the market price B̄ cut by this fraction, floored at the actor's cost (the ratchet, by contrast, bids its cost times 1 + m and lets m climb to the price)")
+    ap.add_argument("--requester-slot", type=int, default=0, help="Q7: the learned requester's slot — the standing requesters in order (0 the first)")
+    ap.add_argument("--task-value", type=float, default=0.0,
+                    help="Q7: the value to the learned requester of a task received (a settled delivery whose truth is fulfilled), real (P_0 units); its measure is the surplus "
+                         "v·F − S — tasks per credit linearized: read at the careful requester's own credits per task, so the careful reads about zero and a cheaper requester above it")
     ap.add_argument("--bidder-slot", choices=["first", "cheapest", "median", "costliest"], default="cheapest",
                     help="Q6 (the learned bidder): the slot — the cheapest careful actor by default (where undercutting the ratchet has the most room), the median, the costliest, or the first careful id")
     ap.add_argument("--parent-slot", choices=["first", "costliest", "median"], default="costliest",

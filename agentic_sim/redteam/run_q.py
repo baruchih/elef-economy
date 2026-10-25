@@ -27,6 +27,9 @@ PARENT_KEYS = ("learner_delegate_decisions", "learner_delegations", "learner_sel
                "learner_judge_stamp", "learner_judge_reject", "learner_child_stamped_bad", "learner_child_stamped_good", "learner_child_rejected_bad", "learner_child_rejected_good",
                "learner_cancel_decisions", "learner_cancels", "learner_cancel_refused", "learner_kill_fees", "learner_guarantees_taken", "learner_child_lapses",
                "learner_rejections_overturned", "learner_children_settled", "slot_awards", "slot_rho", "slot_cost", "slot_delivery_income", "slot_guarantees_forfeited", "slot_effort_burned")
+REQ_KEYS = ("req_decisions", "req_rule_market", "req_rule_floor", "req_rule_patient", "req_posted", "req_unaffordable", "req_raised", "req_tasks_received", "req_paid_unfulfilled",
+            "req_final_n", "req_free_fulfilled", "req_state_deliveries", "req_wait_mean", "req_waiting_ticks", "req_price_paid_mean", "req_disputes_filed", "req_disputes_won",
+            "req_spent_real", "req_tasks_per_1000", "req_surplus_real", "req_wallet_real", "P_t", "member_price_mean", "awarded", "troop_delivered_vested", "false_approvals")
 BID_KEYS = ("learner_bid_decisions", "learner_bid_ratchet", "learner_bid_undercut", "learner_bid_withheld", "learner_bid_awards", "learner_bids_lost", "learner_bid_mean_over_cost",
             "learner_held_real_mean", "slot_awards", "slot_reviews", "slot_rho", "slot_cost", "slot_delivery_income", "slot_guarantees_forfeited", "slot_effort_burned", "P_t", "member_price_mean", "awarded")
 PAIR_KEYS = ("pair_ids", "pair_matched", "pair_unmatched", "pair_waited", "pair_reviews", "pair_cares", "pair_stamps", "pair_rejects", "pair_bad_stamped", "pair_good_stamped",
@@ -117,6 +120,11 @@ def episode(env, policy, seed, rng):
         work["ratchet_share"] = float(np.mean([x == 0 for x in acts])) if acts else None
         work["undercut_share"] = float(np.mean([x == 1 for x in acts])) if acts else None
         work["withhold_share"] = float(np.mean([x == 2 for x in acts])) if acts else None
+    if env.role == "requester":                                   # Q7: the learned requester — its rule by posting, the tasks received and the credits spent
+        work.update({k: row.get(k) for k in REQ_KEYS})
+        work["market_share"] = float(np.mean([x == 0 for x in acts])) if acts else None
+        work["patient_share"] = float(np.mean([x == 1 for x in acts])) if acts else None
+        work["floor_share"] = float(np.mean([x == 2 for x in acts])) if acts else None
     if env.role == "parent":                                      # Q5: the learned parent's three kinds
         work.update({k: row.get(k) for k in PARENT_KEYS})
         for kind, acts_k in acts_kind.items():
@@ -201,7 +209,7 @@ def main(argv=None):
     ap.add_argument("--seeds", default="21-40"); ap.add_argument("--policies", default="learned,greedy,careful")
     ap.add_argument("--horizon", type=int, default=8); ap.add_argument("--samples", type=int, default=256); ap.add_argument("--iters", type=int, default=6)
     ap.add_argument("--hide", default=""); ap.add_argument("--ticks", type=int, default=1000)
-    ap.add_argument("--role", choices=["reviewer", "deliverer", "pair", "child", "parent", "bidder"], default="reviewer", help="Q3: the learned deliverer (policies learned,greedy,direct,careful,zero,eps,random,leaver); Q4: the pair (careful,collude,eps,random,leaver)")
+    ap.add_argument("--role", choices=["reviewer", "deliverer", "pair", "child", "parent", "bidder", "requester"], default="reviewer", help="Q3: the learned deliverer (policies learned,greedy,direct,careful,zero,eps,random,leaver); Q4: the pair (careful,collude,eps,random,leaver)")
     ap.add_argument("--boundary-read", choices=["auto", "one-step", "learned"], default="auto", help="the ruling after run 30: at a boundary the stay head's one-step read against zero (a leave is worth zero by rule without re-arrival); `auto` is learned under `--learner-rearrive on`, one-step otherwise")
     ap.add_argument("cell", nargs=argparse.REMAINDER)
     a = ap.parse_args(argv)
@@ -235,6 +243,8 @@ def main(argv=None):
                 print(f"seed {seed} {name}: ERROR {r['error']}", flush=True)
             elif a.role in ("deliverer", "child"):
                 print(f"seed {seed} {name}: {r['decisions']} decisions, lifetime {r['lifetime_real_wealth']:.1f}, bad {r.get('bad_share')}, miss {r.get('miss_share')}, bad approved/caught {r.get('learner_bad_approved')}/{r.get('learner_bad_caught')}, misses lapsed {r.get('learner_miss_lapsed')}, forfeited {r.get('learner_forfeited')}", flush=True)
+            elif a.role == "requester":
+                print(f"seed {seed} {name}: {r['decisions']} postings asked (market/patient/floor {r.get('market_share')}/{r.get('patient_share')}/{r.get('floor_share')}), posted {r.get('req_posted')}, tasks received {r.get('req_tasks_received')}, paid unfulfilled {r.get('req_paid_unfulfilled')}, state {r.get('req_state_deliveries')}, wait {r.get('req_wait_mean')}, price {r.get('req_price_paid_mean')}, spent {r.get('req_spent_real')}, per 1000 {r.get('req_tasks_per_1000')}, surplus {r['lifetime_real_wealth']:.1f}, P_t {r.get('P_t')}", flush=True)
             elif a.role == "bidder":
                 print(f"seed {seed} {name}: {r['decisions']} bid decisions (ratchet/undercut/withhold {r.get('ratchet_share')}/{r.get('undercut_share')}/{r.get('withhold_share')}), awards {r.get('learner_bid_awards')} of {r.get('slot_awards')}, bid/cost {r.get('learner_bid_mean_over_cost')}, lost {r.get('learner_bids_lost')}, held {r.get('learner_held_real_mean')}, P_t {r.get('P_t')}, lifetime {r['lifetime_real_wealth']:.1f}, departed {r.get('slot_departed')}", flush=True)
             elif a.role == "parent":
@@ -258,6 +268,9 @@ def main(argv=None):
                 summary[name][k] = mse([r.get(k) if r.get(k) not in ("", None) else None for r in rows])
         if a.role == "bidder":                                      # Q6's line: the learned bidder
             for k in ("ratchet_share", "undercut_share", "withhold_share") + BID_KEYS:
+                summary[name][k] = mse([r.get(k) if r.get(k) not in ("", None) else None for r in rows])
+        if a.role == "requester":                                   # Q7's line: the learned requester
+            for k in ("market_share", "floor_share", "patient_share") + REQ_KEYS:
                 summary[name][k] = mse([r.get(k) if r.get(k) not in ("", None) else None for r in rows])
         if a.role == "pair":                                        # Q4's line: the pair
             for k in ("good_share", "bad_share", "work_decisions", "learner_bad_deliveries", "learner_bad_approved", "learner_bad_caught", "learner_good_vested", "learner_good_final_n",
@@ -310,6 +323,21 @@ def main(argv=None):
             for name, s in summary.items():
                 pm = s.get("paired_minus_careful", (float("nan"), float("nan")))
                 f.write(f"| {name} | {s['lifetime_real_wealth'][0]:.1f} ± {s['lifetime_real_wealth'][1]:.1f} | {pm[0]:.1f} ± {pm[1]:.1f} | {fmt(s['delegate_decisions'][0])} | {fmt(s['delegate_share'][0])} | {fmt(s['judge_decisions'][0])} | {fmt(s['judge_care_share'][0])} / {fmt(s['judge_stamp_share'][0])} / {fmt(s['judge_reject_share'][0])} | {fmt(s['cancel_decisions'][0])} | {fmt(s['cancel_share'][0])} | {fmt(s['learner_children_settled'][0])} | {fmt(s['learner_guarantees_taken'][0])} | {fmt(s['learner_child_lapses'][0])} | {fmt(s['learner_rejections_overturned'][0])} | {fmt(s['learner_kill_fees'][0])} | {fmt(s['learner_child_stamped_bad'][0])} / {fmt(s['learner_child_rejected_good'][0])} | {fmt(s['slot_rho'][0])} | {fmt(s['slot_awards'][0])} | {s['slot_departed'][0]:.2f} |\n")
+            print(json.dumps(summary, indent=1, default=float))
+            return
+        if a.role == "requester":
+            f.write(f"# Evaluation (Q7, the learned requester) — cell `{' '.join(cell)}`, seeds {a.seeds}, model `{a.model}` (value {ck.get('config', {}).get('value_mode', 'off')}, horizon {a.horizon})\n\n"
+                    "The requester's surplus v·F − S (the tasks received at --task-value each, real, less the credits spent) paired against the careful (the market rule); its rule by posting "
+                    "(the market rule's ceiling / patient, 0.7 B̄ raised after --patient-ticks / the floor, the state's reservation never raised), the postings, the tasks received, the deliveries paid for nothing, the final N, the state's deliveries to it, "
+                    "the wait to award, the price paid, the credits spent and the tasks per 1,000 real credits; the price level, the members' mean price and the run's awards beside.\n\n"
+                    "| policy | surplus (real) | paired − careful | postings asked | market / patient / floor | posted | unaffordable | raised | tasks received | paid unfulfilled | final N | free fulfilled | state deliveries | wait to award | price paid | spent (real) | tasks per 1,000 | wallet (real) | P_t close | members' price | awarded (all) | state delivered | false approvals |\n"
+                    "|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|\n")
+            for name, s in summary.items():
+                pm = s.get("paired_minus_careful", (float("nan"), float("nan")))
+                f.write(f"| {name} | {s['lifetime_real_wealth'][0]:.1f} ± {s['lifetime_real_wealth'][1]:.1f} | {pm[0]:.1f} ± {pm[1]:.1f} | {fmt(s['decisions'][0])} | {fmt(s['market_share'][0])} / {fmt(s['patient_share'][0])} / {fmt(s['floor_share'][0])} | "
+                        f"{fmt(s['req_posted'][0])} | {fmt(s['req_unaffordable'][0])} | {fmt(s['req_raised'][0])} | {fmt(s['req_tasks_received'][0])} | {fmt(s['req_paid_unfulfilled'][0])} | {fmt(s['req_final_n'][0])} | {fmt(s['req_free_fulfilled'][0])} | "
+                        f"{fmt(s['req_state_deliveries'][0])} | {fmt(s['req_wait_mean'][0])} | {fmt(s['req_price_paid_mean'][0])} | {fmt(s['req_spent_real'][0])} | {fmt(s['req_tasks_per_1000'][0])} | {fmt(s['req_wallet_real'][0])} | "
+                        f"{fmt(s['P_t'][0])} | {fmt(s['member_price_mean'][0])} | {fmt(s['awarded'][0])} | {fmt(s['troop_delivered_vested'][0])} | {fmt(s['false_approvals'][0])} |\n")
             print(json.dumps(summary, indent=1, default=float))
             return
         if a.role == "bidder":

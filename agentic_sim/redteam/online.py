@@ -30,7 +30,7 @@ def main(argv=None):
     ap.add_argument("--kind-actions", choices=["on", "off"], default="off", help="the trainer's kind-conditioned action (the ruling after run 29; Q5's parent)")
     ap.add_argument("--eval-policies", default="learned,careful")
     ap.add_argument("--learner", choices=["wm", "direct"], default="wm", help="the ladder's rung (b): `direct` trains redteam.direct in place of the world model and plans nothing")
-    ap.add_argument("--role", choices=["reviewer", "deliverer", "pair", "child", "parent", "bidder"], default="reviewer", help="Q3: the learned deliverer; Q6: the learned bidder")
+    ap.add_argument("--role", choices=["reviewer", "deliverer", "pair", "child", "parent", "bidder", "requester"], default="reviewer", help="Q3: the learned deliverer; Q6: the learned bidder")
     ap.add_argument("--plan", choices=["cem", "greedy"], default="cem", help="the collecting policy on the world model: the CEM planner, or the head alone over the latent (version 4's stopping rule)")
     ap.add_argument("--boundary-read", choices=["auto", "one-step", "learned"], default="auto", help="the ruling after run 30 (run_q's): the stay head's one-step read against zero at a boundary; `auto` is learned only under `--learner-rearrive on`")
     ap.add_argument("cell", nargs=argparse.REMAINDER)

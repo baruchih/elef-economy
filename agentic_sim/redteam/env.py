@@ -33,7 +33,7 @@ except ImportError:  # the project's own Python has no gymnasium; the environmen
 from drivers import stamping
 from drivers.stamping import Stamping
 from sim import check_all
-from .obs import build_obs, build_obs_work, build_obs_parent, build_obs_bid, OBS_DIM, IDX, IDX_PARENT
+from .obs import build_obs, build_obs_work, build_obs_parent, build_obs_bid, build_obs_req, OBS_DIM, IDX, IDX_PARENT
 from .attrib import attribute
 
 _END = "end"
@@ -47,7 +47,7 @@ class ElefReviewerEnv(gym.Env if gym else object):
     metadata = {"render_modes": []}
 
     def __init__(self, cell_args, ticks=1000, hide=(), final_audit=True, obs_dim=None, work_side=None, role="reviewer"):
-        assert role in ("reviewer", "deliverer", "pair", "child", "parent", "bidder")
+        assert role in ("reviewer", "deliverer", "pair", "child", "parent", "bidder", "requester")
         self.role = role
         self.n_actions = 2 if role == "deliverer" else 3           # the child's three: well / badly / miss; the parent's judge has three, its other kinds two
         self.cell_args, self.ticks, self.hide, self.final_audit = list(cell_args), int(ticks), tuple(hide), final_audit
@@ -67,6 +67,8 @@ class ElefReviewerEnv(gym.Env if gym else object):
 
     def _wealth_real(self):
         run = self.run
+        if self.role == "requester":                                # Q7: the requester's measure is its surplus (the driver's `req_lifetime_real`), not a wallet
+            return run.req_lifetime_real()
         real = self._real()
         # 2.7.0: a live name reads net of its arrival loan outstanding — what it would carry out; a departed one what it did
         return sum(((run.w.wealth(x) - min(run.w.wealth(x), run.w.loan_outstanding(x))) * real) if x in run.actors else run.depart_wealth_real.get(x, 0.0)
@@ -113,6 +115,22 @@ class ElefReviewerEnv(gym.Env if gym else object):
                                       "price": float(c.B), "bond": float(c.G_award if c.G_award is not None else c.G), "nested": not c.is_root,
                                       "cost": float(run.cost_now(actor)),
                                       "p_eff": float(run.w.p_effective(actor)), "member": bool(ac.is_member), "suspended": ac.suspended_until is not None}))
+        a = self._q_act.get()
+        if a is None:
+            raise _Abort()
+        return a
+
+    def _hook_req(self, run, requester, cands):
+        """Q7: the learned requester's decision at a posting — the rule its ceiling follows (0 the market rule's, 1 patient, 2 the floor).
+        Recorded with no case; the driver names the case it posted (`learner_last_bid_case`, the bidder's channel) and `step` credits it to this decision,
+        so the attribution carries the case's events (the price paid, the pots, the refunds, a court fee, a rebate) and the task's value to the posting that made it."""
+        if self._abort:
+            raise _Abort()
+        obs = build_obs_req(run, requester, cands, self.hide, n_fields=self.obs_dim)
+        self._q_obs.put(("obs", obs, {"t": run.w.t, "wealth_real": self._wealth_real(), "case": None, "boundary": False, "kind": "post", "initial": False,
+                                      "n_events": run.w.n_events(), "real_factor": self._real(), "identity": requester,
+                                      "is_plant": False, "fulfilled": True, "betas": list(cands["beta"]), "affordable": list(cands["affordable"]),
+                                      "p_eff": 0.0, "member": False, "suspended": False}))
         a = self._q_act.get()
         if a is None:
             raise _Abort()
@@ -192,6 +210,7 @@ class ElefReviewerEnv(gym.Env if gym else object):
         self.run.learner_work = self._hook_work
         self.run.learner_parent = self._hook_parent
         self.run.learner_bid = self._hook_bid
+        self.run.learner_req = self._hook_req
         self._bid_idx_by_t = {}
         self._q_obs, self._q_act, self._abort = queue.Queue(), queue.Queue(), False
         self._thread = threading.Thread(target=self._drive, daemon=True)
@@ -233,8 +252,8 @@ class ElefReviewerEnv(gym.Env if gym else object):
         info = dict(info, action_chosen=int(action), action_effected=effected)
         self._decisions.append({"identity": pd.get("identity"), "case": pd.get("case"), "is_plant": bool(pd.get("is_plant", False)),
                                 "fulfilled": bool(pd.get("fulfilled", True)), "action": effected, "chosen": int(action), "realized": float(reward)})
-        if self.role == "bidder":                                  # Q6: the root this tick's bid decision won is credited to it (the driver names it after the award pass)
-            if pd.get("kind") == "bid":
+        if self.role in ("bidder", "requester"):                   # Q6: the root this tick's bid decision won is credited to it (the driver names it after the award pass); Q7: the case the posting decision posted
+            if pd.get("kind") in ("bid", "post"):
                 self._bid_idx_by_t[pd.get("t")] = len(self._decisions) - 1
             lb = getattr(self.run, "learner_last_bid_case", None)
             if lb is not None:
@@ -248,7 +267,9 @@ class ElefReviewerEnv(gym.Env if gym else object):
             if not info.get("error") and not info.get("aborted") and self.run is not None:
                 lineages = [[x] for x in self.run.learner_pair] if (self.role == "pair" and self.run.learner_pair) else None   # the pair: each member's own boundary
                 attributed, summ = attribute(self.run, self._marks, self._decisions, work_side=self.work_side, shared=(self.role == "pair"), lineages=lineages,
-                                             tree=(self.role == "parent"))                                # Q5's parent: the child's events reach the delegate decision too
+                                             tree=(self.role == "parent"),                                # Q5's parent: the child's events reach the delegate decision too
+                                             task_value=(self.run.a.task_value if self.role == "requester" else 0.0),
+                                             task_cases=(list(self.run.req_received_cases) if self.role == "requester" else ()))   # Q7: a task received is worth v to the posting that made it
                 info["attributed"], info["attribution"] = [float(x) for x in attributed], summ
             info["realized"] = [d["realized"] for d in self._decisions]
             return self._last_obs, float(reward), True, False, info
@@ -334,6 +355,13 @@ def policy_withhold(obs, rng): return 0 if _boundary(obs) else 2
 def policy_eps_bid(obs, rng, eps=0.2): return int(rng.integers(2)) if _boundary(obs) else (int(rng.integers(3)) if rng.random() < eps else 0)
 def policy_random_bid(obs, rng): return int(rng.integers(2)) if _boundary(obs) else int(rng.integers(3))
 POLICIES_BID = {"careful": policy_careful, "undercut": policy_undercut, "withhold": policy_withhold, "eps": policy_eps_bid, "random": policy_random_bid, "leaver": policy_leaver}
+# Q7's, for the learned requester (three actions at a posting: 0 the market rule's ceiling — the population's, the reference; 1 patient — 0.7 B̄ raised to the
+# state's price after --patient-ticks, run 17's customer; 2 the floor — the state's reservation, never raised); no boundary decision — a requester is not an actor
+def policy_req_patient(obs, rng): return 1
+def policy_req_floor(obs, rng): return 2
+def policy_eps_req(obs, rng, eps=0.2): return int(rng.integers(3)) if rng.random() < eps else 0
+def policy_random_req(obs, rng): return int(rng.integers(3))
+POLICIES_REQ = {"careful": policy_careful, "floor": policy_req_floor, "patient": policy_req_patient, "eps": policy_eps_req, "random": policy_random_req}
 
 
 # Q1's hand-written sleeper (the reference beside the learned one, within the convention: own audit odds are on the view): careful while
@@ -358,6 +386,8 @@ def policy_of(name, role="reviewer"):
         return POLICIES_PARENT[name]
     if role == "bidder":
         return POLICIES_BID[name]
+    if role == "requester":
+        return POLICIES_REQ[name]
     if name.startswith("sleeper"):
         return make_sleeper(float(name[len("sleeper"):]))
     return POLICIES[name]
@@ -367,4 +397,4 @@ def default_policies(role="reviewer"):
     """The offline set's policies by role (version 3 added the leaver to the reviewer's)."""
     return {"reviewer": "careful,stamper,eps,random,leaver", "deliverer": "careful,zero,eps,random,leaver", "pair": "careful,collude,eps,random,leaver",
             "child": "careful,zero,miss,eps,random,leaver", "parent": "careful,rejecter,stamper,eps,random,leaver",
-            "bidder": "careful,undercut,withhold,eps,random,leaver"}[role]
+            "bidder": "careful,undercut,withhold,eps,random,leaver", "requester": "careful,floor,patient,eps,random"}[role]

@@ -56,7 +56,36 @@ OBS_FIELDS_BID = OBS_FIELDS[:N_SHARED] + [
 ]
 assert len(OBS_FIELDS_BID) == OBS_DIM
 IDX_BID = {k: i for i, k in enumerate(OBS_FIELDS_BID)}
-FIELDS_BY_ROLE = {"reviewer": OBS_FIELDS, "deliverer": OBS_FIELDS_WORK, "child": OBS_FIELDS_WORK, "parent": OBS_FIELDS_PARENT, "bidder": OBS_FIELDS_BID}
+N_MARKET = IDX["own_wealth_real"]                          # the market and the dial alone — what a requester shares with a member's vector
+OBS_FIELDS_REQ = OBS_FIELDS[:N_MARKET] + [
+    # Q7 — the learned requester (not an actor: no standing, no reviewing): its wallet, its requests open and waiting, the three ceilings it chooses
+    # among with their affordability, and its own record as a requester (the tasks received, paid for nothing, the credits spent, the wait, the price paid)
+    "rq_wallet_real", "rq_unlocked_real", "rq_open_requests", "rq_open_room", "rq_waiting", "rq_waiting_age_max",
+    "rq_market_ceiling_rel", "rq_patient_ceiling_rel", "rq_floor_ceiling_rel", "rq_all_in_market_rel", "rq_affordable_market", "rq_affordable_patient", "rq_affordable_floor",
+    "rq_posted", "rq_tasks_received", "rq_paid_unfulfilled", "rq_final_n", "rq_free_fulfilled", "rq_state_deliveries", "rq_spent_real", "rq_tasks_per_1000",
+    "rq_wait_mean", "rq_price_paid_rel", "rq_disputes_filed", "rq_disputes_won", "rq_raised", "rq_last_mode", "rq_ticks_to_boundary",
+    "decision_boundary",
+]
+assert len(OBS_FIELDS_REQ) == OBS_DIM
+IDX_REQ = {k: i for i, k in enumerate(OBS_FIELDS_REQ)}
+FIELDS_BY_ROLE = {"reviewer": OBS_FIELDS, "deliverer": OBS_FIELDS_WORK, "child": OBS_FIELDS_WORK, "parent": OBS_FIELDS_PARENT, "bidder": OBS_FIELDS_BID, "requester": OBS_FIELDS_REQ}
+
+
+def _market(run, put):
+    """The market from the public view, the dial's state and the period's position — what every role's vector opens with."""
+    w = run.w
+    mk, dl, sv = w.market(), w.dial(), w.service()
+    P0, Pt = mk["P0"], mk["P_t"] or mk["P0"]
+    per = dl["period"]
+    ttm = mk.get("time_to_membership") or 0.0
+    put("P_t_rel", Pt / P0); put("B_bar_rel", (mk["B_bar"] or Pt) / P0); put("state_price_rel", mk["state_price"] / P0)
+    put("members_total", mk["members_total"] / 20.0); put("members_free", mk["members_free"] / 20.0); put("probationers", mk["probationers"] / 20.0)
+    put("available_roots", mk["available_roots"] / 20.0); put("below_market_waiting", mk["below_market_waiting"] / 20.0)
+    put("refused_waiting", (mk["refused_waiting"]["capacity"] + mk["refused_waiting"]["credit"]) / 20.0)
+    put("state_share_period", mk["state_share_period"]); put("time_to_membership", ttm / 500.0)
+    put("on_time_share", sv["on_time"] / max(1, sv["on_time"] + sv["late"])); put("forgone_share_period", sv.get("forgone_share_period", 0.0))
+    put("dial_m", dl["m"]); put("dial_pi", dl["pi"]); put("period_pos", (w.t - per["start"]) / max(1, w.params.period_ticks))
+    return mk, dl, P0, Pt, P0 / Pt
 
 
 def _shared(run, actor: str, o, put, idx):
@@ -181,4 +210,37 @@ def build_obs_bid(run, actor: str, roots, hide=(), n_fields=None) -> np.ndarray:
     put("bd_own_held_real", w.unlocked(actor) * real / 1000.0)
     lw = run.learner_last_bid_case
     put("bd_last_won", 1.0 if (lw is not None and lw[0] >= w.t - 1) else 0.0)
+    return o if n_fields is None else o[:n_fields]
+
+
+def build_obs_req(run, requester: str, cands, hide=(), n_fields=None) -> np.ndarray:
+    """Q7: the learned requester's observation at a posting decision — the market and the dial, then its wallet, its requests open and waiting, the
+    three ceilings it chooses among (the market rule's, patient, the floor) with their affordability, and its own record as a requester.
+    A requester is not an actor: no standing fields, and no boundary decision (`decision_boundary` stays 0)."""
+    o = np.zeros(OBS_DIM, dtype=np.float32)
+    def put(k, v):
+        o[IDX_REQ[k]] = 0.0 if (v is None or k in hide) else float(v)
+    mk, dl, P0, Pt, real = _market(run, put)
+    w = run.w
+    put("rq_wallet_real", w.wealth(requester) * real / 1000.0); put("rq_unlocked_real", w.unlocked(requester) * real / 1000.0)
+    own = [cid for cid in run.active if run.owner.get(cid) == requester]
+    waiting = [cid for cid in own if w.case(cid).state == "AVAILABLE"]
+    k_open = run.a.k_open * 3 if requester in run.small else run.a.k_open
+    put("rq_open_requests", len(own) / 10.0); put("rq_open_room", ((k_open - len(own)) / 10.0) if k_open > 0 else 1.0)
+    put("rq_waiting", len(waiting) / 10.0); put("rq_waiting_age_max", (max((w.t - w.case(cid).t_post) for cid in waiting) / 10.0) if waiting else 0.0)
+    b = cands["beta"]; aff = cands["affordable"]
+    put("rq_market_ceiling_rel", b[0] / P0); put("rq_patient_ceiling_rel", b[1] / P0); put("rq_floor_ceiling_rel", b[2] / P0); put("rq_all_in_market_rel", cands["all_in"][0] / P0)
+    put("rq_affordable_market", 1.0 if aff[0] else 0.0); put("rq_affordable_patient", 1.0 if aff[1] else 0.0); put("rq_affordable_floor", 1.0 if aff[2] else 0.0)
+    cc = run.c
+    put("rq_posted", cc["req_posted"] / 100.0); put("rq_tasks_received", cc["req_tasks_received"] / 100.0); put("rq_paid_unfulfilled", cc["req_paid_unfulfilled"] / 10.0)
+    put("rq_final_n", cc["req_final_n"] / 10.0); put("rq_free_fulfilled", cc["req_free_fulfilled"] / 10.0); put("rq_state_deliveries", cc["req_state_deliveries"] / 10.0)
+    spent = run.req_spent_real()
+    put("rq_spent_real", spent / 1000.0); put("rq_tasks_per_1000", (cc["req_tasks_received"] / spent) if spent > 1e-9 else 0.0)
+    put("rq_wait_mean", (cc["req_wait_sum"] / cc["req_awards"] / 10.0) if cc["req_awards"] else 0.0)
+    put("rq_price_paid_rel", (cc["req_price_paid_sum"] / cc["req_awards"] / P0) if cc["req_awards"] else 0.0)
+    put("rq_disputes_filed", cc["req_disputes_filed"] / 10.0); put("rq_disputes_won", cc["req_disputes_won"] / 10.0); put("rq_raised", cc["req_raised"] / 10.0)
+    last = max(run.req_mode.items(), key=lambda kv: kv[0])[1] if run.req_mode else 0      # the case ids are minted in order; the latest posting's rule
+    put("rq_last_mode", last / 2.0)
+    per = dl["period"]
+    put("rq_ticks_to_boundary", (per["start"] + w.params.period_ticks - w.t) / max(1, w.params.period_ticks))
     return o if n_fields is None else o[:n_fields]

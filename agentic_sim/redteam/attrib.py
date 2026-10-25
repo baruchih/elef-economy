@@ -24,7 +24,7 @@ from collections import defaultdict
 import numpy as np
 
 SOURCES = ("care_cost", "reimbursement", "review_fee", "uplift", "bond_lost", "delivery_price", "effort_cost", "guarantee_lost", "court_fee",
-           "emission", "revaluation", "other")
+           "emission", "revaluation", "price_paid", "pots_paid", "refund", "rebate", "fee_paid", "guarantee_received", "issuance", "task_value", "other")   # Q7's requester side from price_paid
 REVIEW_SIDE = ("care_cost", "reimbursement", "review_fee", "uplift", "bond_lost")                 # what a review decision causes
 WORK_SIDE = ("delivery_price", "effort_cost", "guarantee_lost", "court_fee", "emission")         # the slot actor's other life
 EXCLUDED = ("lock", "release", "departure", "arrival", "arrival_repayment")                       # W unchanged, or carried by the lifetime another way
@@ -60,15 +60,27 @@ def classify(e, names):
     elif k == "escrow_out" and "delivery price" in n:
         s = "delivery_price"
     elif k == "forfeit_to" and "forfeit:" in n:
-        s = "guarantee_lost"
+        s = "guarantee_lost" if src_in else "guarantee_received"   # Q7's requester: a delivery's guarantee forfeited to it
     elif k == "fee_out" and "emission share" in n:
         s = "emission"
+    elif k == "escrow_in" and src_in:
+        s = "price_paid"                                       # Q7's requester: the pay-in at the award
+    elif k in ("deposit_in", "feepot_in") and src_in:
+        s = "pots_paid"                                        # … the verification deposit's two pots
+    elif k in ("escrow_out", "deposit_out", "feepot_out") and dst_in:
+        s = "refund"                                           # … what the pool returns at closure (the unspent allowance, the pot, an escrow)
+    elif k == "transfer" and "rebate" in n and dst_in:
+        s = "rebate"                                           # … the service clock's rebate
+    elif k == "transfer" and "service fee" in n and src_in:
+        s = "fee_paid"                                         # … the base fee at the award
+    elif k == "issuance" and dst_in:
+        s = "issuance"                                         # … the credits minted to it a tick (no decision's; unclaimed)
     else:
         s = "other"
     return s, sign * float(e.amount)
 
 
-def attribute(run, marks, decisions, work_side=False, shared=False, lineages=None, tree=False):
+def attribute(run, marks, decisions, work_side=False, shared=False, lineages=None, tree=False, task_value=0.0, task_cases=()):
     """The attributed reward per decision. `marks[i]` = (t, n_events, case, boundary, real_factor, wealth_real) at decision i's observation,
     `marks[n]` the terminal; `decisions[i]` = {"identity", "case", "is_plant", "fulfilled", "action"}. Returns (attributed (n,), summary).
     `work_side` is recorded only: since version 3 every source is claimed — by the case's decision when there is one, else by the boundary decision.
@@ -167,6 +179,15 @@ def attribute(run, marks, decisions, work_side=False, shared=False, lineages=Non
             boundary_by_source[s] += d * r1
         attributed[i] += d * r1
         by_source[s] += d * r1
+    # Q7's requester: a task received (a settled delivery whose truth is fulfilled) is worth `task_value` (real) to the decision that posted it — the
+    # measure's v·F side; the credits spent are the case's events above
+    task_real = 0.0
+    for cid in task_cases:
+        if cid in by_case and task_value:
+            attributed[by_case[cid][-1]] += task_value
+            task_real += task_value
+    if task_real:
+        by_source["task_value"] += task_real
     # the suspension's cost: the trailing award income a tick × T_susp, charged to the plant failures the record names
     charges = []
     deliveries = [(e.t, e.dst, float(e.amount)) for e in events if e.kind == "escrow_out" and "delivery price" in (e.note or "") and e.dst in names]

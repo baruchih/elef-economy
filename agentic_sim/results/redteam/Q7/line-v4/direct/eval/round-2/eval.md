@@ -1,0 +1,8 @@
+# Evaluation (Q7, the learned requester) — cell `--entry-pool 20 --stampers 0.6 --dispute-policy truthful --task-value 31`, seeds 21-40, model `None` (value off, horizon 16)
+
+The requester's surplus v·F − S (the tasks received at --task-value each, real, less the credits spent) paired against the careful (the market rule); its rule by posting (the market rule's ceiling / patient, 0.7 B̄ raised after --patient-ticks / the floor, the state's reservation never raised), the postings, the tasks received, the deliveries paid for nothing, the final N, the state's deliveries to it, the wait to award, the price paid, the credits spent and the tasks per 1,000 real credits; the price level, the members' mean price and the run's awards beside.
+
+| policy | surplus (real) | paired − careful | postings asked | market / patient / floor | posted | unaffordable | raised | tasks received | paid unfulfilled | final N | free fulfilled | state deliveries | wait to award | price paid | spent (real) | tasks per 1,000 | wallet (real) | P_t close | members' price | awarded (all) | state delivered | false approvals |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| direct | 1312.0 ± 106.4 | 1277.6 ± 118.1 | 162.100 | 0.018 / 0.143 / 0.839 | 162.100 | 0.000 | 1.000 | 124.850 | 0.400 | 33.750 | 1.800 | 0.000 | 15.648 | 7.729 | 2558.331 | 50.216 | 8762.397 | 18.359 | 17.785 | 2278.950 | 16.450 | 3.550 |
+| careful | 34.4 ± 78.3 | nan ± nan | 590.650 | 1.000 / 0.000 / 0.000 | 415.950 | 174.700 | 0.450 | 326.850 | 0.500 | 88.450 | 3.850 | 0.300 | 0.063 | 19.363 | 10097.963 | 32.373 | 178.249 | 20.887 | 20.013 | 2445.100 | 18.350 | 3.100 |

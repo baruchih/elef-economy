@@ -605,8 +605,9 @@ consolidated into one standalone spec with the accepted revision kept verbatim i
   boundary's action shared across kinds or §17's one-step boundary read. **Q5's parent closes on the hand's finding (§26): four lines under the rules, none wins; Q5 closed.** **The ruling after
   run 30 (notes §37): the boundary read a construction correction** — without re-arrival a leave is worth zero by rule, so at a boundary the policy reads the boundary head's stay
   prediction against zero and leaves only if it is negative, the planner and the heads' leave code not consulted (`redteam.plan.boundary_one_step`; `run_q` / `online
-  --boundary-read auto|one-step|learned`, `auto` learned only under `--learner-rearrive on`); one calibration on the raised-guarantee cell to show the departures stop
-  (`calibration-v4d/`), the parent's line once as a reading of the value head (`line-v4d/`, not reopening Q5); then the dispute baseline (run 24's world, `--dispute-policy
+  --boundary-read auto|one-step|learned`, `auto` learned only under `--learner-rearrive on`); checked on the raised-guarantee cell (`calibration-v4d/`; notes §40): the departures stop (the CEM 0 leaves of 247 boundaries, no slot lost;
+  the head alone +261 ± 77, §35's reading within noise; the CEM +117 ± 97 from −125) and nothing else moves; the parent's line as a reading of the value head (`line-v4d/`) a no-win, −191 ± 83,
+  five broke slots leaving on a negative stay read. Q5 closed on both halves. Then the dispute baseline (run 24's world, `--dispute-policy
   truthful` against `none`, 20 seeds; `results/redteam/Q7/dispute-baseline/`), Q6 the learned bidder, Q7 on the dispute baseline. **The dispute baseline read (notes §38; `results/redteam/Q7/dispute-baseline/`):** truthful disputes catch
   89 of the 92 false approvals a run they contest, the standing false approvals fall 10.7 → 3.2, Ω +361, the requesters −50, nothing else moves. **Q6 built (the learned bidder;
   `--learner-role bidder`, `--bidder-slot cheapest|median|costliest|first`, `--undercut 0.2`):** once a tick when the slot is free and a root is affordable, the policy sets the

@@ -188,6 +188,7 @@ class Task:
     seated_seen: bool = False                #   … and whether that reviewer had the case in its seen set (a free member saw it available)
     seated_seen_ticks: Optional[int] = None  #   … the ticks from the sighting to the seat
     raised_n: int = 0                        #   the ceiling's raises (a plant is raised as the population's requesters raise, 2.6.1)
+    raise_refused_n: int = 0                 #   the raises the requester's wallet refused (§52: a plant's raise is minted, so a plant is never refused one — read by kind)
 
 
 @dataclass
@@ -499,7 +500,7 @@ class Stamping:
                   # troop (a real root), the reviewer's seen set — by case kind
                   "life_real_n": 0, "life_plant_n": 0, "life_real_post_award": 0, "life_plant_post_award": 0, "life_real_award_submit": 0, "life_plant_award_submit": 0,
                   "life_real_submit_seat": 0, "life_plant_submit_seat": 0, "life_real_raised": 0, "life_plant_raised": 0, "life_real_troop": 0, "life_plant_floor": 0,
-                  "life_real_seen": 0, "life_plant_seen": 0, "life_real_seen_ticks": 0, "life_plant_seen_ticks": 0,
+                  "life_real_seen": 0, "life_plant_seen": 0, "life_real_seen_ticks": 0, "life_plant_seen_ticks": 0, "life_real_raise_refused": 0, "life_plant_raise_refused": 0,
                   # Q3 — the learned deliverer (--learner-role deliverer): its quality decisions and what became of them
                   "learner_work_decisions": 0, "learner_bad_deliveries": 0, "learner_good_deliveries": 0, "learner_bad_approved": 0, "learner_bad_caught": 0,
                   "learner_good_vested": 0, "learner_good_final_n": 0, "learner_forfeited": 0.0, "learner_bad_paid": 0.0, "learner_effort_saved": 0.0,
@@ -563,6 +564,7 @@ class Stamping:
             for st in ("post_award", "award_submit", "submit_seat"):
                 out[f"life_{k}_{st}"] = round(self.c[f"life_{k}_{st}"] / n, 4) if n else ""
             out[f"life_{k}_raised_share"] = round(self.c[f"life_{k}_raised"] / n, 4) if n else ""
+            out[f"life_{k}_raise_refused_share"] = round(self.c[f"life_{k}_raise_refused"] / n, 4) if n else ""
             out[f"life_{k}_seen_share"] = round(self.c[f"life_{k}_seen"] / n, 4) if n else ""
             out[f"life_{k}_seen_ticks"] = round(self.c[f"life_{k}_seen_ticks"] / self.c[f"life_{k}_seen"], 4) if self.c[f"life_{k}_seen"] else ""
         out["life_real_troop_share"] = round(self.c["life_real_troop"] / self.c["life_real_n"], 4) if self.c["life_real_n"] else ""
@@ -1314,7 +1316,8 @@ class Stamping:
                 if cid in self.tasks:
                     self.tasks[cid].raised_n += 1
             except (RuleError, LedgerError):
-                pass                                         # the wallet does not allow it yet; the flag stands
+                if cid in self.tasks:
+                    self.tasks[cid].raise_refused_n += 1     # the wallet does not allow it yet; the flag stands (a plant's raise is minted — never refused; §52 reads the two)
 
     def read_marks(self, t: int):
         """2.1.0 §2.6: every refusal is told — the request carries its mark in the public view. The declared policy: hold
@@ -1927,6 +1930,7 @@ class Stamping:
                         self.c[f"life_{k}_award_submit"] += c.t_submit - c.t_award
                         self.c[f"life_{k}_submit_seat"] += r.t_assign - c.t_submit
                         self.c[f"life_{k}_raised"] += int(task.raised_n > 0)
+                        self.c[f"life_{k}_raise_refused"] += int(task.raise_refused_n > 0)   # §52: a raise the requester's wallet refused (never a plant's)
                         if task.plant:
                             self.c["life_plant_floor"] += int(bool(c.plant_at_floor))
                         else:

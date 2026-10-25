@@ -1,0 +1,8 @@
+# Evaluation (Q6, the learned bidder) — cell `--entry-pool 20 --stampers 0.6 --undercut 0.1`, seeds 21-40, model `None` (value off, horizon 16)
+
+The bidder's lifetime real wealth paired against the careful (the ratchet); its rule by tick (the ratchet's bid / at cost / no offer), the awards its bids won and the bid over cost at them, the offers lost, the wealth it held (real, a tick), the price level and the members' mean price at the close (hoarding and P_t beside).
+
+| policy | lifetime real | paired − careful | bid decisions | ratchet / undercut / withhold | awards won | of slot awards | bid / cost | offers lost | held (real) | slot ρ | slot cost | delivery income | effort burned | P_t close | members' price | awarded (all) | departed |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| direct | 2290.7 ± 105.6 | 298.2 ± 108.0 | 360.800 | 0.185 / 0.732 / 0.083 | 185.150 | 185.150 | 4.731 | 448.500 | 1133.354 | 0.876 | 4.122 | 2576.398 | 1214.489 | 20.184 | 19.443 | 2508.150 | 0.000 |
+| careful | 1992.5 ± 66.3 | nan ± nan | 445.050 | 1.000 / 0.000 / 0.000 | 137.450 | 137.450 | 4.828 | 539.500 | 985.357 | 0.894 | 4.122 | 2003.841 | 1028.554 | 20.540 | 19.843 | 2448.750 | 0.000 |

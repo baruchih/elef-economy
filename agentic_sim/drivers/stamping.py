@@ -258,7 +258,7 @@ class Stamping:
             a.tie_break = "draw" if rev12 else "id"                      # 2.6.0 §2.3: the tie after κ by a seeded draw; `id` the control
         p = Params(Res0=a.res0, X=a.on_duty, G_V=a.gv, p_start=a.p_start, p_cap=a.p_cap, p_floor=a.p_floor, band=a.band, G_frac_nested=a.child_g_frac,
                    record_dir=a.record_dir, f_fee=a.fee, phi_E_root=a.phi_e, phi_F_root=a.phi_f,
-                   pi0=a.pi0, dial=(a.dial == "on"), beta_P=a.beta_p, Omega0=a.omega0,
+                   pi0=a.pi0, pi_max=a.pi_max, dial=(a.dial == "on"), beta_P=a.beta_p, Omega0=a.omega0,
                    membership=rev3, duty_fund=(rev3 and a.fund == "on"), net_plant_capital=rev3, m_max=a.m_max,
                    troops=rev4, eps_T=a.eps_t, w_R=a.w_r, w_A=a.w_a, c_T=a.c_t, c_D_T=a.c_d_t, A_T=a.a_t, tau_T=a.work_ticks,
                    reserve_demand=rev5,
@@ -3057,6 +3057,7 @@ def build_parser():
                     help="reformer: a stamper reviews carefully while on probation and stamps again once readmitted (1.3.0 §8)")
     ap.add_argument("--pi0", type=float, default=0.10, help="π_0, plants per real initial review at m = 1 (0: no plants)")
     ap.add_argument("--dial", choices=["on", "off"], default="on", help="the effort dial (off: m_t = 1, X_t = X fixed)")
+    ap.add_argument("--pi-max", type=float, default=0.40, help="π_max, the plant rate's cap (Appendix A 0.40); 2.8.0 §8.7 (a): --pi-max 0.10 pins π_t at its floor with the dial live on the odds, the reserve and ω (--dial off pins π_t and m_t both)")
     ap.add_argument("--beta-p", type=float, default=0.75, help="β_P, the share of plants that are bad")
     ap.add_argument("--camouflage", type=float, default=0.0,
                     help="red team (1.2.0 §8): a stamper answers N on this fraction of its reviews at random")

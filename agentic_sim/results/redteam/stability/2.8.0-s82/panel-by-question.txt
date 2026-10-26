@@ -1,0 +1,49 @@
+# §8.2 (notes §54): the learned reviewer's action by the seat's question — initial, audit (the fulfillment question with no responses: the audit seat and, where the view says 'appeal', the third seat opened by an audit's disagreement is counted with the appeal panels below), appeal, dispute — by case kind and truth, seeds 21–23, 1000 ticks; each policy its chain's round-10 direct model, run through redteam.env on the 2.8.0 engine (fef85faa). The third block is the disputes chain's 2.7.0 policy (learned-rev-disputes-2) run on the 2.8.0 engine, to read that policy's mix by question. Produced by panel-by-question.py.
+
+== results/redteam/stability/learned-rev-careful-280/direct/models/direct-online-10.pt (seeds 21,22,23)
+| seat | kind | truth | decisions | care | approve blind (stamp) | reject blind |
+| appeal | plant | bad | 60 | 0.850 | 0.117 | 0.033 |
+| appeal | plant | good | 9 | 0.667 | 0.333 | 0.000 |
+| appeal | real | bad | 105 | 0.762 | 0.229 | 0.010 |
+| appeal | real | good | 113 | 0.673 | 0.319 | 0.009 |
+| audit | plant | bad | 75 | 0.147 | 0.853 | 0.000 |
+| audit | plant | good | 120 | 0.142 | 0.858 | 0.000 |
+| audit | real | bad | 96 | 0.083 | 0.917 | 0.000 |
+| audit | real | good | 1159 | 0.145 | 0.855 | 0.000 |
+| initial | plant | bad | 1299 | 0.790 | 0.207 | 0.003 |
+| initial | plant | good | 441 | 0.741 | 0.247 | 0.011 |
+| initial | real | bad | 1425 | 0.710 | 0.284 | 0.006 |
+| initial | real | good | 5613 | 0.718 | 0.277 | 0.004 |
+{'disputes_filed': 0.0, 'disputes_won': 0.0, 'appeals_filed': 78.67, 'appeals_won': 76.33, 'plant_disputes_filed': 0.0, 'plant_appeals_filed': 6.0, 'false_approvals': 40.33, 'plant_fail_dispute': 0.0, 'plant_fail_appeal': 0.0, 'plant_adj_dispute': 0.0, 'plant_adj_appeal': 1.67, 'plant_fail_audit': 22.33, 'plant_adj_audit': 65.0, 'plant_fail_third': 3.33, 'plant_adj_third': 21.33, 'rulings': 89.0}
+
+== results/redteam/stability/learned-rev-disputes-280/direct/models/direct-online-10.pt (seeds 21,22,23)
+| seat | kind | truth | decisions | care | approve blind (stamp) | reject blind |
+| appeal | plant | good | 31 | 0.419 | 0.581 | 0.000 |
+| appeal | real | bad | 5 | 0.400 | 0.600 | 0.000 |
+| appeal | real | good | 338 | 0.396 | 0.583 | 0.021 |
+| audit | plant | good | 310 | 0.103 | 0.897 | 0.000 |
+| audit | real | bad | 12 | 0.083 | 0.917 | 0.000 |
+| audit | real | good | 2975 | 0.143 | 0.857 | 0.000 |
+| dispute | plant | bad | 471 | 0.386 | 0.047 | 0.567 |
+| dispute | real | bad | 449 | 0.339 | 0.111 | 0.550 |
+| initial | plant | bad | 1404 | 0.756 | 0.222 | 0.021 |
+| initial | plant | good | 467 | 0.788 | 0.197 | 0.015 |
+| initial | real | bad | 1440 | 0.744 | 0.243 | 0.013 |
+| initial | real | good | 5526 | 0.748 | 0.237 | 0.015 |
+{'disputes_filed': 128.33, 'disputes_won': 122.67, 'appeals_filed': 92.0, 'appeals_won': 89.67, 'plant_disputes_filed': 120.67, 'plant_appeals_filed': 9.0, 'false_approvals': 10.0, 'plant_fail_dispute': 9.67, 'plant_fail_appeal': 0.33, 'plant_adj_dispute': 157.0, 'plant_adj_appeal': 9.33, 'plant_fail_audit': 0.67, 'plant_adj_audit': 103.33, 'plant_fail_third': 0.0, 'plant_adj_third': 1.0, 'rulings': 66.0}
+
+== results/redteam/stability/learned-rev-disputes-2/direct/models/direct-online-10.pt (seeds 21,22,23)
+| seat | kind | truth | decisions | care | approve blind (stamp) | reject blind |
+| appeal | plant | good | 17 | 0.471 | 0.529 | 0.000 |
+| appeal | real | bad | 5 | 0.400 | 0.600 | 0.000 |
+| appeal | real | good | 131 | 0.473 | 0.511 | 0.015 |
+| audit | plant | good | 98 | 0.163 | 0.837 | 0.000 |
+| audit | real | bad | 10 | 0.100 | 0.900 | 0.000 |
+| audit | real | good | 1163 | 0.150 | 0.850 | 0.000 |
+| dispute | plant | bad | 128 | 0.086 | 0.477 | 0.438 |
+| dispute | real | bad | 136 | 0.221 | 0.522 | 0.257 |
+| initial | plant | bad | 1296 | 0.761 | 0.225 | 0.014 |
+| initial | plant | good | 442 | 0.751 | 0.229 | 0.020 |
+| initial | real | bad | 1470 | 0.735 | 0.248 | 0.017 |
+| initial | real | good | 5433 | 0.730 | 0.255 | 0.015 |
+{'disputes_filed': 130.33, 'disputes_won': 119.33, 'appeals_filed': 79.0, 'appeals_won': 77.0, 'plant_disputes_filed': 115.0, 'plant_appeals_filed': 9.67, 'false_approvals': 14.0, 'plant_fail_dispute': 20.33, 'plant_fail_appeal': 0.0, 'plant_adj_dispute': 42.67, 'plant_adj_appeal': 4.0, 'plant_fail_audit': 0.33, 'plant_adj_audit': 32.67, 'plant_fail_third': 0.0, 'plant_adj_third': 1.67, 'rulings': 89.33}

@@ -1,0 +1,71 @@
+# Evaluation — cell `--entry-pool 20 --stampers 0.6 --learner-pop half --learner-role reviewer --learner-exit rule`, seeds 21-40, hide ``, model `None` (value off, horizon 16)
+
+The plant and real stamp rates are read on the initial reviews alone (the ruling after run 26); the non-initial seats — the audits and the panels, 2.7.0's plant-blind seats, which a plant reaches under 2.8.0 — are read apart: their share of the review decisions and the stamp rate on them, and below by seat kind.
+
+| policy | lifetime real wealth | paired − careful | decisions | care share | approve blind | reject blind | plant stamp rate (initial) | real stamp rate (initial) | non-initial share | non-initial stamp rate | run false approvals | learner's | departed |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| direct | 17826.9 ± 658.7 | -1649.1 ± 585.3 | 2472.9 | 0.740 | 0.256 | 0.004 | 0.105 | 0.111 | 0.278 | 0.653 | 22.65 | 45.05 | 0.20 |
+| careful | 19476.0 ± 680.0 | nan ± nan | 2542.3 | 1.000 | 0.000 | 0.000 | 0.000 | 0.000 | 0.328 | 0.000 | 8.85 | 0.00 | 0.35 |
+| stamper | 3754.7 ± 123.4 | -15721.3 ± 650.1 | 512.9 | 0.000 | 1.000 | 0.000 | 1.000 | 1.000 | 0.023 | 1.000 | 14.65 | 87.65 | 1.00 |
+
+The stamp rate by seat kind (2.8.0 §5), plant / real, with the decisions pooled over the seeds in parentheses — under 2.7.0 a plant reached the initial review alone; under 2.8.0 it reaches every seat.
+
+| policy | initial plant / real | audit plant / real | panel plant / real | resumed plant / real |
+|---|---|---|---|---|
+| direct | 0.105 (8033) / 0.111 (27659) | 0.715 (1307) / 0.734 (10327) | 0.169 (438) / 0.232 (1694) | — / — |
+| careful | 0.000 (6072) / 0.000 (28076) | 0.000 (1145) / 0.000 (12689) | 0.000 (431) / 0.000 (2433) | — / — |
+| stamper | 1.000 (1432) / 1.000 (8590) | — / 1.000 (217) | — / 1.000 (18) | — / — |
+
+Q1's readings — the applied odds at the policy's blind approvals (its stamps) and at its other decisions, its stamp rate by odds band (decisions in the band pooled over the seeds), the slot's suspensions, the ticks between its admissions, the false approvals it passed per suspension:
+
+| policy | odds at stamps | odds at cares | stamp rate 0.0-0.3 | stamp rate 0.3-0.5 | stamp rate 0.5-0.7 | stamp rate 0.7-1.0 | stamp rate pinned | suspensions | admissions seen | ticks between admissions | false approvals / suspension |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| direct | 0.829 | 0.889 | 0.551 (69) | 0.586 (715) | 0.318 (6221) | 0.332 (14641) | 0.195 (27812) | 16.450 | 187.250 | 2.458 | 2.739 |
+| careful | — | 0.740 | 0.000 (2430) | 0.000 (10779) | 0.000 (8620) | 0.000 (6625) | 0.000 (22392) | 12.650 | 230.700 | 2.206 | 0.000 |
+| stamper | 1.000 | — | — (0) | — (0) | — (0) | — (0) | 1.000 (10257) | 35.150 | 94.450 | 4.253 | 2.494 |
+
+Re-arrival (allowed after run 22; the driver's `--learner-rearrive on`): identities per episode, returns, leaves chosen at a boundary and refused, the floats minted per episode in real terms (the loop's bill), the share of episodes whose last identity had departed:
+
+| policy | identities | returns | leaves chosen | leaves refused | floats minted (real) | departed at the end | boundary decisions |
+|---|---|---|---|---|---|---|---|
+| direct | 20.300 | 0.000 | 0.000 | 0.000 | 0.000 | 0.200 | 0.000 |
+| careful | 20.400 | 0.000 | 0.000 | 0.000 | 0.000 | 0.350 | 0.000 |
+| stamper | 20.450 | 0.000 | 0.000 | 0.000 | 0.000 | 1.000 | 0.000 |
+
+The reviewers in self-play — every member a learner slot sharing one policy (`--learner-pop all --learner-role reviewer`); the references on the same slots: `careful` (all-careful), `stamper` (all-stamper), `hand` (each slot's disposition by hand — run 24's 60/40). Honesty first: the run's standing false approvals, the bad plants approved and the good rejected (the plant record), the dial's F̂, the suspensions, the audit layer's overturn rate (settled roots with an audit seat whose initial approval it overturned, over those with a seat); then the members' nominal surplus and the customers' tasks per 1,000 nominal credits, P_t and the members' price, the state's share, arrivals and departures. Paired columns are against `careful`.
+
+| policy | slots (alive / total) | false approvals (run) | paired | bad plants approved | paired | good plants rejected | F̂ | suspensions | paired | audits held | overturn rate | paired | disputes filed / won (false approvals disputed / overturned) | nominal surplus | paired | real (the slots' lifetime) | paired | tasks per 1,000 (customers) | paired | P_t close | paired | members' price | state share | awarded | arrivals | departures | paired | requesters' wallet | idle for bond |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| direct | 10.600 / 20.300 | 22.650 ± 1.562 | +13.800 ± 1.886 | 73.350 | +35.600 ± 2.982 | 8.750 | 0.096 | 13.200 | +5.050 ± 0.863 | 1784.650 | 0.044 | -0.001 ± 0.001 | 0.000 / 0.000 (0.000 / 0.000) | 16315.728 ± 462.506 | -208.759 ± 564.691 | 17826.9 ± 658.7 | -1649.1 ± 585.3 | 32.761 | -1.783 ± 0.445 | 20.243 ± 0.473 | +1.555 ± 0.819 | 19.123 | 0.003 | 2504.750 | 19.800 | 19.750 | +0.400 ± 0.444 | 57.130 | 122.250 |
+| careful | 12.050 / 20.400 | 8.850 ± 0.805 | — | 37.750 | — | 7.400 | 0.061 | 8.150 | — | 1604.000 | 0.044 | — | 0.000 / 0.000 (0.000 / 0.000) | 16524.488 ± 661.951 | — | 19476.0 ± 680.0 | — | 34.545 | — | 18.688 ± 0.714 | — | 18.626 | 0.005 | 2556.400 | 19.850 | 19.350 | — | 402.222 | 208.450 |
+| stamper | 0.000 / 20.450 | 14.650 ± 0.916 | +5.800 ± 1.301 | 91.750 | +54.000 ± 2.342 | 4.650 | 0.056 | 33.350 | +25.200 ± 0.839 | 1526.100 | 0.091 | +0.047 ± 0.003 | 0.000 / 0.000 (0.000 / 0.000) | 3621.714 ± 145.480 | -12902.774 ± 684.362 | 3754.7 ± 123.4 | -15721.3 ± 650.1 | 27.726 | -6.819 ± 0.467 | 28.299 ± 0.366 | +9.611 ± 0.815 | 24.249 | 0.330 | 1421.100 | 20.000 | 29.150 | +9.800 ± 0.484 | 86.099 | 174.750 |
+
+The action mix by period (care / approve blind / reject blind, pooled over the seeds; the decisions a period, mean over the seeds):
+
+- **direct**: p0 0.915/0.084/0.001 (293); p1 0.678/0.318/0.005 (212); p2 0.745/0.248/0.007 (143); p3 0.715/0.271/0.013 (149); p4 0.713/0.286/0.001 (171); p5 0.733/0.265/0.002 (160); p6 0.733/0.264/0.003 (162); p7 0.716/0.280/0.004 (170); p8 0.712/0.287/0.001 (151); p9 0.723/0.275/0.002 (172); p10 0.722/0.275/0.003 (159); p11 0.731/0.267/0.002 (166); p12 0.710/0.285/0.005 (165); p13 0.674/0.321/0.004 (138); p14 0.724/0.276/0.000 (56); p15 0.811/0.189/0.000 (6)
+- **careful**: p0 1.000/0.000/0.000 (301); p1 1.000/0.000/0.000 (256); p2 1.000/0.000/0.000 (217); p3 1.000/0.000/0.000 (210); p4 1.000/0.000/0.000 (219); p5 1.000/0.000/0.000 (228); p6 1.000/0.000/0.000 (218); p7 1.000/0.000/0.000 (200); p8 1.000/0.000/0.000 (197); p9 1.000/0.000/0.000 (170); p10 1.000/0.000/0.000 (155); p11 1.000/0.000/0.000 (112); p12 1.000/0.000/0.000 (60)
+- **stamper**: p0 0.000/1.000/0.000 (295); p1 0.000/1.000/0.000 (139); p2 0.000/1.000/0.000 (56); p3 0.000/1.000/0.000 (20); p4 0.000/1.000/0.000 (3); p5 0.000/1.000/0.000 (0)
+
+The plant's life by stage beside a real root's (the ruling after run 34; a conformance diagnostic on the instrument — a plant takes every step in the pass a real root would): per root that reached its first initial seat, by case kind, the ticks posted → awarded, awarded → submitted, submitted → seated (the review's assignment), the share raised, the share whose ceiling's raise was refused at least once (a real root's by the requester's wallet; a plant's drawn at the trailing real roots' rate and held at their delay — the conformance correction after run 35; before it never a plant's, §52), the share at the floor (a plant unbid for w_A) or delivered by a troop (a real root unbid for w_A), the share whose reviewer had the case in its seen set and the ticks from the sighting to the seat. Each stage as real / plant, then plant − real paired by seed (mean ± SE).
+
+| policy | roots seated (real / plant) | posted → awarded | Δ | awarded → submitted | Δ | submitted → seated | Δ | raised share | Δ | raise refused (wallet) | troop (real) / floor (plant) | seen share | Δ | ticks since sighting | Δ |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| direct | 2503.2 / 710.6 | 0.50 / 0.46 | -0.03 ± 0.03 | 1.00 / 1.00 | +0.00 ± 0.00 | 0.13 / 0.14 | +0.01 ± 0.00 | 0.273 / 0.261 | -0.012 ± 0.009 | 0.120 / 0.128 | 0.003 / 0.004 | 0.048 / 0.049 | +0.001 ± 0.002 | 2.10 / 2.04 | -0.06 ± 0.10 |
+| careful | 2560.8 / 545.3 | 0.38 / 0.27 | -0.11 ± 0.02 | 1.00 / 1.00 | +0.00 ± 0.00 | 0.12 / 0.14 | +0.01 ± 0.00 | 0.177 / 0.158 | -0.019 ± 0.005 | 0.076 / 0.086 | 0.005 / 0.003 | 0.042 / 0.042 | +0.000 ± 0.002 | 1.95 / 1.62 | -0.33 ± 0.10 |
+| stamper | 2078.2 / 520.5 | 2.05 / 2.20 | +0.16 ± 0.04 | 1.00 / 1.00 | +0.00 ± 0.00 | 0.12 / 0.14 | +0.01 ± 0.00 | 0.559 / 0.617 | +0.058 ± 0.006 | 0.350 / 0.391 | 0.324 / 0.389 | 0.024 / 0.016 | -0.008 ± 0.002 | 3.36 / 2.76 | -0.60 ± 0.27 |
+
+The same differences **period-matched** (§52): the real roots' stage means by period, reweighted by the plants' count in each period, so a plant rate that rises with the dial while the market drifts is not read as a difference in the plant's path. Plant − real, paired by seed.
+
+| policy | posted → awarded | awarded → submitted | submitted → seated | raised share | raise refused (wallet) | seen share |
+|---|---|---|---|---|---|---|
+| direct | -0.07 ± 0.02 | +0.00 ± 0.00 | -0.02 ± 0.00 | -0.048 ± 0.005 | -0.012 ± 0.003 | -0.001 ± 0.002 |
+| careful | -0.13 ± 0.02 | +0.00 ± 0.00 | -0.01 ± 0.00 | -0.042 ± 0.005 | -0.007 ± 0.003 | +0.001 ± 0.002 |
+| stamper | -0.19 ± 0.04 | +0.00 ± 0.00 | -0.01 ± 0.00 | -0.054 ± 0.004 | -0.035 ± 0.005 | -0.004 ± 0.002 |
+
+The stages after the first verdict (2.8.0 §2.3), real / plant: the share of roots whose pending F was audited and the audit seat's wait from the roll; the share with an appeal or a dispute filed and the filing's delay from the verdict; the first panel seat's wait from the filing; the seats the state took per root (a real root's by a troop, a plant's by the orchestrator's own verdict).
+
+| policy | audited share | audit wait | filed share | filing delay | panel wait | state seats |
+|---|---|---|---|---|---|---|
+| direct | 0.469 / 0.220 | 0.16 / 0.17 | 0.036 / 0.012 | 0.00 / 0.00 | 0.15 / 0.13 | 0.287 / 0.109 |
+| careful | 0.404 / 0.170 | 0.16 / 0.18 | 0.036 / 0.013 | 0.00 / 0.00 | 0.11 / 0.05 | 0.265 / 0.112 |
+| stamper | 0.368 / 0.175 | 0.16 / 0.17 | 0.016 / 0.009 | 0.00 / 0.00 | 0.13 / 0.09 | 0.427 / 0.312 |

@@ -505,6 +505,7 @@ class Stamping:
                   "false_approvals_disputed": 0, "false_approvals_overturned": 0,
                   "true_approvals_disputed": 0, "true_approvals_overturned": 0,
                   "care_cost_plant": 0.0, "care_cost_real": 0.0, "care_reviews_plant": 0, "care_reviews_real": 0,   # 2.8.0 §8.6: the care spent by case kind
+                  "tell_initial_cared": 0, "tell_later_plant_stamped": 0, "tell_later_real_stamped": 0, "tell_later_plant_cared": 0, "tell_later_real_cared": 0,
                   "awards_unfilled_ticks": 0, "appeals_unassignable_ticks": 0, "underfunded_careful_reviews": 0,
                   "omega_unrecovered_advances": 0.0, "allowance_refunded": 0.0, "pot_refunded": 0.0,
                   "trees_closed": 0, "disposition_switches": 0,
@@ -731,10 +732,16 @@ class Stamping:
             plant_read = self.read_tells(view, r)
             is_plant = self.tasks[view.case_id].plant
             self.c[f"tell_{'plant' if is_plant else 'real'}_read_{'plant' if plant_read else 'real'}"] += 1
-            if not plant_read:
+            if not plant_read and self.a.tell_initial == "care" and view.responses_available:
+                self.c["tell_initial_cared"] += 1            # 2.8.0 §8.7: the later-seat tells' reader cares at the first review (the log is empty there)
+            elif not plant_read:
+                if not view.responses_available:
+                    self.c[f"tell_later_{'plant' if is_plant else 'real'}_stamped"] += 1
                 if not truth and not is_plant:
                     self.c["tell_false_approvals"] += 1
                 return F, 0.0
+            elif not view.responses_available:
+                self.c[f"tell_later_{'plant' if is_plant else 'real'}_cared"] += 1
         right = self.rng.random() < self.a.accuracy
         v = F if (truth == right) else N
         want = float(self.rng.randint(2, 3)) * self.a.care_cost   # the care cost: uniform {2, 3} credits, scaled (the calibration cell's knob)
@@ -3178,6 +3185,9 @@ def build_parser():
                     help="Q2 (the learned red team, hand-written first): the share of careful actors that read the view for a plant's tells and stamp the rest")
     ap.add_argument("--tell", default="gap+cap", help="the tells read, joined by +: gap (assigned the tick it was submitted), cap (K at this period's index), idage (the id newer than every root seen available before the submission tick); all (the three, any); oracle (the plant marker itself — declared non-conforming, the upper bound a perfect detector earns); log (2.8.0 §8.7, outside the convention: the case log's plant entries from an earlier seat, read at a later one)")
     ap.add_argument("--tell-rule", choices=["any", "all"], default="any", help="a plant is read when any tell fires, or only when all do")
+    ap.add_argument("--tell-initial", choices=["stamp", "care"], default="stamp",
+                    help="what a tell-reader does at a first review no tell marks: stamp (the Q2 readers' shape) or care (2.8.0 §8.7: the `log` tell speaks "
+                         "only at a later seat, so its reader cares at the first review and reads the log after)")
     ap.add_argument("--tie-break", choices=["draw", "id"], default=None, help="2.6.0 §2.3: the tie after κ broken by a seeded draw (the default under 2.6.0) or by the lowest id (the control, the earlier rules' default)")
     ap.add_argument("--genesis-duty", choices=["draw", "lowest"], default=None, help="2.6.0 §2.3: the genesis duty reserve by a seeded draw (the default under 2.6.0) or the lowest-id actors (the control)")
     ap.add_argument("--trailing-periods", type=int, default=1, help="2.6.0: the closed periods a plant's draws read (1; the knob 2)")

@@ -99,10 +99,10 @@ def main(argv=None):
     ap.add_argument("--train-seeds", default="1-10"); ap.add_argument("--test-seeds", default="11-20")
     ap.add_argument("--out", default=None)
     ap.add_argument("--initial-only", action="store_true", help="restrict to the initial reviews (rv_responses_available), where plants are received")
-    ap.add_argument("--seat", choices=["all", "initial", "audit", "panel", "resumed"], default="all",
+    ap.add_argument("--seat", choices=["all", "initial", "audit", "panel", "appeal", "dispute", "resumed"], default="all",
                     help="2.8.0 §8.4: restrict to one seat kind, read from the observation's own fields as the env's `seat` is — initial "
                          "(rv_responses_available), audit (the question fulfillment, not initial, not resumed), panel (the question appeal or "
-                         "dispute), resumed; boundary decisions excluded; `--initial-only` is `--seat initial`")
+                         "dispute), appeal / dispute (the panel by its question — the appeal question carries the third seat too), resumed; boundary decisions excluded; `--initial-only` is `--seat initial`")
     ap.add_argument("--policies", default="careful,stamper,eps,random",
                     help="the behaviour policies' episodes to read (comma-separated; the four offline policies by default — an online run writes "
                          "its rounds' episodes beside the offline ones, and the probe names its episodes from run 24; 'all' reads every file)")
@@ -118,7 +118,8 @@ def main(argv=None):
             O = e["obs"]
             ra, qf, rs = O[:, IDX["rv_responses_available"]] > 0.5, O[:, IDX["rv_q_fulfillment"]] > 0.5, O[:, IDX["rv_resumed"]] > 0.5
             review = (O[:, IDX["decision_boundary"]] < 0.5) if O.shape[1] > IDX["decision_boundary"] else np.ones(len(O), bool)
-            keep = {"initial": ra, "audit": (~ra) & qf & (~rs), "panel": (~qf), "resumed": (~ra) & qf & rs}[a.seat] & review
+            qa, qd = O[:, IDX["rv_q_appeal"]] > 0.5, O[:, IDX["rv_q_dispute"]] > 0.5
+            keep = {"initial": ra, "audit": (~ra) & qf & (~rs), "panel": (~qf), "appeal": qa, "dispute": qd, "resumed": (~ra) & qf & rs}[a.seat] & review
             e["obs"], e["is_plant"] = O[keep], e["is_plant"][keep]
         tr, te = [e for e in tr if len(e["is_plant"])], [e for e in te if len(e["is_plant"])]
     def stack(eps, f):

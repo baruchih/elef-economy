@@ -33,7 +33,7 @@ REQ_KEYS = ("req_decisions", "req_rule_market", "req_rule_floor", "req_rule_pati
 POP_KEYS = ("learner_pop", "learner_pop_total", "learner_pop_n", "pop_departed", "pop_surplus_nominal", "pop_wealth_nominal_mean", "pop_tasks_received", "pop_req_spent_nominal",
             "pop_tasks_per_1000", "state_share", "awards_below_floor_share", "state_price_over_market", "false_approvals", "arrivals", "departures", "requester_wallet_mean",
             "undercut_awards", "awards_below_floor", "idle_for_bond_ticks", "learner_mix_by_period")   # the learned population (the ruling after run 32)
-LIFE_KEYS = tuple(f"life_{k}_{st}" for k in ("real", "plant") for st in ("n", "post_award", "award_submit", "submit_seat", "raised_share", "raise_refused_share", "seen_share", "seen_ticks")) + ("life_real_troop_share", "life_plant_floor_share")   # the plant's life by stage (the ruling after run 34)
+LIFE_KEYS = tuple(f"life_{k}_{st}" for k in ("real", "plant") for st in ("n", "post_award", "award_submit", "submit_seat", "raised_share", "raise_refused_share", "seen_share", "seen_ticks")) + ("life_real_troop_share", "life_plant_floor_share", "life_by_period")   # the plant's life by stage (the ruling after run 34); by period for the period-matched difference (§52)
 POP_KEYS = POP_KEYS + LIFE_KEYS                                     # the stage-by-kind reading, a standing check in every population cell (the ruling after run 34's addendum)
 REV_POP_KEYS = tuple(dict.fromkeys(POP_KEYS + ("P_t", "member_price_mean", "awarded", "departures", "arrivals", "requester_wallet_mean", "awards_below_floor_share", "state_price_over_market", "state_share",
                                              "false_approvals", "suspensions", "bad_plants_approved", "good_plants_rejected", "audits_held", "audits_overturning", "audit_overturn_rate", "F_hat",
@@ -232,6 +232,15 @@ def write_life_table(f, summary):
             f.write(f"| {name} | {lf(s, 'life_real_n', 1)} / {lf(s, 'life_plant_n', 1)} | {lf(s, 'life_real_post_award')} / {lf(s, 'life_plant_post_award')} | {ld(s, 'post_award')} | {lf(s, 'life_real_award_submit')} / {lf(s, 'life_plant_award_submit')} | {ld(s, 'award_submit')} | "
                     f"{lf(s, 'life_real_submit_seat')} / {lf(s, 'life_plant_submit_seat')} | {ld(s, 'submit_seat')} | {lf(s, 'life_real_raised_share', 3)} / {lf(s, 'life_plant_raised_share', 3)} | {ld(s, 'raised_share', 3)} | {lf(s, 'life_real_raise_refused_share', 3)} / {lf(s, 'life_plant_raise_refused_share', 3)} | {lf(s, 'life_real_troop_share', 3)} / {lf(s, 'life_plant_floor_share', 3)} | "
                     f"{lf(s, 'life_real_seen_share', 3)} / {lf(s, 'life_plant_seen_share', 3)} | {ld(s, 'seen_share', 3)} | {lf(s, 'life_real_seen_ticks')} / {lf(s, 'life_plant_seen_ticks')} | {ld(s, 'seen_ticks')} |\n")
+        if any(s.get("life_dw_post_award") for s in summary.values()):
+            def lw(s, st, nd=2):
+                v = s.get(f"life_dw_{st}"); return f"{v[0]:+.{nd}f} ± {v[1]:.{nd}f}" if v and not np.isnan(v[0]) else "—"
+            f.write("\nThe same differences **period-matched** (§52): the real roots' stage means by period, reweighted by the plants' count in each period, so a plant rate that rises with the dial while the market drifts is not read as a difference in the plant's path. Plant − real, paired by seed.\n\n"
+                    "| policy | posted → awarded | awarded → submitted | submitted → seated | raised share | raise refused (wallet) | seen share |\n|---|---|---|---|---|---|---|\n")
+            for name, s in summary.items():
+                if not s.get("life_real_n"):
+                    continue
+                f.write(f"| {name} | {lw(s, 'post_award')} | {lw(s, 'award_submit')} | {lw(s, 'submit_seat')} | {lw(s, 'raised_share', 3)} | {lw(s, 'raise_refused_share', 3)} | {lw(s, 'seen_share', 3)} |\n")
 
 
 def main(argv=None):
@@ -299,7 +308,7 @@ def main(argv=None):
             for k in ("delegate_decisions", "judge_decisions", "cancel_decisions", "delegate_share", "judge_care_share", "judge_stamp_share", "judge_reject_share", "cancel_share") + PARENT_KEYS:
                 summary[name][k] = mse([r.get(k) if r.get(k) not in ("", None) else None for r in rows])
         if a.role == "reviewer" and rows and rows[0].get("learner_pop") not in (None, "", "off"):   # the reviewers in self-play
-            for k in tuple(k for k in REV_POP_KEYS if k not in ("learner_pop", "learner_mix_by_period", "F_hat")):
+            for k in tuple(k for k in REV_POP_KEYS if k not in ("learner_pop", "learner_mix_by_period", "life_by_period", "F_hat")):
                 summary[name][k] = mse([r.get(k) if r.get(k) not in ("", None) else None for r in rows])
             summary[name]["F_hat"] = mse([float(r["F_hat"]) if r.get("F_hat") not in ("", None) else None for r in rows])
         if a.role in ("bidder", "reviewer") and rows and rows[0].get("learner_pop") not in (None, "", "off"):
@@ -307,6 +316,22 @@ def main(argv=None):
             for st in ("post_award", "award_submit", "submit_seat", "raised_share", "seen_share", "seen_ticks"):   # the plant's life by stage: plant − real per seed
                 d = [float(r[f"life_plant_{st}"]) - float(r[f"life_real_{st}"]) for r in rows if r.get(f"life_plant_{st}") not in ("", None) and r.get(f"life_real_{st}") not in ("", None)]
                 summary[name][f"life_d_{st}"] = mse(d) if len(d) > 1 else (float("nan"), float("nan"))
+            # §52: the period-matched difference — the real roots' stage means by period reweighted by the plants' count in each period, so the plant rate's
+            # rise with the dial (the plants crowd into the later periods) is not read as a difference in the plant's path
+            for st in ("post_award", "award_submit", "submit_seat", "raised_share", "raise_refused_share", "seen_share"):
+                dw = []
+                for r in rows:
+                    bp = json.loads(r["life_by_period"]) if r.get("life_by_period") else {}
+                    num = den = pl = pn = 0.0
+                    for p, kinds in bp.items():
+                        re_, pl_ = kinds.get("real"), kinds.get("plant")
+                        if not re_ or not pl_ or not re_["n"] or not pl_["n"]:
+                            continue
+                        key = st.replace("_share", "")
+                        num += pl_["n"] * re_[key] / re_["n"]; den += pl_["n"]; pl += pl_[key]; pn += pl_["n"]
+                    if den:
+                        dw.append(pl / pn - num / den)
+                summary[name][f"life_dw_{st}"] = mse(dw) if len(dw) > 1 else (float("nan"), float("nan"))
             mixes = [json.loads(r["learner_mix_by_period"]) for r in rows if r.get("learner_mix_by_period")]   # the action mix by period, pooled over the seeds
             if mixes:
                 n_per = max(len(m) for m in mixes)
@@ -317,7 +342,7 @@ def main(argv=None):
                 summary[name]["mix_by_period"] = [[(x / sum(trip)) if sum(trip) else None for x in trip] for trip in tot]
                 summary[name]["decisions_by_period"] = [sum(trip) / len(mixes) for trip in tot]
         if a.role == "bidder":                                      # Q6's line: the learned bidder
-            for k in ("ratchet_share", "undercut_share", "withhold_share") + BID_KEYS + tuple(k for k in POP_KEYS if k not in ("learner_pop", "learner_mix_by_period")):
+            for k in ("ratchet_share", "undercut_share", "withhold_share") + BID_KEYS + tuple(k for k in POP_KEYS if k not in ("learner_pop", "learner_mix_by_period", "life_by_period")):
                 summary[name][k] = mse([r.get(k) if r.get(k) not in ("", None) else None for r in rows])
             summary[name]["learner_pop"] = rows[0].get("learner_pop") if rows else None
             mixes = [json.loads(r["learner_mix_by_period"]) for r in rows if r.get("learner_mix_by_period")]   # the action mix by period, pooled over the seeds

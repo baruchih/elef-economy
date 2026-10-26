@@ -398,6 +398,7 @@ class Stamping:
         self.bids_lost_of: dict[str, int] = {}
         self.last_won_of: dict[str, int] = {}
         self.learner_won: list[tuple[int, str, str]] = []    # (t, name, case): the roots the learners' bids won this step — redteam.env credits each to the decision (t, name)
+        self.life_by_period: dict[int, dict] = {}            # §52: the plant's life by stage, by period and kind — the pooled table confounds the plant rate's rise with the market's drift; run_q reads a period-matched difference from this
         self.learner_mix_by_period: dict[int, list[int]] = {}   # period → [ratchet, undercut, withhold] over the learners' bid decisions (the action mix by period)
         self.wealth_in_of: dict[str, float] = {}             # each learner slot's wealth in (genesis, read at the first tick; an arrival's float) — the nominal surplus
         self.depart_wealth_nominal: dict[str, float] = {}
@@ -1931,6 +1932,11 @@ class Stamping:
                         self.c[f"life_{k}_submit_seat"] += r.t_assign - c.t_submit
                         self.c[f"life_{k}_raised"] += int(task.raised_n > 0)
                         self.c[f"life_{k}_raise_refused"] += int(task.raise_refused_n > 0)   # §52: a raise the requester's wallet refused (never a plant's)
+                        pb = self.life_by_period.setdefault(len(w.dial()["periods"]), {}).setdefault(k, {"n": 0, "post_award": 0, "award_submit": 0, "submit_seat": 0, "raised": 0, "raise_refused": 0, "seen": 0, "seen_ticks": 0})
+                        pb["n"] += 1; pb["post_award"] += c.t_award - c.t_post; pb["award_submit"] += c.t_submit - c.t_award; pb["submit_seat"] += r.t_assign - c.t_submit
+                        pb["raised"] += int(task.raised_n > 0); pb["raise_refused"] += int(task.raise_refused_n > 0)
+                        if sn is not None:
+                            pb["seen"] += 1; pb["seen_ticks"] += r.t_assign - sn[0]
                         if task.plant:
                             self.c["life_plant_floor"] += int(bool(c.plant_at_floor))
                         else:
@@ -2539,6 +2545,7 @@ class Stamping:
                     "pop_departed": sum(1 for x in self.learner_pop if x not in self.actors),
                     "pop_surplus_nominal": (round(sum((w.wealth(x) if x in self.actors else self.depart_wealth_nominal.get(x, 0.0)) - self.wealth_in_of.get(x, 0.0) for x in self.learner_chain), 3) if self.learner_chain else ""),
                     "pop_wealth_nominal_mean": (round(sum(w.wealth(x) for x in self.learner_pop if x in self.actors) / max(1, sum(1 for x in self.learner_pop if x in self.actors)), 3) if self.learner_pop else ""),
+                    "life_by_period": json.dumps(self.life_by_period) if self.life_by_period else "",   # §52: the stage counts by period and kind
                     "learner_mix_by_period": json.dumps([self.learner_mix_by_period.get(k, [0, 0, 0]) for k in range(max(self.learner_mix_by_period) + 1)]) if self.learner_mix_by_period else "",
                     "pop_tasks_received": self.c["pop_tasks_received"], "pop_req_spent_nominal": round(self.pop_req_spent_nominal, 3),
                     "pop_tasks_per_1000": (round(1000.0 * self.c["pop_tasks_received"] / self.pop_req_spent_nominal, 4) if self.pop_req_spent_nominal > 1e-9 else ""),

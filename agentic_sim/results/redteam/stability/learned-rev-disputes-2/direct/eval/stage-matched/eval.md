@@ -1,0 +1,55 @@
+# Evaluation — cell `--entry-pool 20 --stampers 0.6 --dispute-policy truthful --learner-pop all --learner-role reviewer --learner-exit rule`, seeds 21-40, hide ``, model `None` (value off, horizon 8)
+
+The plant and real stamp rates are read on the initial reviews alone (the ruling after run 26); the plant-blind seats — a revised submission or a panel, where no plant is received — are read apart: their share of the review decisions and the stamp rate on them.
+
+| policy | lifetime real wealth | paired − careful | decisions | care share | approve blind | reject blind | plant stamp rate (initial) | real stamp rate (initial) | blind-seat share | blind-seat stamp rate | run false approvals | learner's | departed |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| direct | 31434.9 ± 826.7 | -2009.5 ± 955.4 | 4275.8 | 0.550 | 0.436 | 0.014 | 0.240 | 0.296 | 0.286 | 0.867 | 40.40 | 244.10 | 0.20 |
+| hand | 32105.8 ± 614.4 | -1338.6 ± 964.9 | 4304.7 | 0.000 | 0.000 | 0.000 | 0.000 | 0.000 | 0.284 | 0.000 | 3.55 | 0.00 | 0.45 |
+| careful | 33444.4 ± 894.0 | nan ± nan | 4101.7 | 1.000 | 0.000 | 0.000 | 0.000 | 0.000 | 0.285 | 0.000 | 0.40 | 0.00 | 0.25 |
+
+Q1's readings — the applied odds at the policy's blind approvals (its stamps) and at its other decisions, its stamp rate by odds band (decisions in the band pooled over the seeds), the slot's suspensions, the ticks between its admissions, the false approvals it passed per suspension:
+
+| policy | odds at stamps | odds at cares | stamp rate 0.0-0.3 | stamp rate 0.3-0.5 | stamp rate 0.5-0.7 | stamp rate 0.7-1.0 | stamp rate pinned | suspensions | admissions seen | ticks between admissions | false approvals / suspension |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| direct | 0.870 | 0.952 | 0.856 (1567) | 0.820 (1675) | 0.684 (1010) | 0.602 (22611) | 0.347 (58652) | 39.750 | 378.350 | 1.351 | 6.141 |
+| hand | — | 0.807 | 0.000 (75) | 0.000 (12084) | 0.000 (16204) | 0.000 (14686) | 0.000 (43045) | 35.850 | 354.500 | 1.322 | 0.000 |
+| careful | — | 0.687 | 0.000 (24146) | 0.000 (6755) | 0.000 (4661) | 0.000 (1443) | 0.000 (45029) | 24.950 | 696.200 | 1.133 | 0.000 |
+
+Re-arrival (allowed after run 22; the driver's `--learner-rearrive on`): identities per episode, returns, leaves chosen at a boundary and refused, the floats minted per episode in real terms (the loop's bill), the share of episodes whose last identity had departed:
+
+| policy | identities | returns | leaves chosen | leaves refused | floats minted (real) | departed at the end | boundary decisions |
+|---|---|---|---|---|---|---|---|
+| direct | 39.850 | 0.000 | 0.000 | 0.000 | 0.000 | 0.200 | 0.000 |
+| hand | 39.850 | 0.000 | 0.000 | 0.000 | 0.000 | 0.450 | 0.000 |
+| careful | 39.700 | 0.000 | 0.000 | 0.000 | 0.000 | 0.250 | 0.000 |
+
+The reviewers in self-play — every member a learner slot sharing one policy (`--learner-pop all --learner-role reviewer`); the references on the same slots: `careful` (all-careful), `stamper` (all-stamper), `hand` (each slot's disposition by hand — run 24's 60/40). Honesty first: the run's standing false approvals, the bad plants approved and the good rejected (the plant record), the dial's F̂, the suspensions, the audit layer's overturn rate (settled roots with an audit seat whose initial approval it overturned, over those with a seat); then the members' nominal surplus and the customers' tasks per 1,000 nominal credits, P_t and the members' price, the state's share, arrivals and departures. Paired columns are against `careful`.
+
+| policy | slots (alive / total) | false approvals (run) | paired | bad plants approved | paired | good plants rejected | F̂ | suspensions | paired | audits held | overturn rate | paired | disputes filed / won (false approvals disputed / overturned) | nominal surplus | paired | real (the slots' lifetime) | paired | tasks per 1,000 (customers) | paired | P_t close | paired | members' price | state share | awarded | arrivals | departures | paired | requesters' wallet | idle for bond |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| direct | 18.850 / 39.850 | 40.400 ± 2.303 | +40.000 ± 2.316 | 127.000 | +116.350 ± 4.468 | 7.400 | 0.263 | 19.900 | +14.650 ± 0.907 | 1756.150 | 0.007 | -0.006 ± 0.001 | 149.700 / 112.150 (149.700 / 112.150) | 31446.553 ± 451.409 | +9021.093 ± 615.698 | 31434.9 ± 826.7 | -2009.5 ± 955.4 | 31.515 | -6.566 ± 0.390 | 21.692 ± 0.409 | +7.331 ± 0.405 | 20.707 | 0.005 | 2413.700 | 19.850 | 21.000 | +4.100 ± 0.458 | 57.333 | 148.750 |
+| hand | 19.800 / 39.850 | 3.550 ± 0.359 | +3.150 ± 0.335 | 65.750 | +55.100 ± 1.231 | 7.650 | 0.051 | 16.000 | +10.750 ± 0.688 | 1566.750 | 0.013 | +0.000 ± 0.001 | 92.350 / 88.900 (92.350 / 88.900) | 29348.109 ± 401.843 | +6922.649 ± 466.210 | 32105.8 ± 614.4 | -1338.6 ± 964.9 | 32.443 | -5.638 ± 0.401 | 19.687 ± 0.403 | +5.327 ± 0.594 | 19.775 | 0.023 | 2419.950 | 19.850 | 20.050 | +3.150 ± 0.534 | 118.326 | 226.900 |
+| careful | 22.800 / 39.700 | 0.400 ± 0.134 | — | 10.650 | — | 3.700 | 0.048 | 5.250 | — | 1598.100 | 0.013 | — | 26.700 / 26.200 (26.700 / 26.200) | 22425.460 ± 528.637 | — | 33444.4 ± 894.0 | — | 38.081 | — | 14.360 ± 0.339 | — | 17.273 | 0.001 | 2660.500 | 19.700 | 16.900 | — | 985.796 | 198.850 |
+
+The action mix by period (care / approve blind / reject blind, pooled over the seeds; the decisions a period, mean over the seeds):
+
+- **direct**: p0 0.862/0.137/0.001 (609); p1 0.448/0.520/0.033 (639); p2 0.504/0.475/0.020 (389); p3 0.533/0.444/0.023 (282); p4 0.511/0.473/0.016 (282); p5 0.506/0.482/0.012 (279); p6 0.464/0.522/0.014 (281); p7 0.458/0.532/0.010 (279); p8 0.507/0.485/0.009 (270); p9 0.539/0.454/0.007 (262); p10 0.532/0.459/0.009 (265); p11 0.539/0.452/0.010 (217); p12 0.496/0.492/0.012 (121); p13 0.532/0.461/0.007 (66); p14 0.418/0.572/0.010 (25); p15 0.424/0.500/0.076 (8)
+- **hand**: p0 —/—/— (0); p1 —/—/— (0); p2 —/—/— (0); p3 —/—/— (0); p4 —/—/— (0); p5 —/—/— (0); p6 —/—/— (0); p7 —/—/— (0); p8 —/—/— (0); p9 —/—/— (0); p10 —/—/— (0); p11 —/—/— (0); p12 —/—/— (0); p13 —/—/— (0); p14 —/—/— (0)
+- **careful**: p0 1.000/0.000/0.000 (599); p1 1.000/0.000/0.000 (731); p2 1.000/0.000/0.000 (840); p3 1.000/0.000/0.000 (866); p4 1.000/0.000/0.000 (743); p5 1.000/0.000/0.000 (280); p6 1.000/0.000/0.000 (43)
+
+The plant's life by stage beside a real root's (the ruling after run 34; a conformance diagnostic on the instrument — a plant takes every step in the pass a real root would): per root that reached its first initial seat, by case kind, the ticks posted → awarded, awarded → submitted, submitted → seated (the review's assignment), the share raised, the share whose ceiling the requester's wallet refused to raise at least once (never a plant's: its raise is minted — §52), the share at the floor (a plant unbid for w_A) or delivered by a troop (a real root unbid for w_A), the share whose reviewer had the case in its seen set and the ticks from the sighting to the seat. Each stage as real / plant, then plant − real paired by seed (mean ± SE).
+
+| policy | roots seated (real / plant) | posted → awarded | Δ | awarded → submitted | Δ | submitted → seated | Δ | raised share | Δ | raise refused (wallet) | troop (real) / floor (plant) | seen share | Δ | ticks since sighting | Δ |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| direct | 2417.8 / 633.4 | 0.84 / 0.92 | +0.08 ± 0.05 | 1.00 / 1.00 | +0.00 ± 0.00 | 0.07 / 0.08 | +0.01 ± 0.00 | 0.403 / 0.476 | +0.073 ± 0.011 | 0.196 / 0.000 | 0.005 / 0.009 | 0.113 / 0.132 | +0.019 ± 0.006 | 2.54 / 2.50 | -0.04 ± 0.09 |
+| hand | 2465.1 / 617.6 | 0.74 / 0.62 | -0.13 ± 0.02 | 1.00 / 1.00 | +0.00 ± 0.00 | 0.13 / 0.15 | +0.02 ± 0.00 | 0.353 / 0.380 | +0.026 ± 0.006 | 0.145 / 0.000 | 0.022 / 0.031 | 0.099 / 0.088 | -0.011 ± 0.002 | 2.55 / 2.34 | -0.21 ± 0.05 |
+| careful | 2657.3 / 273.4 | 0.17 / 0.08 | -0.09 ± 0.02 | 1.00 / 1.00 | +0.00 ± 0.00 | 0.07 / 0.08 | +0.01 ± 0.00 | 0.130 / 0.126 | -0.004 ± 0.004 | 0.041 / 0.000 | 0.001 / 0.001 | 0.061 / 0.067 | +0.006 ± 0.003 | 1.41 / 1.25 | -0.16 ± 0.09 |
+
+The same differences **period-matched** (§52): the real roots' stage means by period, reweighted by the plants' count in each period, so a plant rate that rises with the dial while the market drifts is not read as a difference in the plant's path. Plant − real, paired by seed.
+
+| policy | posted → awarded | awarded → submitted | submitted → seated | raised share | raise refused (wallet) | seen share |
+|---|---|---|---|---|---|---|
+| direct | -0.15 ± 0.02 | +0.00 ± 0.00 | -0.01 ± 0.00 | -0.030 ± 0.004 | -0.262 ± 0.021 | -0.001 ± 0.003 |
+| hand | -0.23 ± 0.02 | +0.00 ± 0.00 | -0.00 ± 0.00 | -0.030 ± 0.005 | -0.176 ± 0.012 | -0.010 ± 0.002 |
+| careful | -0.08 ± 0.02 | +0.00 ± 0.00 | +0.01 ± 0.00 | -0.001 ± 0.003 | -0.040 ± 0.008 | +0.006 ± 0.003 |

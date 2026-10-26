@@ -188,7 +188,10 @@ class Task:
     seated_seen: bool = False                #   … and whether that reviewer had the case in its seen set (a free member saw it available)
     seated_seen_ticks: Optional[int] = None  #   … the ticks from the sighting to the seat
     raised_n: int = 0                        #   the ceiling's raises (a plant is raised as the population's requesters raise, 2.6.1)
-    raise_refused_n: int = 0                 #   the raises the requester's wallet refused (§52: a plant's raise is minted, so a plant is never refused one — read by kind)
+    raise_refused_n: int = 0                 #   the raises refused — a real root's by the requester's wallet; a plant's drawn at the trailing real roots' rate (the conformance correction after run 35; §52 read the two apart)
+    raise_first_t: Optional[int] = None      #   the tick of the first raise attempt (a real root's enters the window there: refused or granted)
+    raise_refused_t: Optional[int] = None    #   the tick of the first refused attempt (the delay to the grant is measured from it)
+    plant_raise_at: Optional[int] = None     #   a plant refused its raise: the tick the raise is granted (the refusal + a delay drawn from the trailing refused real roots')
 
 
 @dataclass
@@ -399,6 +402,11 @@ class Stamping:
         self.last_won_of: dict[str, int] = {}
         self.learner_won: list[tuple[int, str, str]] = []    # (t, name, case): the roots the learners' bids won this step — redteam.env credits each to the decision (t, name)
         self.life_by_period: dict[int, dict] = {}            # §52: the plant's life by stage, by period and kind — the pooled table confounds the plant rate's rise with the market's drift; run_q reads a period-matched difference from this
+        # the conformance correction after run 35 (Appendix S): the real roots' raises as the plant requester's window — (period, refused at the first
+        # attempt 1/0) and (period, ticks from the first refused attempt to the grant); read as the engine's `_plant_draw` reads its window
+        self.raise_window_out: list[tuple[int, int]] = []
+        self.raise_window_delay: list[tuple[int, int]] = []
+        self.raise_rng = random.Random(a.seed * 1299709 + 13)         # the plant's refusal and delay draws — their own stream, the others' unmoved
         self.learner_mix_by_period: dict[int, list[int]] = {}   # period → [ratchet, undercut, withhold] over the learners' bid decisions (the action mix by period)
         self.wealth_in_of: dict[str, float] = {}             # each learner slot's wealth in (genesis, read at the first tick; an arrival's float) — the nominal surplus
         self.depart_wealth_nominal: dict[str, float] = {}
@@ -496,6 +504,7 @@ class Stamping:
                   "state_rejections": 0, "troop_truth_redrawn": 0,
                   "tell_plant_read_plant": 0, "tell_plant_read_real": 0, "tell_real_read_plant": 0, "tell_real_read_real": 0, "tell_false_approvals": 0,
                   "plant_bids_lost": 0, "plant_lag_sum": 0, "plant_lag_n": 0, "learner_false_approvals": 0,
+                  "plant_raises_refused": 0, "plant_raise_delay_sum": 0,       # the plants whose raise was drawn refused (after run 35) and their drawn delays
                   # the plant's life by stage beside a real root's (the ruling after run 34; a conformance diagnostic on the instrument): at the root's first initial
                   # review seat — posted → awarded, awarded → submitted, submitted → seated (the review's t_assign), the raises, the floor (a plant) or the
                   # troop (a real root), the reviewer's seen set — by case kind
@@ -1290,6 +1299,7 @@ class Stamping:
         goal = mk.get("state_price", B_bar) if self.a.ceiling_policy == "patient" else B_bar
         if self.a.ceiling_policy in ("floor", "under-floor") and self.a.ceiling_requesters == 0:
             return                                       # the cartel never raises (nor the plants, which follow the population)
+        per = len(w.dial()["periods"])                   # the window's period (the engine's rolling window counts by closed periods)
         # 2.6.1 (erratum, §7.6): the plant requester raises as the population's requesters do — the plants are in the working set and take
         # this step in this pass, at the same timing; the engine mints the difference for a plant (a requester's wallet may refuse one)
         for cid in list(self.active):
@@ -1312,13 +1322,58 @@ class Stamping:
             target = min(self.a.beta_max, math.ceil(goal_c * 100) / 100)
             if target <= c.beta + 1e-9:
                 continue
+            task = self.tasks.get(cid)
+            if task is not None and task.plant:
+                # the conformance correction after run 35 (Appendix S): the plant requester's raise is refused as the real requesters' are — at the
+                # trailing real roots' rate of first-attempt refusals (a wallet that cannot lock the difference), drawn in this pass at the plant's
+                # first attempt, and granted at their delay (a draw from the trailing refused real roots' ticks from the refusal to the grant); the
+                # engine mints the difference when the raise is made (2.6.1). Before it the plant's raise was never refused — the one difference
+                # within a period §52 left: a refused real root waited 2.3–2.6 ticks to its award against 0.4–0.5, 13–19% of the real roots, no plant.
+                if task.raise_first_t is None:
+                    task.raise_first_t = w.t
+                    rate = self._raise_refusal_rate(per)
+                    if rate > 0 and self.raise_rng.random() < rate:
+                        d = self._raise_delay_draw(per)
+                        task.raise_refused_t = w.t
+                        task.plant_raise_at = w.t + d
+                        self.c["plant_raises_refused"] += 1
+                        self.c["plant_raise_delay_sum"] += d
+                if task.plant_raise_at is not None and w.t < task.plant_raise_at:
+                    task.raise_refused_n += 1                # held as a real root's wallet holds it; the flag stands; retried next tick
+                    continue
             try:
                 w.raise_ceiling(cid, target)
-                if cid in self.tasks:
-                    self.tasks[cid].raised_n += 1
+                if task is not None:
+                    task.raised_n += 1
+                    if not task.plant:
+                        if task.raise_first_t is None:       # granted at the first attempt: the window's entry
+                            task.raise_first_t = w.t
+                            self.raise_window_out.append((per, 0))
+                        elif task.raise_refused_t is not None and task.raised_n == 1:
+                            self.raise_window_delay.append((per, w.t - task.raise_refused_t))   # refused first, granted now: the delay
             except (RuleError, LedgerError):
-                if cid in self.tasks:
-                    self.tasks[cid].raise_refused_n += 1     # the wallet does not allow it yet; the flag stands (a plant's raise is minted — never refused; §52 reads the two)
+                if task is not None:
+                    task.raise_refused_n += 1                # the wallet does not allow it yet; the flag stands
+                    if not task.plant and task.raise_first_t is None:
+                        task.raise_first_t = w.t
+                        task.raise_refused_t = w.t
+                        self.raise_window_out.append((per, 1))
+
+    def _raise_window(self, entries: list, per: int) -> list:
+        """The plant requester's window on the real roots' raises, as the engine's `_plant_draw` reads its: the last k entries, k the count the last
+        `trailing_periods` closed periods hold; while those hold none (before the first close, or no raise in them), everything so far."""
+        lo = per - max(1, self.a.trailing_periods)
+        k = sum(1 for p, _ in entries if lo <= p < per)
+        pool = entries[-k:] if k > 0 else entries
+        return [v for _, v in pool]
+
+    def _raise_refusal_rate(self, per: int) -> float:
+        win = self._raise_window(self.raise_window_out, per)
+        return sum(win) / len(win) if win else 0.0        # before any real raise a plant's is not refused (the real roots' rate is 0 so far)
+
+    def _raise_delay_draw(self, per: int) -> int:
+        win = self._raise_window(self.raise_window_delay, per)
+        return int(self.raise_rng.choice(win)) if win else 1   # no refused real root granted yet: the least a retry takes, one tick
 
     def read_marks(self, t: int):
         """2.1.0 §2.6: every refusal is told — the request carries its mark in the public view. The declared policy: hold
@@ -1931,7 +1986,7 @@ class Stamping:
                         self.c[f"life_{k}_award_submit"] += c.t_submit - c.t_award
                         self.c[f"life_{k}_submit_seat"] += r.t_assign - c.t_submit
                         self.c[f"life_{k}_raised"] += int(task.raised_n > 0)
-                        self.c[f"life_{k}_raise_refused"] += int(task.raise_refused_n > 0)   # §52: a raise the requester's wallet refused (never a plant's)
+                        self.c[f"life_{k}_raise_refused"] += int(task.raise_refused_n > 0)   # §52: a raise refused (a real root's by the wallet; a plant's drawn at their rate from run 35)
                         pb = self.life_by_period.setdefault(len(w.dial()["periods"]), {}).setdefault(k, {"n": 0, "post_award": 0, "award_submit": 0, "submit_seat": 0, "raised": 0, "raise_refused": 0, "seen": 0, "seen_ticks": 0})
                         pb["n"] += 1; pb["post_award"] += c.t_award - c.t_post; pb["award_submit"] += c.t_submit - c.t_award; pb["submit_seat"] += r.t_assign - c.t_submit
                         pb["raised"] += int(task.raised_n > 0); pb["raise_refused"] += int(task.raise_refused_n > 0)
@@ -2510,6 +2565,10 @@ class Stamping:
                     "farmers_n": len(self.farmers),
                     # 2.6.0: the plant's life — posted, awarded (at the floor), the bids lost to plants, the time in the market, the lag
                     "plants_raised": dl.get("plants_raised", 0),
+                    # the conformance correction after run 35: the plants whose raise was drawn refused, their drawn delay, and the window's rate at the end
+                    "plant_raises_refused": self.c["plant_raises_refused"],
+                    "plant_raise_delay_mean": round(self.c["plant_raise_delay_sum"] / self.c["plant_raises_refused"], 3) if self.c["plant_raises_refused"] else "",
+                    "raise_refusal_rate_window": round(self._raise_refusal_rate(len(w.dial()["periods"])), 4),
                     "plants_posted": dl["plants_posted"], "plants_awarded": dl["plants_awarded"], "plants_at_floor": dl["plants_at_floor"],
                     "plant_bids_lost": dl["plant_bids_lost"],
                     "plant_time_in_market_mean": round(dl["plant_market_ticks"] / dl["plants_awarded"], 3) if dl["plants_awarded"] else "",

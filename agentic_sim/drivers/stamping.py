@@ -504,6 +504,7 @@ class Stamping:
                   "disputes_filed": 0, "disputes_refused": 0, "disputes_won": 0, "disputes_lost": 0,
                   "false_approvals_disputed": 0, "false_approvals_overturned": 0,
                   "true_approvals_disputed": 0, "true_approvals_overturned": 0,
+                  "care_cost_plant": 0.0, "care_cost_real": 0.0, "care_reviews_plant": 0, "care_reviews_real": 0,   # 2.8.0 §8.6: the care spent by case kind
                   "awards_unfilled_ticks": 0, "appeals_unassignable_ticks": 0, "underfunded_careful_reviews": 0,
                   "omega_unrecovered_advances": 0.0, "allowance_refunded": 0.0, "pot_refunded": 0.0,
                   "trees_closed": 0, "disposition_switches": 0,
@@ -738,10 +739,15 @@ class Stamping:
         v = F if (truth == right) else N
         want = float(self.rng.randint(2, 3)) * self.a.care_cost   # the care cost: uniform {2, 3} credits, scaled (the calibration cell's knob)
         affordable = (self.w.unlocked(reviewer) if self.floating else self.w.unlocked(reviewer) * self.w.money()["v"]) - 1e-6   # 2.0.0: credits
+        paid = want if affordable >= want else max(0.0, math.floor(affordable * 100) / 100)
+        if view is not None and view.case_id in self.tasks:
+            kind_c = "plant" if self.tasks[view.case_id].plant else "real"      # 2.8.0 §8.6: the care spent on plants beside the real cases'
+            self.c[f"care_cost_{kind_c}"] += paid
+            self.c[f"care_reviews_{kind_c}"] += 1
         if affordable >= want:
             return v, want
         self.c["underfunded_careful_reviews"] += 1
-        return v, max(0.0, math.floor(affordable * 100) / 100)
+        return v, paid
 
     def read_tells(self, view, r) -> bool:
         """Q2's hand-written tell-reader: does this assignment look like a plant? Three tells, any or all (`--tell-rule`):
@@ -757,6 +763,12 @@ class Stamping:
             # neither a member this reader knows nor a troop; the boundary's control (2.6.0 §2.2)
             c = self.w.case(view.case_id)
             return c.actor is not None and c.actor not in self.actors and c.actor not in self.departed and not self.w.is_troop(c.actor)
+        if "log" in self.tells:
+            # outside the convention (declared; 2.8.0 §8.7): reads the case log for a plant's earlier seat — the engine's `plant:` entries,
+            # written at a plant's adjudications and top-ups under 2.8.0 — before answering at a later one; nothing stands in the log before
+            # the first verdict, so at the initial seat this reader reads every case as real. The control for the markers' reveal at closure.
+            c = self.w.case(view.case_id)
+            return any(msg.startswith("plant") for (_, msg, _) in c.log)
         reader, cid = r.reviewer, view.case_id
         first = self.seen.get((reader, cid))             # (tick first seen available, ceiling, P_t then) or None
         votes = []
@@ -2133,6 +2145,8 @@ class Stamping:
             if task.fulfilled:
                 self.c["false_rejections_total"] += 1
             want = a.appeal_policy == "always" or (a.appeal_policy == "truthful" and task.fulfilled)
+            if not want and not task.fulfilled and a.appeal_lie > 0 and self.rng.random() < a.appeal_lie:
+                want = True                              # 2.8.0 §8.7 (c): the lying appeal — bad work's N appealed at the stated rate
             if not c.is_root and a.delegation == "on" and task.fulfilled and a.child_appeal == "truthful":
                 want = True                              # 2.3.0 §2.4: a child rejected appeals truthfully (declared)
             if not c.is_root and a.child_appeal == "none" and want:
@@ -2276,6 +2290,8 @@ class Stamping:
                 rate = 0.5 if pol == "half" else a.dispute_rate
                 want = pol == "always" or (not task.fulfilled and pol in ("truthful", "half")
                                            and (rate >= 1.0 or self.rng.random() < rate))
+                if not want and task.fulfilled and a.dispute_lie > 0 and self.rng.random() < a.dispute_lie:
+                    want = True                          # 2.8.0 §8.7 (c): the lying dispute — good work's F disputed at the stated rate
                 if c.is_root and not task.fulfilled:
                     per = len(w.dial()["periods"])           # 2.8.0: the real requesters' dispute window — what the plant requester draws
                     self.dispute_window.append((per, int(bool(want))))
@@ -3056,6 +3072,12 @@ def build_parser():
     ap.add_argument("--dispute-policy", choices=["none", "truthful", "half", "always"], default="none",
                     help="H's response to a pending F: none; truthful = dispute when the work truly failed; half = the same "
                          "with probability 0.5; always = dispute every pending F (H pays D)")
+    ap.add_argument("--appeal-lie", type=float, default=0.0,
+                    help="2.8.0 §8.7 (c), the untruthful challengers: the probability an actor appeals an N on its work that truly failed (beside the "
+                         "appeal policy; the court fee funded as any appeal's; the plant actor's window reads the truthful appeals alone)")
+    ap.add_argument("--dispute-lie", type=float, default=0.0,
+                    help="2.8.0 §8.7 (c): the probability a requester disputes a pending F on work that was truly fulfilled (with --dispute-policy "
+                         "truthful; the plant requester's window reads the truthful disputes alone)")
     ap.add_argument("--appeal-policy", choices=["none", "truthful", "always"], default="truthful",
                     help="the actor's response to an N: none = accept (the population's default through run 23); truthful = appeal when "
                          "the work is truly fulfilled (the default from run 24, the reviewer's ruling after run 23); "
@@ -3154,7 +3176,7 @@ def build_parser():
                     help="2.2.0 §8.5 red team: this many requesters post at the market price exactly with K_open tripled — many small requests to collect pro-rata rebates (expected: nothing beyond the capped claims)")
     ap.add_argument("--tell-readers", type=float, default=0.0,
                     help="Q2 (the learned red team, hand-written first): the share of careful actors that read the view for a plant's tells and stamp the rest")
-    ap.add_argument("--tell", default="gap+cap", help="the tells read, joined by +: gap (assigned the tick it was submitted), cap (K at this period's index), idage (the id newer than every root seen available before the submission tick); all (the three, any); oracle (the plant marker itself — declared non-conforming, the upper bound a perfect detector earns)")
+    ap.add_argument("--tell", default="gap+cap", help="the tells read, joined by +: gap (assigned the tick it was submitted), cap (K at this period's index), idage (the id newer than every root seen available before the submission tick); all (the three, any); oracle (the plant marker itself — declared non-conforming, the upper bound a perfect detector earns); log (2.8.0 §8.7, outside the convention: the case log's plant entries from an earlier seat, read at a later one)")
     ap.add_argument("--tell-rule", choices=["any", "all"], default="any", help="a plant is read when any tell fires, or only when all do")
     ap.add_argument("--tie-break", choices=["draw", "id"], default=None, help="2.6.0 §2.3: the tie after κ broken by a seeded draw (the default under 2.6.0) or by the lowest id (the control, the earlier rules' default)")
     ap.add_argument("--genesis-duty", choices=["draw", "lowest"], default=None, help="2.6.0 §2.3: the genesis duty reserve by a seeded draw (the default under 2.6.0) or the lowest-id actors (the control)")
@@ -3297,12 +3319,15 @@ def main(argv=None):
                                                  "ruling": f"by the truth with probability {a.ruling_accuracy}"},
                                 "actors": {"offer": "B = β, τ = work_ticks",
                                            "respond_to_N": {"none": "accept", "truthful": "appeal iff truly fulfilled, else accept",
-                                                            "always": "appeal every N"}[a.appeal_policy] + " (accept when D cannot be funded)",
+                                                            "always": "appeal every N"}[a.appeal_policy] + " (accept when D cannot be funded)"
+                                                           + (f"; appeals an N on work that truly failed with probability {a.appeal_lie} (2.8.0 §8.7 (c))" if a.appeal_lie > 0 else ""),
                                            "spend": "none"},
                                 "requester": {"H": "posts tasks_per_tick per tick at β; " + {
                                     "none": "silent", "truthful": f"disputes a pending F on work that truly failed with probability {a.dispute_rate}",
                                     "half": "disputes a pending F on work that truly failed with probability 0.5",
-                                    "always": "disputes every pending F"}[a.dispute_policy], "budget": a.human_budget},
+                                    "always": "disputes every pending F"}[a.dispute_policy]
+                                    + (f"; disputes a pending F on work that was truly fulfilled with probability {a.dispute_lie} (2.8.0 §8.7 (c))" if a.dispute_lie > 0 else ""),
+                                    "budget": a.human_budget},
                                 "the_supply_side": None if a.rules not in ("2.3.0", "2.4.0", "2.5.0", "2.6.0", "2.7.0", "2.8.0") else {
                                     "spec": "2.3.0 design revision 11 — entry as a probationer with a bank-minted float, exit with the wallet out, competence "
                                             "as a private per-actor cost, delegation under competence with the parent posting the pots, the reviewer advance from the pool",

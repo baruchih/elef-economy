@@ -304,8 +304,15 @@ def policy_harvester(obs, rng): return 1                       # the cycler writ
 def policy_leaver(obs, rng): return 1 if _boundary(obs) else 0  # the float alone: careful at every review, leave at every boundary
 def policy_eps_stamper(obs, rng, eps=0.2): return int(rng.integers(2)) if _boundary(obs) else (int(rng.integers(3)) if rng.random() < eps else 1)   # the basin test's stamper-weighted set: ε around the stamper
 def policy_hand(obs, rng): return 0 if _boundary(obs) else 3       # the reviewers in self-play: each slot answers as its disposition by hand would (the driver's learner_hand_kind) — a reference, never collected
+_I_RA, _I_QF, _I_RS = IDX["rv_responses_available"], IDX["rv_q_fulfillment"], IDX["rv_resumed"]
+def policy_auditstamper(obs, rng):
+    # 2.8.0 §8.7: a careful reviewer that stamps the audit seat alone — a pending F's audit (the question fulfillment, not an initial review,
+    # not a resumed one), read from the ReviewView's fields as the env's `seat` is; care everywhere else, stay at every boundary
+    if _boundary(obs): return 0
+    return 1 if (obs[_I_RA] < 0.5 and obs[_I_QF] > 0.5 and obs[_I_RS] < 0.5) else 0
 POLICIES = {"careful": policy_careful, "stamper": policy_stamper, "eps": policy_eps, "random": policy_random,
-            "harvester": policy_harvester, "leaver": policy_leaver, "eps-stamper": policy_eps_stamper, "hand": policy_hand}
+            "harvester": policy_harvester, "leaver": policy_leaver, "eps-stamper": policy_eps_stamper, "hand": policy_hand,
+            "auditstamper": policy_auditstamper}
 # Q3's, for the deliverer (two actions: 0 deliver well, 1 deliver badly; at a boundary 0 stay, 1 leave for good): careful delivers well always;
 # `zero` is the zero-effort delivery — bad work every time, the calibration cell's ideal where no reviewer looks; ε and random as the reviewer's
 def policy_zero(obs, rng): return 0 if _boundary(obs) else 1

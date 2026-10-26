@@ -99,6 +99,10 @@ def main(argv=None):
     ap.add_argument("--train-seeds", default="1-10"); ap.add_argument("--test-seeds", default="11-20")
     ap.add_argument("--out", default=None)
     ap.add_argument("--initial-only", action="store_true", help="restrict to the initial reviews (rv_responses_available), where plants are received")
+    ap.add_argument("--seat", choices=["all", "initial", "audit", "panel", "resumed"], default="all",
+                    help="2.8.0 §8.4: restrict to one seat kind, read from the observation's own fields as the env's `seat` is — initial "
+                         "(rv_responses_available), audit (the question fulfillment, not initial, not resumed), panel (the question appeal or "
+                         "dispute), resumed; boundary decisions excluded; `--initial-only` is `--seat initial`")
     ap.add_argument("--policies", default="careful,stamper,eps,random",
                     help="the behaviour policies' episodes to read (comma-separated; the four offline policies by default — an online run writes "
                          "its rounds' episodes beside the offline ones, and the probe names its episodes from run 24; 'all' reads every file)")
@@ -107,10 +111,16 @@ def main(argv=None):
     m, ck = load_model(a.model)
     pols = None if a.policies in (None, "", "all") else a.policies.split(",")
     tr, te = load_episodes(a.data, seeds_of(a.train_seeds), pols), load_episodes(a.data, seeds_of(a.test_seeds), pols)
-    if a.initial_only:
+    if a.initial_only and a.seat == "all":
+        a.seat = "initial"
+    if a.seat != "all":
         for e in tr + te:
-            keep = e["obs"][:, IDX["rv_responses_available"]] > 0.5
-            e["obs"], e["is_plant"] = e["obs"][keep], e["is_plant"][keep]
+            O = e["obs"]
+            ra, qf, rs = O[:, IDX["rv_responses_available"]] > 0.5, O[:, IDX["rv_q_fulfillment"]] > 0.5, O[:, IDX["rv_resumed"]] > 0.5
+            review = (O[:, IDX["decision_boundary"]] < 0.5) if O.shape[1] > IDX["decision_boundary"] else np.ones(len(O), bool)
+            keep = {"initial": ra, "audit": (~ra) & qf & (~rs), "panel": (~qf), "resumed": (~ra) & qf & rs}[a.seat] & review
+            e["obs"], e["is_plant"] = O[keep], e["is_plant"][keep]
+        tr, te = [e for e in tr if len(e["is_plant"])], [e for e in te if len(e["is_plant"])]
     def stack(eps, f):
         return np.concatenate([f(e) for e in eps], 0)
     Ztr, Zte = stack(tr, lambda e: latents(m, e["obs"])), stack(te, lambda e: latents(m, e["obs"]))
@@ -119,7 +129,7 @@ def main(argv=None):
     gte = stack(te, lambda e: np.full(len(e["is_plant"]), e["seed"]))      # the decision's seed, for the seed-level bootstrap
     out = {"data": a.data, "model": a.model, "policies": pols or "all", "train_seeds": a.train_seeds, "test_seeds": a.test_seeds,
            "episodes_train": len(tr), "episodes_test": len(te),
-           "initial_only": a.initial_only, "train_decisions": int(len(ytr)), "test_decisions": int(len(yte)),
+           "initial_only": a.seat == "initial", "seat": a.seat, "train_decisions": int(len(ytr)), "test_decisions": int(len(yte)),
            "plant_share_test": float(yte.mean())}
     out["auc_latent"] = auc_se(fit_logistic(Ztr, ytr)(Zte), yte, gte)       # every AUC as [value, SE over decisions, SE over seeds]
     out["auc_raw_obs"] = auc_se(fit_logistic(Otr, ytr)(Ote), yte, gte)

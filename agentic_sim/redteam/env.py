@@ -92,7 +92,10 @@ class ElefReviewerEnv(gym.Env if gym else object):
         self._q_obs.put(("obs", obs, {"t": run.w.t, "wealth_real": self._wealth_real(), "case": None if boundary else view.case_id, "boundary": boundary,
                                       "n_events": run.w.n_events(), "real_factor": self._real(),   # the ledger's position and the index at the observation (redteam.timing)
                                       "identity": reviewer, "kind": "boundary" if boundary else "review",
-                                      "initial": False if boundary else bool(view.responses_available),   # an initial review of an unrevised submission — where a plant can be
+                                      "initial": False if boundary else bool(view.responses_available),   # an initial review of an unrevised submission (2.7.0: where a plant could be)
+                                      # 2.8.0: the seat's kind from the view alone — what the learner can tell (§8.3): a first review answers P or ⊥, a panel states its
+                                      # question, a resumed review says so, an audit is the fulfillment question with neither
+                                      "seat": None if boundary else ("initial" if view.responses_available else ("panel" if view.question != "fulfillment" else ("resumed" if view.resumed else "audit"))),
                                       "is_plant": False if boundary else bool(run.tasks[view.case_id].plant), "fulfilled": True if boundary else bool(run.tasks[view.case_id].fulfilled),
                                       # Q1's readings (the evaluation's trace, never the policy's input): the applied odds and standing at the decision
                                       "p_eff": float(run.w.p_effective(reviewer)), "member": bool(ac.is_member), "suspended": ac.suspended_until is not None}))

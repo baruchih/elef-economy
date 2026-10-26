@@ -294,6 +294,11 @@ class Public:
         """Whole plants the plant rate calls for that have not been created."""
         return self._w.plants_due()
 
+    def revise_plant(self, cid: str, truth: bool):
+        """2.8.0 §2.1 (B): the plant actor's revision and resubmission in one step — the resubmitted truth the instrument's draw from its
+        record of the trailing real revisions' outcomes, sealed as a second marker; the same reviewer resumes."""
+        self._w.revise_plant(self._eng(cid), truth)
+
     def p_effective(self, aid: str) -> float:
         """The audit odds to roll for a reviewer: min(1, m_t · p_j)."""
         return self._w.actors[aid].p_eff
@@ -307,6 +312,9 @@ class Public:
                 "plants_posted": w.plants_posted, "plants_awarded": w.plants_awarded, "plants_at_floor": w.plants_awarded_at_floor,
                 "plant_bids_lost": w.plant_bids_lost, "plant_market_ticks": w.plant_market_ticks, "plants_raised": w.plants_raised, "plant_names": len(w.plant_names),
                 "plants_refused_capacity": w.plants_refused_capacity, "plants_refused_credit": w.plants_refused_credit,
+                # 2.8.0: the plant at every seat — adjudications by seat kind, the state's seats, the revisions, the top-ups and the fees destroyed
+                "plant_seat_adjudications": {k: dict(v) for k, v in w.plant_seat_adjudications.items()}, "plant_seats_at_state": w.plant_seats_at_state,
+                "plants_revised": w.plants_revised, "plants_spent": w.plants_spent, "plant_top_ups": w.plant_top_ups, "plant_fees_destroyed": w.plant_fees_destroyed,
                 "eligibility_shortfall": w.eligibility_shortfall, "reserve_shortfall_now": w.reserve_shortfall_now,
                 "suspensions": w.suspensions, "alarms": w.alarms, "alarm_streak": w.alarm_streak,
                 "member_seats": w.member_seats, "readmissions": w.readmissions,

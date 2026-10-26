@@ -36,6 +36,7 @@ def make_world(budget=1000.0, **over):
     # The 1.2.1 engine: membership, the duty fund and netted plant capital are design revision 3 (1.3.0,
     # `test_v13`); here they are off, as `drivers.stamping --rules 1.2.0` runs them for a control.
     kw = dict(plant_market=False,   # 2.6.0: these tests build plants submitted — the 1.2.0 construction, the control
+              plants_every_seat=False,   # 2.8.0: these tests pin 1.2.0's plant path — adjudicated at the first review, no challenge round (test_v28 has 2.8.0's)
               E0=0.0, H=1e9, omega_rate=0.0, Omega0=100.0, duty_turn_reviews=10_000, duty_turn_ticks=100_000,
               membership=False, duty_fund=False, net_plant_capital=False,
               service_clock=False, omega_backs_fund=False, seat_the_queue=False, panel_determined=False, reserve_periods=1)

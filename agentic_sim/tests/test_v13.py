@@ -31,6 +31,7 @@ DUTY = ["C", "D", "E", "F"]
 
 def make_world(budget=1000.0, actors=ACTORS, duty=DUTY, **over):
     kw = dict(plant_market=False,   # 2.6.0: these tests build plants submitted — the 1.2.0 construction, the control
+              plants_every_seat=False,   # 2.8.0: these tests pin 1.2.0's plant path — adjudicated at the first review, no challenge round (test_v28 has 2.8.0's)
               E0=0.0, H=1e9, omega_rate=0.0, Omega0=100.0, duty_turn_reviews=10_000, duty_turn_ticks=100_000,
               service_clock=False, omega_backs_fund=False, seat_the_queue=False, panel_determined=False, reserve_periods=1,
               troop_account=False, duty_cap_frac=0.5)      # 1.7.0: the merged fund and the half cap of this revision

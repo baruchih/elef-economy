@@ -120,6 +120,8 @@ def scenario(seed: int, ticks: int, audit_every: int = 0, record_dir=None) -> Wo
             if c.state == "AWAITING_RESPONSE" and rng.random() < 0.6:
                 act = rng.choice(["accept", "appeal", "revise", "supply_evidence"])
                 _try(w.respond, c.id, act, "grounds" if act == "appeal" else None)
+            if c.plant is not None and c.state in ("AWAITING_RESPONSE", "RESUBMITTING") and c.verdict in (P, BOT) and rng.random() < 0.5:
+                _try(w.revise_plant, c.id, rng.random() < 0.5)   # 2.8.0: the instrument's resubmitted truth, re-sealed as the second marker
             if c.state == "PENDING" and c.outcome_or_verdict() == F and c.is_root:
                 r = rng.random()
                 if r < 0.1:
@@ -201,13 +203,17 @@ GOLDEN = {
     # corrections — the plants past w_A join the pass's waiting list and the free-member count (a plant goes to the floor only beyond the free
     # fundable members, as a real root goes to a troop), and before the first close the draws read the real roots posted so far (not τ and
     # P_t by default) — and erratum 2.6.2 (the ceiling a ratio to the market price at posting, applied to the current B̄), so every plant's
-    # ceiling, award and submission may differ and the whole path moves.
-    1: {"head": "b08ab7985d2db35e0952a7b8e6286ac7f2d52120f5bae128a06ec93319efc92f", "entries": 9738,
-        "M": 119989.678292, "Res": 0.0,
-        "states": {"FINAL_N": 180, "VESTED": 63, "PENDING": 7, "WITHDRAWN": 11, "AVAILABLE": 6, "SUBMITTED": 1}},
-    2: {"head": "22acc2399a0dac21caea78e51a837b8270c9858aeb285aa0e9a70a01841e72ab", "entries": 10460,
-        "M": 120139.993459, "Res": 0.0,
-        "states": {"FINAL_N": 193, "VESTED": 79, "CANCELLED": 2, "WITHDRAWN": 7, "PENDING": 8, "COMMITTED": 3, "AVAILABLE": 2}},
+    # ceiling, award and submission may differ and the whole path moves. Re-pinned once more at 2.8.0 (design revision 16, the plants reach
+    # every seat; October 26, 2026): a plant lives past its initial verdict — its F pending with its window, audited, appealed, disputed,
+    # revised (the scenario drives revise_plant), its seats nobody is free to take taken by the orchestrator's own verdict, every verdict
+    # adjudicated by truth, the fee destroyed at filing, the markers revealed at closure — so every plant's path and the whole fingerprint
+    # move (the previous pins, b08ab798… / 9738 and 22acc239… / 10460, are in the History of this file).
+    1: {"head": "cd9c224c248493b5daaafead3f7c601815cf5b9b43d80ad213d08bb3d94dc1db", "entries": 9928,
+        "M": 120206.801797, "Res": 0.0,
+        "states": {"FINAL_N": 183, "VESTED": 65, "WITHDRAWN": 5, "PENDING": 6, "AVAILABLE": 2, "COMMITTED": 2}},
+    2: {"head": "4396ace2b51ce25bfb77ac5e577a517bf41e11514a6e5a3bf9d3a75b593881e2", "entries": 9718,
+        "M": 120619.513154, "Res": 0.0,
+        "states": {"FINAL_N": 193, "VESTED": 46, "WITHDRAWN": 4, "PENDING": 9, "AVAILABLE": 22, "COMMITTED": 3}},
 }
 
 
@@ -235,6 +241,8 @@ def test_full_audit_agrees_with_tick_check_and_behaviour_is_unchanged(seed):
     # and, since 1.2.0, the paths of design revision 2
     outcomes = {c.plant_outcome for c in w.cases.values() if c.plant is not None}
     assert outcomes >= {"stood", "failure", "spent"}
+    # and, since 2.8.0, the plant's later seats: revisions sealed as second markers, seats the orchestrator's own verdict took, court fees destroyed
+    assert any(c.plant_revised is not None for c in w.cases.values()) and w.plant_seats_at_state > 0 and w.plant_fees_destroyed > 0
     assert w.suspensions > 0 and len(w.periods) == 4 and w.m_t >= 3.0        # the dial rose (both seeds end at 4.0 under 2.0.0)
     # 1.3.0/1.4.0: the troops' wallet's flows reconcile (I23); 1.7.0: that wallet is the troop account, and the uplift fund
     # is the raised tax received less the uplift paid

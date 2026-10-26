@@ -544,10 +544,11 @@ def I19_the_pots(w, cases=None, events=None):
     for c in _cases(w, cases):
         if c.nominals is None or not (c.is_root or c.own_pots):
             continue
-        if c.fees_from_pot > c.phi_F + EPS:
-            _fail(f"I19 {c.id}: fees {c.fees_from_pot} paid from a pot of {c.phi_F}")
-        if c.expenses_from_pot > c.phi_F - c.fees_from_pot + EPS:
-            _fail(f"I19 {c.id}: expenses {c.expenses_from_pot} from the pot exceed what fees left of {c.phi_F}")
+        pot = c.phi_F + getattr(c, "phi_F_topped", 0.0)      # 2.8.0 (A): a plant's fee pot topped up to the seat's need
+        if c.fees_from_pot > pot + EPS:
+            _fail(f"I19 {c.id}: fees {c.fees_from_pot} paid from a pot of {pot}")
+        if c.expenses_from_pot > pot - c.fees_from_pot + EPS:
+            _fail(f"I19 {c.id}: expenses {c.expenses_from_pot} from the pot exceed what fees left of {pot}")
         moved_back = c.expenses_from_pot > EPS or c.pot_refunded > EPS or c.allowance_refunded > EPS
         closed = c.node_closed if c.own_pots else c.tree_closed      # 2.3.0 (the ruling): 'for every case' — a node closes itself
         if moved_back and not closed:
@@ -576,7 +577,12 @@ def I20_plants_self_adjudicated(w, cases=None):
     ruling is ever opened on it; its marker is in the History at creation, sealed, and revealed
     only at adjudication — the reveal names the truth and nonce that hash to the commitment.
     (That a plant's view is indistinguishable is a property of the view function, asserted by a
-    test, not a per-tick predicate.)"""
+    test, not a per-tick predicate.) Under 2.8.0 (`plants_every_seat`) the predicate is rewritten per
+    seat — `_I20_every_seat`: every verdict on a plant adjudicated by its truth, the markers (both)
+    sealed and revealed at closure only, the challenge resolved by truth, no ruling."""
+    if getattr(w.p, "plants_every_seat", False):
+        _I20_every_seat(w, cases)
+        return
     for c in _cases(w, cases):
         if c.plant is None:
             continue
@@ -616,6 +622,120 @@ def I20_plants_self_adjudicated(w, cases=None):
             _fail(f"I20 {c.id}: a good plant settled {c.state}")
         if c.final and not c.plant and c.state != "FINAL_N":
             _fail(f"I20 {c.id}: a bad plant settled {c.state}")
+
+
+def _I20_every_seat(w, cases):
+    """2.8.0 §2.2 (I20 amended, design revision 16): a plant's markers — the one sealed at posting and, after a revision, the second sealed at
+    the resubmission — are in the History and revealed only at the plant's closure, the reveal naming the truth and nonce that hash to each;
+    every F or N on a plant at any seat is adjudicated by the truth then in force — stood (the review done or vested) or failure (overturned)
+    — each reviewer once for its own verdict; a P or ⊥ at a first review is neither; no human ruling or explicit acceptance is recorded on a
+    plant and its challenge, if any, is resolved by truth and never by a ruling; a good plant settles vested, a bad one final N, a spent one
+    final N; no court fee on a plant is ever reimbursed."""
+    for c in _cases(w, cases):
+        if c.plant is None:
+            continue
+        if any(a[3] in ("override", "accept") for a in c.assessments):
+            _fail(f"I20 {c.id}: a ruling or an explicit acceptance was recorded on a plant")
+        if c.plant_commit is None or c.plant_hseq is None or \
+                not w.history.matches(c.plant_hseq, "plant_created", {"t": c.t_post, "case": c.id, "commit": c.plant_commit}):
+            _fail(f"I20 {c.id}: the plant marker is not committed at creation")
+        if hashlib.sha256(f"{c.id}|{'good' if c.plant else 'bad'}|{c.plant_nonce}".encode()).hexdigest() != c.plant_commit:
+            _fail(f"I20 {c.id}: the truth does not hash to the sealed commitment")
+        if c.plant_revised is not None:
+            if c.plant_revised_hseq is None or not w.history.matches(c.plant_revised_hseq, "plant_revised",
+                                                                      {"t": c.t_submit, "case": c.id, "commit": c.plant_revised_commit}):
+                _fail(f"I20 {c.id}: the second marker is not committed at the resubmission")
+            if hashlib.sha256(f"{c.id}|revised|{'good' if c.plant_revised else 'bad'}|{c.plant_revised_nonce}".encode()).hexdigest() != c.plant_revised_commit:
+                _fail(f"I20 {c.id}: the resubmitted truth does not hash to the second commitment")
+            if not c.resubmitted:
+                _fail(f"I20 {c.id}: a second marker on a plant never resubmitted")
+        elif c.plant_revised_hseq is not None or c.plant_revised_commit is not None:
+            _fail(f"I20 {c.id}: a second marker without a revision")
+        if c.court_fee_reimbursed > EPS:
+            _fail(f"I20 {c.id}: a court fee reimbursed on a plant")
+        ch = c.challenge
+        if ch is not None and ch["resolved"] and ch.get("by") != "truth":
+            _fail(f"I20 {c.id}: a plant's challenge settled by {ch.get('by')}, not by truth")
+        if ch is not None and ch["resolved"] and ch.get("outcome") != ("F" if (c.plant_revised if c.plant_revised is not None else c.plant) else "N"):
+            _fail(f"I20 {c.id}: a plant's challenge resolved against its truth")
+        n_adj = 0
+        for rid in c.reviews:
+            r = _peek(w.reviews, rid)
+            if w.is_troop(r.reviewer):
+                _fail(f"I20 {c.id}: a troop sat on a plant ({rid})")
+            if r.status in ("done", "vested", "overturned") and r.verdict in ("F", "N"):
+                if r.plant_outcome not in ("stood", "failure") or r.plant_truth is None:
+                    _fail(f"I20 {c.id}: review {rid} ({r.role}) {r.verdict} on a plant without adjudication")
+                right = (r.verdict == "F") == r.plant_truth
+                if r.plant_outcome == "stood" and not (right and r.status in ("done", "vested")):
+                    _fail(f"I20 {c.id}: review {rid} 'stood' but {r.verdict} against truth {r.plant_truth} / {r.status}")
+                if r.plant_outcome == "failure" and not ((not right) and r.status == "overturned"):
+                    _fail(f"I20 {c.id}: review {rid} 'failure' but {r.verdict} against truth {r.plant_truth} / {r.status}")
+                n_adj += 1
+            elif r.status in ("done", "vested") and r.verdict in ("P", "⊥"):
+                if r.plant_outcome is not None:
+                    _fail(f"I20 {c.id}: a P or ⊥ on a plant adjudicated")
+            elif r.status == "open" or r.status == "withdrawn":
+                if r.plant_outcome is not None:
+                    _fail(f"I20 {c.id}: review {rid} {r.status} with a plant outcome")
+        recorded = [x for x in c.plant_adjudications if x[4] in ("stood", "failure")]
+        if len(recorded) != n_adj:
+            _fail(f"I20 {c.id}: {len(recorded)} adjudications recorded against {n_adj} reviews adjudicated")
+        if c.plant_reveal_hseq is not None and not c.final:
+            _fail(f"I20 {c.id}: the marker revealed before the plant's closure")
+        if c.final:
+            if c.plant_reveal_hseq is None:
+                _fail(f"I20 {c.id}: a closed plant with no reveal")
+            revised = None if c.plant_revised is None else {"truth": "good" if c.plant_revised else "bad", "nonce": c.plant_revised_nonce,
+                                                           "commit": c.plant_revised_commit}
+            reviews = [[rid, _peek(w.reviews, rid).reviewer, _peek(w.reviews, rid).verdict, _peek(w.reviews, rid).plant_outcome] for rid in c.reviews]
+            want = {"case": c.id, "truth": "good" if c.plant else "bad", "nonce": c.plant_nonce, "commit": c.plant_commit, "revised": revised,
+                    "reviews": reviews, "state_seats": [list(s) for s in c.plant_state_seats], "outcome": c.plant_outcome}
+            entry = w.history.entries[c.plant_reveal_hseq] if c.plant_reveal_hseq < len(w.history.entries) else None
+            t0 = entry["payload"].get("t") if entry is not None and entry.get("kind") == "plant_revealed" else None
+            if t0 is None or not w.history.matches(c.plant_reveal_hseq, "plant_revealed", {"t": t0, **want}):
+                _fail(f"I20 {c.id}: the reveal is not the committed one")
+            truth = c.plant_revised if c.plant_revised is not None else c.plant
+            if c.plant_outcome == "spent" and c.state != "FINAL_N":
+                _fail(f"I20 {c.id}: a spent plant settled {c.state}")
+            elif c.plant_outcome != "spent" and truth and c.state != "VESTED":
+                _fail(f"I20 {c.id}: a good plant settled {c.state}")
+            elif c.plant_outcome != "spent" and not truth and c.state != "FINAL_N":
+                _fail(f"I20 {c.id}: a bad plant settled {c.state}")
+
+
+def I42_the_plant_at_every_seat(w, cases=None):
+    """2.8.0 §5 (I42, new): a plant's challenge seats are opened at the step a real case in its position would open them and taken by the
+    orchestrator's own verdict past w_R, never by a troop; its audit rolls at the odds its reviewer carried at the verdict — recorded on
+    every case at its initial verdict; the dial's clock counts initial adjudications only; a plant's court fee is destroyed at filing and no
+    coin minted for a plant reaches Ω or a real wallet except as a reviewer's fee for a seat held (no Ω advance on a plant, no court fee to
+    Ω, no plant funds swept to Ω under the bank); the pots' remainder is destroyed at closure."""
+    if not getattr(w.p, "plants_every_seat", False):
+        return
+    bank = getattr(w, "bank_on", False)
+    for c in _cases(w, cases):
+        if c.t_verdict is not None and c.audit_odds_at_verdict is None and c.is_root and not any(a[3] == "override" for a in c.assessments):
+            _fail(f"I42 {c.id}: a verdict without the audit odds recorded at it")
+        if c.plant is None:
+            continue
+        if c.omega_advance > EPS:
+            _fail(f"I42 {c.id}: Ω advanced {c.omega_advance} on a plant")
+        if c.court_fee_reimbursed > EPS:
+            _fail(f"I42 {c.id}: a court fee reimbursed on a plant")
+        ch = c.challenge
+        filed = ch is not None and ch.get("challenger") is not None
+        if bank and filed and abs(c.plant_fee_destroyed - c.D) > EPS:
+            _fail(f"I42 {c.id}: the plant's court fee {c.D} was not destroyed at filing ({c.plant_fee_destroyed})")
+        if (not filed or not bank) and c.plant_fee_destroyed > EPS:
+            _fail(f"I42 {c.id}: a court fee destroyed with no filing ({c.plant_fee_destroyed})")
+        for s in c.plant_state_seats:
+            if s[1] not in ("initial", "audit", "appeal"):
+                _fail(f"I42 {c.id}: an unknown state seat {s[1]}")
+        if c.troop_award or any(w.is_troop(_peek(w.reviews, rid).reviewer) for rid in c.reviews):
+            _fail(f"I42 {c.id}: a troop on a plant")
+        if c.tree_closed and getattr(w, "bank_on", False):
+            if w.ledger.pool(c.id).deposit > EPS or w.ledger.pool(c.id).fee_pot > EPS:
+                _fail(f"I42 {c.id}: a closed plant's pots not emptied")
 
 
 def I21_dial_and_reserve(w, reviews=None):
@@ -1185,8 +1305,10 @@ def I39_the_plants_disguise(w, cases=None):
                 _fail(f"I39 {c.id}: the submission tick {c.plant_submit_at} is not within (t_award, deadline]")
             if c.state == "COMMITTED" and w.t > c.plant_submit_at:
                 _fail(f"I39 {c.id}: committed past its submission tick {c.plant_submit_at} at {w.t}")
-            if c.t_submit is not None and c.t_submit != c.plant_submit_at:
+            if c.t_submit is not None and not getattr(c, "resubmitted", False) and c.t_submit != c.plant_submit_at:
                 _fail(f"I39 {c.id}: submitted at {c.t_submit}, drawn {c.plant_submit_at}")
+            if c.t_submit is not None and getattr(c, "resubmitted", False) and c.t_submit < c.plant_submit_at:
+                _fail(f"I39 {c.id}: resubmitted at {c.t_submit}, before its drawn submission {c.plant_submit_at}")   # 2.8.0: a revised plant's second submission
         if c.omega > EPS:
             _fail(f"I39 {c.id}: a plant paid a fee {c.omega}")
         if c.troop_award:
@@ -1328,6 +1450,7 @@ def check_all(w):
     I39_the_plants_disguise(w)
     I40_opaque_identifiers(w)
     I41_the_arrival_loan(w)
+    I42_the_plant_at_every_seat(w)
     I16_history_is_authoritative(w)
 
 
@@ -1398,6 +1521,7 @@ def check_tick(w):
     I37_the_states_reservation(w, cases)
     I38_the_missed_child(w, cases)
     I39_the_plants_disguise(w, cases)
+    I42_the_plant_at_every_seat(w, cases)
     I40_opaque_identifiers(w, cases)
     I41_the_arrival_loan(w, new_events)
 

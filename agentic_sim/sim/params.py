@@ -186,6 +186,16 @@ class Params:
     # default on arrivals, read (I41). False is 2.6.1: the float a grant the wallet carries out.
     arrival_loan: bool = True
 
+    # Design revision 16 (2.8.0): the plants reach every seat. True: a plant lives the whole life of a real case past its initial
+    # verdict — its pending F audited at the odds its reviewer carried at the verdict, its actor appealing and its requester disputing
+    # (the orchestrator's instrument files at the real population's rates and delays), revised through `revise_plant` (the resubmitted
+    # truth the instrument's draw, re-sealed as a second marker), every verdict on it at every seat adjudicated by its truth the moment
+    # it is given (1.2.0 §2.1's table, each reviewer once), the case resolved by truth with no second overturn, no court fee moving and
+    # no ruling, the markers revealed at closure; its court fee destroyed at filing, its pots topped up to each seat's need, its seat
+    # past w_R taken by the orchestrator's own verdict (no fee, no loan, no place, counted apart). False is 2.7.0: a plant has no
+    # challenge round (1.2.0 §2.1) — `drivers.stamping --rules 2.7.0`.
+    plants_every_seat: bool = True
+
     def __post_init__(self):
         # 2.4.0 §2.3 (I33): the arrival float exists so that an arrival can post the reviewer's bond — a constraint on the parameters,
         # nominal, the index cancelling. A parameter set with F0 < G_V is refused at construction, not at arrival.

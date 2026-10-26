@@ -45,6 +45,9 @@ PANEL_ROLES = ("appeal", "audit")              # the challenge-panel seats (1.2.
 # The orchestrator's two system wallets (1.2.0 §2.1, Appendix A): a plant's requester and its actor.
 # Funded by transfer from Ω when a plant is created and swept back to Ω when its tree closes.
 PLANT_REQ, PLANT_ACT = "OMEGA-REQ", "OMEGA-ACT"
+# 2.8.0 §2.1: the seats a plant reaches, by kind — the initial review, the audit, the third seat (the audit's disagreement), an appeal
+# panelist, a dispute panelist, the resumed review after a revision, and the orchestrator's own verdict on a seat nobody was free to take
+PLANT_SEATS = ("initial", "audit", "third", "appeal", "dispute", "resumed", "state")
 # The duty fund (1.3.0 §2.4): the dial's raised tax, (m_t − 1) ω_0 B of each award, paid out to the reviews
 # settling in each batch by role weight as an uplift on the fixed fee.
 DUTY_FUND = "DUTY-FUND"
@@ -227,6 +230,10 @@ class Review:
     reimbursed_pending: float = 0.0   # an Ω claim outstanding for this review's costs
     panel_ok: bool = True             # the reviewer was eligible for this tier when assigned (1.2.0 §2.2, I21)
     uplift: float = 0.0               # the duty-fund uplift paid at settlement (1.3.0 §2.4), included in `fee`
+    # 2.8.0 §2.2: a review on a plant is adjudicated by the plant's truth the moment it is given, at any seat — stood | failure — and
+    # the truth it was judged against (the resubmitted one for a review after a revision)
+    plant_outcome: Optional[str] = None
+    plant_truth: Optional[bool] = None
 
 
 @dataclass
@@ -299,6 +306,18 @@ class Case:
     plant_submit_at: Optional[int] = None  # the plant actor's drawn submission tick (within (t_award, deadline])
     plant_at_floor: bool = False           # awarded at p_T past w_A, unbid, at the summons pass's step
     plant_report_by: Optional[str] = None  # the member whose selection the market reported — its bid lost
+    # 2.8.0 (design revision 16): the plant at every seat — the second marker (a revised plant's truth, sealed at the resubmission), the
+    # adjudications by seat, the orchestrator's own verdicts on seats nobody was free to take, and the audit odds at the verdict (D)
+    plant_revised: Optional[bool] = None
+    plant_revised_commit: Optional[str] = None
+    plant_revised_nonce: Optional[str] = None
+    plant_revised_hseq: Optional[int] = None
+    plant_adjudications: list = field(default_factory=list)   # (t, review id, seat kind, verdict, stood | failure)
+    plant_state_seats: list = field(default_factory=list)     # (t, seat kind, verdict): the state's seat on a plant (C)
+    audit_odds_at_verdict: Optional[float] = None             # what the audit roll reads under 2.8.0 — every case, plant or real
+    phi_E_topped: float = 0.0                                 # (A) what the bank added to a plant's allowance and fee pot at its seats' assignment
+    phi_F_topped: float = 0.0
+    plant_fee_destroyed: float = 0.0                          # (A) the plant challenger's court fee, minted to its alias and destroyed at filing
     member_at_award: bool = True           # 1.3.0 §2.1 / I22: the actor was a member when awarded
     # 2.0.0: the posting lock and its index (a root's first lock is its posting), the fee rate frozen with it, the
     # below-market flag, and the capacity case's record
@@ -460,6 +479,14 @@ class World:
         self.plants_raised = 0                           # 2.6.1: the plant requester's raises (as the population's requesters raise)
         self.plant_names: set = set()                    # every fresh plant name minted (I39: no two plants share one)
         self.plants_refused_capacity, self.plants_refused_credit = 0, 0   # the p_T path's refusals (Appendix S ruling after run 21)
+        # 2.8.0: the plant at every seat — adjudications by seat kind (stood / failure), the state's seats on plants, the revisions, the
+        # bank's top-ups and the court fees destroyed (the orchestrator's instrument; the published counts are the periods' records)
+        self.plant_seat_adjudications = {k: {"stood": 0, "failure": 0} for k in PLANT_SEATS}
+        self.plant_seats_at_state = 0
+        self.plants_revised = 0
+        self.plant_top_ups = 0.0
+        self.plant_fees_destroyed = 0.0
+        self.plants_spent = 0
         self._trailing: list = []                        # the last closed periods' real roots: {"betas", "taus", "deliv"} — their counts are k
         self._cur_trailing = {"betas": [], "taus": [], "deliv": []}
         self._recent = {"betas": [], "taus": [], "deliv": []}   # every real root's terms in order; a plant's draw reads the last k (Appendix S, after run 23)
@@ -1466,6 +1493,8 @@ class World:
     def resubmit(self, cid: str):
         """After choosing to revise (P) or to supply evidence (⊥): the same reviewer resumes."""
         c = self._case(cid)
+        if c.plant is not None and self.p.plants_every_seat:
+            raise RuleError("resubmit: a plant is resubmitted by the orchestrator's instrument through revise_plant, its truth re-sealed (2.8.0 §2.1)")
         if c.state != "RESUBMITTING":
             raise RuleError(f"resubmit: case {cid} is {c.state}")
         if self.t > c.resubmit_deadline:
@@ -1512,6 +1541,8 @@ class World:
         self._eligible(c, reviewer, role)
         if self._positions(c) + 1 > self.p.V_max:
             raise RuleError(f"case {c.id} would exceed V_max={self.p.V_max} review positions")
+        if c.plant is not None and self.p.plants_every_seat:
+            self._plant_top_up(c, role)                 # 2.8.0 §2.2 (A): the pots brought to the seat's need before the seat is held
         self._n_review += 1
         rid = f"r{self._n_review}"
         r = Review(rid, c.id, reviewer, role, self.t, self.t + self.p.T_review, bond=c.G_V)
@@ -1566,7 +1597,7 @@ class World:
 
     def assign_audit(self, cid: str, reviewer: str) -> str:
         c = self._case(cid)
-        if c.plant is not None:
+        if c.plant is not None and not self.p.plants_every_seat:
             raise RuleError("audit: a plant is adjudicated by its known truth; no challenge is opened on it (1.2.0 §2.1)")
         if c.state != "PENDING" or c.outcome_or_verdict() != F:
             raise RuleError("audit: only an F verdict in PENDING may be audited (§8.3)")
@@ -1608,7 +1639,7 @@ class World:
         c = self._case(cid)
         if not c.challenge or c.challenge.get("resolved"):
             raise RuleError("assign_appeal: no open challenge")
-        if len(c.challenge["reviews"]) >= 2:
+        if len(c.challenge["reviews"]) + len(c.challenge.get("state_verdicts", ())) >= 2:
             raise RuleError("assign_appeal: two appeal reviews already assigned")
         r = self._new_review(c, reviewer, "appeal")
         c.challenge["reviews"].append(r.id)
@@ -1699,6 +1730,9 @@ class World:
                 self._maybe_settle_challenge(c)
             return
         a = self.actors[r.reviewer]
+        if c.plant is not None and self.p.plants_every_seat:
+            self._adjudicate_plant_seat(c, r, verdict, a)   # 2.8.0 §2.2: every seat, by the known truth, at once
+            return
         if r.role == "initial":
             if verdict in (F, N):
                 a.open_review = None                    # a P or ⊥ keeps the reviewer attached (§6)
@@ -1716,6 +1750,7 @@ class World:
     # ------------------------------------------------------- initial verdict
     def _initial_verdict(self, c: Case, verdict: str, reviewer: Optional[Actor] = None, troop_reviewer: bool = False):
         c.verdict, c.t_verdict = verdict, self.t
+        c.audit_odds_at_verdict = self._live_audit_odds(c)   # 2.8.0 (D): the odds the reviewer carried at the verdict, what the roll reads under the flag
         if c.first_verdict_at is None and c.plant is None:
             c.first_verdict_at = self.t
             self._stop_clock(c, "the first verdict")             # 1.6.0 §2.1
@@ -1733,6 +1768,7 @@ class World:
                 # odds 1 is not a roll: the engine records the obligation at the verdict (I25)
                 c.audit_obligation, c.audit_rolled_at = True, self.t
                 c.open_items += 1
+        c.audit_odds_at_verdict = self._live_audit_odds(c)   # (D) again: the state's own work carries 1 (market_audit_only is known now)
         if verdict == F:
             c.state = "PENDING"
             if c.is_root:
@@ -1774,8 +1810,16 @@ class World:
     # ---------------------------------------------------------- responses
     def respond(self, cid: str, action: str, d: Optional[str] = None):
         c = self._case(cid)
-        if c.plant is not None:
+        if c.plant is not None and not self.p.plants_every_seat:
             raise RuleError("respond: a plant has no response path; it is adjudicated by its known truth (1.2.0 §2.1)")
+        if c.plant is not None and action in ("revise", "supply_evidence") and c.state == "AWAITING_RESPONSE" \
+                and self.t <= c.response_deadline and c.verdict == (P if action == "revise" else BOT):
+            # 2.8.0 §2.1 (B): the plant actor's choice to revise, as a real actor's; the revision itself comes through `revise_plant`
+            c.state, c.resubmit_deadline = "RESUBMITTING", self.t + (self.p.T_rev if action == "revise" else self.p.T_evid)
+            if action == "revise":
+                c.revisions_used += 1
+            self._log(c, f"plant: {action} chosen; the instrument resubmits through revise_plant by {c.resubmit_deadline}")
+            return
         if self.is_troop(c.actor):
             raise RuleError("respond: a troop accepts every verdict on its own work (1.4.0 §2.1)")
         if c.state != "AWAITING_RESPONSE":
@@ -1783,12 +1827,15 @@ class World:
         if self.t > c.response_deadline:
             raise RuleError("respond: response window closed")
         if action == "accept":
+            if c.plant is not None:
+                self._plant_resolve_response(c, "the plant actor accepts")   # 2.8.0 §2.2: resolved by truth (a P or ⊥ spent)
+                return
             self._finalize_N(c, reason="rejection accepted")
         elif action == "appeal":
             if c.verdict not in (N, BOT):
                 raise RuleError("appeal: only N and ⊥ are appealable; a P is revised or accepted (§6.1)")
             self._check_grounds(d)
-            if self.ledger.wallet(c.actor).U + 1e-9 < c.D:
+            if self.ledger.wallet(c.actor).U + 1e-9 < c.D and not self._plant_pays(c):
                 raise LedgerError(f"appeal: {c.actor} cannot fund the court fee {c.D}")
             self._open_challenge(c, kind="appeal", challenger=c.actor, d=d)
             self._release_attached_reviewer(c)
@@ -1822,7 +1869,16 @@ class World:
                         d: Optional[str] = None):
         if c.challenge_round_used:
             raise RuleError("one challenge round per case (§8)")
-        if challenger is not None:
+        if challenger is not None and self._plant_pays(c):
+            # 2.8.0 §2.2 (A), the ruling at acceptance: the plant challenger's alias is topped up by the bank and the fee destroyed at
+            # filing — two bank events, the names line untouched; the filing's record is a real one's and nothing minted reaches Ω
+            self._plant_mint(c, challenger, c.D, f"mint_plant: the court fee ({kind})")
+            self.ledger.burn_unlocked("retire_plant", self.ledger.resolve(challenger), c.D, case=c.id, note=f"retire_plant: court fee ({kind}) destroyed at filing")
+            c.plant_fee_destroyed += c.D
+            self.plant_fees_destroyed += c.D
+            self.period["plant_fees_destroyed"] += c.D
+            c.court_fee_paid_by = challenger
+        elif challenger is not None:
             # collect the fee first: an unpaid filing changes nothing (atomicity)
             self.ledger.transfer(challenger, Ledger.OMEGA, c.D, case=c.id, note=f"court fee ({kind})")
             c.court_fee_paid_by = challenger
@@ -1841,7 +1897,7 @@ class World:
 
     def dispute(self, cid: str, challenger: str, d: Optional[str] = None):
         c = self._case(cid)
-        if c.plant is not None:
+        if c.plant is not None and not self.p.plants_every_seat:
             raise RuleError("dispute: no challenge is opened on a plant (1.2.0 §2.1)")
         if not c.is_root:
             raise RuleError("only root requesters dispute; a requester-actor is its own judge")
@@ -1857,7 +1913,7 @@ class World:
             raise RuleError("dispute: a human ruling has settled this case's assessment; a disagreement with "
                             "the ruling is for human review, not a model challenge (§15.2)")
         self._check_grounds(d)
-        if self.ledger.wallet(challenger).U + 1e-9 < c.D:
+        if self.ledger.wallet(challenger).U + 1e-9 < c.D and not self._plant_pays(c):
             raise LedgerError(f"dispute: {challenger} cannot fund the court fee {c.D}")   # validate before any change
         audit = next((self.reviews[r] for r in c.reviews
                       if self.reviews[r].role == "audit" and self.reviews[r].status != "withdrawn"), None)
@@ -1888,6 +1944,9 @@ class World:
         ch = c.challenge
         if ch is None or ch["resolved"]:
             return
+        if c.plant is not None and self.p.plants_every_seat:
+            self._maybe_settle_plant_challenge(c)         # 2.8.0 §2.2: by truth, once every seat has answered
+            return
         done = [self.reviews[r] for r in ch["reviews"] if self.reviews[r].status == "done"]
         if len(done) < 2:
             return
@@ -1912,6 +1971,8 @@ class World:
     def rule(self, cid: str, outcome: str, objection: Optional[str] = None):
         """Orchestrator ruling on a split (§8.4). For an appeal of ⊥ the ruling states both answers."""
         c = self._case(cid)
+        if c.plant is not None:
+            raise RuleError("rule: no ruling is sought on a plant; its challenge resolves by its known truth (1.2.0 §2.1, 2.8.0 §2.2)")
         ch = c.challenge
         if ch is None or ch["resolved"]:
             raise RuleError("rule: no open challenge")
@@ -2093,6 +2154,8 @@ class World:
         if self.is_troop(c.actor):
             self._release_troop(c.actor)
         self._log(c, f"final N: {reason}")
+        if c.plant is not None and self.p.plants_every_seat:
+            self._reveal_plant_closure(c)                   # 2.8.0 §2.2: the markers revealed at closure
         if c.is_nested():
             self._maybe_close_node(c)                   # 2.3.0 (the ruling): a node closes when it and everything under it have settled
         self._maybe_close_tree(self.cases[c.root])     # final now; a settlement still pending defers this
@@ -2480,6 +2543,8 @@ class World:
         if self.is_troop(c.actor):
             self._release_troop(c.actor)
         self._log(c, f"vested; grade {c.grade}")
+        if c.plant is not None and self.p.plants_every_seat:
+            self._reveal_plant_closure(c)                   # 2.8.0 §2.2: the markers revealed at closure
         if c.is_nested():
             self._maybe_close_node(c)                   # 2.3.0 (the ruling): final now — the node's pots settle at its closure
         self._maybe_close_tree(self.cases[c.root])     # final now: the tree may have closed with this vest
@@ -2528,13 +2593,26 @@ class World:
             if c.state == "COMMITTED" and tick >= c.deadline:
                 self._finalize_N(c, reason="delivery deadline missed")
             elif c.state == "AWAITING_RESPONSE" and tick >= c.response_deadline:
-                self._finalize_N(c, reason="no response: rejection accepted by default")
+                if c.plant is not None and self.p.plants_every_seat:
+                    self._plant_resolve_response(c, "no response")   # 2.8.0: resolved by truth; a P or ⊥ spent
+                else:
+                    self._finalize_N(c, reason="no response: rejection accepted by default")
             elif c.state == "RESUBMITTING" and tick >= c.resubmit_deadline:
-                self._finalize_N(c, reason="resubmission window missed")
+                if c.plant is not None and self.p.plants_every_seat:
+                    self._plant_resolve_response(c, "resubmission window missed")
+                else:
+                    self._finalize_N(c, reason="resubmission window missed")
         for r in list(self._live_reviews.values()):
             if r.status == "open" and tick >= r.deadline:
                 self._withdraw_review(r)
         # step 3: vesting and settlement, one emission batch
+        if self.p.plants_every_seat:
+            # 2.8.0 §2.2: the vesting step finalizes a bad plant N by truth where a real case would vest — its F pending to the window's
+            # close with no challenge, or its challenge resolved and the window closed
+            for c in list(self._live_cases.values()):
+                if c.plant is not None and c.state == "PENDING" and c.open_items == 0 and c.window_end is not None \
+                        and tick >= c.window_end and (c.challenge is None or c.challenge["resolved"]) and not self._plant_truth(c):
+                    self._finalize_N(c, reason="plant: not fulfilled by construction (the window closed)", actor_fault=False)
         vesting = [c for c in self._live_cases.values()
                    if c.state == "PENDING" and c.open_items == 0 and c.window_end is not None
                    and tick >= c.window_end and (c.challenge is None or c.challenge["resolved"])]
@@ -3243,6 +3321,274 @@ class World:
         c.plant_reveal_hseq = len(self.history.entries) - 1
         self._log(c, f"plant revealed: {'good' if c.plant else 'bad'}; review {r.id} {r.verdict} → {outcome}")
 
+    # ------------------------------------------------- 2.8.0: the plants reach every seat
+    def _plant_pays(self, c: Case) -> bool:
+        """2.8.0 §2.2 (A): on a plant the bank funds the challenger's court fee and destroys it at filing — so the admissibility test
+        'the challenger can fund the fee' passes as a real challenger's does. Only under the flag and the bank (2.1.0)."""
+        return c.plant is not None and self.p.plants_every_seat and self.bank_on
+
+    def _plant_mint(self, c: Case, wid: str, amt: float, note: str):
+        """2.8.0: the bank mints for a plant (its pots topped up, a court fee) — `mint_plant`, as the posting's mint (2.1.0 §2.3);
+        without the bank Ω funds it as 1.2.0 had it (the no-bank controls)."""
+        if amt <= 1e-12:
+            return
+        wallet = self.ledger.resolve(wid)                  # the plant wallet behind the fresh name (I28 reads the wallet)
+        if self.bank_on:
+            self.ledger.mint("mint_plant", wallet, amt, case=c.id, note=note)
+        else:
+            self._omega_ensure(amt, None, "plant")
+            self.ledger.transfer(Ledger.OMEGA, wallet, amt, case=c.id, note=note.replace("mint_plant", "plant"))
+        self.period["plant_out"] += amt
+
+    def _plant_top_up(self, c: Case, role: str):
+        """2.8.0 §2.2 (A), the ruling at acceptance — the top-up is the shortfall: when a review is created on a plant the allowance is
+        brought to K for every review not yet reimbursed (this one included) and the fee pot to the fees owed by every seat held, and the
+        bank mints the difference; on Appendix A's defaults (φ^E = 2K, φ^F = f(1 + 1.5)) nothing until the third seat — where a real
+        root's third careful reviewer would have reached Ω's advance. So a reviewer's cost on a plant is never advanced from Ω and a
+        plant's fees never scale; what is unspent is destroyed at closure."""
+        pool = self.ledger.pool(c.id)
+        open_n = sum(1 for rid in c.reviews if self.reviews[rid].status == "open") + 1
+        need_E = max(0.0, c.K * open_n - pool.deposit)
+        owed = sum(self._w(self.reviews[rid].role) for rid in c.reviews if self.reviews[rid].status != "withdrawn") + self._w(role)
+        need_F = max(0.0, owed * self.p.f_fee - (pool.fee_pot + c.fees_from_pot))
+        if need_E > 1e-9:
+            self._plant_mint(c, c.requester, need_E, f"mint_plant: the allowance topped up for the {role} seat")
+            self.ledger.fund_deposit(c.requester, c.id, need_E, note="expense allowance (topped up)")
+            c.phi_E_topped += need_E
+        if need_F > 1e-9:
+            self._plant_mint(c, c.requester, need_F, f"mint_plant: the fee pot topped up for the {role} seat")
+            self.ledger.fund_fee_pot(c.requester, c.id, need_F, note="fee pot (topped up)")
+            c.phi_F_topped += need_F
+        if need_E + need_F > 1e-9:
+            self.plant_top_ups += need_E + need_F
+            self.period["plant_top_ups"] += need_E + need_F
+            self._log(c, f"plant: the pots topped up for the {role} seat (allowance +{need_E:g}, fee pot +{need_F:g})")
+
+    def _plant_truth(self, c: Case) -> bool:
+        """The truth a plant is adjudicated against now: the resubmitted one after a revision (B), else the one sealed at posting."""
+        return c.plant_revised if c.plant_revised is not None else c.plant
+
+    def _plant_seat_kind(self, c: Case, r: Review) -> str:
+        if r.role == "initial":
+            return "resumed" if r.resumed else "initial"
+        if r.role == "audit":
+            return "audit"
+        kind = c.challenge["kind"] if c.challenge else "appeal"
+        return "third" if kind == "audit" else kind
+
+    def _adjudicate_plant_seat(self, c: Case, r: Review, verdict: str, a: Actor):
+        """2.8.0 §2.2 (design revision 16): every verdict on a plant, at any seat — the initial review, the audit, the third seat, an appeal
+        or dispute panelist's, the resumed review — is adjudicated by the plant's known truth the moment it is given, by 1.2.0 §2.1's table
+        applied to that review's reviewer once: right → stood (fee and emission at settlement, record +1); wrong → plant failure (bond
+        burned whole, no fee, reliability down, odds doubled, record −1). A resumed review is judged against the resubmitted truth. The case
+        then keeps the real path's shape — a bad plant's F pending with its window, an audit's disagreement opening the third seat, a panel of
+        two — and resolves by truth (`_maybe_settle_plant_challenge`, the vesting step, `_plant_resolve_response`): no ruling, no second
+        overturn, no court fee moving. P or ⊥ at a first review is neither stood nor failed: the plant waits for the instrument's response.
+        The marker stays sealed until the plant's closure; the reviewer learns its own outcome as before (its bond moves or does not)."""
+        truth = self._plant_truth(c)
+        initial = r.role == "initial"
+        if initial:
+            c.verdict, c.t_verdict = verdict, self.t
+            c.window_end = self.t + self.p.W
+            c.initial_pinned = a.pinned
+            c.audit_odds_at_verdict = a.p_eff           # (D): before the adjudication moves the odds
+            if verdict in (P, BOT):
+                # the response path (B): the plant actor revises through the instrument (revise_plant) or the P or ⊥ is spent
+                c.state, c.response_deadline = "AWAITING_RESPONSE", self.t + self.p.T_resp
+                c.plant_adjudications.append((self.t, r.id, "initial", verdict, "response"))
+                self._log(c, f"plant: {verdict} at the first review; the plant actor's response awaited (revise_plant, or spent)")
+                return
+            a.open_review = None
+        else:
+            a.open_review = None
+        right = (verdict == F) == truth
+        rec = a.plant_bad if truth is False else a.plant_good
+        rec.append((self.t, not right))
+        if len(rec) > self.p.n_P:
+            del rec[: len(rec) - self.p.n_P]
+        r.plant_outcome, r.plant_truth = ("stood" if right else "failure"), truth
+        kind = self._plant_seat_kind(c, r)
+        c.plant_adjudications.append((self.t, r.id, kind, verdict, r.plant_outcome))
+        self.plant_seat_adjudications[kind][r.plant_outcome] += 1
+        self.period["plant_seats"][kind] += 1
+        if not right:
+            self.period["plant_seat_failures"][kind] += 1
+        if initial and c.plant_outcome is None:
+            # the dial's clock: the initial adjudications only (§2.1) — the first F or N at the initial seat, first review or resumed
+            c.plant_outcome = r.plant_outcome
+            if self.first_plant_adjudicated_at is None:
+                self.first_plant_adjudicated_at = self.t     # 1.6.0 §2.4: the determination requirement is live from here
+            self.period["plants"] += 1
+            if truth is False:
+                self.period["bad"] += 1
+                if not right:
+                    self.period["bad_approved"] += 1
+        self._log(c, f"plant: review {r.id} ({kind}) {verdict} → {r.plant_outcome}; the bond {'burned' if not right else 'stands'}")
+        if not right:
+            self._overturn_review(c, r, pay_fee_to=None)
+        if initial:
+            if verdict == F:
+                c.state = "PENDING"
+                if c.is_root:
+                    self.period["approvals"] += 1          # 2.8.0 §5: the reserve's audit demand counts a plant's pending F as a real root's
+                    self.period["audit_demand"] += self.audit_odds(c.id)
+            else:
+                c.state, c.response_deadline = "AWAITING_RESPONSE", self.t + self.p.T_resp   # the plant actor's appeal, at the real rate
+        elif r.role == "audit":
+            self._audit_result(c, r)                        # agrees → held to the window; disagrees → the third seat; merged → the panel
+        else:
+            self._maybe_settle_challenge(c)
+        self._check_record(a, failed=not right)
+
+    def _maybe_settle_plant_challenge(self, c: Case):
+        ch = c.challenge
+        if ch is None or ch["resolved"]:
+            return
+        answered = sum(1 for rid in ch["reviews"] if self.reviews[rid].status in ("done", "overturned")) + len(ch.get("state_verdicts", ()))
+        if answered >= 2:
+            self._settle_plant_challenge(c)
+
+    def _settle_plant_challenge(self, c: Case):
+        """2.8.0 §2.2: a plant's challenge round is resolved by its truth — a good plant goes on to vest, a bad plant is final N — with no
+        second overturn (each reviewer answered for its own verdict at its adjudication), no court fee moving and no ruling sought."""
+        ch = c.challenge
+        truth = self._plant_truth(c)
+        outcome = F if truth else N
+        ch["resolved"] = True
+        ch["outcome"], ch["by"], ch["objection"] = outcome, "truth", None
+        self._release_attached_reviewer(c)
+        c.open_items -= 1
+        c.outcome = outcome
+        self._log(c, f"plant: the {ch['kind']} resolved by truth → {outcome}")
+        if outcome == N:
+            self._finalize_N(c, reason="plant: not fulfilled by construction", actor_fault=False)
+        else:
+            c.state = "PENDING"
+            self._release_capacity(c)
+
+    def _plant_resolve_response(self, c: Case, why: str):
+        """2.8.0 §2.1–2.2: a plant in its response window with no appeal and no revision resolves by truth — a good plant rejected goes on
+        to vest (1.2.0's mirror, the failing reviewer already adjudicated), a bad plant is final N; a P or ⊥ not revised is 1.2.0's spent:
+        no plant outcome for the reviewer, whose review stands and is paid."""
+        if c.verdict in (P, BOT):
+            c.plant_outcome = "spent"
+            self.plants_spent += 1
+            self.period["plants_spent"] += 1
+            self._release_attached_reviewer(c)
+            self._finalize_N(c, reason=f"plant spent: {why}", actor_fault=False)
+            return
+        if self._plant_truth(c):
+            c.outcome, c.state = F, "PENDING"
+            self._release_capacity(c)
+            self._log(c, f"plant: resolved by truth ({why}) → pending to the window's close")
+        else:
+            self._finalize_N(c, reason=f"plant: not fulfilled by construction ({why})", actor_fault=False)
+
+    def revise_plant(self, cid: str, truth: bool):
+        """2.8.0 §2.1 (B): the plant actor's revision and resubmission in one step — the resubmitted truth is the orchestrator's instrument's
+        draw from its record of the trailing real revisions' outcomes (the engine holds no truth for real work), sealed here as a second marker
+        with the case and a nonce; the same reviewer resumes (F or N only) and is adjudicated against it. Admitted after a P or ⊥ within the
+        response window, or after `respond` chose to revise, within the resubmission window. The instrument refuses itself while its window
+        of real revisions is empty — the plant is then spent (1.2.0) — which is the instrument's rule, not this operation's."""
+        c = self._case(cid)
+        if c.plant is None or not self.p.plants_every_seat:
+            raise RuleError("revise_plant: not a plant under 2.8.0")
+        if not isinstance(truth, bool):
+            raise RuleError("revise_plant: truth is True (good) or False (bad)")
+        if c.verdict not in (P, BOT):
+            raise RuleError("revise_plant: only after P or ⊥ at the first review")
+        if c.state == "AWAITING_RESPONSE":
+            if self.t > c.response_deadline:
+                raise RuleError("revise_plant: response window closed")
+        elif c.state == "RESUBMITTING":
+            if self.t > c.resubmit_deadline:
+                raise RuleError("revise_plant: resubmission window closed")
+        else:
+            raise RuleError(f"revise_plant: case {cid} is {c.state}")
+        if c.plant_revised is not None:
+            raise RuleError("revise_plant: one revision only (§6)")
+        c.plant_revised = truth
+        c.plant_revised_nonce = hashlib.sha256(f"{self.history.head}|{cid}|revised".encode()).hexdigest()[:16]
+        c.plant_revised_commit = hashlib.sha256(f"{cid}|revised|{'good' if truth else 'bad'}|{c.plant_revised_nonce}".encode()).hexdigest()
+        self.history.append("plant_revised", {"t": self.t, "case": cid, "commit": c.plant_revised_commit})
+        c.plant_revised_hseq = len(self.history.entries) - 1
+        if c.state == "AWAITING_RESPONSE" and c.verdict == P:
+            c.revisions_used += 1
+        r = self._initial_review(c)
+        r.deadline += (self.t - r.t_done)               # the review clock paused while the actor acted (§6)
+        r.status, r.verdict, r.objection, r.resumed = "open", None, None, True
+        c.resubmitted = True
+        c.state, c.t_submit, c.resubmit_deadline, c.response_deadline = "SUBMITTED", self.t, None, None
+        self.plants_revised += 1
+        self.period["plants_revised"] += 1
+        self._log(c, f"plant revised and resubmitted (the second marker sealed); {r.reviewer} resumes review {r.id} (F or N only)")
+
+    def _reveal_plant_closure(self, c: Case):
+        """2.8.0 §2.2: the markers are revealed at the plant's closure — its vesting or final N — not at its initial verdict: the plant's later
+        seats must be filled before anyone but the orchestrator can read it. The reveal names the truth and nonce that hash to each sealed
+        commitment, every review's adjudication and the state's seats."""
+        if c.plant_reveal_hseq is not None:
+            return
+        reviews = [[rid, self.reviews[rid].reviewer, self.reviews[rid].verdict, self.reviews[rid].plant_outcome] for rid in c.reviews]
+        revised = None if c.plant_revised is None else {"truth": "good" if c.plant_revised else "bad", "nonce": c.plant_revised_nonce,
+                                                       "commit": c.plant_revised_commit}
+        self.history.append("plant_revealed", {"t": self.t, "case": c.id, "truth": "good" if c.plant else "bad",
+                                               "nonce": c.plant_nonce, "commit": c.plant_commit, "revised": revised,
+                                               "reviews": reviews, "state_seats": [list(s) for s in c.plant_state_seats],
+                                               "outcome": c.plant_outcome})
+        c.plant_reveal_hseq = len(self.history.entries) - 1
+        self._log(c, f"plant revealed at closure: {'good' if c.plant else 'bad'}"
+                  + (f", revised {'good' if c.plant_revised else 'bad'}" if c.plant_revised is not None else "")
+                  + f"; {len(reviews)} review(s), {len(c.plant_state_seats)} state seat(s); the initial seat {c.plant_outcome}")
+
+    def _state_verdict_on_plant(self, c: Case, role: str, tick: int):
+        """2.8.0 §2.1 (C), the ruling at acceptance: a plant's required seat unfilled for w_R seating steps with no free eligible on-duty
+        reviewer for its role is taken by the orchestrator's own verdict at the troop's step — the truth with probability 1 − ε_T, as a
+        troop's would be — with no fee, no loan, no place in N_T and no record, counted apart; the case moves on as a real case does when
+        the state takes its seat. A troop never sits on a plant. The initial seat the same (a 2.6.x difference closed)."""
+        truth = self._plant_truth(c)
+        h = int(hashlib.sha256(f"{self.history.head}|state seat|{c.id}|{role}|{tick}".encode()).hexdigest()[:12], 16)
+        right = (h / float(16 ** 12)) >= self.p.eps_T
+        verdict = F if (truth == right) else N
+        c.plant_state_seats.append((tick, role, verdict))
+        self.plant_seats_at_state += 1
+        self.period["plant_seats_at_state"] += 1
+        self.period["plant_seats"]["state"] += 1
+        self.history.append("state_seat", {"t": tick, "case": c.id, "seat": role, "verdict": verdict})
+        self._log(c, f"the orchestrator's own verdict takes the {role} seat after it waited {self.p.w_R} seating steps: {verdict}")
+        if role == "initial":
+            c.verdict, c.t_verdict, c.window_end = verdict, tick, tick + self.p.W
+            c.initial_pinned = False
+            c.plant_outcome = "state"                       # no reviewer adjudicated: the dial's clock does not count it
+            c.audit_odds_at_verdict = min(1.0, self.m_t * self.p.p_floor)   # as a troop reviewer's approval carries (Appendix I)
+            c.seat_since = None
+            if verdict == F:
+                c.state = "PENDING"
+                self.period["approvals"] += 1
+                self.period["audit_demand"] += c.audit_odds_at_verdict
+            else:
+                c.state, c.response_deadline = "AWAITING_RESPONSE", tick + self.p.T_resp
+        elif role == "audit":
+            if c.audit_vacated:
+                c.audit_vacated = False
+            elif c.audit_obligation:
+                c.audit_obligation = False
+            c.open_items -= 1
+            if c.challenge is not None and not c.challenge["resolved"]:
+                # §8.3: an audit after a dispute is one of the dispute's two reviews — the state's verdict holds that seat
+                c.challenge.setdefault("state_verdicts", []).append((tick, verdict))
+                self._maybe_settle_plant_challenge(c)
+            elif c.challenge_round_used:
+                self._log(c, "the state's audit verdict recorded; the challenge round is spent")
+            elif verdict == c.outcome_or_verdict():
+                self._log(c, "the state's audit verdict agrees")
+            else:
+                self._open_challenge(c, "audit", challenger=None)
+                c.challenge["state_verdicts"] = [(tick, verdict)]
+        else:
+            c.challenge.setdefault("state_verdicts", []).append((tick, verdict))
+            self._maybe_settle_plant_challenge(c)
+
     def _check_record(self, a: Actor, failed: bool = False):
         """After a plant adjudication. 1.3.0 §2.2 (membership): a member whose record has crossed
         θ_duty is suspended from the market for T_susp ticks; a probationer is re-suspended by any
@@ -3298,6 +3644,10 @@ class World:
     @staticmethod
     def _new_period(start: int) -> dict:
         return {"start": start, "plants": 0, "bad": 0, "bad_approved": 0, "plants_created": 0, "initial": 0,
+                # 2.8.0: the plant at every seat — adjudications by seat kind, the failures among them, the state's seats on plants,
+                # the revisions, the plants spent, the bank's top-ups and the court fees destroyed
+                "plant_seats": {k: 0 for k in PLANT_SEATS}, "plant_seat_failures": {k: 0 for k in PLANT_SEATS},
+                "plant_seats_at_state": 0, "plants_revised": 0, "plants_spent": 0, "plant_top_ups": 0.0, "plant_fees_destroyed": 0.0,
                 "approvals": 0, "audit_demand": 0.0, "audits": 0, "challenge_reviews": 0, "dur_sum": 0, "dur_n": 0,
                 "suspensions": 0, "eligibility_shortfall": 0,
                 "award_price_sum": 0.0, "award_n": 0,
@@ -3392,6 +3742,10 @@ class World:
                "m_before": round(m_old, 6), "m": round(self.m_t, 6), "pi": round(self.pi_t, 6), "X": self.X_t,
                "member_seats": self.member_seats,
                "plants_created": per["plants_created"], "plant_shortfall": shortfall,
+               # 2.8.0 §5: the seats on plants by kind and the adjudications by seat kind, read beside the dial's clock (initial only)
+               "plant_seats": dict(per["plant_seats"]), "plant_seat_failures": dict(per["plant_seat_failures"]),
+               "plant_seats_at_state": per["plant_seats_at_state"], "plants_revised": per["plants_revised"], "plants_spent": per["plants_spent"],
+               "plant_top_ups": round(per["plant_top_ups"], 6), "plant_fees_destroyed": round(per["plant_fees_destroyed"], 6),
                "suspensions": per["suspensions"], "eligibility_shortfall": per["eligibility_shortfall"],
                "alarm": alarm,
                # 1.4.0 §2.5: the readings
@@ -3518,7 +3872,7 @@ class World:
         vest until an audit completes — seated by a member when one is free, by a troop after w_R
         (§2.2), or, for the state's own work, by a member only (§2.3)."""
         c = self._case(cid)
-        if c.plant is not None:
+        if c.plant is not None and not self.p.plants_every_seat:
             raise RuleError("roll_audit: no audit is rolled on a plant (1.2.0 §2.1)")
         if c.state != "PENDING" or c.outcome_or_verdict() != F:
             raise RuleError("roll_audit: only a pending F verdict is audited (§8.3)")
@@ -3539,6 +3893,14 @@ class World:
         reviewer's approval of a member's work, the adaptive floor scaled by the dial — the odds a reviewer
         whose record stood would carry (a default chosen at implementation, Appendix I)."""
         c = self._case(cid)
+        if self.p.plants_every_seat and c.audit_odds_at_verdict is not None:
+            # 2.8.0 §8.3 (D), the ruling at acceptance: every case rolls at the odds its reviewer carried at the verdict — one number, one
+            # path, so a plant is audited at the rate its reviewer's real cases are (1.2.0's adjudication doubles a failed reviewer's odds
+            # before the roll; the live read differed from this on 0.5% of real rolls, a reviewer overturned on another case in the same tick)
+            return c.audit_odds_at_verdict
+        return self._live_audit_odds(c)
+
+    def _live_audit_odds(self, c: Case) -> float:
         if c.market_audit_only:
             return 1.0
         r = self._initial_review(c) if any(self.reviews[x].role == "initial" and self.reviews[x].status == "done"
@@ -3925,8 +4287,11 @@ class World:
         self._service_omega_liabilities(self.p.period_ticks)
         # first pass: the review seats (1.6.0 §2.2: inspection first), oldest case first
         for c in list(self._live_cases.values()):
-            if c.plant is not None or any(a[3] == "override" for a in c.assessments):
-                continue                                # never a plant; never a case a human has ruled on (I18)
+            if any(a[3] == "override" for a in c.assessments):
+                continue                                # never a case a human has ruled on (I18)
+            plant = c.plant is not None
+            if plant and not self.p.plants_every_seat:
+                continue                                # 1.2.0: never a plant (2.8.0: the state's own verdict takes a plant's seat past w_R)
             # the audit seat
             if c.state == "PENDING" and (c.audit_obligation or c.audit_vacated) \
                     and not any(self.reviews[r].role == "audit" and self.reviews[r].status == "open" for r in c.reviews):
@@ -3936,7 +4301,9 @@ class World:
                     held_max_age = max(held_max_age, tick - (since or tick))
                 elif self.p.troops and since is not None and tick - since + 1 >= self.p.w_R \
                         and not self._free_eligible_reviewer(c, "audit"):
-                    if self._summon_review(c, "audit", tick) is None:
+                    if plant:
+                        self._state_verdict_on_plant(c, "audit", tick)     # 2.8.0 (C): no fee, no loan, no place, counted apart
+                    elif self._summon_review(c, "audit", tick) is None:
                         self.troop_held_ticks += 1
                         self.period["troop_held_ticks"] += 1
             # the initial seat
@@ -3944,15 +4311,23 @@ class World:
                     and not any(self.reviews[r].role == "initial" and self.reviews[r].status in ("open", "done", "vested")
                                 for r in c.reviews) \
                     and tick - c.seat_since + 1 >= self.p.w_R and not self._free_eligible_reviewer(c, "initial"):
-                if self._summon_review(c, "initial", tick) is None:
+                if plant:
+                    self._state_verdict_on_plant(c, "initial", tick)
+                elif self._summon_review(c, "initial", tick) is None:
                     self.troop_held_ticks += 1
                     self.period["troop_held_ticks"] += 1
             # the panel seats
             ch = c.challenge
-            if self.p.troops and ch and not ch["resolved"] and len(ch["reviews"]) < 2 \
+            seats_held = (len(ch["reviews"]) + len(ch.get("state_verdicts", ()))) if ch else 0
+            if self.p.troops and ch and not ch["resolved"] and seats_held < 2 \
                     and tick - ch.get("seat_since", tick) + 1 >= self.p.w_R and not self._free_eligible_reviewer(c, "appeal"):
-                remaining = 2 - len(ch["reviews"])
+                remaining = 2 - seats_held
                 for i in range(remaining):
+                    if plant:
+                        self._state_verdict_on_plant(c, "appeal", tick)
+                        if c.challenge is None or c.challenge["resolved"]:
+                            break
+                        continue
                     if self._summon_review(c, "appeal", tick) is None:
                         self.troop_held_ticks += 1
                         self.period["troop_held_ticks"] += 1

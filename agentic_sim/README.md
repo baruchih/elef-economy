@@ -141,8 +141,19 @@ tests/test_v26.py                   design revision 14 (2.6.0): the plant's disg
                                     translated both ways and carrying no order; the dial's counts at the close; I39's catches; plant_market off = 2.5.0; the
                                     capacity and credit refusals on the p_T path and the pinned draw (the ruling after run 21); submit_plant at the
                                     drawn tick and not before (the Q2 probe's correction) — 16
+tests/test_v27.py                   design revision 15 (2.7.0): the arrival loan — the float lent and carried on the name, repaid first from every income
+                                    inflow (the table's events) and never from a return, recovered at departure with the wallet out and the default read;
+                                    I41's identity and catches; the flag off = 2.6.1's grant — 12
+tests/test_v28.py                   design revision 16 (2.8.0): the plants reach every seat — a bad plant approved pending with its window and audited at the
+                                    odds its reviewer carried at the verdict (every case rolls at the verdict's odds; the flag off the live read), the auditor
+                                    adjudicated by truth and the initial reviewer once; a disagreeing audit's third seat and the case resolved by truth with no
+                                    ruling; the plant actor's appeal and the plant requester's dispute with the fee minted to the alias and destroyed at filing,
+                                    the panelists adjudicated, nothing reaching Ω; the pots topped up to the seat's need at the third seat only; a P spent
+                                    unless revised, a revision sealed as the second marker and the resumed review adjudicated against it; the orchestrator's
+                                    own verdict on a plant's seat past w_R with no troop and no fee; the flag off = 2.7.0 and the kept refusals; I20's and
+                                    I42's catches — 10
 
-Run: `python3 run_tests.py` — 342 pass, 0 fail, 32 expected failures, each with a stated reason (one original,
+Run: `python3 run_tests.py` — 355 pass, 0 fail, 32 expected failures, each with a stated reason (one original,
 four superseded by the view contract, nineteen on the withdrawn reopening path, one superseded by design
 revision 1, one by design revision 2, two by design revisions 10 and 11 — a service fee pooled until the close and the pool's advance move the reimbursement figures they pin — two by design revision 11 — the parent's pots make three children unaffordable on a float of 50, and the root's allowance is no longer exhausted by a nested review — two by design revision 8 — the backing's v_t and the pay-in refused at posting; the three 1.x figures 2.0.0's moving index broke pass again under 2.1.0's index per period). With pytest: `python3 -m pytest tests -q` reports 259 passed, 31 xfailed; the
 runner expands pytest parametrization as pytest does, including multi-argument and stacked marks. (Spec Appendix D
@@ -585,6 +596,24 @@ the period record and `view.bank()` once a name has been lent to, so a world wit
 Drivers: the brief's lifetime measure reads the wallet *out* from `depart`'s return and a live name net of its loan; the exit rule reads earnings gross
 of the repayments; the columns `names_lent`, `names_lent_n`, `names_repaid`, `names_recovered`, `names_defaulted`, `names_outstanding`,
 `names_outstanding_peak`, `departed_net`, `below_bond_before_admission`, `unfundable_with_loan_ticks`. `test_v27` (12).
+
+**The plants reach every seat (2.8.0; `Params.plants_every_seat`, on; off is 2.7.0, `--rules 2.7.0` / `--plants-every-seat off`).** After runs 34 and 35 showed a
+self-play reviewer population stamp the seats where no plant could come, a planted case lives the whole life of a real one past its initial verdict: its pending F
+stays pending with its window and is audited at the odds its reviewer carried at the verdict (`Case.audit_odds_at_verdict`, recorded on every case and read by
+`audit_odds` under the flag — the one number, one path ruling; `_live_audit_odds` is 2.7.0's read), the plant actor appeals a good plant's N and the plant requester
+disputes a bad plant's F (the drivers' instrument, at the real population's rates and delays from windows of the real filings — `plant_respond`, the challenge pass),
+a P or ⊥ is revised through `revise_plant(cid, truth)` with the resubmitted truth sealed as a second marker (`plant_revised`; spent while the instrument's window of
+real revisions is empty — every standing cell), and a seat nobody is free to take for w_R steps is taken by the orchestrator's own verdict (`_state_verdict_on_plant`:
+the truth w.p. 1 − ε_T, no Review, no fee, no loan, no place, `plant_seats_at_state`; an audit seat's disagreement opens the third seat, a panel seat joins the
+challenge as a `state_verdicts` entry). Every F or N on a plant at any seat is adjudicated by the truth then in force the moment it is given
+(`_adjudicate_plant_seat`: `Review.plant_outcome` stood | failure, `plant_truth`; a failure `_overturn_review` — bond burned whole, odds doubled, record −1), each
+reviewer once; the case keeps the real path's shape and resolves by truth (`_settle_plant_challenge`, `_plant_resolve_response`, the vesting step's pre-pass): no
+ruling, no second overturn, no court fee moving; the markers revealed at closure (`_reveal_plant_closure`, both markers, every review's outcome, the state seats).
+The money: the pots topped up to the seat's need at assignment (`_plant_top_up`: K per unreimbursed review, the fees owed; `phi_E_topped`, `phi_F_topped`; nothing
+until the third seat on the defaults), the court fee minted to the challenger's alias and destroyed at filing (`retire_plant`, `plant_fee_destroyed`), nothing minted
+for a plant reaching Ω. The dial's clock counts the initial adjudications only; the seats by kind (`PLANT_SEATS`) in the period record, `dial()` and the driver's
+`plant_adj_*` / `plant_fail_*` columns, the stage table's new stages by kind (`_life_close`), run_q's stamp rates by seat kind. I20 rewritten per seat, I42 new, I39
+amended. `test_v28` (10); goldens re-pinned once (the scenario drives `revise_plant`); `test_v12`/`v13`/`v14` pin 1.2.0's path with the flag off.
 
 After run 22's acceptance, the reviewer's rulings for the red team: **a calibration cell** before each question's learner reads anything —
 the driver's `--audit-roll off` (the roll never made; a declared implementation effect, in the manifest) with `--pi0 0 --dial off`, so a

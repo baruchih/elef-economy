@@ -77,7 +77,7 @@ def test_the_award_is_the_markets_report_the_plant_actor_takes_it_and_the_member
 
 
 def test_the_plant_actor_submits_at_its_drawn_tick_and_the_plant_is_adjudicated_and_destroyed_as_before():
-    w = make_world()
+    w = make_world(plants_every_seat=False)   # 2.8.0: this test pins 1.2.0's adjudication at the first review (a bad plant final N at its verdict); test_v28 has 2.8.0's
     p = w.post_plant(False)
     w.award(p, "A", 15, 4)
     c = w.cases[p]

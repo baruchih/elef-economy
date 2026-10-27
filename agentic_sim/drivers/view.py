@@ -7,7 +7,8 @@ under the rules — and read what the rules let them read. Nothing here decides 
 
 Reads return live, read-only proxies of the engine's cases and reviews — every field as the engine holds it now — with their
 case identifiers translated to the public surface's: since 2.6.0 (I40) a case's public identifier is a hash of the engine's,
-carrying no order, translated both ways here. Events and the ReviewView come as translated copies; actors and wallets as the
+carrying no order, translated both ways here. A plant's case log is shown without its plant entries until the reveal at closure (2.8.0 §2.1; the
+ruling after run 37). Events and the ReviewView come as translated copies; actors and wallets as the
 engine's own. Assigning to a proxy's field is refused: a driver reads, it never reaches in. Policies for reviewers get a
 `ReviewView` (`observe`), not a case.
 """
@@ -47,6 +48,21 @@ class _Proxy:
         return f"<public view of {self._o!r}>"
 
 
+# 2.8.0 §2.1 — the markers are revealed at closure and not before; the conformance item of the view ruled after run 37 (the `log` tell,
+# notes §59–§61): from a plant's first verdict on, the engine writes plant entries to the case log (`plant: …` at every seat's adjudication, a
+# top-up, a P/⊥ chosen, a resolution by truth; `plant revised and resubmitted …`; the orchestrator's own verdict on a seat nobody was free to
+# take, and its audit verdict's note) — the History keeps every one of them (I16 unchanged) and the public view of the case carries none
+# until the reveal, when the whole log is shown. A real root's log never carries one of these. The drivers' convention bounds what a
+# driver reads; this bounds what the view shows.
+_PLANT_ENTRY_PREFIXES = ("plant", "the orchestrator's own verdict takes the", "the state's audit verdict")
+
+
+def _public_log(c, log):
+    if c.plant is None or c.plant_reveal_hseq is not None:
+        return log
+    return [e for e in log if not e[1].startswith(_PLANT_ENTRY_PREFIXES)]
+
+
 class Public:
     def __init__(self, world: World):
         self._w = world
@@ -71,7 +87,8 @@ class Public:
 
     def _pub_case(self, c):
         pub = self._pub
-        return _Proxy(c, {"id": pub, "root": pub, "parent": pub, "children": lambda xs: [pub(x) for x in xs]})
+        return _Proxy(c, {"id": pub, "root": pub, "parent": pub, "children": lambda xs: [pub(x) for x in xs],
+                          "log": lambda log, c=c: _public_log(c, log)})
 
     def _pub_review(self, r):
         return _Proxy(r, {"case": self._pub})

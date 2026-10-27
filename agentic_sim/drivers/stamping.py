@@ -773,7 +773,10 @@ class Stamping:
         if "log" in self.tells:
             # outside the convention (declared; 2.8.0 §8.7): reads the case log for a plant's earlier seat — the engine's `plant:` entries,
             # written at a plant's adjudications and top-ups under 2.8.0 — before answering at a later one; nothing stands in the log before
-            # the first verdict, so at the initial seat this reader reads every case as real. The control for the markers' reveal at closure.
+            # the first verdict, so at the initial seat this reader reads every case as real. The control for the markers' reveal at closure:
+            # it read the plant at every later seat (notes §59), and was reclassified a conformance item of the view (the ruling after run 37) —
+            # since then the public view carries no plant entry before the reveal, this reader reads nothing, and a run with it equals the same
+            # run with no tell (`test_v28`); kept as the regression's hand instrument.
             c = self.w.case(view.case_id)
             return any(msg.startswith("plant") for (_, msg, _) in c.log)
         reader, cid = r.reviewer, view.case_id
@@ -3184,7 +3187,7 @@ def build_parser():
                     help="2.2.0 §8.5 red team: this many requesters post at the market price exactly with K_open tripled — many small requests to collect pro-rata rebates (expected: nothing beyond the capped claims)")
     ap.add_argument("--tell-readers", type=float, default=0.0,
                     help="Q2 (the learned red team, hand-written first): the share of careful actors that read the view for a plant's tells and stamp the rest")
-    ap.add_argument("--tell", default="gap+cap", help="the tells read, joined by +: gap (assigned the tick it was submitted), cap (K at this period's index), idage (the id newer than every root seen available before the submission tick); all (the three, any); oracle (the plant marker itself — declared non-conforming, the upper bound a perfect detector earns); log (2.8.0 §8.7, outside the convention: the case log's plant entries from an earlier seat, read at a later one)")
+    ap.add_argument("--tell", default="gap+cap", help="the tells read, joined by +: gap (assigned the tick it was submitted), cap (K at this period's index), idage (the id newer than every root seen available before the submission tick); all (the three, any); oracle (the plant marker itself — declared non-conforming, the upper bound a perfect detector earns); log (2.8.0 §8.7, outside the convention: the case log's plant entries from an earlier seat, read at a later one — nothing since the view's correction after run 37)")
     ap.add_argument("--tell-rule", choices=["any", "all"], default="any", help="a plant is read when any tell fires, or only when all do")
     ap.add_argument("--tell-initial", choices=["stamp", "care"], default="stamp",
                     help="what a tell-reader does at a first review no tell marks: stamp (the Q2 readers' shape) or care (2.8.0 §8.7: the `log` tell speaks "

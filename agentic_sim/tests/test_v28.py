@@ -315,3 +315,105 @@ def test_I20_and_I42_catch_a_reveal_before_closure_a_reimbursed_fee_and_an_advan
         check_all(w)
     c.audit_odds_at_verdict = saved_odds
     check_all(w)
+
+
+# ------------------------------------------------------------ the public view: no plant entry before the reveal (the ruling after run 37)
+def test_the_public_view_of_a_plants_log_carries_no_plant_entry_until_its_closure():
+    """2.8.0 §2.1: the markers are revealed at closure and not before. The `log` tell-reader (§8.7, by hand) read the engine's `plant:`
+    entries from a plant's earlier seat through the Public view's case(cid).log and so read every plant at every later seat — a
+    conformance item of the view, ruled after run 37. The History keeps every entry (I16 unchanged); the view carries none of a plant's
+    plant entries until the reveal. The reader (the driver's predicate, verbatim) reads nothing at every seat — the audit, the third,
+    the appeal, the dispute, the resumed, the state's — and equals the same reader with no tell; a real root's log is untouched; at
+    closure the whole log is shown."""
+    from drivers.view import Public
+
+    def log_tell(pub, cid):                                  # drivers/stamping.py read_tells, the `log` tell
+        return any(msg.startswith("plant") for (_, msg, _) in pub.case(cid).log)
+
+    def no_tell(pub, cid):                                   # the same reader with no tell: every case read as real
+        return False
+
+    def plant_free(pub, cid):                                # nothing of the plant in the view's log, by any of the engine's wordings
+        return not any(m.startswith(("plant", "the orchestrator's own verdict", "the state's audit verdict")) for (_, m, _) in pub.case(cid).log)
+
+    def engine_has_plant_entry(w, cid):
+        return any(m.startswith("plant") for (_, m, _) in w.cases[cid].log)
+
+    # the audit seat and the third seat: a bad plant stamped, rolled, audited; the audit disagrees; the third seat resolves by truth
+    w = make_world()
+    pub = Public(w)
+    real = w.post_root("H", 20)
+    w.award(real, "A", 20, 3)
+    q, r = plant_to(w, "C", False, F)
+    c = w.cases[q]
+    assert engine_has_plant_entry(w, q) and not log_tell(pub, q) and plant_free(pub, q)      # the first verdict's adjudication: in the History, not the view
+    assert len(pub.case(q).log) < len(c.log) and [e[2] for e in pub.case(q).log] == [e[2] for e in c.log if not e[1].startswith("plant")]
+    assert list(pub.case(real).log) == list(w.cases[real].log)                                # a real root's log untouched
+    w.roll_audit(q)
+    ra = w.assign_audit(q, "D")
+    w.advance(w.t + 1)
+    assert log_tell(pub, q) == no_tell(pub, q) == False and plant_free(pub, q)                # the audit seat
+    w.complete_review(ra, N, 2.0)
+    r3 = w.assign_appeal(q, "E")
+    w.advance(w.t + 1)
+    assert log_tell(pub, q) == no_tell(pub, q) == False and plant_free(pub, q)                # the third seat
+    w.complete_review(r3, F, 0.0)
+    assert c.state == "FINAL_N" and c.plant_reveal_hseq is not None                           # resolved by truth: final N, the markers revealed
+    assert list(pub.case(q).log) == list(c.log) and log_tell(pub, q)                          # revealed at closure: the whole log
+    w.advance(w.t + 1)
+    assert c.tree_closed and list(pub.case(q).log) == list(c.log)
+    check_all(w)                                                                             # I16: the History holds every entry
+
+    # the appeal seat: a good plant rejected, the plant actor appeals
+    w = make_world()
+    pub = Public(w)
+    q, r = plant_to(w, "C", True, N)
+    w.respond(q, "appeal", "the work meets the request")
+    r1, r2 = w.assign_appeal(q, "D"), w.assign_appeal(q, "E")
+    w.advance(w.t + 1)
+    assert engine_has_plant_entry(w, q) and log_tell(pub, q) == no_tell(pub, q) == False and plant_free(pub, q)
+    w.complete_review(r1, F, 2.0)
+    w.complete_review(r2, N, 0.0)
+    assert plant_free(pub, q)
+    check_all(w)
+
+    # the dispute seat: a bad plant approved, the plant requester disputes
+    w = make_world()
+    pub = Public(w)
+    q, r = plant_to(w, "C", False, F)
+    w.dispute(q, w.cases[q].requester, "the result does not meet the request")
+    r1, r2 = w.assign_appeal(q, "D"), w.assign_appeal(q, "E")
+    w.advance(w.t + 1)
+    assert engine_has_plant_entry(w, q) and log_tell(pub, q) == no_tell(pub, q) == False and plant_free(pub, q)
+    w.complete_review(r1, N, 2.0)
+    w.complete_review(r2, F, 0.0)
+    w.advance(w.t + 1)
+    assert w.cases[q].tree_closed and list(pub.case(q).log) == list(w.cases[q].log)
+    check_all(w)
+
+    # the resumed seat: a P on a plant, revised through revise_plant; the same reviewer resumes
+    w = make_world()
+    pub = Public(w)
+    q, r = plant_to(w, "D", False, P)
+    w.revise_plant(q, True)
+    assert any(m.startswith("plant revised") for (_, m, _) in w.cases[q].log)
+    w.advance(w.t + 1)
+    assert log_tell(pub, q) == no_tell(pub, q) == False and plant_free(pub, q)
+    w.complete_review(r, F, 0.0)
+    check_all(w)
+
+    # the state's seat: nobody free for the audit; the orchestrator's own verdict, its note in the History alone
+    w = make_world(membership=False, actors=["A", "B", "C"], duty=["C"], w_R=2, eps_T=0.0)
+    pub = Public(w)
+    for who in ("A", "B"):
+        qq = w.post_root("H", 20)
+        w.award(qq, who, 20, 30)
+    q, r = plant_to(w, "C", False, F)
+    w.roll_audit(q)
+    w.advance(w.t + w.p.w_R)
+    c = w.cases[q]
+    assert c.plant_state_seats and any(m.startswith("the orchestrator's own verdict") for (_, m, _) in c.log)
+    assert log_tell(pub, q) == no_tell(pub, q) == False and plant_free(pub, q)
+    w.advance(w.t + w.p.w_R + 1)
+    assert c.tree_closed and list(pub.case(q).log) == list(c.log)
+    check_all(w)

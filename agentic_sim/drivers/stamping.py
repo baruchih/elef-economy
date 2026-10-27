@@ -2407,8 +2407,9 @@ class Stamping:
                                            and (rate >= 1.0 or self.rng.random() < rate))
                 if not want and task.fulfilled and a.dispute_lie > 0 and self.rng.random() < a.dispute_lie:
                     want = True                          # 2.8.0 §8.7 (c): the lying dispute — good work's F disputed at the stated rate
+                per = len(w.dial()["periods"])
                 if c.is_root and not task.fulfilled:
-                    per = len(w.dial()["periods"])           # 2.8.0: the real requesters' dispute window — what the plant requester draws
+                    # 2.8.0: the real requesters' dispute window — what the plant requester draws
                     self.dispute_window.append((per, int(bool(want))))
                     if want and c.t_verdict is not None:
                         self.dispute_delay_window.append((per, w.t - c.t_verdict))

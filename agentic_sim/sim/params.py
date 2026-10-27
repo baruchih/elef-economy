@@ -204,10 +204,16 @@ class Params:
     # a floor of two a period, each with its own multiplier; adjudicated by truth. Both False is 2.8.0 — `drivers.stamping --rules 2.8.0`.
     planted_approval: bool = True
     planted_lie: bool = True
-    pi_A0: float = 0.02         # planted approvals per real pending approval, the floor
+    pi_A0: float = 0.02         # planted approvals per real approval audited by a member (the base since the ruling after run 38), the floor
     pi_A_max: float = 0.40
     pi_L0: float = 0.25         # planted lies per real appeal / per real dispute of the trailing period, the floor
     pi_L_max: float = 2.0
+    # The reviewer's defaults correction after run 38 (§19, a default): the per-seat multipliers' own bounds — π^A_0 m^A_max = π^A_max and
+    # π^L_0 m^L_max = π^L_max, so the caps are reachable (m_max 4 left π^A at 0.08); and a per-seat multiplier steps on a reading of at least
+    # `seat_dial_min_adj` adjudications, pooled forward across periods until reached (the lie dial's ×2 on one error at four seats, the reading).
+    m_A_max: float = 20.0
+    m_L_max: float = 8.0
+    seat_dial_min_adj: int = 10
     lie_floor: int = 2          # planted lies a period of each kind when the trailing count is zero or the product under two
     lie_delay_default: int = 0  # the planted lie's filing delay where the real window of the kind is empty
 

@@ -181,7 +181,7 @@ def I8_positions_bound(w, cases=None):
     for c in _cases(w, cases):
         # the engine's `_positions`, read without claiming the case or its reviews
         n = sum(1 for rid in c.reviews if _peek(w.reviews, rid).status != "withdrawn")
-        if n > w.p.V_max:
+        if n > w.p.V_max + (1 if getattr(c, "audit_after_dispute", False) else 0):   # Appendix V: the audit seat after a state-alone panel
             _fail(f"I8 {c.id} holds {n} review positions > V_max")
 
 
@@ -698,7 +698,8 @@ def _I20_every_seat(w, cases):
             reviews = [[rid, _peek(w.reviews, rid).reviewer, _peek(w.reviews, rid).verdict, _peek(w.reviews, rid).plant_outcome] for rid in c.reviews]
             want = {"case": c.id, "truth": "good" if c.plant else "bad", "nonce": c.plant_nonce, "commit": c.plant_commit, "revised": revised,
                     "reviews": reviews, "state_seats": [list(s) for s in c.plant_state_seats], "outcome": c.plant_outcome,
-                    **({"planted_approval": True, "audit_odds_public": c.audit_odds_public} if c.planted_approval else {})}
+                    **({"planted_approval": True, "audit_odds_public": c.audit_odds_public} if c.planted_approval else {}),
+                    **({"unseated": True} if getattr(c, "pa_unseated", False) else {})}
             entry = w.history.entries[c.plant_reveal_hseq] if c.plant_reveal_hseq < len(w.history.entries) else None
             t0 = entry["payload"].get("t") if entry is not None and entry.get("kind") == "plant_revealed" else None
             if t0 is None or not w.history.matches(c.plant_reveal_hseq, "plant_revealed", {"t": t0, **want}):
@@ -762,7 +763,7 @@ def I43_the_planted_approval(w, cases=None):
     p = w.p
     if not (getattr(p, "plants_every_seat", False) and getattr(p, "planted_approval", False)):
         return
-    if w.pi_A > p.pi_A_max + EPS or w.pi_A < -EPS or not (1.0 - EPS <= w.m_A <= p.m_max + EPS):
+    if w.pi_A > p.pi_A_max + EPS or w.pi_A < -EPS or not (1.0 - EPS <= w.m_A <= p.m_A_max + EPS):
         _fail(f"I43 π^A={w.pi_A} / m^A={w.m_A} outside their bounds")
     for c in _cases(w, cases):
         if not c.planted_approval:
@@ -784,12 +785,16 @@ def I43_the_planted_approval(w, cases=None):
                 _fail(f"I43 {c.id}: the planted verdict's marks ({c.plant_outcome}, odds {c.audit_odds_at_verdict}, public {c.audit_odds_public})")
             audits = [_peek(w.reviews, rid) for rid in c.reviews if _peek(w.reviews, rid).role == "audit" and _peek(w.reviews, rid).status != "withdrawn"]
             state_audit = any(s[1] == "audit" for s in c.plant_state_seats)
+            if state_audit:
+                _fail(f"I43 {c.id}: the state took a planted approval's audit seat (a member's or nobody's — Appendix V)")
             ch = c.challenge
             discharged = ch is not None and ch.get("kind") == "dispute" and ch["resolved"]
             if len(audits) > 1:
                 _fail(f"I43 {c.id}: a planted approval audited more than once")
-            if not c.audit_obligation and not audits and not state_audit and not discharged and not c.audit_vacated:
+            if not c.audit_obligation and not audits and not discharged and not c.audit_vacated and not c.pa_unseated:
                 _fail(f"I43 {c.id}: the obligation recorded at the verdict neither stands nor was met")
+            if c.pa_unseated and (audits or c.state != "FINAL_N" or discharged):
+                _fail(f"I43 {c.id}: an unseated planted approval that was audited, disputed or did not close by truth")
 
 
 def I44_the_planted_lie(w, cases=None):
@@ -800,7 +805,7 @@ def I44_the_planted_lie(w, cases=None):
     if not (getattr(p, "plants_every_seat", False) and getattr(p, "planted_lie", False)):
         return
     for pi_x, m_x, name in ((w.pi_La, w.m_La, "La"), (w.pi_Ld, w.m_Ld, "Ld")):
-        if pi_x > p.pi_L_max + EPS or pi_x < -EPS or not (1.0 - EPS <= m_x <= p.m_max + EPS):
+        if pi_x > p.pi_L_max + EPS or pi_x < -EPS or not (1.0 - EPS <= m_x <= p.m_L_max + EPS):
             _fail(f"I44 π^{name}={pi_x} / m^{name}={m_x} outside their bounds")
     bank = getattr(w, "bank_on", False)
     for c in _cases(w, cases):
@@ -835,10 +840,11 @@ def I21_dial_and_reserve(w, reviews=None):
         lo, hi = 0.9 * per["m_before"] - EPS, 2.0 * per["m_before"] + EPS
         if not (max(lo, 1.0 - EPS) <= per["m"] <= min(hi, p.m_max + EPS)) and per["m"] != per["m_before"]:
             _fail(f"I21 dial step {per['m_before']} → {per['m']} outside its bounds")
-        for k in ("m_A", "m_La", "m_Ld"):                # 2.9.0 §2.4: the dial per seat steps as m_t steps
-            if k in per:
+        for k in ("m_A", "m_La", "m_Ld"):                # 2.9.0 §2.4: the dial per seat steps as m_t steps, within its own bound
+            if k in per:                                  # (m^A_max, m^L_max — the defaults correction after run 38, Appendix V)
+                cap = getattr(p, "m_A_max", p.m_max) if k == "m_A" else getattr(p, "m_L_max", p.m_max)
                 lo, hi = 0.9 * per[k + "_before"] - EPS, 2.0 * per[k + "_before"] + EPS
-                if not (max(lo, 1.0 - EPS) <= per[k] <= min(hi, p.m_max + EPS)) and per[k] != per[k + "_before"]:
+                if not (max(lo, 1.0 - EPS) <= per[k] <= min(hi, cap + EPS)) and per[k] != per[k + "_before"]:
                     _fail(f"I21 {k} step {per[k + '_before']} → {per[k]} outside its bounds")
     for a in w.actors.values():
         if a.on_duty and not a.duty_eligible and a.open_review is None:
@@ -1081,7 +1087,10 @@ def I25_the_obligation(w, cases=None):
             audits = [_peek(w.reviews, r) for r in c.reviews if _peek(w.reviews, r).role == "audit"]
             audited = any(r.status in ("done", "vested", "overturned") for r in audits)
             ruled = any(a[3] == "override" for a in c.assessments)
-            if not audited and not ruled:
+            ch = c.challenge                      # Appendix V (the ruling after run 39): a dispute's panel with a member on it is the market's judgment
+            panel_member = ch is not None and ch.get("kind") == "dispute" and ch["resolved"] and any(
+                _peek(w.reviews, x).status in ("done", "vested", "overturned") and not w.is_troop(_peek(w.reviews, x).reviewer) for x in ch["reviews"])
+            if not audited and not ruled and not panel_member:
                 _fail(f"I25 {c.id}: the state's own work vested without the market's audit")
             if any(w.is_troop(r.reviewer) for r in audits):
                 _fail(f"I25 {c.id}: a troop audited the state's own work")

@@ -227,41 +227,71 @@ def test_the_plant_requester_disputes_a_good_plants_F_as_a_planted_lie():
 
 
 # ------------------------------------------------------------ §2.4 the dial per seat, the credits and the quotas
-def test_the_dial_per_seat_steps_on_its_own_reading_and_moves_its_rate_alone():
-    w = make_world(period_ticks=30)
-    q, c = submitted_plant(w, approval=True)
-    planted_verdict(w, q)
-    ra = w.assign_audit(q, "D")
-    w.advance(w.t + 1)
-    w.complete_review(ra, F, 0.0)                                # F̂^A = 1 in this period
-    m_before, pi_before, X_before = w.m_t, w.pi_t, w.X_t
-    w.advance(w.t + 31)                                          # the period closes
+def test_the_dial_per_seat_steps_on_a_pooled_reading_of_ten_adjudications_within_its_own_bound_and_moves_its_rate_alone():
+    """The ruling after run 38 (Appendix V): a per-seat multiplier steps on a reading of at least ten adjudications, the periods' counts pooled
+    forward until reached (the lie dial's ×2 on one error at four seats was the reading); its bound is its own — m^A_max 20, so π^A reaches
+    its cap 0.40 (m_max 4 left it at 0.08); m^L_max 8. A planted approval's audit confirmed or rejected by a member is one adjudication."""
+    w = make_world(period_ticks=400, T_review=1000)
+    assert w.p.m_A_max == 20.0 and w.p.m_L_max == 8.0 and w.p.seat_dial_min_adj == 10
+    assert w.p.pi_A0 * w.p.m_A_max == pytest.approx(w.p.pi_A_max) and w.p.pi_L0 * w.p.m_L_max == pytest.approx(w.p.pi_L_max)
+    def audited(auditor, verdict):
+        q, c = submitted_plant(w, approval=True)
+        planted_verdict(w, q)
+        ra = w.assign_audit(q, auditor)
+        w.advance(w.t + 1)
+        w.complete_review(ra, verdict, 0.0 if verdict == F else 2.0)
+    m_before, pi_before = w.m_t, w.pi_t
+    for auditor in ("C", "D"):                                   # six adjudications, two confirmed: under ten — no reading
+        audited(auditor, F); audited(auditor, N); audited(auditor, N)
+    w.advance(w.period["start"] + 401)                           # the period closes
     per = w.periods[-1]
-    assert per["F_hat_A"] == 1.0 and per["m_A_before"] == 1.0 and per["m_A"] == 2.0   # the step capped at 2× a period
+    assert per["F_hat_A"] is None and per["m_A"] == 1.0 and per["pi_A"] == pytest.approx(w.p.pi_A0) and w.m_A == 1.0
+    assert per["seat_pool"]["A"] == [2, 6]                       # pooled forward
+    for auditor in ("E", "F"):                                   # six more: twelve pooled, four confirmed
+        audited(auditor, F); audited(auditor, N); audited(auditor, N)
+    w.advance(w.period["start"] + 401)
+    per = w.periods[-1]
+    assert per["F_hat_A"] == pytest.approx(4 / 12) and per["m_A_before"] == 1.0 and per["m_A"] == 2.0   # the step capped at 2× a period
+    assert per["seat_pool"]["A"] == [0, 0]                       # the reading taken resets the pool
     assert w.pi_A == pytest.approx(min(w.p.pi_A_max, w.p.pi_A0 * 2.0)) and per["pi_A"] == pytest.approx(w.pi_A)
     assert per["F_hat_La"] is None and per["m_La"] == 1.0 and per["F_hat_Ld"] is None and per["m_Ld"] == 1.0   # undefined: unmoved
     assert w.m_t == m_before and w.pi_t == pi_before             # m^A moves its rate alone
-    assert per["lie_quota"] == {"appeal": 2.0, "dispute": 2.0}   # no real challenge in the period: the floor
+    assert per["lie_quota"] == {"appeal": 2.0, "dispute": 2.0}   # no real challenge in the period: the floor (the record)
+    # the bound is the multiplier's own: eight periods of ×2 take m^A to m^A_max = 20 and π^A to its cap, not m_max's 4 / 0.08
+    for _ in range(8):
+        w._seat_pool["A"] = [10, 10]
+        w.advance(w.period["start"] + 401)
+    assert w.m_A == 20.0 and w.pi_A == pytest.approx(0.40) and w.periods[-1]["m_A"] == 20.0
     check_all(w)
 
 
-def test_the_planted_approvals_credit_counts_real_approvals_and_the_lie_quota_reads_the_trailing_period():
+def test_the_planted_approvals_credit_counts_real_approvals_audited_by_members_and_the_lie_quota_record_reads_the_trailing_period():
+    """The ruling after run 38 (Appendix V): the rate's base is the real approvals audited by members, not the real pending approvals — so the
+    planted approvals scale with the market's audit capacity and not the state's share. A real approval's F credits nothing; a member's audit
+    of it credits π^A; fifty such audits are one planted approval at π^A_0."""
     w = make_world(budget=1e6, period_ticks=30)
     assert w.planted_approvals_due() == 0
-    n = 0
-    while w.planted_approvals_due() == 0:
-        real_approved(w, worker=["A", "B"][n % 2], reviewer=["C", "D", "E", "F"][n % 4])
+    q, r = real_approved(w)
+    assert w.planted_approval_credit == 0.0 and w.period["real_approvals"] == 1      # the F alone: nothing
+    w.roll_audit(q)
+    ra = w.assign_audit(q, "D")
+    w.advance(w.t + 1)
+    w.complete_review(ra, F, 0.0)
+    assert w.planted_approval_credit == pytest.approx(w.p.pi_A0) and w.period["real_member_audits"] == 1
+    n = 1
+    while w.planted_approvals_due() == 0 and n < 80:
+        qq, rr = real_approved(w, worker=["A", "B"][n % 2], reviewer=["C", "D", "E", "F"][n % 4])
+        w.roll_audit(qq)
+        ra = w.assign_audit(qq, ["C", "D", "E", "F"][(n + 1) % 4])
+        w.advance(w.t + 1)
+        w.complete_review(ra, F, 0.0)
         n += 1
-        for cc in list(w.cases.values()):                        # keep the workers free: let the approvals vest
-            pass
-        if n > 80:
-            break
-    assert w.planted_approvals_due() == 1 and n == 50            # 1 / π^A_0 = 50 real approvals
-    assert w.period["real_approvals"] + sum(p.get("real_approvals", 0) for p in w.periods) == 50
+    assert w.planted_approvals_due() == 1 and n == 50            # 1 / π^A_0 = 50 real approvals audited by members
+    assert w.period["real_member_audits"] + sum(p.get("real_member_audits", 0) for p in w.periods) == 50
     cred = w.planted_approval_credit
     q = w.post_plant(False, approval=True)
     assert w.planted_approvals_due() == 0 and w.planted_approval_credit == pytest.approx(cred - 1.0)
-    # a real appeal in this period: the next period's lying-appeal quota is max(2, 0.25 × 1) = 2; eight real appeals → 2
+    # the lie quota is the record (the trailing period's real count times the rate, floored at two): eight real appeals → max(2, 0.25 × 8) = 2
     w2 = make_world(budget=1e6, period_ticks=20)
     for i in range(8):
         qq = w2.post_root("H", 20); w2.award(qq, ["A", "B"][i % 2], 20, 1); w2.advance(w2.t + 1); w2.submit(qq)
@@ -271,8 +301,44 @@ def test_the_planted_approvals_credit_counts_real_approvals_and_the_lie_quota_re
     assert w2.period["real_appeals"] + sum(p.get("real_appeals", 0) for p in w2.periods) == 8
     w2.advance(w2.t + 25)
     assert w2.periods[-1]["lie_quota"]["appeal"] == pytest.approx(max(2.0, w2.pi_La * w2.periods[-1]["real_appeals"]))
+    assert w2.planted_lies_due("appeal") == 2                    # what the engine still calls for is the floor; the rate is the instrument's coin
     check_all(w)
     check_all(w2)
+
+
+def test_a_planted_approvals_audit_seat_is_a_members_or_nobodys_and_an_unseated_one_closes_by_truth_at_the_windows_end():
+    """The ruling after run 38 (Appendix V): the state's verdict never takes a planted approval's audit seat — its confirmation would be the
+    state's, not the market's (run 38: the state took three audit seats in four). Past w_R with no free eligible member the pass passes it by
+    (read as `pa_pass_would_audit`); if no member has taken the seat by the window's close the case closes by truth, spent and read."""
+    w = make_world(w_R=2, T_review=1000)
+    om0 = omega(w)
+    held = {}
+    for who in DUTY:                                            # every reviewer holds an open review of a good plant
+        qh, _ = submitted_plant(w, truth=True)
+        held[who] = w.assign_initial(qh, who)
+    q, c = submitted_plant(w, approval=True)
+    planted_verdict(w, q)
+    assert c.audit_obligation and c.state == "PENDING"
+    w.advance(w.t + w.p.w_R + 2)                                # past w_R with no free eligible member: 2.8.0 (C) would seat the state
+    assert c.pa_pass_would_audit and w.period["pa_pass_would_audit"] == 1
+    assert not c.plant_state_seats and c.audit_obligation      # no state seat; the obligation stands
+    w.advance(c.window_end + 1)                                 # nobody took the seat by the window's close
+    assert c.pa_unseated and c.state == "FINAL_N" and not c.audit_obligation and c.open_items == 0
+    assert w.planted_approvals_unseated == 1 and w.period["pa_unseated"] == 1
+    assert w.period["pa_audit_adj"] == 0                        # not adjudicated: not in F̂^A
+    rev = next(e for e in reversed(w.history.entries) if e["kind"] == "plant_revealed" and e["payload"]["case"] == q)
+    assert rev["payload"].get("unseated") is True and rev["payload"]["planted_approval"] is True
+    w.advance(w.t + 1)
+    assert c.tree_closed and omega(w) == pytest.approx(om0)     # the alias reviewer's bond and the pots retired
+    # a member free before the close takes the seat as before
+    w.complete_review(held["C"], F, 2.0)
+    q2, c2 = submitted_plant(w, approval=True)
+    planted_verdict(w, q2)
+    ra = w.assign_audit(q2, "C")
+    w.advance(w.t + 1)
+    w.complete_review(ra, N, 2.0)
+    assert w.reviews[ra].plant_outcome == "stood" and w.period["pa_audit_adj"] == 1 and not c2.pa_unseated
+    check_all(w)
 
 
 # ------------------------------------------------------------ §2.6 the surfaces
@@ -387,42 +453,73 @@ def test_I43_I44_and_I42_catch_the_state_on_the_seat_a_fee_on_the_alias_a_lie_wi
 
 
 # ------------------------------------------------------------ the discharge and the state's own work (2.9.0 §4 against 1.4.0 §2.2, I25)
-def test_a_dispute_of_the_states_own_approved_work_does_not_discharge_the_markets_audit():
-    """The second reading in Appendix V, found by §8.2's liar cell: a requester's dispute of a troop's delivery approved by a troop reviewer
-    (`market_audit_only` — the audit held for a member, 1.4.0 §2.2, I25) settles, and 2.9.0 §4's discharge would have let the case vest
-    without the market's audit. The engine keeps the state's own work's obligation whatever the panel found (the discharge covers the rolled
-    ones) — and the one challenge round (1.0.1 §8) then refuses the audit seat, so the case stays pending with its obligation, as it did on
-    this path since 1.4.0 (never exercised: a truthful requester meets it at b·ε_T of the state's deliveries). Three rules meet; the decision
-    is the reviewer's — the test pins what the engine does meanwhile."""
-    w = make_world(membership=False, plant_market=False, actors=["A", "B", "C"], duty=["C"], w_R=2, eps_T=0.0, T_review=100)   # a plant built submitted holds C; its review deadline far
-    for who in ("A", "B"):                                   # A and B committed on long deliveries: no free fundable member for the next root
+def _states_own_work_approved_by_a_troop_and_disputed(hold_c=True):
+    """The path §8.2's liar cell found: the state delivers (A and B committed, no free fundable member), a troop reviewer approves it
+    (`market_audit_only`: the audit held for a member, 1.4.0 §2.2, I25) and the requester disputes the approval."""
+    w = make_world(membership=False, plant_market=False, actors=["A", "B", "C"], duty=["C"], w_R=2, eps_T=0.0, T_review=100)
+    for who in ("A", "B"):
         qq = w.post_root("H", 20)
         w.award(qq, who, 20, 30)
-    held = {"C": w.assign_initial(w.create_plant(True, 20.0), "C")}   # C, the one reviewer, holds an open review of a good plant
+    held = w.assign_initial(w.create_plant(True, 20.0), "C")   # C, the one reviewer, holds an open review of a good plant
     q = w.post_root("H", 20)
     w.advance(w.t + w.p.w_A + 1)                             # unawarded for w_A with no free fundable member: the state delivers
     c = w.cases[q]
     assert w.is_troop(c.actor), c.state
     w.advance(c.deadline)
     w.submit(q)
-    w.advance(w.t + w.p.w_R + 1)                             # the initial seat waits w_R with C and D busy: a troop reviewer takes it
+    w.advance(w.t + w.p.w_R + 1)                             # the initial seat waits w_R with C busy: a troop reviewer takes it
     tr = next(w.reviews[x] for x in c.reviews if w.reviews[x].role == "initial" and w.is_troop(w.reviews[x].reviewer))
     w.complete_review(tr.id, F, 0.0)                         # a troop approves the state's own work
     assert c.market_audit_only and c.audit_obligation and w.audit_odds(q) == 1.0 and c.state == "PENDING"
+    if not hold_c:
+        w.complete_review(held, F, 0.0)                      # C comes free before the panel is seated
     w.dispute(q, "H", "the result does not meet the request")   # the requester disputes the state's approved work
+    return w, q, c, held
+
+
+def test_the_states_own_work_disputed_before_a_panel_of_the_states_alone_keeps_its_audit_seat_after_the_dispute():
+    """Appendix V's second reading, ruled after run 39: where the dispute's panel on the state's own work was the state's alone, the audit
+    seat is admitted after the dispute — the one challenge round (1.0.1 §8) yields to I25's purpose, the round existing to limit a
+    participant's exposure and the state being none; a case is never left standing (before the ruling the engine held the obligation and
+    the round refused the seat, the case pending with it — the eighteen liar-cell episodes the regression)."""
+    w, q, c, held = _states_own_work_approved_by_a_troop_and_disputed(hold_c=True)
     w.advance(w.t + w.p.w_R + 1)                             # the panel seats wait w_R: two troop panelists
     panel = [w.reviews[x] for x in c.reviews if w.reviews[x].role == "appeal" and w.reviews[x].status == "open"]
     assert len(panel) == 2 and all(w.is_troop(r.reviewer) for r in panel)
     for r in panel:
-        w.complete_review(r.id, F, 0.0)                      # the panel finds for the approval
+        w.complete_review(r.id, F, 0.0)                      # the panel finds for the approval — the state's judgment alone
     assert c.challenge["resolved"] and c.state == "PENDING"
-    assert c.audit_obligation and w.obligations_discharged_by_dispute == 0 and w.period["obligations_discharged"] == 0   # the reading: not discharged
-    assert any(m.endswith("(2.9.0 §4)") for (_, m, _) in c.log) is False
+    assert c.audit_obligation and c.audit_after_dispute and w.state_work_audit_after_dispute == 1
+    assert w.obligations_discharged_by_dispute == 0 and w.state_work_discharged_by_panel == 0
+    assert any("the audit seat admitted after the dispute" in m for (_, m, _) in c.log)
     w.advance(c.window_end + 2)
-    assert c.state == "PENDING" and c.audit_obligation      # I25: the state's own work does not vest without the market's audit
-    assert w.held_market_audit_now == 1                     # read as held for the market's audit (1.4.0 §2.2's reading)
-    w.complete_review(held["C"], F, 0.0)                     # C comes free — and the one challenge round is spent (1.0.1 §8):
-    with pytest.raises(RuleError):                           # no audit seat after the dispute; the case stays pending as it did since 1.4.0
-        w.assign_audit(q, "C")
-    assert c.state == "PENDING" and c.audit_obligation and c.open_items >= 1
-    check_all(w)                                             # the three rules meet on this case — the decision is the reviewer's (Appendix V)
+    assert c.state == "PENDING" and c.audit_obligation and w.held_market_audit_now == 1   # I25: held for a member
+    w.complete_review(held, F, 0.0)                          # C comes free: the one round yields for the state's own work
+    ra = w.assign_audit(q, "C")
+    w.advance(w.t + 1)
+    w.complete_review(ra, F, 2.0)                            # the market's audit confirms
+    assert not c.audit_obligation
+    w.advance(w.t + 2)
+    assert c.state == "VESTED"                               # vested after a member's audit, as I25 requires
+    check_all(w)
+
+
+def test_the_states_own_work_disputed_before_a_panel_with_a_member_on_it_is_discharged_as_a_members_audit_would():
+    """Appendix V's second reading, ruled after run 39: a dispute's panel on the state's own work is the market's judgment where a member sat
+    on it, and discharges I25's obligation as a member's audit would; the case vests at the window's close with no audit seat."""
+    w, q, c, held = _states_own_work_approved_by_a_troop_and_disputed(hold_c=False)
+    rc = w.assign_appeal(q, "C")                             # a member takes one panel seat
+    w.advance(w.t + w.p.w_R + 1)                             # the other waits w_R: a troop
+    panel = [w.reviews[x] for x in c.reviews if w.reviews[x].role == "appeal" and w.reviews[x].status == "open"]
+    assert len(panel) == 2 and sum(1 for r in panel if w.is_troop(r.reviewer)) == 1
+    for r in panel:
+        w.complete_review(r.id, F, 2.0 if r.id == rc else 0.0)
+    assert c.challenge["resolved"] and c.state == "PENDING"
+    assert not c.audit_obligation and not c.audit_after_dispute and c.open_items == 0
+    assert w.state_work_discharged_by_panel == 1 and w.obligations_discharged_by_dispute == 1 and w.period["obligations_discharged"] == 1
+    assert any("a member sat on the dispute's panel" in m for (_, m, _) in c.log)
+    with pytest.raises(RuleError):
+        w.assign_audit(q, "C")                               # the round is spent as for any case: no audit seat
+    w.advance(c.window_end + 3)
+    assert c.state == "VESTED" and not any(w.reviews[x].role == "audit" for x in c.reviews)
+    check_all(w)                                             # I25 accepts the panel with a member on it

@@ -322,6 +322,9 @@ class Case:
     planted_approval: bool = False
     audit_odds_public: Optional[float] = None
     pa_state_would_seat: bool = False
+    pa_pass_would_audit: bool = False      # the pass would have given the state its audit seat past w_R (read; the seat is a member's or nobody's)
+    pa_unseated: bool = False              # no member took its audit seat by the window's close: closed by truth, spent (Appendix V)
+    audit_after_dispute: bool = False      # the state's own work disputed before a panel of the state's alone: the audit seat admitted after (Appendix V)
     phi_E_topped: float = 0.0                                 # (A) what the bank added to a plant's allowance and fee pot at its seats' assignment
     phi_F_topped: float = 0.0
     plant_fee_destroyed: float = 0.0                          # (A) the plant challenger's court fee, minted to its alias and destroyed at filing
@@ -493,6 +496,12 @@ class World:
         self.pi_Ld: float = min(self.p.pi_L_max, self.p.pi_L0)
         self.lie_quota: dict = {"appeal": float(self.p.lie_floor), "dispute": float(self.p.lie_floor)}
         self.obligations_discharged_by_dispute: int = 0
+        # the rulings after runs 38–39 (Appendix V): the per-seat readings pooled forward to at least seat_dial_min_adj adjudications
+        # (confirmed-or-sided, adjudicated); the planted approvals closed unseated; the state's own work's disputes by panel kind
+        self._seat_pool: dict = {"A": [0, 0], "La": [0, 0], "Ld": [0, 0]}
+        self.planted_approvals_unseated: int = 0
+        self.state_work_discharged_by_panel: int = 0
+        self.state_work_audit_after_dispute: int = 0
         self.plant_mint_by_kind: dict = {"dial": 0.0, "approval": 0.0, "lie": 0.0, "rev": 0.0}
         self.plant_retire_by_kind: dict = {"dial": 0.0, "approval": 0.0, "lie": 0.0, "rev": 0.0}
         self.plants_created = 0
@@ -1567,7 +1576,9 @@ class World:
 
     def _new_review(self, c: Case, reviewer: str, role: str) -> Review:
         self._eligible(c, reviewer, role)
-        if self._positions(c) + 1 > self.p.V_max:
+        if self._positions(c) + 1 > self.p.V_max + (1 if (c.audit_after_dispute and role == "audit") else 0):
+            # Appendix V (the ruling after run 39): the state's own work disputed before a panel of the state's alone keeps its audit seat
+            # after the dispute — one position beyond V_max, the panel having used the round's two
             raise RuleError(f"case {c.id} would exceed V_max={self.p.V_max} review positions")
         if c.plant is not None and self.p.plants_every_seat:
             self._plant_top_up(c, role)                 # 2.8.0 §2.2 (A): the pots brought to the seat's need before the seat is held
@@ -1633,8 +1644,9 @@ class World:
             raise RuleError("audit: only an F verdict in PENDING may be audited (§8.3)")
         if self.t > c.window_end and not c.audit_vacated and not c.audit_obligation:
             raise RuleError("audit: window closed")
-        if c.challenge_round_used:
-            raise RuleError("audit: challenge round already used")
+        if c.challenge_round_used and not c.audit_after_dispute:
+            raise RuleError("audit: challenge round already used")   # the state's own work disputed before a panel of the state's alone
+                                                                     # keeps its audit seat (Appendix V, the ruling after run 39)
         if any(a[3] == "override" for a in c.assessments):
             raise RuleError("audit: a human ruling has settled this case's assessment; nothing to audit (§15.2)")
         if self.t == c.t_verdict and c.outcome is not None and c.outcome != c.verdict:
@@ -1810,9 +1822,8 @@ class World:
                 if c.plant is None:
                     # 2.9.0 §2.2: a real pending approval — the planted approvals' base (π^A per real approval, credited as given) and the
                     # window of recorded odds the masked public field draws from (the ruling of October 27)
-                    self.period["real_approvals"] += 1
-                    if self.p.plants_every_seat and self.p.planted_approval:
-                        self.planted_approval_credit += self.pi_A
+                    self.period["real_approvals"] += 1      # the credit's base since the ruling after run 38 is the real approvals audited by
+                                                            # members (`_audit_result`), so the planted approvals scale with the market's audit capacity
                     odds = c.audit_odds_at_verdict if c.audit_odds_at_verdict is not None else self.p.p_start
                     self._cur_trailing["odds"].append(odds)
                     self._recent["odds"].append(odds)
@@ -1985,6 +1996,12 @@ class World:
         self._log(c, f"{challenger} disputes the approval")
 
     def _audit_result(self, c: Case, r: Review):
+        if c.plant is None and not self.is_system_reviewer(r.reviewer):
+            # 2.9.0 §2.2 as ruled after run 38 (Appendix V): a real approval audited by a member is the planted approvals' base — π^A credited
+            # per such audit (the state's audits of real roots are not the market's capacity and add nothing)
+            self.period["real_member_audits"] += 1
+            if self.p.plants_every_seat and self.p.planted_approval:
+                self.planted_approval_credit += self.pi_A
         if r.is_audit_as_appeal:
             self._maybe_settle_challenge(c)
             return
@@ -2666,6 +2683,17 @@ class World:
             # 2.8.0 §2.2: the vesting step finalizes a bad plant N by truth where a real case would vest — its F pending to the window's
             # close with no challenge, or its challenge resolved and the window closed
             for c in list(self._live_cases.values()):
+                if c.planted_approval and c.state == "PENDING" and c.audit_obligation and c.window_end is not None and tick >= c.window_end \
+                        and (c.challenge is None or c.challenge["resolved"]) \
+                        and not any(self.reviews[r].role == "audit" and self.reviews[r].status != "withdrawn" for r in c.reviews):
+                    # Appendix V (the ruling after run 38): no member took the planted approval's audit seat by the window's close — the seat
+                    # was nobody's, the case closes by truth, spent and read (not adjudicated, not in F̂^A)
+                    c.audit_obligation = False
+                    c.open_items -= 1
+                    c.pa_unseated = True
+                    self.planted_approvals_unseated += 1
+                    self.period["pa_unseated"] += 1
+                    self._log(c, "planted approval: no member took its audit seat by the window's close — closed by truth, spent (Appendix V)")
                 if c.plant is not None and c.state == "PENDING" and c.open_items == 0 and c.window_end is not None \
                         and tick >= c.window_end and (c.challenge is None or c.challenge["resolved"]) and not self._plant_truth(c):
                     self._finalize_N(c, reason="plant: not fulfilled by construction (the window closed)", actor_fault=False)
@@ -3342,18 +3370,21 @@ class World:
         return int(math.floor(self.plant_credit + 1e-9)) if self.plant_credit > 0 else 0
 
     def planted_approvals_due(self) -> int:
-        """2.9.0 §2.2: how many planted approvals the rate π^A calls for (per real pending approval, credited as given) and not yet posted."""
+        """2.9.0 §2.2: how many planted approvals the rate π^A calls for (per real approval audited by a member since the ruling after run 38,
+        credited as given) and not yet posted."""
         if not (self.p.plants_every_seat and self.p.planted_approval):
             return 0
         return int(math.floor(self.planted_approval_credit + 1e-9)) if self.planted_approval_credit > 0 else 0
 
     def planted_lies_due(self, kind: str) -> int:
-        """2.9.0 §2.3: how many planted lies of `kind` (appeal | dispute) the period's quota — the trailing closed period's real count of the
-        kind times the rate, the floor of two when that count is zero or the product under two — still calls for."""
+        """2.9.0 §2.3: how many planted lies of `kind` (appeal | dispute) the period's **floor** of two still calls for. Since the eighth
+        conformance item (Appendix S, after run 39) the rate is spent as a coin at π^L per real challenge filed in the pass — the instrument's
+        — and the floor is filed at ticks drawn from the real spread; `lie_quota` keeps the expected count (the trailing period's real count
+        times the rate, floored at two) as the record."""
         if not (self.p.plants_every_seat and self.p.planted_lie) or kind not in ("appeal", "dispute"):
             return 0
-        left = self.lie_quota[kind] - self.period["lies_filed"][kind]
-        return int(math.floor(left + 1e-9)) if left > 0 else 0
+        left = self.p.lie_floor - self.period["lies_filed"][kind]
+        return int(left) if left > 0 else 0
 
     def plant_seat(self, cid: str) -> str:
         """2.9.0 §2.2: the planted approval's initial seat is nobody's — here the orchestrator's instrument seats its own verdict's review when
@@ -3636,10 +3667,24 @@ class World:
         if ch is None or ch.get("kind") != "dispute" or not c.audit_obligation:
             return
         if c.market_audit_only:
-            return                                      # the state's own work (1.4.0 §2.2, I25): its audit is held for a member whatever the
-                                                        # panel found — the discharge covers the rolled obligations (the reading in Appendix V,
-                                                        # found by the liar cell: a requester's dispute of a troop's delivery approved by a troop
-                                                        # reviewer let it vest without the market's audit)
+            # the state's own work (1.4.0 §2.2, I25) — Appendix V's second reading, ruled after run 39: the dispute's panel is the market's
+            # judgment where a member sat on it and discharges the obligation as a member's audit would; where the panel was the state's alone
+            # the audit seat is admitted after the dispute (the one challenge round yields to I25's purpose — the round limits a participant's
+            # exposure, and the state is none); a case is never left standing
+            members = [x for x in ch["reviews"] if self.reviews[x].status in ("done", "overturned", "vested")
+                       and not self.is_system_reviewer(self.reviews[x].reviewer)]
+            if members:
+                c.audit_obligation = False
+                c.open_items -= 1
+                self.obligations_discharged_by_dispute += 1
+                self.state_work_discharged_by_panel += 1
+                self.period["obligations_discharged"] += 1
+                self._log(c, "the state's own work: a member sat on the dispute's panel — the market's judgment; the audit obligation discharged (Appendix V)")
+            elif not c.audit_after_dispute:
+                c.audit_after_dispute = True
+                self.state_work_audit_after_dispute += 1
+                self._log(c, "the state's own work: the panel was the state's alone — the audit seat admitted after the dispute, the one round yielding (Appendix V)")
+            return
         if any(self.reviews[x].role == "audit" and self.reviews[x].status != "withdrawn" for x in c.reviews):
             return                                      # an audit seat was held: its own path discharges it
         c.audit_obligation = False
@@ -3720,7 +3765,8 @@ class World:
                                                "outcome": c.plant_outcome,
                                                # 2.9.0 §2.6: a planted approval named, its public odds shown beside the true 1 (keys only on one,
                                                # so the 2.8.0 control's record is unchanged to the hash)
-                                               **({"planted_approval": True, "audit_odds_public": c.audit_odds_public} if c.planted_approval else {})})
+                                               **({"planted_approval": True, "audit_odds_public": c.audit_odds_public} if c.planted_approval else {}),
+                                               **({"unseated": True} if c.pa_unseated else {})})
         c.plant_reveal_hseq = len(self.history.entries) - 1
         self._log(c, f"plant revealed at closure: {'good' if c.plant else 'bad'}"
                   + (f", revised {'good' if c.plant_revised else 'bad'}" if c.plant_revised is not None else "")
@@ -3839,6 +3885,7 @@ class World:
                 "pa_posted": 0, "pa_verdicts": 0, "pa_audit_adj": 0, "pa_audit_confirmed": 0, "pa_third": 0, "pa_disputed_first": 0,
                 "pa_state_would_seat": 0, "lies_filed": {"appeal": 0, "dispute": 0}, "lie_adj": {"appeal": 0, "dispute": 0},
                 "lie_sided": {"appeal": 0, "dispute": 0}, "obligations_discharged": 0,
+                "real_member_audits": 0, "pa_pass_would_audit": 0, "pa_unseated": 0,     # the rulings after runs 38–39 (Appendix V)
                 "suspensions": 0, "eligibility_shortfall": 0,
                 "award_price_sum": 0.0, "award_n": 0,
                 "troop_ticks_reviews": 0, "troop_ticks_deliveries": 0, "troop_summons_reviews": 0,
@@ -3909,20 +3956,31 @@ class World:
         # 2.9.0 §2.4: the dial per planted wrong step — m^A on the planted approvals confirmed at the audit seat, m^La / m^Ld on the planted
         # lies a panelist sided with, each stepping as m_t steps on its own reading against F*, each moving its rate alone; an undefined
         # reading leaves its multiplier; the lies' quotas for the next period from this period's real counts
-        def _step(m_old_x, f_hat):
+        def _step(m_old_x, f_hat, cap):
             if not self.p.dial or f_hat is None:
                 return m_old_x
             ratio = (f_hat / self.p.F_star) ** self.p.gamma if f_hat > 0 else 0.0
-            return min(max(min(max(m_old_x * ratio, 0.9 * m_old_x), 2.0 * m_old_x), 1.0), self.p.m_max)
-        F_hat_A = (per["pa_audit_confirmed"] / per["pa_audit_adj"]) if per["pa_audit_adj"] else None
-        F_hat_La = (per["lie_sided"]["appeal"] / per["lie_adj"]["appeal"]) if per["lie_adj"]["appeal"] else None
-        F_hat_Ld = (per["lie_sided"]["dispute"] / per["lie_adj"]["dispute"]) if per["lie_adj"]["dispute"] else None
+            return min(max(min(max(m_old_x * ratio, 0.9 * m_old_x), 2.0 * m_old_x), 1.0), cap)
+        def _pooled(key, hit, adj):
+            # the ruling after run 38 (Appendix V): a per-seat multiplier steps on a reading of at least seat_dial_min_adj adjudications,
+            # the period's counts pooled forward until reached; the reading taken resets the pool
+            pool = self._seat_pool[key]
+            pool[0] += hit
+            pool[1] += adj
+            if pool[1] >= self.p.seat_dial_min_adj:
+                f = pool[0] / pool[1]
+                pool[0] = pool[1] = 0
+                return f
+            return None
+        F_hat_A = _pooled("A", per["pa_audit_confirmed"], per["pa_audit_adj"]) if (self.p.plants_every_seat and self.p.planted_approval) else None
+        F_hat_La = _pooled("La", per["lie_sided"]["appeal"], per["lie_adj"]["appeal"]) if (self.p.plants_every_seat and self.p.planted_lie) else None
+        F_hat_Ld = _pooled("Ld", per["lie_sided"]["dispute"], per["lie_adj"]["dispute"]) if (self.p.plants_every_seat and self.p.planted_lie) else None
         m_A_old, m_La_old, m_Ld_old = self.m_A, self.m_La, self.m_Ld
         if self.p.plants_every_seat and self.p.planted_approval:
-            self.m_A = _step(self.m_A, F_hat_A)
+            self.m_A = _step(self.m_A, F_hat_A, self.p.m_A_max)
             self.pi_A = min(self.p.pi_A_max, self.p.pi_A0 * self.m_A)
         if self.p.plants_every_seat and self.p.planted_lie:
-            self.m_La, self.m_Ld = _step(self.m_La, F_hat_La), _step(self.m_Ld, F_hat_Ld)
+            self.m_La, self.m_Ld = _step(self.m_La, F_hat_La, self.p.m_L_max), _step(self.m_Ld, F_hat_Ld, self.p.m_L_max)
             self.pi_La = min(self.p.pi_L_max, self.p.pi_L0 * self.m_La)
             self.pi_Ld = min(self.p.pi_L_max, self.p.pi_L0 * self.m_Ld)
             self.lie_quota = {"appeal": max(float(self.p.lie_floor), self.pi_La * per["real_appeals"]),
@@ -3958,6 +4016,8 @@ class World:
                    "pa_posted": per["pa_posted"], "pa_verdicts": per["pa_verdicts"], "pa_audit_adj": per["pa_audit_adj"],
                    "pa_audit_confirmed": per["pa_audit_confirmed"], "pa_third": per["pa_third"], "pa_disputed_first": per["pa_disputed_first"],
                    "pa_state_would_seat": per["pa_state_would_seat"], "lies_filed": dict(per["lies_filed"]), "lie_adj": dict(per["lie_adj"]),
+                   "real_member_audits": per["real_member_audits"], "pa_pass_would_audit": per["pa_pass_would_audit"], "pa_unseated": per["pa_unseated"],
+                   "seat_pool": {k: list(v) for k, v in self._seat_pool.items()},
                    "lie_sided": dict(per["lie_sided"]), "obligations_discharged": per["obligations_discharged"],
                    "F_hat_A": None if F_hat_A is None else round(F_hat_A, 6), "F_hat_La": None if F_hat_La is None else round(F_hat_La, 6),
                    "F_hat_Ld": None if F_hat_Ld is None else round(F_hat_Ld, 6),
@@ -4528,7 +4588,13 @@ class World:
                     held_max_age = max(held_max_age, tick - (since or tick))
                 elif self.p.troops and since is not None and tick - since + 1 >= self.p.w_R \
                         and not self._free_eligible_reviewer(c, "audit"):
-                    if plant:
+                    if c.planted_approval:
+                        # Appendix V (the ruling after run 38): a planted approval's audit seat is a member's or nobody's — the state's verdict
+                        # never takes it (its confirmation would be the state's, not the market's); what the pass would have done is read
+                        if not c.pa_pass_would_audit:
+                            c.pa_pass_would_audit = True
+                            self.period["pa_pass_would_audit"] += 1
+                    elif plant:
                         self._state_verdict_on_plant(c, "audit", tick)     # 2.8.0 (C): no fee, no loan, no place, counted apart
                     elif self._summon_review(c, "audit", tick) is None:
                         self.troop_held_ticks += 1

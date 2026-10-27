@@ -225,12 +225,17 @@ GOLDEN = {
     # Re-pinned once at the 2.9.0 implementing commit (October 27, 2026; the plant takes the wrong step; the 2.8.0 pins were cd9c224c… / 9928 and
     # 4396ace2… / 9718): the scenario posts planted approvals (π^A_0 0.2 here),
     # seats and answers them, files planted lies while the quota stands, and the dispute's settlement discharges a standing obligation
-    1: {"head": "95953f96ed4c123a7decdc6cccb30cdee6715c958eb4b6502e815b8ee1b01fb1", "entries": 10327,
-        "M": 120265.892416, "Res": 0.0,
-        "states": {"FINAL_N": 212, "VESTED": 53, "WITHDRAWN": 16, "CANCELLED": 1, "AVAILABLE": 6, "PENDING": 3, "COMMITTED": 2}},
-    2: {"head": "b678a8b59cfe377783c4dfb9f97d867436a0bf76acf9cf2f0a69ac42aa0dc653", "entries": 10878,
-        "M": 120337.83039, "Res": 0.0,
-        "states": {"FINAL_N": 219, "VESTED": 56, "CANCELLED": 2, "WITHDRAWN": 8, "AVAILABLE": 16, "PENDING": 1, "SUBMITTED": 1, "COMMITTED": 2}},
+    # (the 2.9.0 implementing commit's pins were 95953f96… / 10327 and b678a8b5… / 10878). Re-pinned once more with the rulings after runs 38
+    # and 39 (October 27, 2026; Appendix V): the planted approvals' base is the real approvals audited by members, their audit seat a member's
+    # or nobody's (an unseated one closes by truth at the window's end), the per-seat multipliers step on at least ten pooled adjudications
+    # within their own bounds, the planted lies' quota is the floor alone (the rate a coin in the driver), and a dispute's panel on the state's
+    # own work discharges the audit where a member sat on it — so every planted approval's posting tick and the whole path move.
+    1: {"head": "d9f2e9c243328b5d3c5ee4b9adbfd1dcd583630a44a5772d282b317837d2a396", "entries": 9703,
+        "M": 120234.810247, "Res": 0.0,
+        "states": {"FINAL_N": 178, "VESTED": 63, "WITHDRAWN": 11, "CANCELLED": 1, "AVAILABLE": 7, "PENDING": 2, "SUBMITTED": 1, "COMMITTED": 1}},
+    2: {"head": "81cfa76aab9084f165880920a4b3a0a4b5255f361737a8b24e61215c5e309a8a", "entries": 9380,
+        "M": 120308.989383, "Res": 0.0,
+        "states": {"FINAL_N": 191, "VESTED": 44, "WITHDRAWN": 6, "CANCELLED": 1, "PENDING": 3, "COMMITTED": 1}},
 }
 
 

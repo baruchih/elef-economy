@@ -82,7 +82,8 @@ _PLANT_FIELD_DEFAULTS = {"plant": None, "plant_commit": None, "plant_nonce": Non
                          "plant_revised_hseq": None, "plant_adjudications": (), "plant_state_seats": (), "phi_E_topped": 0.0,
                          "phi_F_topped": 0.0, "plant_fee_destroyed": 0.0, "grade": None,
                          # 2.9.0 §2.6: the planted approval's mark and its masked field's draw
-                         "planted_approval": False, "audit_odds_public": None, "pa_state_would_seat": False}
+                         "planted_approval": False, "audit_odds_public": None, "pa_state_would_seat": False, "pa_pass_would_audit": False,
+                         "pa_unseated": False}
 _PLANT_EVENT_KINDS = ("mint_plant", "retire_plant")
 
 
@@ -411,6 +412,9 @@ class Public:
                 "planted_lies_due": {"appeal": w.planted_lies_due("appeal"), "dispute": w.planted_lies_due("dispute")},
                 "lie_quota": dict(w.lie_quota), "pi_A": w.pi_A, "m_A": w.m_A, "pi_La": w.pi_La, "m_La": w.m_La, "pi_Ld": w.pi_Ld, "m_Ld": w.m_Ld,
                 "obligations_discharged_by_dispute": w.obligations_discharged_by_dispute,
+                # the rulings after runs 38–39 (Appendix V): the planted approvals closed unseated, the state's own work's disputes by panel kind
+                "planted_approvals_unseated": w.planted_approvals_unseated, "state_work_discharged_by_panel": w.state_work_discharged_by_panel,
+                "state_work_audit_after_dispute": w.state_work_audit_after_dispute,
                 "plant_mint_by_kind": dict(w.plant_mint_by_kind), "plant_retire_by_kind": dict(w.plant_retire_by_kind),
                 "eligibility_shortfall": w.eligibility_shortfall, "reserve_shortfall_now": w.reserve_shortfall_now,
                 "suspensions": w.suspensions, "alarms": w.alarms, "alarm_streak": w.alarm_streak,

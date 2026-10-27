@@ -43,7 +43,9 @@ REV_POP_KEYS = tuple(dict.fromkeys(POP_KEYS + ("P_t", "member_price_mean", "awar
                                              "true_rejections_appealed", "true_rejections_overturned", "true_approvals_disputed", "true_approvals_overturned",
                                              # 2.9.0 §5: the planted wrong steps' readings
                                              "pa_posted", "pa_verdicts", "pa_closed", "pa_audited", "pa_confirmed", "pa_rejected", "pa_third", "pa_disputed",
-                                             "pa_state_audit", "pa_state_would_seat", "plant_lies_filed_appeal", "plant_lies_filed_dispute", "lie_adj_appeal",
+                                             "pa_state_audit", "pa_state_would_seat", "pa_unseated", "pa_pass_would_audit", "plant_lies_coin", "plant_lies_floor",
+                                             "life_real_filing_pos", "life_plant_filing_pos", "life_lie_filing_pos",   # the rulings after runs 38–39
+                                             "plant_lies_filed_appeal", "plant_lies_filed_dispute", "lie_adj_appeal",
                                              "lie_sided_appeal", "lie_adj_dispute", "lie_sided_dispute", "pi_A", "m_A", "pi_La", "m_La", "pi_Ld", "m_Ld",
                                              "F_hat_A", "F_hat_La", "F_hat_Ld", "obligations_discharged", "bad_met_initial", "bad_met_audit", "bad_met_third",
                                              "bad_met_appeal", "bad_met_dispute", "bad_met_resumed", "panel_ineligible_member_periods", "member_periods",

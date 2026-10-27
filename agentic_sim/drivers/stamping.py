@@ -430,7 +430,17 @@ class Stamping:
         self.seat_gap_window: list[tuple[int, int]] = []       # 2.9.0 (A): the real roots' seating gaps (t_assign − t_submit) — the planted verdict's draw
         self.appeal_delay_window_all: list[tuple[int, int]] = []    # 2.9.0 (B): every real appeal's delay, truthful or lying — the planted lie's draw
         self.dispute_delay_window_all: list[tuple[int, int]] = []
-        self.lies_pending: dict = {"appeal": 0, "dispute": 0}       #   lies decided and held for their delay, so the quota is not over-filed
+        self.lies_pending: dict = {"appeal": 0, "dispute": 0}       #   (retired by the eighth conformance item; kept at zero for the columns)
+        # The eighth conformance item of the instrument (Appendix S, after run 39): the planted lie's filing told apart by its position in the
+        # period (the quota spent on the period's first eligible plants). The rate is a coin at π^L per real challenge filed in the pass
+        # (`lies_wanted`, spent on the next plant of the kind at hand), the floor of two a period filed at ticks drawn from the trailing real
+        # challenges' positions in their periods (uniform over the period where the window is empty); the stage check gains the position.
+        self.lies_wanted: dict = {"appeal": 0, "dispute": 0}
+        self.appeal_pos_window: list[tuple[int, int]] = []          #   every real root appeal's filing offset from its period's start
+        self.dispute_pos_window: list[tuple[int, int]] = []
+        self.lie_floor_ticks: dict = {"appeal": [], "dispute": []}
+        self.lies_filed_period: dict = {"appeal": 0, "dispute": 0}
+        self._lie_period: int = -1
         self.appeal_window: list[tuple[int, int]] = []
         self.appeal_delay_window: list[tuple[int, int]] = []
         self.dispute_window: list[tuple[int, int]] = []
@@ -541,7 +551,9 @@ class Stamping:
                   "plant_raises_refused": 0, "plant_raise_delay_sum": 0,       # the plants whose raise was drawn refused (after run 35) and their drawn delays
                   # 2.8.0: the plant at every seat — the instrument's filings, revisions and spends, the seats and failures by kind, the state's initial seats
                   "plant_appeals_filed": 0, "pa_posted": 0, "pa_seated": 0, "pa_seat_refused": 0, "pa_verdicts": 0, "pa_closed": 0, "pa_audited": 0, "pa_confirmed": 0, "pa_rejected": 0, "pa_third": 0, "pa_disputed": 0, "pa_state_audit": 0, "pa_state_would_seat": 0, "plant_lies_filed_appeal": 0, "plant_lies_filed_dispute": 0, "plant_lies_held": 0, "plant_lies_refused": 0, "lie_adj_appeal": 0, "lie_sided_appeal": 0, "lie_adj_dispute": 0, "lie_sided_dispute": 0, "bad_met_initial": 0, "bad_met_audit": 0, "bad_met_third": 0, "bad_met_appeal": 0, "bad_met_dispute": 0, "bad_met_resumed": 0, "bad_met_state": 0, "panel_ineligible_member_periods": 0, "member_periods": 0, "life_lie_filing_delay": 0, "life_lie_filing_n": 0, "plant_disputes_filed": 0, "plant_challenges": 0, "plant_revisions": 0, "plant_spent_by_instrument": 0,
-                  "plants_state_initial": 0, "plant_appeals_held": 0,
+                  "plants_state_initial": 0, "plant_appeals_held": 0, "plant_lies_coin": 0, "plant_lies_floor": 0, "pa_unseated": 0, "pa_pass_would_audit": 0,
+                  "life_real_filing_pos": 0.0, "life_real_filing_pos_n": 0, "life_plant_filing_pos": 0.0, "life_plant_filing_pos_n": 0,
+                  "life_lie_filing_pos": 0.0, "life_lie_filing_pos_n": 0,
                   **{f"plant_seats_{k}": 0 for k in ("initial", "audit", "third", "appeal", "dispute", "resumed", "state")},
                   **{f"plant_seat_failures_{k}": 0 for k in ("initial", "audit", "third", "appeal", "dispute", "resumed", "state")},
                   **{f"life_{k}_{st}": 0 for k in ("real", "plant") for st in ("audit_n", "audit_wait", "filing_n", "filing_delay", "panel_n", "panel_wait", "state_seats")},
@@ -693,26 +705,26 @@ class Stamping:
                 w.respond(cid, "appeal", "the work meets the request")
                 task.appealed, task.t_filed = True, w.t
                 self.c["plant_appeals_filed"] += 1
+                self.c["life_plant_filing_pos"] += self._filing_pos(); self.c["life_plant_filing_pos_n"] += 1
                 return
         elif c.verdict == N:
             # 2.9.0 §2.3 (B): the planted lie — the plant actor appeals a bad plant's N while the period's quota stands (the trailing period's
             # real appeals × π^La, the floor of two), at a delay from every real appeal's window (truthful and lying alike; the default where empty)
             if task.plant_file_at is None:
-                if w.planted_lies_due("appeal") - self.lies_pending["appeal"] > 0:
-                    task.plant_file_at = w.t + int(self._win_draw(self.appeal_delay_window_all, per, self.p.lie_delay_default))
+                # the eighth conformance item: a lie the coin (or the floor) wants is filed on this plant, in this pass; no quota, no delay
+                if self.lies_wanted["appeal"] > 0:
+                    self.lies_wanted["appeal"] -= 1
+                    task.plant_file_at = w.t
                     task.lie = True
-                    self.lies_pending["appeal"] += 1
                 else:
                     task.plant_file_at = -1
             if task.plant_file_at >= 0:
-                if w.t < task.plant_file_at:
-                    self.c["plant_lies_held"] += 1
-                    return
-                self.lies_pending["appeal"] -= 1
                 try:
                     w.respond(cid, "appeal", "the work meets the request")
                     task.appealed, task.t_filed = True, w.t
                     self.c["plant_lies_filed_appeal"] += 1
+                    self.lies_filed_period["appeal"] += 1
+                    self.c["life_lie_filing_pos"] += self._filing_pos(); self.c["life_lie_filing_pos_n"] += 1
                     if c.t_verdict is not None:
                         self.c["life_lie_filing_delay"] += w.t - c.t_verdict
                         self.c["life_lie_filing_n"] += 1
@@ -1854,11 +1866,43 @@ class Stamping:
                         self.kind[aid] = richer
                         self.c["disposition_switches"] += 1
 
+    def _filing_pos(self) -> float:
+        dl = self.w.dial()
+        return (self.w.t - dl["period"]["start"]) / max(1, self.p.period_ticks)
+
+    def lie_step(self):
+        """The eighth conformance item (Appendix S, after run 39): the planted lies' floor — two a period of each kind — filed at ticks drawn
+        from the trailing real challenges' positions in their periods, uniform over the period where the window is empty; the rate itself is a
+        coin at π^L per real challenge filed in the pass (`lies_wanted`, in the appeal and dispute passes). Once a tick, at the plants' step."""
+        w = self.w
+        if not (self.p.plants_every_seat and self.p.planted_lie):
+            return
+        dl = w.dial()
+        per, start = len(dl["periods"]), dl["period"]["start"]
+        if per != self._lie_period:
+            self._lie_period = per
+            self.lies_filed_period = {"appeal": 0, "dispute": 0}
+            for kind, win in (("appeal", self.appeal_pos_window), ("dispute", self.dispute_pos_window)):
+                ticks = []
+                for _ in range(self.p.lie_floor):
+                    off = self._win_draw(win, per, None)
+                    if off is None:
+                        off = int(self.plant_rng.randrange(max(1, self.p.period_ticks)))
+                    ticks.append(start + int(off))
+                self.lie_floor_ticks[kind] = sorted(ticks)
+        for kind in ("appeal", "dispute"):
+            while self.lie_floor_ticks[kind] and self.lie_floor_ticks[kind][0] <= w.t:
+                self.lie_floor_ticks[kind].pop(0)
+                if self.lies_filed_period[kind] + self.lies_wanted[kind] < self.p.lie_floor:
+                    self.lies_wanted[kind] += 1
+                    self.c["plant_lies_floor"] += 1
+
     def plant_step(self, t: int, n: int | None = None, approval: bool = False):
         """The plants the rate calls for (1.2.0 §2.1): under 2.6.0 posted as roots under fresh names, in the requesters' posting step
         (before the tick's awards, at a drawn position among the tick's postings, as a real root is); under 2.5.0 and before created
         submitted before the tick's assignments. `n` posts that many (one, at its drawn position); None posts all that are due."""
         a, w = self.a, self.w
+        self.lie_step()
         if approval:
             # 2.9.0 §2.2 (A): one planted approval — a bad plant marked at posting; its seat nobody's, its F the orchestrator's
             try:
@@ -2249,6 +2293,13 @@ class Stamping:
                 task.appealed, task.t_filed = True, w.t
                 if c.t_verdict is not None:
                     self.appeal_delay_window_all.append((len(w.dial()["periods"]), w.t - c.t_verdict))   # 2.9.0 (B): every real appeal's delay
+                if c.is_root:
+                    dl = w.dial()
+                    self.appeal_pos_window.append((len(dl["periods"]), w.t - dl["period"]["start"]))      # the floor's draw (the eighth item)
+                    self.c["life_real_filing_pos"] += self._filing_pos(); self.c["life_real_filing_pos_n"] += 1
+                    if self.p.plants_every_seat and self.p.planted_lie and self.plant_rng.random() < dl["pi_La"]:
+                        self.lies_wanted["appeal"] += 1                  # the coin at π^La per real appeal filed in the pass
+                        self.c["plant_lies_coin"] += 1
                 self.c["appeals_filed"] += 1
                 self.c["false_rejections_appealed" if task.fulfilled else "true_rejections_appealed"] += 1
             else:
@@ -2365,12 +2416,12 @@ class Stamping:
                 if task.plant_file_at is None:
                     rate = self._win_rate(self.dispute_window, per) if a.dispute_policy != "none" else 0.0
                     if task.fulfilled:
-                        # 2.9.0 §2.3 (B): the planted lie — the plant requester disputes a good plant's F while the period's quota stands, at a
-                        # delay from every real dispute's window (truthful and lying alike; the default where empty)
-                        if w.planted_lies_due("dispute") - self.lies_pending["dispute"] > 0:
-                            task.plant_file_at = w.t + int(self._win_draw(self.dispute_delay_window_all, per, self.p.lie_delay_default))
+                        # 2.9.0 §2.3 (B): the planted lie — the plant requester disputes a good plant's F; since the eighth conformance item a
+                        # lie the coin (or the floor) wants is filed on this plant, in this pass (no quota, no delay)
+                        if self.lies_wanted["dispute"] > 0:
+                            self.lies_wanted["dispute"] -= 1
+                            task.plant_file_at = w.t
                             task.lie = True
-                            self.lies_pending["dispute"] += 1
                         else:
                             task.plant_file_at = -1
                     else:
@@ -2380,19 +2431,20 @@ class Stamping:
                     continue                                 # held for the drawn delay; the roll waits as it does for a real requester acting first
                 task.dispute_rolled = True
                 if task.plant_file_at >= 0:
-                    if task.lie:
-                        self.lies_pending["dispute"] -= 1
                     try:
                         w.dispute(cid, c.requester, "the result does not meet the request")
                         task.disputed, task.t_filed = True, w.t
                         task.audit_wanted = False
                         if task.lie:
                             self.c["plant_lies_filed_dispute"] += 1
+                            self.lies_filed_period["dispute"] += 1
+                            self.c["life_lie_filing_pos"] += self._filing_pos(); self.c["life_lie_filing_pos_n"] += 1
                             if c.t_verdict is not None:
                                 self.c["life_lie_filing_delay"] += w.t - c.t_verdict
                                 self.c["life_lie_filing_n"] += 1
                         else:
                             self.c["plant_disputes_filed"] += 1
+                            self.c["life_plant_filing_pos"] += self._filing_pos(); self.c["life_plant_filing_pos_n"] += 1
                             if task.planted_approval:
                                 self.c["pa_disputed"] += 1
                     except (RuleError, LedgerError):
@@ -2420,6 +2472,13 @@ class Stamping:
                         task.audit_wanted = False
                         if c.t_verdict is not None:
                             self.dispute_delay_window_all.append((per, w.t - c.t_verdict))   # 2.9.0 (B): every real dispute's delay
+                        if c.is_root:
+                            dl = w.dial()
+                            self.dispute_pos_window.append((per, w.t - dl["period"]["start"]))          # the floor's draw (the eighth item)
+                            self.c["life_real_filing_pos"] += self._filing_pos(); self.c["life_real_filing_pos_n"] += 1
+                            if self.p.plants_every_seat and self.p.planted_lie and self.plant_rng.random() < dl["pi_Ld"]:
+                                self.lies_wanted["dispute"] += 1              # the coin at π^Ld per real dispute filed in the pass
+                                self.c["plant_lies_coin"] += 1
                         self.c["disputes_filed"] += 1
                         self.c["true_approvals_disputed" if task.fulfilled else "false_approvals_disputed"] += 1
                     except (RuleError, LedgerError):
@@ -2567,7 +2626,9 @@ class Stamping:
                                 self.c["pa_confirmed" if outcome == "failure" else "pa_rejected"] += 1
                             elif kind == "third" and outcome in ("stood", "failure"):
                                 self.c["pa_third"] += 1
-                        self.c["pa_state_audit"] += sum(1 for s_ in c.plant_state_seats if s_[1] == "audit")
+                        self.c["pa_state_audit"] += sum(1 for s_ in c.plant_state_seats if s_[1] == "audit")   # 0 since the ruling after run 38
+                        self.c["pa_unseated"] += int(bool(c.pa_unseated))
+                        self.c["pa_pass_would_audit"] += int(bool(c.pa_pass_would_audit))
                         for (_t, rid, kind, _v, outcome) in c.plant_adjudications:
                             if outcome not in ("stood", "failure"):
                                 continue
@@ -2922,6 +2983,11 @@ class Stamping:
                     "pa_audited": self.c["pa_audited"], "pa_confirmed": self.c["pa_confirmed"], "pa_rejected": self.c["pa_rejected"],
                     "pa_third": self.c["pa_third"], "pa_disputed": self.c["pa_disputed"], "pa_state_audit": self.c["pa_state_audit"],
                     "pa_state_would_seat": self.c["pa_state_would_seat"],
+                    "pa_unseated": self.c["pa_unseated"], "pa_pass_would_audit": self.c["pa_pass_would_audit"],   # the ruling after run 38
+                    "plant_lies_coin": self.c["plant_lies_coin"], "plant_lies_floor": self.c["plant_lies_floor"],   # the eighth conformance item
+                    "life_real_filing_pos": (round(self.c["life_real_filing_pos"] / self.c["life_real_filing_pos_n"], 4) if self.c["life_real_filing_pos_n"] else ""),
+                    "life_plant_filing_pos": (round(self.c["life_plant_filing_pos"] / self.c["life_plant_filing_pos_n"], 4) if self.c["life_plant_filing_pos_n"] else ""),
+                    "life_lie_filing_pos": (round(self.c["life_lie_filing_pos"] / self.c["life_lie_filing_pos_n"], 4) if self.c["life_lie_filing_pos_n"] else ""),
                     "plant_lies_filed_appeal": self.c["plant_lies_filed_appeal"], "plant_lies_filed_dispute": self.c["plant_lies_filed_dispute"],
                     "lie_adj_appeal": self.c["lie_adj_appeal"], "lie_sided_appeal": self.c["lie_sided_appeal"],
                     "lie_adj_dispute": self.c["lie_adj_dispute"], "lie_sided_dispute": self.c["lie_sided_dispute"],

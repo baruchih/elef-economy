@@ -40,7 +40,14 @@ REV_POP_KEYS = tuple(dict.fromkeys(POP_KEYS + ("P_t", "member_price_mean", "awar
                                              "false_approvals", "suspensions", "bad_plants_approved", "good_plants_rejected", "audits_held", "audits_overturning", "audit_overturn_rate", "F_hat",
                                              "disputes_filed", "disputes_won", "false_approvals_disputed", "false_approvals_overturned",   # §52: the dispute layer in the disputes-on cell   # the reviewers in self-play (the ruling after run 33): honesty first
                                              "appeals_filed", "appeals_won", "false_rejections", "false_rejections_appealed", "false_rejections_overturned", "rulings",
-                                             "true_rejections_appealed", "true_rejections_overturned", "true_approvals_disputed", "true_approvals_overturned")))   # 2.8.0 §8.7 (c): the appeal layer, and the lies (--appeal-lie / --dispute-lie) with their wins
+                                             "true_rejections_appealed", "true_rejections_overturned", "true_approvals_disputed", "true_approvals_overturned",
+                                             # 2.9.0 §5: the planted wrong steps' readings
+                                             "pa_posted", "pa_verdicts", "pa_closed", "pa_audited", "pa_confirmed", "pa_rejected", "pa_third", "pa_disputed",
+                                             "pa_state_audit", "pa_state_would_seat", "plant_lies_filed_appeal", "plant_lies_filed_dispute", "lie_adj_appeal",
+                                             "lie_sided_appeal", "lie_adj_dispute", "lie_sided_dispute", "pi_A", "m_A", "pi_La", "m_La", "pi_Ld", "m_Ld",
+                                             "F_hat_A", "F_hat_La", "F_hat_Ld", "obligations_discharged", "bad_met_initial", "bad_met_audit", "bad_met_third",
+                                             "bad_met_appeal", "bad_met_dispute", "bad_met_resumed", "panel_ineligible_member_periods", "member_periods",
+                                             "plant_mint_dial", "plant_mint_approval", "plant_mint_lie", "plant_mint_rev", "cost_of_truth")))   # 2.8.0 §8.7 (c): the appeal layer, and the lies (--appeal-lie / --dispute-lie) with their wins
 BID_KEYS = ("learner_bid_decisions", "learner_bid_ratchet", "learner_bid_undercut", "learner_bid_withheld", "learner_bid_awards", "learner_bids_lost", "learner_bid_mean_over_cost",
             "learner_held_real_mean", "slot_awards", "slot_reviews", "slot_rho", "slot_cost", "slot_delivery_income", "slot_guarantees_forfeited", "slot_effort_burned", "P_t", "member_price_mean", "awarded")
 PAIR_KEYS = ("pair_ids", "pair_matched", "pair_unmatched", "pair_waited", "pair_reviews", "pair_cares", "pair_stamps", "pair_rejects", "pair_bad_stamped", "pair_good_stamped",

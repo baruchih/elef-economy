@@ -3635,6 +3635,11 @@ class World:
         ch = c.challenge
         if ch is None or ch.get("kind") != "dispute" or not c.audit_obligation:
             return
+        if c.market_audit_only:
+            return                                      # the state's own work (1.4.0 §2.2, I25): its audit is held for a member whatever the
+                                                        # panel found — the discharge covers the rolled obligations (the reading in Appendix V,
+                                                        # found by the liar cell: a requester's dispute of a troop's delivery approved by a troop
+                                                        # reviewer let it vest without the market's audit)
         if any(self.reviews[x].role == "audit" and self.reviews[x].status != "withdrawn" for x in c.reviews):
             return                                      # an audit seat was held: its own path discharges it
         c.audit_obligation = False

@@ -384,3 +384,45 @@ def test_I43_I44_and_I42_catch_the_state_on_the_seat_a_fee_on_the_alias_a_lie_wi
         check_all(w)
     c2.plant_fee_destroyed = c2.D
     check_all(w)
+
+
+# ------------------------------------------------------------ the discharge and the state's own work (2.9.0 §4 against 1.4.0 §2.2, I25)
+def test_a_dispute_of_the_states_own_approved_work_does_not_discharge_the_markets_audit():
+    """The second reading in Appendix V, found by §8.2's liar cell: a requester's dispute of a troop's delivery approved by a troop reviewer
+    (`market_audit_only` — the audit held for a member, 1.4.0 §2.2, I25) settles, and 2.9.0 §4's discharge would have let the case vest
+    without the market's audit. The engine keeps the state's own work's obligation whatever the panel found (the discharge covers the rolled
+    ones) — and the one challenge round (1.0.1 §8) then refuses the audit seat, so the case stays pending with its obligation, as it did on
+    this path since 1.4.0 (never exercised: a truthful requester meets it at b·ε_T of the state's deliveries). Three rules meet; the decision
+    is the reviewer's — the test pins what the engine does meanwhile."""
+    w = make_world(membership=False, plant_market=False, actors=["A", "B", "C"], duty=["C"], w_R=2, eps_T=0.0, T_review=100)   # a plant built submitted holds C; its review deadline far
+    for who in ("A", "B"):                                   # A and B committed on long deliveries: no free fundable member for the next root
+        qq = w.post_root("H", 20)
+        w.award(qq, who, 20, 30)
+    held = {"C": w.assign_initial(w.create_plant(True, 20.0), "C")}   # C, the one reviewer, holds an open review of a good plant
+    q = w.post_root("H", 20)
+    w.advance(w.t + w.p.w_A + 1)                             # unawarded for w_A with no free fundable member: the state delivers
+    c = w.cases[q]
+    assert w.is_troop(c.actor), c.state
+    w.advance(c.deadline)
+    w.submit(q)
+    w.advance(w.t + w.p.w_R + 1)                             # the initial seat waits w_R with C and D busy: a troop reviewer takes it
+    tr = next(w.reviews[x] for x in c.reviews if w.reviews[x].role == "initial" and w.is_troop(w.reviews[x].reviewer))
+    w.complete_review(tr.id, F, 0.0)                         # a troop approves the state's own work
+    assert c.market_audit_only and c.audit_obligation and w.audit_odds(q) == 1.0 and c.state == "PENDING"
+    w.dispute(q, "H", "the result does not meet the request")   # the requester disputes the state's approved work
+    w.advance(w.t + w.p.w_R + 1)                             # the panel seats wait w_R: two troop panelists
+    panel = [w.reviews[x] for x in c.reviews if w.reviews[x].role == "appeal" and w.reviews[x].status == "open"]
+    assert len(panel) == 2 and all(w.is_troop(r.reviewer) for r in panel)
+    for r in panel:
+        w.complete_review(r.id, F, 0.0)                      # the panel finds for the approval
+    assert c.challenge["resolved"] and c.state == "PENDING"
+    assert c.audit_obligation and w.obligations_discharged_by_dispute == 0 and w.period["obligations_discharged"] == 0   # the reading: not discharged
+    assert any(m.endswith("(2.9.0 §4)") for (_, m, _) in c.log) is False
+    w.advance(c.window_end + 2)
+    assert c.state == "PENDING" and c.audit_obligation      # I25: the state's own work does not vest without the market's audit
+    assert w.held_market_audit_now == 1                     # read as held for the market's audit (1.4.0 §2.2's reading)
+    w.complete_review(held["C"], F, 0.0)                     # C comes free — and the one challenge round is spent (1.0.1 §8):
+    with pytest.raises(RuleError):                           # no audit seat after the dispute; the case stays pending as it did since 1.4.0
+        w.assign_audit(q, "C")
+    assert c.state == "PENDING" and c.audit_obligation and c.open_items >= 1
+    check_all(w)                                             # the three rules meet on this case — the decision is the reviewer's (Appendix V)

@@ -1,0 +1,126 @@
+seed 21: 4630 review decisions
+seed 22: 3705 review decisions
+seed 23: 4180 review decisions
+seed 24: 4976 review decisions
+seed 25: 3925 review decisions
+seed 26: 3854 review decisions
+
+== results/redteam/stability/learned-rev-liars-290/direct/models/direct-online-10.pt (seeds 21,22,23,24,25,26); the action mix by seat / kind / truth
+| seat | kind | truth | decisions | care | approve blind | reject blind |
+| initial | plant | bad | 2671 | 0.762 | 0.209 | 0.029 |
+| initial | plant | good | 886 | 0.753 | 0.214 | 0.033 |
+| initial | real | bad | 2754 | 0.733 | 0.242 | 0.025 |
+| initial | real | good | 11119 | 0.740 | 0.235 | 0.025 |
+| audit | plant | good | 175 | 0.177 | 0.823 | 0.000 |
+| audit | real | bad | 22 | 0.045 | 0.955 | 0.000 |
+| audit | real | good | 4144 | 0.156 | 0.844 | 0.000 |
+| appeal | plant | bad | 288 | 0.847 | 0.062 | 0.090 |
+| appeal | plant | good | 65 | 0.508 | 0.446 | 0.046 |
+| appeal | real | bad | 131 | 0.496 | 0.481 | 0.023 |
+| appeal | real | good | 576 | 0.519 | 0.443 | 0.038 |
+| dispute | plant | bad | 745 | 0.828 | 0.118 | 0.054 |
+| dispute | plant | good | 437 | 0.835 | 0.121 | 0.043 |
+| dispute | real | bad | 590 | 0.792 | 0.161 | 0.047 |
+| dispute | real | good | 667 | 0.795 | 0.144 | 0.061 |
+
+### appeal seat: the planted lie (plant, bad) against the real appeals (real, any truth): 288 against 707
+logistic probe AUC, leave-one-seed-out, pooled 0.799; per seed 0.81, 0.87, 0.82, 0.81, 0.88, 0.89
+| field | d | mean (positive) | mean (negative) | AUC alone (either way) |
+|---|---|---|---|---|
+| period_pos | 1.12 | 0.065 | 0.219 | 0.812 |
+| dial_pi | 0.59 | 0.384 | 0.335 | 0.631 |
+| dial_m | 0.59 | 3.840 | 3.346 | 0.631 |
+| probationers | 0.56 | 0.067 | 0.218 | 0.620 |
+| rv_gap | 0.46 | 0.168 | 0.200 | 0.573 |
+| own_p_eff | 0.41 | 0.870 | 0.797 | 0.564 |
+| own_plant_bad_n | 0.35 | 1.473 | 1.259 | 0.599 |
+| members_free | 0.34 | 0.253 | 0.296 | 0.599 |
+| own_reviews | 0.31 | 1.404 | 1.209 | 0.589 |
+| own_awards | 0.31 | 0.687 | 0.587 | 0.590 |
+| seen_before | 0.30 | 0.177 | 0.078 | 0.558 |
+| own_ticks_since_admission | 0.29 | 0.580 | 0.501 | 0.584 |
+
+### appeal seat: the planted lie against the real lying appeals alone (real, bad): 288 against 131
+logistic probe AUC, leave-one-seed-out, pooled 0.848; per seed 0.87, 0.81, 0.91, 0.91, 0.76, 0.94
+| field | d | mean (positive) | mean (negative) | AUC alone (either way) |
+|---|---|---|---|---|
+| period_pos | 1.24 | 0.065 | 0.224 | 0.848 |
+| members_free | 0.48 | 0.253 | 0.310 | 0.627 |
+| dial_pi | 0.46 | 0.384 | 0.350 | 0.618 |
+| dial_m | 0.46 | 3.840 | 3.505 | 0.618 |
+| probationers | 0.37 | 0.067 | 0.155 | 0.566 |
+| seen_before | 0.36 | 0.177 | 0.061 | 0.524 |
+| seen_ticks_since | 0.35 | 0.117 | 0.039 | 0.524 |
+| seen_beta_rel | 0.35 | 0.175 | 0.059 | 0.530 |
+| available_roots | 0.30 | 0.251 | 0.193 | 0.571 |
+| own_plant_bad_n | 0.29 | 1.473 | 1.296 | 0.576 |
+| own_p_eff | 0.27 | 0.870 | 0.828 | 0.519 |
+| own_reviews | 0.24 | 1.404 | 1.253 | 0.570 |
+
+### appeal seat: the truthful plant appeal (plant, good; 2.8.0's class) against the real appeals: 65 against 707
+logistic probe AUC, leave-one-seed-out, pooled 0.560; per seed 0.56, 0.83, 0.55, 0.49, 0.49, 0.68
+| field | d | mean (positive) | mean (negative) | AUC alone (either way) |
+|---|---|---|---|---|
+| dial_pi | 0.59 | 0.384 | 0.335 | 0.618 |
+| dial_m | 0.59 | 3.835 | 3.346 | 0.618 |
+| probationers | 0.48 | 0.089 | 0.218 | 0.572 |
+| members_free | 0.34 | 0.254 | 0.296 | 0.612 |
+| own_p_eff | 0.33 | 0.858 | 0.797 | 0.556 |
+| seen_ticks_since | 0.31 | 0.140 | 0.055 | 0.591 |
+| own_plant_bad_n | 0.30 | 1.443 | 1.259 | 0.565 |
+| own_plant_good_n | 0.30 | 0.877 | 0.707 | 0.605 |
+| rv_gap | 0.29 | 0.178 | 0.200 | 0.543 |
+| period_pos | 0.29 | 0.172 | 0.219 | 0.533 |
+| seen_before | 0.28 | 0.169 | 0.078 | 0.581 |
+| seen_beta_rel | 0.27 | 0.175 | 0.081 | 0.589 |
+
+### dispute seat: the planted approval / dial plant disputed (plant, bad) against the real disputes (real, any): 745 against 1257
+logistic probe AUC, leave-one-seed-out, pooled 0.603; per seed 0.57, 0.62, 0.65, 0.57, 0.66, 0.61
+| field | d | mean (positive) | mean (negative) | AUC alone (either way) |
+|---|---|---|---|---|
+| dial_m | 0.48 | 3.770 | 3.337 | 0.589 |
+| dial_pi | 0.48 | 0.377 | 0.334 | 0.589 |
+| probationers | 0.36 | 0.096 | 0.189 | 0.588 |
+| own_rho | 0.35 | 0.888 | 0.859 | 0.543 |
+| own_plant_bad_n | 0.33 | 1.421 | 1.211 | 0.581 |
+| own_reviews | 0.30 | 1.310 | 1.125 | 0.585 |
+| own_plant_good_n | 0.28 | 0.811 | 0.658 | 0.592 |
+| own_overturned | 0.24 | 0.913 | 0.790 | 0.577 |
+| own_wealth_real | 0.23 | 0.989 | 0.875 | 0.568 |
+| own_unlocked | 0.23 | 0.955 | 0.842 | 0.568 |
+| own_kappa | 0.23 | 0.618 | 0.529 | 0.574 |
+| own_ticks_since_admission | 0.22 | 0.538 | 0.474 | 0.563 |
+
+### dispute seat: the planted lie's dispute (plant, good) against the real disputes: 437 against 1257
+logistic probe AUC, leave-one-seed-out, pooled 0.573; per seed 0.53, 0.65, 0.66, 0.52, 0.62, 0.65
+| field | d | mean (positive) | mean (negative) | AUC alone (either way) |
+|---|---|---|---|---|
+| dial_pi | 0.54 | 0.381 | 0.334 | 0.586 |
+| dial_m | 0.54 | 3.809 | 3.337 | 0.586 |
+| probationers | 0.36 | 0.097 | 0.189 | 0.584 |
+| own_rho | 0.35 | 0.888 | 0.859 | 0.551 |
+| own_plant_bad_n | 0.35 | 1.438 | 1.211 | 0.596 |
+| own_reviews | 0.34 | 1.350 | 1.125 | 0.593 |
+| own_plant_good_n | 0.32 | 0.841 | 0.658 | 0.599 |
+| period_pos | 0.29 | 0.138 | 0.179 | 0.563 |
+| own_wealth_real | 0.29 | 1.025 | 0.875 | 0.581 |
+| own_unlocked | 0.29 | 0.992 | 0.842 | 0.581 |
+| own_overturned | 0.27 | 0.937 | 0.790 | 0.579 |
+| own_plant_failures | 0.25 | 0.198 | 0.153 | 0.585 |
+
+### initial seat: plant against real (the standing probe's class): 3557 against 13873
+logistic probe AUC, leave-one-seed-out, pooled 0.663; per seed 0.64, 0.67, 0.65, 0.67, 0.66, 0.68
+| field | d | mean (positive) | mean (negative) | AUC alone (either way) |
+|---|---|---|---|---|
+| dial_m | 0.57 | 3.333 | 2.618 | 0.639 |
+| dial_pi | 0.57 | 0.333 | 0.262 | 0.639 |
+| probationers | 0.52 | 0.229 | 0.420 | 0.631 |
+| own_plant_bad_n | 0.43 | 1.061 | 0.737 | 0.627 |
+| own_ticks_since_admission | 0.42 | 0.545 | 0.429 | 0.619 |
+| own_reviews | 0.42 | 0.915 | 0.665 | 0.631 |
+| own_overturned | 0.38 | 0.954 | 0.687 | 0.623 |
+| own_awards | 0.38 | 0.605 | 0.458 | 0.606 |
+| own_wealth_real | 0.36 | 0.756 | 0.565 | 0.609 |
+| own_unlocked | 0.36 | 0.734 | 0.544 | 0.608 |
+| own_plant_failures | 0.35 | 0.292 | 0.198 | 0.616 |
+| own_plant_good_n | 0.34 | 0.472 | 0.321 | 0.617 |

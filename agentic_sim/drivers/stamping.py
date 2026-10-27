@@ -193,6 +193,10 @@ class Task:
     raise_refused_t: Optional[int] = None    #   the tick of the first refused attempt (the delay to the grant is measured from it)
     plant_raise_at: Optional[int] = None     #   a plant refused its raise: the tick the raise is granted (the refusal + a delay drawn from the trailing refused real roots')
     # 2.8.0: the plant at every seat — the instrument's filings and their timing, and the stages after the first verdict by case kind
+    planted_approval: bool = False           # 2.9.0 (A): a planted approval — its seat nobody's, its F the orchestrator's
+    pa_seat_at: Optional[int] = None         #   the tick the orchestrator seats its verdict's review (the seating gap drawn from the real roots')
+    pa_seated: bool = False
+    lie: bool = False                        # 2.9.0 (B): this plant's challenge is a planted lie (the instrument's choice)
     plant_file_at: Optional[int] = None      #   a plant's filing (appeal or dispute) drawn at the real rate: the tick it is filed (−1: drawn not to file)
     plant_revise_at: Optional[int] = None    #   a plant's revision drawn from the real window: the tick it is resubmitted
     revised_truth: Optional[bool] = None     #   the resubmitted truth drawn (B)
@@ -237,19 +241,20 @@ class Stamping:
         self.kind = {aid: (STAMPER if i < n_st else CAREFUL) for i, aid in enumerate(ids)}
         if a.rules == "1.1.0":                   # the control: the 1.1.0 engine's behaviour, declared
             a.pi0, a.dial, a.p_start, a.p_cap, a.omega0 = 0.0, "off", 0.5, 0.5, 20.0
-        rev3 = a.rules in ("1.3.0", "1.4.0", "1.5.0", "1.6.0", "1.7.0", "1.7.1", "2.0.0", "2.1.0", "2.2.0", "2.3.0", "2.4.0", "2.5.0", "2.6.0", "2.7.0", "2.8.0")     # 1.2.0 and 1.1.0: membership, the fund and netted capital off
-        rev4 = a.rules in ("1.4.0", "1.5.0", "1.6.0", "1.7.0", "1.7.1", "2.0.0", "2.1.0", "2.2.0", "2.3.0", "2.4.0", "2.5.0", "2.6.0", "2.7.0", "2.8.0") and a.troops == "on"
-        rev5 = a.rules in ("1.5.0", "1.6.0", "1.7.0", "1.7.1", "2.0.0", "2.1.0", "2.2.0", "2.3.0", "2.4.0", "2.5.0", "2.6.0", "2.7.0", "2.8.0")    # 1.4.0: the reserve is the peak capital carried, over two periods
-        rev6 = a.rules in ("1.6.0", "1.7.0", "1.7.1", "2.0.0", "2.1.0", "2.2.0", "2.3.0", "2.4.0", "2.5.0", "2.6.0", "2.7.0", "2.8.0")     # 1.6.0: the five rules, each behind its flag; `--rules 1.5.0` turns them off
-        rev7 = a.rules in ("1.7.0", "1.7.1", "2.0.0", "2.1.0", "2.2.0", "2.3.0", "2.4.0", "2.5.0", "2.6.0", "2.7.0", "2.8.0")  # 1.7.0: the troop account behind its flag and the cap at two thirds; `--rules 1.6.0` is the control
-        rev8 = a.rules in ("2.0.0", "2.1.0", "2.2.0", "2.3.0", "2.4.0", "2.5.0", "2.6.0", "2.7.0", "2.8.0")     # 2.0.0: the price of work — floating prices, N_T; `--rules 1.7.1` is the fixed-price control
-        rev9 = a.rules in ("2.1.0", "2.2.0", "2.3.0", "2.4.0", "2.5.0", "2.6.0", "2.7.0", "2.8.0")     # 2.1.0: the bank — loans, the debt, the wall, P_t once a period; `--rules 2.0.0` is the control
-        rev10 = a.rules in ("2.2.0", "2.3.0", "2.4.0", "2.5.0", "2.6.0", "2.7.0", "2.8.0")    # 2.2.0: the rebate from income — the period's fee pool, claims pro rata at the close; `--rules 2.1.0` the control
-        rev11 = a.rules in ("2.3.0", "2.4.0", "2.5.0", "2.6.0", "2.7.0", "2.8.0")               # 2.3.0: the supply side — entry, exit, the parent's pots; `--rules 2.2.0` the control
-        rev12 = a.rules in ("2.6.0", "2.7.0", "2.8.0")                        # 2.6.0: the plant's disguise — a plant goes through the market; `--rules 2.5.0` the control
-        rev13 = a.rules in ("2.7.0", "2.8.0")                                   # 2.7.0: the arrival loan — the float lent, repaid from income, recovered at departure; `--rules 2.6.0` the control
-        rev14 = a.rules == "2.8.0"                                   # 2.8.0: the plants reach every seat; `--rules 2.7.0` the control
-        self.rev9, self.rev10, self.rev11, self.rev12, self.rev13, self.rev14 = rev9, rev10, rev11, rev12, rev13, rev14
+        rev3 = a.rules in ("1.3.0", "1.4.0", "1.5.0", "1.6.0", "1.7.0", "1.7.1", "2.0.0", "2.1.0", "2.2.0", "2.3.0", "2.4.0", "2.5.0", "2.6.0", "2.7.0", "2.8.0", "2.9.0")     # 1.2.0 and 1.1.0: membership, the fund and netted capital off
+        rev4 = a.rules in ("1.4.0", "1.5.0", "1.6.0", "1.7.0", "1.7.1", "2.0.0", "2.1.0", "2.2.0", "2.3.0", "2.4.0", "2.5.0", "2.6.0", "2.7.0", "2.8.0", "2.9.0") and a.troops == "on"
+        rev5 = a.rules in ("1.5.0", "1.6.0", "1.7.0", "1.7.1", "2.0.0", "2.1.0", "2.2.0", "2.3.0", "2.4.0", "2.5.0", "2.6.0", "2.7.0", "2.8.0", "2.9.0")    # 1.4.0: the reserve is the peak capital carried, over two periods
+        rev6 = a.rules in ("1.6.0", "1.7.0", "1.7.1", "2.0.0", "2.1.0", "2.2.0", "2.3.0", "2.4.0", "2.5.0", "2.6.0", "2.7.0", "2.8.0", "2.9.0")     # 1.6.0: the five rules, each behind its flag; `--rules 1.5.0` turns them off
+        rev7 = a.rules in ("1.7.0", "1.7.1", "2.0.0", "2.1.0", "2.2.0", "2.3.0", "2.4.0", "2.5.0", "2.6.0", "2.7.0", "2.8.0", "2.9.0")  # 1.7.0: the troop account behind its flag and the cap at two thirds; `--rules 1.6.0` is the control
+        rev8 = a.rules in ("2.0.0", "2.1.0", "2.2.0", "2.3.0", "2.4.0", "2.5.0", "2.6.0", "2.7.0", "2.8.0", "2.9.0")     # 2.0.0: the price of work — floating prices, N_T; `--rules 1.7.1` is the fixed-price control
+        rev9 = a.rules in ("2.1.0", "2.2.0", "2.3.0", "2.4.0", "2.5.0", "2.6.0", "2.7.0", "2.8.0", "2.9.0")     # 2.1.0: the bank — loans, the debt, the wall, P_t once a period; `--rules 2.0.0` is the control
+        rev10 = a.rules in ("2.2.0", "2.3.0", "2.4.0", "2.5.0", "2.6.0", "2.7.0", "2.8.0", "2.9.0")    # 2.2.0: the rebate from income — the period's fee pool, claims pro rata at the close; `--rules 2.1.0` the control
+        rev11 = a.rules in ("2.3.0", "2.4.0", "2.5.0", "2.6.0", "2.7.0", "2.8.0", "2.9.0")               # 2.3.0: the supply side — entry, exit, the parent's pots; `--rules 2.2.0` the control
+        rev12 = a.rules in ("2.6.0", "2.7.0", "2.8.0", "2.9.0")                        # 2.6.0: the plant's disguise — a plant goes through the market; `--rules 2.5.0` the control
+        rev13 = a.rules in ("2.7.0", "2.8.0", "2.9.0")                                   # 2.7.0: the arrival loan — the float lent, repaid from income, recovered at departure; `--rules 2.6.0` the control
+        rev14 = a.rules in ("2.8.0", "2.9.0")                                   # 2.8.0: the plants reach every seat; `--rules 2.7.0` the control
+        rev15 = a.rules == "2.9.0"                                   # 2.9.0: the plant takes the wrong step; `--rules 2.8.0` both flags off
+        self.rev9, self.rev10, self.rev11, self.rev12, self.rev13, self.rev14, self.rev15 = rev9, rev10, rev11, rev12, rev13, rev14, rev15
         self.floating = rev8
         on = lambda flag: rev6 and flag == "on"
         if a.duty_cap is None:
@@ -265,8 +270,8 @@ class Stamping:
                    service_clock=on(a.clock), T_s=a.t_s, omega_backs_fund=on(a.backing), seat_the_queue=on(a.seat_queue),
                    panel_determined=on(a.panel_determined), reserve_periods=(a.reserve_periods if rev6 else 1),
                    duty_cap_frac={"half": 0.5, "twothirds": 2.0 / 3.0, "threequarters": 0.75, "all": 1.0}[a.duty_cap],
-                   state_reservation=(a.state_reservation if a.state_reservation is not None else (8.0 if a.rules in ("2.4.0", "2.5.0", "2.6.0", "2.7.0", "2.8.0") else 0.0)),
-                   missed_child=(a.rules in ("2.5.0", "2.6.0", "2.7.0", "2.8.0")),
+                   state_reservation=(a.state_reservation if a.state_reservation is not None else (8.0 if a.rules in ("2.4.0", "2.5.0", "2.6.0", "2.7.0", "2.8.0", "2.9.0") else 0.0)),
+                   missed_child=(a.rules in ("2.5.0", "2.6.0", "2.7.0", "2.8.0", "2.9.0")),
                    plant_market=rev12, trailing_periods=a.trailing_periods, plant_submit_fixed=a.plant_submit,
                    plant_reserve_life=(0 if a.plant_reserve == "period" else 15),
                    troop_account=(rev7 and a.accounts == "on"), omega_rate=a.omega_rate, r_s=a.r_s, T_susp=a.t_susp,
@@ -277,7 +282,8 @@ class Stamping:
                    b_t_min_n=a.b_t_min_n, debt_bound_periods=a.debt_bound_periods, rebate_pool=rev10,
                    supply=rev11, F0=a.f0, nested_pots=a.nested_pots,
                    arrival_loan=(rev13 and a.arrival_loan == "on"),
-                   plants_every_seat=(rev14 and a.plants_every_seat == "on"))
+                   plants_every_seat=(rev14 and a.plants_every_seat == "on"),
+                   planted_approval=(rev15 and a.planted_approval == "on"), planted_lie=(rev15 and a.planted_lie == "on"))
         self.p = p
         if rev8:
             humans = {f"R{i:02d}": a.wallet for i in range(1, a.requesters + 1)}
@@ -421,6 +427,10 @@ class Stamping:
         # 2.8.0: the instrument's windows on the real population — the actors' appeals of a false rejection (filed or not; the delay from the
         # verdict), the requesters' disputes of a false approval (filed or not; the delay), the revisions' outcomes and delays (empty in every
         # standing cell: no reviewer answers P or ⊥) — read as the raise window is (the last k entries, k the trailing periods' count)
+        self.seat_gap_window: list[tuple[int, int]] = []       # 2.9.0 (A): the real roots' seating gaps (t_assign − t_submit) — the planted verdict's draw
+        self.appeal_delay_window_all: list[tuple[int, int]] = []    # 2.9.0 (B): every real appeal's delay, truthful or lying — the planted lie's draw
+        self.dispute_delay_window_all: list[tuple[int, int]] = []
+        self.lies_pending: dict = {"appeal": 0, "dispute": 0}       #   lies decided and held for their delay, so the quota is not over-filed
         self.appeal_window: list[tuple[int, int]] = []
         self.appeal_delay_window: list[tuple[int, int]] = []
         self.dispute_window: list[tuple[int, int]] = []
@@ -530,7 +540,7 @@ class Stamping:
                   "plant_bids_lost": 0, "plant_lag_sum": 0, "plant_lag_n": 0, "learner_false_approvals": 0,
                   "plant_raises_refused": 0, "plant_raise_delay_sum": 0,       # the plants whose raise was drawn refused (after run 35) and their drawn delays
                   # 2.8.0: the plant at every seat — the instrument's filings, revisions and spends, the seats and failures by kind, the state's initial seats
-                  "plant_appeals_filed": 0, "plant_disputes_filed": 0, "plant_challenges": 0, "plant_revisions": 0, "plant_spent_by_instrument": 0,
+                  "plant_appeals_filed": 0, "pa_posted": 0, "pa_seated": 0, "pa_seat_refused": 0, "pa_verdicts": 0, "pa_closed": 0, "pa_audited": 0, "pa_confirmed": 0, "pa_rejected": 0, "pa_third": 0, "pa_disputed": 0, "pa_state_audit": 0, "pa_state_would_seat": 0, "plant_lies_filed_appeal": 0, "plant_lies_filed_dispute": 0, "plant_lies_held": 0, "plant_lies_refused": 0, "lie_adj_appeal": 0, "lie_sided_appeal": 0, "lie_adj_dispute": 0, "lie_sided_dispute": 0, "bad_met_initial": 0, "bad_met_audit": 0, "bad_met_third": 0, "bad_met_appeal": 0, "bad_met_dispute": 0, "bad_met_resumed": 0, "bad_met_state": 0, "panel_ineligible_member_periods": 0, "member_periods": 0, "life_lie_filing_delay": 0, "life_lie_filing_n": 0, "plant_disputes_filed": 0, "plant_challenges": 0, "plant_revisions": 0, "plant_spent_by_instrument": 0,
                   "plants_state_initial": 0, "plant_appeals_held": 0,
                   **{f"plant_seats_{k}": 0 for k in ("initial", "audit", "third", "appeal", "dispute", "resumed", "state")},
                   **{f"plant_seat_failures_{k}": 0 for k in ("initial", "audit", "third", "appeal", "dispute", "resumed", "state")},
@@ -684,6 +694,31 @@ class Stamping:
                 task.appealed, task.t_filed = True, w.t
                 self.c["plant_appeals_filed"] += 1
                 return
+        elif c.verdict == N:
+            # 2.9.0 §2.3 (B): the planted lie — the plant actor appeals a bad plant's N while the period's quota stands (the trailing period's
+            # real appeals × π^La, the floor of two), at a delay from every real appeal's window (truthful and lying alike; the default where empty)
+            if task.plant_file_at is None:
+                if w.planted_lies_due("appeal") - self.lies_pending["appeal"] > 0:
+                    task.plant_file_at = w.t + int(self._win_draw(self.appeal_delay_window_all, per, self.p.lie_delay_default))
+                    task.lie = True
+                    self.lies_pending["appeal"] += 1
+                else:
+                    task.plant_file_at = -1
+            if task.plant_file_at >= 0:
+                if w.t < task.plant_file_at:
+                    self.c["plant_lies_held"] += 1
+                    return
+                self.lies_pending["appeal"] -= 1
+                try:
+                    w.respond(cid, "appeal", "the work meets the request")
+                    task.appealed, task.t_filed = True, w.t
+                    self.c["plant_lies_filed_appeal"] += 1
+                    if c.t_verdict is not None:
+                        self.c["life_lie_filing_delay"] += w.t - c.t_verdict
+                        self.c["life_lie_filing_n"] += 1
+                    return
+                except (RuleError, LedgerError):
+                    self.c["plant_lies_refused"] += 1
         w.respond(cid, "accept")                          # resolved by truth: a good plant goes on to vest, a bad one is final N
 
     def verdict(self, reviewer: str, truth: bool, view=None, r=None) -> tuple[str, float]:
@@ -965,6 +1000,13 @@ class Stamping:
             return
         self.periods_seen = len(per)
         self._last_boundary_t = t
+        # 2.9.0 §5: the members off the panels by their record at each period's close, per member-period (the seat's price read in the record)
+        for aid in self.actors:
+            act = w.actor(aid)
+            if act.is_member and act.on_duty is not None:
+                self.c["member_periods"] += 1
+                if not act.panel_eligible:
+                    self.c["panel_ineligible_member_periods"] += 1
         length = max(1, per[-1]["t"] - per[-1]["start"])
         real = self.p.P0 / w.market()["P_t"]
         members = [aid for aid in self.actors if w.actor(aid).is_member]
@@ -1644,7 +1686,8 @@ class Stamping:
             open_roles = {w.review(r).role for r in c.reviews if w.review(r).status == "open"}
             if c.state == "SUBMITTED" and c.is_root and "initial" not in open_roles:
                 waiting_now.append((cid, "initial"))
-            if c.state == "PENDING" and (c.audit_obligation or c.audit_vacated) and "audit" not in open_roles:
+            if c.state == "PENDING" and (c.audit_obligation or c.audit_vacated) and "audit" not in open_roles \
+                    and (c.challenge is None or c.challenge["resolved"]):      # 2.9.0 §4: not a seat required while a dispute is open
                 waiting_now.append((cid, "audit"))
             ch = c.challenge
             if ch and not ch["resolved"] and len(ch["reviews"]) < 2:
@@ -1811,11 +1854,25 @@ class Stamping:
                         self.kind[aid] = richer
                         self.c["disposition_switches"] += 1
 
-    def plant_step(self, t: int, n: int | None = None):
+    def plant_step(self, t: int, n: int | None = None, approval: bool = False):
         """The plants the rate calls for (1.2.0 §2.1): under 2.6.0 posted as roots under fresh names, in the requesters' posting step
         (before the tick's awards, at a drawn position among the tick's postings, as a real root is); under 2.5.0 and before created
         submitted before the tick's assignments. `n` posts that many (one, at its drawn position); None posts all that are due."""
         a, w = self.a, self.w
+        if approval:
+            # 2.9.0 §2.2 (A): one planted approval — a bad plant marked at posting; its seat nobody's, its F the orchestrator's
+            try:
+                cid = w.post_plant(False, approval=True)
+            except (LedgerError, RuleError):
+                self.c["plants_unfunded"] += 1
+                return
+            self.title_n += 1
+            self.tasks[cid] = Task(cid, f"planted approval #{self.title_n}", fulfilled=False, plant=True, planted_approval=True)
+            self.active[cid] = True
+            self.c["plants_created"] += 1
+            self.c["plants_bad"] += 1
+            self.c["pa_posted"] += 1
+            return
         for _ in range(w.plants_due() if n is None else min(n, w.plants_due())):
             truth = self.rng.random() >= a.beta_p            # bad with probability β_P
             try:
@@ -1865,10 +1922,13 @@ class Stamping:
                 # oldest of the tick's submissions; posted last among the postings it reached it the youngest; the working set's order is
                 # the seating's, so either position was a tell in the seating gap the Q2 probe read.
                 posters += ["plant"] * w.plants_due()
+                posters += ["planted_approval"] * w.planted_approvals_due()   # 2.9.0 §2.2 (A): posted as the dial's plants are, at drawn positions
                 self.rng.shuffle(posters)
             for r in posters:
                 if r == "plant":
                     self.plant_step(t, 1)
+                elif r == "planted_approval":
+                    self.plant_step(t, 1, approval=True)
                 else:
                     self.requester_posts(r, t)
             self.raise_below_market()
@@ -2037,6 +2097,10 @@ class Stamping:
                 at = w.plant_record(cid).plant_submit_at   # the orchestrator's road: the drawn tick is the instrument's to read
                 if at is not None and w.t >= at:
                     w.submit_plant(cid)
+                    if self.tasks[cid].planted_approval:
+                        # 2.9.0 §2.2 (A): the planted verdict's seating gap, drawn from the trailing real roots' (0 before any)
+                        per = len(w.dial()["periods"])
+                        self.tasks[cid].pa_seat_at = w.t + int(self._win_draw(self.seat_gap_window, per, 0))
                 continue
             if c.state == "COMMITTED" and self.tasks[cid].learner_miss:
                 continue                                 # Q5: the learned child chose to miss — the deadline lapses (2.5.0: final N, the guarantee to the parent)
@@ -2087,6 +2151,11 @@ class Stamping:
             for rid in c.reviews:
                 r = w.review(rid)
                 if r.status == "open" and r.t_assign < t:
+                    if self.tasks[cid].planted_approval and r.role == "initial":
+                        # 2.9.0 §2.2 (A): the orchestrator's own verdict — F, wrong on purpose — at this case's place among the tick's verdicts
+                        w.plant_verdict(cid)
+                        self.c["pa_verdicts"] += 1
+                        continue
                     view = w.observe(r.reviewer, rid)
                     if w.is_troop(r.reviewer):
                         # 1.4.0 §2.1: the troop's declared disposition — the truth with probability 1 − ε_T, no cost
@@ -2178,6 +2247,8 @@ class Stamping:
             if want:
                 w.respond(cid, "appeal", "the work meets the request")
                 task.appealed, task.t_filed = True, w.t
+                if c.t_verdict is not None:
+                    self.appeal_delay_window_all.append((len(w.dial()["periods"]), w.t - c.t_verdict))   # 2.9.0 (B): every real appeal's delay
                 self.c["appeals_filed"] += 1
                 self.c["false_rejections_appealed" if task.fulfilled else "true_rejections_appealed"] += 1
             else:
@@ -2247,6 +2318,17 @@ class Stamping:
             task = self.tasks[cid]
             if c.state == "SUBMITTED" and not c.is_root:
                 continue                                     # 2.3.0 §2.4: the parent judges its child (delegation_step)
+            if task.planted_approval and c.state == "SUBMITTED":
+                # 2.9.0 §2.2 (A): the initial seat is nobody's — no member offered it; the orchestrator seats its own verdict's review when
+                # the drawn gap has elapsed (the verdict follows in the next tick's review pass)
+                if not task.pa_seated and task.pa_seat_at is not None and w.t >= task.pa_seat_at:
+                    try:
+                        w.plant_seat(cid)
+                        task.pa_seated, task.t_seated = True, w.t
+                        self.c["pa_seated"] += 1
+                    except (RuleError, LedgerError):
+                        self.c["pa_seat_refused"] += 1
+                continue
             if c.state == "SUBMITTED" and not any(w.review(r).status == "open" for r in c.reviews):
                 el = self.eligible_reviewers(cid)
                 if el:
@@ -2266,6 +2348,8 @@ class Stamping:
                             task.pair_review = True
                             self.c["pair_reviews"] += 1
                     rid = w.assign_initial(cid, pick)
+                    if not task.plant and c.is_root and c.t_submit is not None:
+                        self.seat_gap_window.append((len(w.dial()["periods"]), w.t - c.t_submit))   # 2.9.0 (A): the real seating gaps
                     self.review_owner[rid] = w.review(rid).reviewer
                     self.c["seated_initial_probationer" if w.actor(w.review(rid).reviewer).probation else "seated_initial_member"] += 1
                     if task.plant:
@@ -2280,19 +2364,39 @@ class Stamping:
                 per = len(w.dial()["periods"])
                 if task.plant_file_at is None:
                     rate = self._win_rate(self.dispute_window, per) if a.dispute_policy != "none" else 0.0
-                    task.plant_file_at = (w.t + int(self._win_draw(self.dispute_delay_window, per, 0))) \
-                        if (not task.fulfilled and rate > 0 and self.plant_rng.random() < rate) else -1
+                    if task.fulfilled:
+                        # 2.9.0 §2.3 (B): the planted lie — the plant requester disputes a good plant's F while the period's quota stands, at a
+                        # delay from every real dispute's window (truthful and lying alike; the default where empty)
+                        if w.planted_lies_due("dispute") - self.lies_pending["dispute"] > 0:
+                            task.plant_file_at = w.t + int(self._win_draw(self.dispute_delay_window_all, per, self.p.lie_delay_default))
+                            task.lie = True
+                            self.lies_pending["dispute"] += 1
+                        else:
+                            task.plant_file_at = -1
+                    else:
+                        task.plant_file_at = (w.t + int(self._win_draw(self.dispute_delay_window, per, 0))) \
+                            if (rate > 0 and self.plant_rng.random() < rate) else -1
                 if task.plant_file_at >= 0 and w.t < task.plant_file_at:
                     continue                                 # held for the drawn delay; the roll waits as it does for a real requester acting first
                 task.dispute_rolled = True
                 if task.plant_file_at >= 0:
+                    if task.lie:
+                        self.lies_pending["dispute"] -= 1
                     try:
                         w.dispute(cid, c.requester, "the result does not meet the request")
                         task.disputed, task.t_filed = True, w.t
                         task.audit_wanted = False
-                        self.c["plant_disputes_filed"] += 1
+                        if task.lie:
+                            self.c["plant_lies_filed_dispute"] += 1
+                            if c.t_verdict is not None:
+                                self.c["life_lie_filing_delay"] += w.t - c.t_verdict
+                                self.c["life_lie_filing_n"] += 1
+                        else:
+                            self.c["plant_disputes_filed"] += 1
+                            if task.planted_approval:
+                                self.c["pa_disputed"] += 1
                     except (RuleError, LedgerError):
-                        self.c["disputes_refused"] += 1
+                        self.c["disputes_refused" if not task.lie else "plant_lies_refused"] += 1
                 c = w.case(cid)
             elif c.state == "PENDING" and c.verdict == F and c.challenge is None and not task.dispute_rolled \
                     and a.dispute_policy != "none":
@@ -2313,6 +2417,8 @@ class Stamping:
                         w.dispute(cid, self.owner.get(cid, "H"), "the result does not meet the request")
                         task.disputed, task.t_filed = True, w.t
                         task.audit_wanted = False
+                        if c.t_verdict is not None:
+                            self.dispute_delay_window_all.append((per, w.t - c.t_verdict))   # 2.9.0 (B): every real dispute's delay
                         self.c["disputes_filed"] += 1
                         self.c["true_approvals_disputed" if task.fulfilled else "false_approvals_disputed"] += 1
                     except (RuleError, LedgerError):
@@ -2329,8 +2435,8 @@ class Stamping:
                         w.roll_audit(cid)
                         task.audit_wanted, task.t_roll = True, w.t
                         self.c["audit_obligations"] += 1
-                elif c.market_audit_only and not task.audit_rolled:
-                    task.audit_rolled, task.audit_wanted = True, True      # the engine recorded this one at the verdict
+                elif (c.market_audit_only or task.planted_approval) and not task.audit_rolled:
+                    task.audit_rolled, task.audit_wanted = True, True      # the engine recorded this one at the verdict (2.9.0: the planted approval's too)
                 if task.audit_wanted and (c.audit_obligation or c.audit_vacated):
                     el = self.eligible_reviewers(cid, panel=True)
                     if el:
@@ -2449,6 +2555,32 @@ class Stamping:
                         self.c["plants_spent"] += 1
                     elif c.plant_outcome == "state":
                         self.c["plants_state_initial"] += 1                  # 2.8.0 (C): the initial seat taken by the orchestrator's verdict
+                    if c.planted_approval:
+                        # 2.9.0 §5: the planted approval's life — audited (confirmed / rejected), the third seat, disputed first, the state's
+                        # audit seat, and whether 2.8.0's pass would have seated the state on its initial seat
+                        self.c["pa_closed"] += 1
+                        self.c["pa_state_would_seat"] += int(bool(c.pa_state_would_seat))
+                        for (_t, rid, kind, v, outcome) in c.plant_adjudications:
+                            if kind == "audit" and outcome in ("stood", "failure"):
+                                self.c["pa_audited"] += 1
+                                self.c["pa_confirmed" if outcome == "failure" else "pa_rejected"] += 1
+                            elif kind == "third" and outcome in ("stood", "failure"):
+                                self.c["pa_third"] += 1
+                        self.c["pa_state_audit"] += sum(1 for s_ in c.plant_state_seats if s_[1] == "audit")
+                        for (_t, rid, kind, _v, outcome) in c.plant_adjudications:
+                            if outcome not in ("stood", "failure"):
+                                continue
+                            rv = w.review(rid)
+                            self.tally[rv.reviewer].plant_reviews += 1
+                            self.c[f"plant_seats_{kind}"] += 1
+                            self.c[f"bad_met_{kind}"] += 1
+                            if outcome == "failure":
+                                self.tally[rv.reviewer].plant_failures += 1
+                                self.c[f"plant_seat_failures_{kind}"] += 1
+                        self.c["plant_seats_state"] += len(c.plant_state_seats)
+                        self._life_close(c, task)
+                    if c.plant_outcome in ("planted", "state"):
+                        pass                                                 # not the dial's clock: no initial adjudication to tally
                     elif self.rev14:
                         # 2.8.0: the initial seat's adjudication keeps the honesty readings' meaning (the dial's clock); every seat's is tallied by kind
                         if c.plant_outcome == "failure":
@@ -2465,6 +2597,12 @@ class Stamping:
                             if outcome == "failure":
                                 self.tally[rv.reviewer].plant_failures += 1
                                 self.c[f"plant_seat_failures_{kind}"] += 1
+                            if (c.plant_revised if (c.plant_revised is not None and kind == "resumed") else c.plant) is False:
+                                self.c[f"bad_met_{kind}"] += 1              # 2.9.0 §5: the bad plants the members meet by seat kind (the count the record sees)
+                            if c.challenge is not None and c.challenge.get("lie") and kind in ("appeal", "dispute"):
+                                self.c[f"lie_adj_{kind}"] += 1
+                                if outcome == "failure":
+                                    self.c[f"lie_sided_{kind}"] += 1
                         self.c["plant_seats_state"] += len(c.plant_state_seats)
                         self._life_close(c, task)
                     else:
@@ -2777,6 +2915,30 @@ class Stamping:
                     **{f"plant_adj_{k}": (v["stood"] + v["failure"]) for k, v in dl.get("plant_seat_adjudications", {}).items()},
                     **{f"plant_fail_{k}": v["failure"] for k, v in dl.get("plant_seat_adjudications", {}).items()},
                     "plant_seats_at_state": dl.get("plant_seats_at_state", 0), "plants_revised": dl.get("plants_revised", 0),
+                    # 2.9.0 §5: the planted wrong steps — the planted approvals' life, the planted lies, the dial per seat, the discharges, the
+                    # bad plants met by seat kind, the panel-ineligible members per period, the cost of truth by kind
+                    "pa_posted": self.c["pa_posted"], "pa_seated": self.c["pa_seated"], "pa_verdicts": self.c["pa_verdicts"], "pa_closed": self.c["pa_closed"],
+                    "pa_audited": self.c["pa_audited"], "pa_confirmed": self.c["pa_confirmed"], "pa_rejected": self.c["pa_rejected"],
+                    "pa_third": self.c["pa_third"], "pa_disputed": self.c["pa_disputed"], "pa_state_audit": self.c["pa_state_audit"],
+                    "pa_state_would_seat": self.c["pa_state_would_seat"],
+                    "plant_lies_filed_appeal": self.c["plant_lies_filed_appeal"], "plant_lies_filed_dispute": self.c["plant_lies_filed_dispute"],
+                    "lie_adj_appeal": self.c["lie_adj_appeal"], "lie_sided_appeal": self.c["lie_sided_appeal"],
+                    "lie_adj_dispute": self.c["lie_adj_dispute"], "lie_sided_dispute": self.c["lie_sided_dispute"],
+                    "plant_lies_refused": self.c["plant_lies_refused"],
+                    "pi_A": round(dl.get("pi_A", 0.0), 6), "m_A": round(dl.get("m_A", 1.0), 6), "pi_La": round(dl.get("pi_La", 0.0), 6),
+                    "m_La": round(dl.get("m_La", 1.0), 6), "pi_Ld": round(dl.get("pi_Ld", 0.0), 6), "m_Ld": round(dl.get("m_Ld", 1.0), 6),
+                    "F_hat_A": (dl["periods"][-1].get("F_hat_A", "") if dl.get("periods") else ""),
+                    "F_hat_La": (dl["periods"][-1].get("F_hat_La", "") if dl.get("periods") else ""),
+                    "F_hat_Ld": (dl["periods"][-1].get("F_hat_Ld", "") if dl.get("periods") else ""),
+                    "obligations_discharged": dl.get("obligations_discharged_by_dispute", 0),
+                    "bad_met_initial": self.c["bad_met_initial"], "bad_met_audit": self.c["bad_met_audit"], "bad_met_third": self.c["bad_met_third"],
+                    "bad_met_appeal": self.c["bad_met_appeal"], "bad_met_dispute": self.c["bad_met_dispute"], "bad_met_resumed": self.c["bad_met_resumed"],
+                    "panel_ineligible_member_periods": self.c["panel_ineligible_member_periods"], "member_periods": self.c["member_periods"],
+                    "life_lie_filing_delay": (round(self.c["life_lie_filing_delay"] / self.c["life_lie_filing_n"], 4) if self.c["life_lie_filing_n"] else ""),
+                    # the cost of truth's gross side by kind (the shared plant wallets' retirement cannot be split by case; the plant reviewer
+                    # wallet's can, and nets to zero by construction: its bonds are released and retired whole)
+                    **{f"plant_mint_{k}": round(dl.get("plant_mint_by_kind", {}).get(k, 0.0), 3) for k in ("dial", "approval", "lie", "rev")},
+                    "plant_retire_rev": round(dl.get("plant_retire_by_kind", {}).get("rev", 0.0), 3),
                     "plants_spent_engine": dl.get("plants_spent", 0), "plant_top_ups": round(dl.get("plant_top_ups", 0.0), 3),
                     "plant_fees_destroyed": round(dl.get("plant_fees_destroyed", 0.0), 3),
                     "plant_appeals_filed": self.c["plant_appeals_filed"], "plant_disputes_filed": self.c["plant_disputes_filed"],
@@ -3019,7 +3181,7 @@ def build_parser():
     ap.add_argument("--p-start", type=float, default=1.0, help="a newcomer's audit odds (1.2.0 §2.4: 1.0; 1.1.0: 0.5)")
     ap.add_argument("--p-cap", type=float, default=1.0, help="the audit odds' cap on doubling (1.2.0 §2.4: 1.0; 1.1.0: 0.5)")
     ap.add_argument("--p-floor", type=float, default=0.2, help="the audit rate's floor (§8.3)")
-    ap.add_argument("--rules", choices=["2.8.0", "2.7.0", "2.6.0", "2.5.0", "2.4.0", "2.3.0", "2.2.0", "2.1.0", "2.0.0", "1.7.1", "1.7.0", "1.6.0", "1.5.0", "1.4.0", "1.3.0", "1.2.0", "1.1.0"], default="2.8.0",
+    ap.add_argument("--rules", choices=["2.9.0", "2.8.0", "2.7.0", "2.6.0", "2.5.0", "2.4.0", "2.3.0", "2.2.0", "2.1.0", "2.0.0", "1.7.1", "1.7.0", "1.6.0", "1.5.0", "1.4.0", "1.3.0", "1.2.0", "1.1.0"], default="2.9.0",
                     help="2.6.0: the plant's disguise (a plant goes through the market: posted under a fresh name, bid on, awarded on the market's report, submitted at a drawn tick; opaque public ids); 2.5.0: the missed child (no cancellation of a nested request at or after its deadline; the lapse forfeits the child's guarantee); 2.4.0: the same without the refusal — the control admitting the deadline-tick cancellation; 2.4.0 also: the state's reservation (the state delivers at max(B̄, 8), never below; the mark; the clock's one condition; the award pass gathering β ≥ p_T); 2.3.0: the supply side (entry and exit, the parent's pots, the reviewer advance from the pool) — the control, the state at B̄; 2.2.0: the rebate from income (the period's fee pool, claims pro rata at the close, the rest forgone); 2.1.0: the bank with the liability stock (the control); 2.1.0 also: the bank (loans, the debt, the wall, the expected cost, P_t once a period, refusals told); 2.0.0: the price of work with "
                          "Ω's creation and retirement (the control); 1.7.1 (= 1.7.0): the fixed-price control — "
                          "one bottomless requester at β, the backing, the reserves; 1.6.0: the merged fund (uplift from troop earnings) and the half cap; 1.5.0: also the five 1.6.0 rules off; "
@@ -3239,6 +3401,10 @@ def build_parser():
                     help="off: the driver never rolls an audit (the learned red team's calibration cell — a declared implementation effect, with --pi0 0 --dial off a blind stamp costs nothing)")
     ap.add_argument("--plants-every-seat", choices=["on", "off"], default="on",
                     help="2.8.0 (design revision 16): the plants reach every seat — audited, appealed, disputed, revised, adjudicated by truth at each; off is 2.7.0 (also --rules 2.7.0)")
+    ap.add_argument("--planted-approval", choices=["on", "off"], default="on",
+                    help="2.9.0 (design revision 17, A): the planted approval — a bad plant whose initial seat is nobody's and whose F is the orchestrator's own, audited with certainty at π^A per real pending approval; off alone is (B) alone")
+    ap.add_argument("--planted-lie", choices=["on", "off"], default="on",
+                    help="2.9.0 (design revision 17, B): the planted lie — the plant actor appeals a bad plant's N and the plant requester disputes a good plant's F at the quota (the trailing period's real count × π^L, the floor of two); off alone is (A) alone")
     ap.add_argument("--plant-submit", type=int, default=0, help="2.6.0: pin the plant actor's time to submission (0: the draw from the trailing real deliveries'; 1 the lag-pinning cell)")
     ap.add_argument("--state-rejecters", type=float, default=0.0,
                     help="2.1.0 §8.9 red team: the share of careful actors that reject every delivery of the state's (reads the case's actor — declared non-conforming)")
@@ -3263,8 +3429,8 @@ def build_parser():
 def parse_args(argv=None):
     a = build_parser().parse_args(argv)
     if a.c_d_t_mode is None:
-        a.c_d_t_mode = "expected" if a.rules in ("2.1.0", "2.2.0", "2.3.0", "2.4.0", "2.5.0", "2.6.0", "2.7.0", "2.8.0") else "cost"
-    if a.rules not in ("2.3.0", "2.4.0", "2.5.0", "2.6.0", "2.7.0", "2.8.0"):
+        a.c_d_t_mode = "expected" if a.rules in ("2.1.0", "2.2.0", "2.3.0", "2.4.0", "2.5.0", "2.6.0", "2.7.0", "2.8.0", "2.9.0") else "cost"
+    if a.rules not in ("2.3.0", "2.4.0", "2.5.0", "2.6.0", "2.7.0", "2.8.0", "2.9.0"):
         a.c_d_sigma = 0.0                                # one cost before 2.3.0: the controls are run 15's cells
     return a
 
@@ -3345,7 +3511,7 @@ def main(argv=None):
                                     "always": "disputes every pending F"}[a.dispute_policy]
                                     + (f"; disputes a pending F on work that was truly fulfilled with probability {a.dispute_lie} (2.8.0 §8.7 (c))" if a.dispute_lie > 0 else ""),
                                     "budget": a.human_budget},
-                                "the_supply_side": None if a.rules not in ("2.3.0", "2.4.0", "2.5.0", "2.6.0", "2.7.0", "2.8.0") else {
+                                "the_supply_side": None if a.rules not in ("2.3.0", "2.4.0", "2.5.0", "2.6.0", "2.7.0", "2.8.0", "2.9.0") else {
                                     "spec": "2.3.0 design revision 11 — entry as a probationer with a bank-minted float, exit with the wallet out, competence "
                                             "as a private per-actor cost, delegation under competence with the parent posting the pots, the reviewer advance from the pool",
                                     "competence": {"median": a.c_d_median, "sigma": a.c_d_sigma, "clip": a.c_d_clip, "drawn once per actor; private to the driver": True,
@@ -3357,11 +3523,11 @@ def main(argv=None):
                                                                                         "tau": a.work_ticks + a.nested_tau, "nested_pots": a.nested_pots,
                                                                                         "judgment": "by disposition — careful: the truth w.p. accuracy, spending 2; stamper: F; a bad child accepted makes the parent's work bad",
                                                                                         "child_appeals": "truthfully", "unawarded_T_wait": "withdrawn; the parent self-executes"}},
-                                "the_rebate_from_income": None if a.rules not in ("2.2.0", "2.3.0", "2.4.0", "2.5.0", "2.6.0", "2.7.0", "2.8.0") else {
+                                "the_rebate_from_income": None if a.rules not in ("2.2.0", "2.3.0", "2.4.0", "2.5.0", "2.6.0", "2.7.0", "2.8.0", "2.9.0") else {
                                     "spec": "2.2.0 design revision 10 — the claim recorded at the stop; Ω's fee income after the debt pooled as a lock on Ω; at the period's close the "
                                             "claims stopped in the period paid pro rata, the rest forgone and read; no liability stock",
                                     "red_team": {"small_requesters": sorted(run.small)}},
-                                "the_bank": None if a.rules not in ("2.1.0", "2.2.0", "2.3.0", "2.4.0", "2.5.0", "2.6.0", "2.7.0", "2.8.0") else {
+                                "the_bank": None if a.rules not in ("2.1.0", "2.2.0", "2.3.0", "2.4.0", "2.5.0", "2.6.0", "2.7.0", "2.8.0", "2.9.0") else {
                                     "spec": "2.1.0 design revision 9 — the bank: a second account that alone creates and destroys; mints by rule, publishes "
                                             "P_t once a period, lends a summons's shortfall tied to it; the state burns its expected cost and delivers at B̄; "
                                             "every inflow to Ω ordered at once (debt → liabilities → Ω); the wall on deliveries; every refusal told",
@@ -3370,7 +3536,7 @@ def main(argv=None):
                                     "requester_on_refusal": a.requester_on_refusal,
                                     "red_team": {"troop_fail_rate": a.troop_fail_rate, "state_rejecters": sorted(run.state_rejecters),
                                                  "state_rejecters_reading": "the case's actor through the public view's case — not the reviewer's view (§14 carries no actor); declared"}},
-                                "price_of_work": None if a.rules not in ("2.0.0", "2.1.0", "2.2.0", "2.3.0", "2.4.0", "2.5.0", "2.6.0", "2.7.0", "2.8.0") else {
+                                "price_of_work": None if a.rules not in ("2.0.0", "2.1.0", "2.2.0", "2.3.0", "2.4.0", "2.5.0", "2.6.0", "2.7.0", "2.8.0", "2.9.0") else {
                                     "spec": "2.0.0 design revision 8 — the price of work",
                                     "requesters": {"n": a.requesters, "wallet": a.wallet, "issuance_per_tick": a.issuance,
                                                    "ceiling": (f"min({a.beta_max:g}, {a.ceiling_mult:g} × B̄) — market-aware" if a.ceiling_policy == "market"
@@ -3389,7 +3555,7 @@ def main(argv=None):
                                     "plants": "at B = P_t", "P0": 20.0,
                                     "red_team": {"lowball_share": a.lowball_share, "lowballers": sorted(run.lowballers),
                                                  "stingy_requesters": sorted(run.stingy), "bbar_counts_troops": a.bbar_troops}},
-                                "permitted_operations": PERMITTED + (PERMITTED_200 if a.rules in ("2.0.0", "2.1.0", "2.2.0", "2.3.0", "2.4.0", "2.5.0", "2.6.0", "2.7.0", "2.8.0") else []), "not_in_run": NOT_IN_RUN,
+                                "permitted_operations": PERMITTED + (PERMITTED_200 if a.rules in ("2.0.0", "2.1.0", "2.2.0", "2.3.0", "2.4.0", "2.5.0", "2.6.0", "2.7.0", "2.8.0", "2.9.0") else []), "not_in_run": NOT_IN_RUN,
                                 "record_dir": a.record_dir,
                                 "checks": {"per_tick": "check_tick after every tick — always; not configurable",
                                            "full_audit_every_n_ticks": "not scheduled",

@@ -45,6 +45,7 @@ PANEL_ROLES = ("appeal", "audit")              # the challenge-panel seats (1.2.
 # The orchestrator's two system wallets (1.2.0 §2.1, Appendix A): a plant's requester and its actor.
 # Funded by transfer from Ω when a plant is created and swept back to Ω when its tree closes.
 PLANT_REQ, PLANT_ACT = "OMEGA-REQ", "OMEGA-ACT"
+PLANT_REV = "OMEGA-REV"        # 2.9.0 §2.5: the plant reviewer wallet behind the `plant_rev:` aliases (its line apart in the cost of truth)
 # 2.8.0 §2.1: the seats a plant reaches, by kind — the initial review, the audit, the third seat (the audit's disagreement), an appeal
 # panelist, a dispute panelist, the resumed review after a revision, and the orchestrator's own verdict on a seat nobody was free to take
 PLANT_SEATS = ("initial", "audit", "third", "appeal", "dispute", "resumed", "state")
@@ -315,6 +316,12 @@ class Case:
     plant_adjudications: list = field(default_factory=list)   # (t, review id, seat kind, verdict, stood | failure)
     plant_state_seats: list = field(default_factory=list)     # (t, seat kind, verdict): the state's seat on a plant (C)
     audit_odds_at_verdict: Optional[float] = None             # what the audit roll reads under 2.8.0 — every case, plant or real
+    # 2.9.0 (design revision 17): the planted approval — a bad plant marked at posting whose initial seat is nobody's and whose F is the
+    # orchestrator's own (a system review under a plant reviewer alias); the public surface's audit odds, drawn once at the verdict from the
+    # real approvals' recorded odds (the ruling of October 27); whether the 2.8.0 pass would have seated the state on its initial seat
+    planted_approval: bool = False
+    audit_odds_public: Optional[float] = None
+    pa_state_would_seat: bool = False
     phi_E_topped: float = 0.0                                 # (A) what the bank added to a plant's allowance and fee pot at its seats' assignment
     phi_F_topped: float = 0.0
     plant_fee_destroyed: float = 0.0                          # (A) the plant challenger's court fee, minted to its alias and destroyed at filing
@@ -472,6 +479,22 @@ class World:
         self.pi_t: float = params.pi0
         self.X_t: int = params.X
         self.plant_credit: float = 0.0
+        # 2.9.0: the planted approvals' credit (π^A per real pending approval), the plant reviewer aliases, the dial per seat — m^A on the
+        # planted approvals confirmed at the audit seat, m^La / m^Ld on the planted lies a panelist sided with — and the lies' per-period
+        # quotas (the trailing closed period's real count times the rate, the floor of two); the plant mints and retirements by kind
+        self.planted_approval_credit: float = 0.0
+        self.plant_rev_names: set = set()
+        self.planted_approvals_posted: int = 0
+        self.m_A: float = 1.0
+        self.m_La: float = 1.0
+        self.m_Ld: float = 1.0
+        self.pi_A: float = min(self.p.pi_A_max, self.p.pi_A0)
+        self.pi_La: float = min(self.p.pi_L_max, self.p.pi_L0)
+        self.pi_Ld: float = min(self.p.pi_L_max, self.p.pi_L0)
+        self.lie_quota: dict = {"appeal": float(self.p.lie_floor), "dispute": float(self.p.lie_floor)}
+        self.obligations_discharged_by_dispute: int = 0
+        self.plant_mint_by_kind: dict = {"dial": 0.0, "approval": 0.0, "lie": 0.0, "rev": 0.0}
+        self.plant_retire_by_kind: dict = {"dial": 0.0, "approval": 0.0, "lie": 0.0, "rev": 0.0}
         self.plants_created = 0
         # 2.6.0 §2.1: the plant's life in the market — the readings and the trailing distributions its draws read
         self.plants_posted, self.plants_awarded, self.plants_awarded_at_floor, self.plant_bids_lost = 0, 0, 0, 0
@@ -488,8 +511,8 @@ class World:
         self.plant_fees_destroyed = 0.0
         self.plants_spent = 0
         self._trailing: list = []                        # the last closed periods' real roots: {"betas", "taus", "deliv"} — their counts are k
-        self._cur_trailing = {"betas": [], "taus": [], "deliv": []}
-        self._recent = {"betas": [], "taus": [], "deliv": []}   # every real root's terms in order; a plant's draw reads the last k (Appendix S, after run 23)
+        self._cur_trailing = {"betas": [], "taus": [], "deliv": [], "odds": []}   # 2.9.0: the real approvals' recorded odds (the masked field's draw)
+        self._recent = {"betas": [], "taus": [], "deliv": [], "odds": []}   # every real root's terms in order; a plant's draw reads the last k (Appendix S, after run 23)
         self.plant_shortfall = 0                        # plants the rate called for that Ω could not fund
         self.eligibility_shortfall = 0                  # Σ over ticks of (X_t − actors on duty) when the pool was empty
         self.reserve_shortfall_now = 0
@@ -681,7 +704,7 @@ class World:
         if not isinstance(name, str) or not name:
             raise RuleError("arrive: a name is required")
         if name in self.actors or name in self.departed_actors or name in self.requesters or name in self.humans \
-                or name in (Ledger.OMEGA, "SPONSOR", PLANT_REQ, PLANT_ACT, DUTY_FUND, TROOP_ACCT) or name in self.troops \
+                or name in (Ledger.OMEGA, "SPONSOR", PLANT_REQ, PLANT_ACT, PLANT_REV, DUTY_FUND, TROOP_ACCT) or name in self.troops \
                 or name in self.ledger.wallets:
             raise RuleError(f"arrive: the identity {name} exists or existed")
         a = Actor(name, p_audit=self.p.p_start, _world=self)
@@ -1097,7 +1120,7 @@ class World:
         """2.0.0 §2.1: a requester arrives (a crowd's member) with a wallet, issued."""
         if not self.p.floating:
             raise RuleError("add_requester: a 2.0.0 operation")
-        if name in self.requesters or name in self.actors or name in (Ledger.OMEGA, "SPONSOR", PLANT_REQ, PLANT_ACT, DUTY_FUND, TROOP_ACCT):
+        if name in self.requesters or name in self.actors or name in (Ledger.OMEGA, "SPONSOR", PLANT_REQ, PLANT_ACT, PLANT_REV, DUTY_FUND, TROOP_ACCT):
             raise RuleError(f"add_requester: {name} exists")
         wallet = amount(wallet, "wallet")
         self.ledger.wallet(name)
@@ -1502,7 +1525,7 @@ class World:
         r = self._initial_review(c)
         r.deadline += (self.t - r.t_done)        # the review clock paused while the actor acted
         r.status, r.verdict, r.objection, r.resumed = "open", None, None, True
-        if self.is_troop(r.reviewer):            # 1.4.0: a resumed review is the same assignment — the troop resumes its seat
+        if self.is_system_reviewer(r.reviewer):  # 1.4.0: a resumed review is the same assignment — the troop resumes its seat
             self.troops[r.reviewer]["t_release"] = None
             self.history.append("troop", {"t": self.t, "troop": r.reviewer, "kind": "review", "case": c.id, "msg": "resumes"})
         c.resubmitted = True                     # a property of the submission, not of who reviews it
@@ -1513,9 +1536,14 @@ class World:
     def is_troop(self, wid) -> bool:
         return isinstance(wid, str) and wid in self.troops
 
+    def is_system_reviewer(self, wid) -> bool:
+        """2.9.0 §2.5: a troop or a plant reviewer alias — no actor behind it, no record, no emission, no uplift, no place in the rotation;
+        the alias differs from a troop in two places: it is paid no fee and its verdict is not adjudicated (the planted verdict)."""
+        return self.is_troop(wid) or (isinstance(wid, str) and wid in self.plant_rev_names)
+
     def _eligible(self, c: Case, reviewer: str, role: str = "initial") -> None:
-        if self.is_troop(reviewer):
-            raise RuleError(f"{reviewer} is a troop: seated only by summons (1.4.0 §2.2)")
+        if self.is_system_reviewer(reviewer):
+            raise RuleError(f"{reviewer} is a troop or a plant reviewer alias: seated only by summons or the planted verdict (1.4.0 §2.2, 2.9.0 §2.5)")
         a = self._actor(reviewer)
         if not a.on_duty:
             raise RuleError(f"{reviewer} is not on verification duty")
@@ -1584,6 +1612,8 @@ class World:
             raise RuleError("nested cases are judged by their requester-actor (§9.1)")
         if c.state != "SUBMITTED":
             raise RuleError(f"assign_initial: case {cid} is {c.state}")
+        if c.planted_approval:
+            raise RuleError("assign_initial: a planted approval's initial seat is nobody's — the orchestrator's verdict takes it (2.9.0 §2.2)")
         if any(self.reviews[r].role == "initial" and self.reviews[r].status in ("open", "done", "vested")
                for r in c.reviews):
             raise RuleError("initial review already assigned")
@@ -1701,6 +1731,8 @@ class World:
         if verdict in (P, BOT) and not self._responses_available(c, r):
             raise RuleError("P and ⊥ are responses to a submission and are available only while the actor "
                             "can still respond — the view says so (`responses_available`); here F or N")
+        if r.reviewer in self.plant_rev_names:
+            raise RuleError("the planted verdict is the orchestrator's own, given by plant_verdict (2.9.0 §2.2)")
         troop = self.is_troop(r.reviewer)
         if troop and cost > 0:
             raise RuleError("a troop's cost was purchased from the fund at summons; its review reports no further cost (1.4.0 §2.1)")
@@ -1775,6 +1807,15 @@ class World:
                 self.period["approvals"] += 1           # audit demand, for the reserve's sizing ...
                 # ... on the applied odds (1.3.0 §2.3; 1.4.0 §2.3 for the state's own work)
                 self.period["audit_demand"] += self.audit_odds(c.id)
+                if c.plant is None:
+                    # 2.9.0 §2.2: a real pending approval — the planted approvals' base (π^A per real approval, credited as given) and the
+                    # window of recorded odds the masked public field draws from (the ruling of October 27)
+                    self.period["real_approvals"] += 1
+                    if self.p.plants_every_seat and self.p.planted_approval:
+                        self.planted_approval_credit += self.pi_A
+                    odds = c.audit_odds_at_verdict if c.audit_odds_at_verdict is not None else self.p.p_start
+                    self._cur_trailing["odds"].append(odds)
+                    self._recent["odds"].append(odds)
             self._release_capacity(c)
         else:
             c.state = "AWAITING_RESPONSE"
@@ -1869,11 +1910,23 @@ class World:
                         d: Optional[str] = None):
         if c.challenge_round_used:
             raise RuleError("one challenge round per case (§8)")
+        # 2.9.0 §2.3: a plant's challenge against its truth is a planted lie — the plant actor's appeal of a bad plant's N, the plant
+        # requester's dispute of a good plant's F — read from the kind and the truth, no flag on the filing; the real challenges counted apart
+        lie = c.plant is not None and challenger is not None and ((kind == "appeal" and self._plant_truth(c) is False)
+                                                                   or (kind == "dispute" and self._plant_truth(c) is True))
+        if c.plant is None and challenger is not None and kind in ("appeal", "dispute"):
+            self.period["real_appeals" if kind == "appeal" else "real_disputes"] += 1
+        if lie:
+            self.period["lies_filed"][kind] += 1
+        if c.planted_approval and kind == "dispute" and c.audit_obligation \
+                and not any(self.reviews[x].role == "audit" and self.reviews[x].status != "withdrawn" for x in c.reviews):
+            self.period["pa_disputed_first"] += 1       # 2.9.0 §2.2: the planted approval met the dispute panel before its audit seat
         if challenger is not None and self._plant_pays(c):
             # 2.8.0 §2.2 (A), the ruling at acceptance: the plant challenger's alias is topped up by the bank and the fee destroyed at
             # filing — two bank events, the names line untouched; the filing's record is a real one's and nothing minted reaches Ω
-            self._plant_mint(c, challenger, c.D, f"mint_plant: the court fee ({kind})")
+            self._plant_mint(c, challenger, c.D, f"mint_plant: the court fee ({kind})", kind="lie" if lie else None)
             self.ledger.burn_unlocked("retire_plant", self.ledger.resolve(challenger), c.D, case=c.id, note=f"retire_plant: court fee ({kind}) destroyed at filing")
+            self.plant_retire_by_kind["lie" if lie else ("approval" if c.planted_approval else "dial")] += c.D
             c.plant_fee_destroyed += c.D
             self.plant_fees_destroyed += c.D
             self.period["plant_fees_destroyed"] += c.D
@@ -1885,7 +1938,8 @@ class World:
             self._service_omega_claims()
         c.challenge_round_used = True
         c.challenge = {"kind": kind, "challenger": challenger, "reviews": [], "resolved": False, "d": d,
-                       "seat_since": self.t}            # 1.4.0 §2.2: the panel seats are required from admission
+                       "seat_since": self.t,            # 1.4.0 §2.2: the panel seats are required from admission
+                       "lie": lie}                      # 2.9.0 §2.3: a planted lie (a plant's challenge against its truth)
         if audit_review is not None:
             audit_review.is_audit_as_appeal = True
             c.challenge["reviews"].append(audit_review.id)
@@ -2022,6 +2076,7 @@ class World:
             if wrong:
                 self._overturn_review(c, r, pay_fee_to=None)
         c.open_items -= 1
+        self._discharge_obligation_at_dispute(c)
         c.outcome = outcome
         self._log(c, f"challenge settled {outcome}{' / ' + objection if objection else ''} by {by}")
         if outcome == N:
@@ -2325,11 +2380,11 @@ class World:
         nested = "nested " if c.is_nested() and not c.own_pots else ""
         surviving = [self.reviews[r] for r in c.reviews if self.reviews[r].status == "done"]
         for r in surviving:
-            e = 0.0 if self.is_troop(r.reviewer) else self._w(r.role) * emission_per_weight   # a troop claims no emission (1.4.0)
+            e = 0.0 if self.is_system_reviewer(r.reviewer) else self._w(r.role) * emission_per_weight   # a troop claims no emission (1.4.0); nor the plant reviewer alias (2.9.0)
             if e > 0:
                 self.ledger.mint_emission_to_pool(c.id, e)
             r.fee = e
-            r.fee_owed = self._w(r.role) * self.p.f_fee
+            r.fee_owed = 0.0 if r.reviewer in self.plant_rev_names else self._w(r.role) * self.p.f_fee   # 2.9.0 §2.5: the alias is paid no fee
         # 1. expense debts, every review — an overturned reviewer's bond was the penalty; its cost survives
         for rid in c.reviews:
             r = self.reviews[rid]
@@ -2363,7 +2418,7 @@ class World:
                 r.fee += fixed
                 # 1.3.0 §2.4: the duty fund's uplift, by role weight, like emission — real money, so it carries;
                 # a troop claims none (1.4.0 §2.1)
-                uplift = 0.0 if self.is_troop(r.reviewer) else min(self._w(r.role) * uplift_per_weight, self.ledger.wallet(DUTY_FUND).U)
+                uplift = 0.0 if self.is_system_reviewer(r.reviewer) else min(self._w(r.role) * uplift_per_weight, self.ledger.wallet(DUTY_FUND).U)
                 if uplift > 1e-12:
                     self.ledger.transfer(DUTY_FUND, r.reviewer, uplift, case=c.id, note="duty uplift")
                     r.uplift = uplift
@@ -2371,8 +2426,8 @@ class World:
                     self.fund_out += uplift
                 self.ledger.release(r.reviewer, r.bond, key=f"bond:{r.id}", case=c.id, note="bond released")
                 r.status = "vested"
-                if self.is_troop(r.reviewer):
-                    if self.bank_on:                    # 2.1.0 §2.4: the seat's return has come in; its loan settles here
+                if self.is_system_reviewer(r.reviewer):
+                    if self.is_troop(r.reviewer) and self.bank_on:                    # 2.1.0 §2.4: the seat's return has come in; its loan settles here
                         self.omega_review_fee_income += fixed
                         self.period["troop_review_fee"] += fixed
                         self._close_loan(r.reviewer)
@@ -2511,11 +2566,12 @@ class World:
         if root.plant is not None:
             # 1.2.0 Appendix A: the two system wallets hold Ω's money; what a closed plant left in
             # them — the price, the refunds, the released or forfeited guarantee — goes back to Ω
-            for wid in (PLANT_REQ, PLANT_ACT):
+            for wid in (PLANT_REQ, PLANT_ACT, PLANT_REV):   # 2.9.0 §2.5: the plant reviewer wallet beside the two (the released bond)
                 u = self.ledger.wallet(wid).U
                 if u > 1e-12:
                     if self.bank_on:                    # 2.1.0 §2.3: whatever the plant's wallets hold returns to the bank, destroyed
                         self.ledger.burn_unlocked("retire_plant", wid, u, case=root.id, note="retire_plant: plant funds destroyed")
+                        self.plant_retire_by_kind["rev" if wid == PLANT_REV else ("approval" if root.planted_approval else "dial")] += u
                     else:
                         self.ledger.transfer(wid, Ledger.OMEGA, u, case=root.id, note="tree closure: plant funds swept to Ω")
                     self.period["plant_back"] += u
@@ -2622,7 +2678,7 @@ class World:
         if batch:
             total_w = sum(self._w(self.reviews[rid].role)
                           for c in batch for rid in c.reviews
-                          if self.reviews[rid].status == "done" and not self.is_troop(self.reviews[rid].reviewer))
+                          if self.reviews[rid].status == "done" and not self.is_system_reviewer(self.reviews[rid].reviewer))
             E = self.p.emission(tick)
             epw = (E / total_w) if total_w > 0 else 0.0
             self._repay_advance()                               # 1.4.0 §2.4: the advance is repaid before any uplift
@@ -2788,9 +2844,9 @@ class World:
             if c.state == "SUBMITTED" and c.is_root and not any(self.reviews[r].role == "initial" and self.reviews[r].status == "open"
                                                                 for r in c.reviews):
                 initial += 1
-            if c.state == "PENDING" and (c.audit_obligation or c.audit_vacated) \
+            if c.state == "PENDING" and (c.audit_obligation or c.audit_vacated) and (c.challenge is None or c.challenge["resolved"]) \
                     and not any(self.reviews[r].role == "audit" and self.reviews[r].status == "open" for r in c.reviews):
-                panel += 1
+                panel += 1                                  # 2.9.0 §4: not while a dispute is open (its panel is counted below)
             ch = c.challenge
             if ch and not ch["resolved"] and len(ch["reviews"]) < 2:
                 panel += 2 - len(ch["reviews"])
@@ -3123,7 +3179,7 @@ class World:
         self.plant_names.add(name)
         return name
 
-    def post_plant(self, truth: bool) -> str:
+    def post_plant(self, truth: bool, approval: bool = False) -> str:
         """2.6.0 §2.1 (design revision 14): the orchestrator introduces a plant by posting it as a root request under a fresh
         plant-requester name, with a ceiling drawn from the trailing real roots' and the pots the bank mints, the truth and the marker
         sealed at posting. It is then available to the free members as any root is and waits as a real root waits; the award is the
@@ -3135,6 +3191,10 @@ class World:
             raise RuleError("post_plant: truth is True (good) or False (bad)")
         if not self.p.floating:
             raise RuleError("post_plant: a plant's life in the market needs the price of work (2.0.0)")
+        if approval and not (self.p.plants_every_seat and self.p.planted_approval):
+            raise RuleError("post_plant: the planted approval is 2.9.0's (planted_approval off)")
+        if approval and truth is not False:
+            raise RuleError("post_plant: a planted approval is a bad plant (2.9.0 §2.2)")
         # 2.6.2 (erratum, the ruling after run 34's addendum): the ceiling is drawn as a ratio to the market price at posting (β/B̄, the real roots'
         # as posted) and applied to the current B̄ — under a price trend 2.6.1's drawn β lagged the live market rule and the plants were raised
         # apart (§50); the ratio default 1.0 before the first real root
@@ -3151,12 +3211,14 @@ class World:
         self.ledger.aliases[req] = PLANT_REQ
         c = Case(cid, root=cid, requester=req, is_root=True, beta=beta, t_post=self.t)
         c.plant, c.plant_market = truth, True
+        c.planted_approval = approval                      # 2.9.0 §2.2: marked at posting — its initial seat is nobody's, its F the orchestrator's
         c.plant_nonce = hashlib.sha256(f"{self.history.head}|{cid}".encode()).hexdigest()[:16]
         c.plant_commit = hashlib.sha256(f"{cid}|{'good' if truth else 'bad'}|{c.plant_nonce}".encode()).hexdigest()
         self.cases[cid] = c
         self._live_cases[cid] = c
         if self.bank_on:                                    # 2.1.0 §2.3: minted by the bank — the pots and the price (the cost of truth)
             self.ledger.mint("mint_plant", PLANT_REQ, all_in, case=cid, note="mint_plant: the pots and the price")
+            self.plant_mint_by_kind["approval" if approval else "dial"] += all_in
         else:
             self._omega_ensure(all_in, None, "plant")
             self.ledger.transfer(Ledger.OMEGA, PLANT_REQ, all_in, case=cid, note="plant: requester funded by Ω")
@@ -3175,7 +3237,12 @@ class World:
         self._log(c, f"posted root beta={beta}; all-in {all_in:g} locked at index {idx:g}, m {m_post:g}"
                   + (f"; flagged below market (B̄ {self.mean_awarded_price():g})" if c.below_market else "")
                   + (f"; marked below the state's reservation ({self.p.state_reservation:g})" if c.below_reservation else ""))
-        self.plant_credit -= 1.0
+        if approval:
+            self.planted_approval_credit -= 1.0
+            self.planted_approvals_posted += 1
+            self.period["pa_posted"] += 1
+        else:
+            self.plant_credit -= 1.0
         self.plants_created += 1
         self.period["plants_created"] += 1
         self.plants_posted += 1
@@ -3274,6 +3341,86 @@ class World:
         """How many plants the rate calls for that have not been created (whole plants)."""
         return int(math.floor(self.plant_credit + 1e-9)) if self.plant_credit > 0 else 0
 
+    def planted_approvals_due(self) -> int:
+        """2.9.0 §2.2: how many planted approvals the rate π^A calls for (per real pending approval, credited as given) and not yet posted."""
+        if not (self.p.plants_every_seat and self.p.planted_approval):
+            return 0
+        return int(math.floor(self.planted_approval_credit + 1e-9)) if self.planted_approval_credit > 0 else 0
+
+    def planted_lies_due(self, kind: str) -> int:
+        """2.9.0 §2.3: how many planted lies of `kind` (appeal | dispute) the period's quota — the trailing closed period's real count of the
+        kind times the rate, the floor of two when that count is zero or the product under two — still calls for."""
+        if not (self.p.plants_every_seat and self.p.planted_lie) or kind not in ("appeal", "dispute"):
+            return 0
+        left = self.lie_quota[kind] - self.period["lies_filed"][kind]
+        return int(math.floor(left + 1e-9)) if left > 0 else 0
+
+    def plant_seat(self, cid: str) -> str:
+        """2.9.0 §2.2: the planted approval's initial seat is nobody's — here the orchestrator's instrument seats its own verdict's review when
+        the drawn seating gap has elapsed: a system review on the troop seat's road under a fresh plant reviewer alias (`plant_rev:`, an
+        alias of the plant reviewer wallet), its bond minted by the bank and locked, no actor touched, no fee owed. The verdict follows at
+        the next tick (`plant_verdict`), so the review's times have a real review's shape."""
+        c = self._case(cid)
+        if not (self.p.plants_every_seat and self.p.planted_approval):
+            raise RuleError("plant_seat: the planted approval is 2.9.0's (planted_approval off)")
+        if not c.planted_approval:
+            raise RuleError(f"plant_seat: {cid} is not a planted approval")
+        if c.state != "SUBMITTED":
+            raise RuleError(f"plant_seat: case {cid} is {c.state}")
+        if any(self.reviews[r].role == "initial" and self.reviews[r].status in ("open", "done", "vested") for r in c.reviews):
+            raise RuleError("plant_seat: the planted verdict's seat is already held")
+        if self._positions(c) + 1 > self.p.V_max:
+            raise RuleError(f"case {cid} would exceed V_max={self.p.V_max} review positions")
+        rev = self._plant_name("rev", cid)
+        self.ledger.aliases[rev] = PLANT_REV
+        self.plant_rev_names.add(rev)
+        self._plant_mint(c, rev, c.G_V, "mint_plant: the plant reviewer's bond", kind="rev")
+        self._n_review += 1
+        rid = f"r{self._n_review}"
+        r = Review(rid, c.id, rev, "initial", self.t, self.t + self.p.T_review, bond=c.G_V)
+        self.ledger.lock(rev, c.G_V, key=f"bond:{rid}", case=c.id, note="bond (initial)")
+        self.reviews[rid] = r
+        self._live_reviews[rid] = r
+        c.reviews.append(rid)
+        c.excluded.add(rev)
+        self._seat_delivery_inspection(c)
+        self._log(c, f"initial review {r.id} -> {rev}, deadline {r.deadline}")
+        return rid
+
+    def plant_verdict(self, cid: str):
+        """2.9.0 §2.2: the orchestrator's own initial verdict on a planted approval — F, wrong on purpose — given in the review pass the tick
+        after the seat was taken: the system review is done with the outcome `planted` (not adjudicated; the dial's clock and the plant
+        record do not count it), the case pending with its window, its audit obligation recorded at the verdict at odds 1 under the case's
+        own mark (not `market_audit_only`), the period's approvals and the audit demand counting it at 1, the public surface's audit odds
+        drawn once from the real approvals' recorded odds and stored (the ruling of October 27)."""
+        c = self._case(cid)
+        if not c.planted_approval:
+            raise RuleError(f"plant_verdict: {cid} is not a planted approval")
+        if c.state != "SUBMITTED":
+            raise RuleError(f"plant_verdict: case {cid} is {c.state}")
+        r = next((self.reviews[x] for x in c.reviews if self.reviews[x].role == "initial" and self.reviews[x].status == "open"), None)
+        if r is None or r.reviewer not in self.plant_rev_names:
+            raise RuleError("plant_verdict: the planted verdict's seat is not held (plant_seat first)")
+        if self.t <= r.t_assign:
+            raise RuleError("plant_verdict: the verdict is given the tick after the seat is taken, as a real review's is")
+        r.verdict, r.t_done, r.status = F, self.t, "done"
+        r.plant_outcome, r.plant_truth = "planted", False
+        c.verdict, c.t_verdict, c.window_end = F, self.t, self.t + self.p.W
+        c.initial_pinned = False
+        c.audit_odds_at_verdict = 1.0
+        c.audit_odds_public = float(self._plant_draw("odds", f"odds{cid}", self.p.p_start))
+        c.plant_outcome = "planted"
+        c.audit_obligation, c.audit_rolled_at = True, self.t
+        c.open_items += 1
+        c.seat_since = None
+        c.state = "PENDING"
+        c.plant_adjudications.append((self.t, r.id, "initial", F, "planted"))
+        self.period["approvals"] += 1
+        self.period["audit_demand"] += 1.0
+        self.period["pa_verdicts"] += 1
+        self._release_capacity(c)
+        self._log(c, f"planted approval: F by the orchestrator at the initial seat (review {r.id}); the audit obligation recorded at odds 1")
+
     def _adjudicate_plant(self, c: Case, r: Review, verdict: str):
         """1.2.0 §2.1: a plant's initial verdict is judged against its known truth the moment it
         is given. Right → stood (paid at settlement, plant record +1). Wrong → plant failure: the
@@ -3327,11 +3474,13 @@ class World:
         'the challenger can fund the fee' passes as a real challenger's does. Only under the flag and the bank (2.1.0)."""
         return c.plant is not None and self.p.plants_every_seat and self.bank_on
 
-    def _plant_mint(self, c: Case, wid: str, amt: float, note: str):
+    def _plant_mint(self, c: Case, wid: str, amt: float, note: str, kind: Optional[str] = None):
         """2.8.0: the bank mints for a plant (its pots topped up, a court fee) — `mint_plant`, as the posting's mint (2.1.0 §2.3);
-        without the bank Ω funds it as 1.2.0 had it (the no-bank controls)."""
+        without the bank Ω funds it as 1.2.0 had it (the no-bank controls). 2.9.0: tallied by kind — the dial's plants, the planted
+        approvals, the planted lies' fees, the plant reviewer's bonds — the cost of truth split."""
         if amt <= 1e-12:
             return
+        self.plant_mint_by_kind[kind or ("approval" if c.planted_approval else "dial")] += amt
         wallet = self.ledger.resolve(wid)                  # the plant wallet behind the fresh name (I28 reads the wallet)
         if self.bank_on:
             self.ledger.mint("mint_plant", wallet, amt, case=c.id, note=note)
@@ -3413,6 +3562,18 @@ class World:
         self.period["plant_seats"][kind] += 1
         if not right:
             self.period["plant_seat_failures"][kind] += 1
+        # 2.9.0 §2.4: the dial per seat's readings — the planted approvals adjudicated and confirmed at the audit seat, the third seats
+        # opened on them, and the planted lies' panel seats and those that sided with the lie
+        if c.planted_approval and kind == "audit":
+            self.period["pa_audit_adj"] += 1
+            if not right:
+                self.period["pa_audit_confirmed"] += 1
+        elif c.planted_approval and kind == "third":
+            self.period["pa_third"] += 1
+        if c.challenge is not None and c.challenge.get("lie") and kind in ("appeal", "dispute"):
+            self.period["lie_adj"][kind] += 1
+            if not right:
+                self.period["lie_sided"][kind] += 1
         if initial and c.plant_outcome is None:
             # the dial's clock: the initial adjudications only (§2.1) — the first F or N at the initial seat, first review or resumed
             c.plant_outcome = r.plant_outcome
@@ -3458,6 +3619,7 @@ class World:
         ch["outcome"], ch["by"], ch["objection"] = outcome, "truth", None
         self._release_attached_reviewer(c)
         c.open_items -= 1
+        self._discharge_obligation_at_dispute(c)
         c.outcome = outcome
         self._log(c, f"plant: the {ch['kind']} resolved by truth → {outcome}")
         if outcome == N:
@@ -3465,6 +3627,21 @@ class World:
         else:
             c.state = "PENDING"
             self._release_capacity(c)
+
+    def _discharge_obligation_at_dispute(self, c: Case):
+        """2.9.0 §4 (a conformance detail, landed with the revision): a case whose rolled audit obligation still stands when its dispute is
+        settled has had its approval judged by two fresh reviewers — the obligation is discharged at the settlement, whichever way the panel
+        found (the rulebook's one round per case). Before: a disputed-and-lost real case stayed pending with the obligation undischarged."""
+        ch = c.challenge
+        if ch is None or ch.get("kind") != "dispute" or not c.audit_obligation:
+            return
+        if any(self.reviews[x].role == "audit" and self.reviews[x].status != "withdrawn" for x in c.reviews):
+            return                                      # an audit seat was held: its own path discharges it
+        c.audit_obligation = False
+        c.open_items -= 1
+        self.obligations_discharged_by_dispute += 1
+        self.period["obligations_discharged"] += 1
+        self._log(c, "the standing audit obligation discharged at the dispute's settlement (2.9.0 §4)")
 
     def _plant_resolve_response(self, c: Case, why: str):
         """2.8.0 §2.1–2.2: a plant in its response window with no appeal and no revision resolves by truth — a good plant rejected goes on
@@ -3535,7 +3712,10 @@ class World:
         self.history.append("plant_revealed", {"t": self.t, "case": c.id, "truth": "good" if c.plant else "bad",
                                                "nonce": c.plant_nonce, "commit": c.plant_commit, "revised": revised,
                                                "reviews": reviews, "state_seats": [list(s) for s in c.plant_state_seats],
-                                               "outcome": c.plant_outcome})
+                                               "outcome": c.plant_outcome,
+                                               # 2.9.0 §2.6: a planted approval named, its public odds shown beside the true 1 (keys only on one,
+                                               # so the 2.8.0 control's record is unchanged to the hash)
+                                               **({"planted_approval": True, "audit_odds_public": c.audit_odds_public} if c.planted_approval else {})})
         c.plant_reveal_hseq = len(self.history.entries) - 1
         self._log(c, f"plant revealed at closure: {'good' if c.plant else 'bad'}"
                   + (f", revised {'good' if c.plant_revised else 'bad'}" if c.plant_revised is not None else "")
@@ -3649,6 +3829,11 @@ class World:
                 "plant_seats": {k: 0 for k in PLANT_SEATS}, "plant_seat_failures": {k: 0 for k in PLANT_SEATS},
                 "plant_seats_at_state": 0, "plants_revised": 0, "plants_spent": 0, "plant_top_ups": 0.0, "plant_fees_destroyed": 0.0,
                 "approvals": 0, "audit_demand": 0.0, "audits": 0, "challenge_reviews": 0, "dur_sum": 0, "dur_n": 0,
+                # 2.9.0: the real approvals and real challenges (the rates' bases), the planted approvals' life, the planted lies, the discharges
+                "real_approvals": 0, "real_appeals": 0, "real_disputes": 0,
+                "pa_posted": 0, "pa_verdicts": 0, "pa_audit_adj": 0, "pa_audit_confirmed": 0, "pa_third": 0, "pa_disputed_first": 0,
+                "pa_state_would_seat": 0, "lies_filed": {"appeal": 0, "dispute": 0}, "lie_adj": {"appeal": 0, "dispute": 0},
+                "lie_sided": {"appeal": 0, "dispute": 0}, "obligations_discharged": 0,
                 "suspensions": 0, "eligibility_shortfall": 0,
                 "award_price_sum": 0.0, "award_n": 0,
                 "troop_ticks_reviews": 0, "troop_ticks_deliveries": 0, "troop_summons_reviews": 0,
@@ -3716,6 +3901,27 @@ class World:
                 alarm = self.alarm_streak >= 2
             else:
                 self.alarm_streak = 0
+        # 2.9.0 §2.4: the dial per planted wrong step — m^A on the planted approvals confirmed at the audit seat, m^La / m^Ld on the planted
+        # lies a panelist sided with, each stepping as m_t steps on its own reading against F*, each moving its rate alone; an undefined
+        # reading leaves its multiplier; the lies' quotas for the next period from this period's real counts
+        def _step(m_old_x, f_hat):
+            if not self.p.dial or f_hat is None:
+                return m_old_x
+            ratio = (f_hat / self.p.F_star) ** self.p.gamma if f_hat > 0 else 0.0
+            return min(max(min(max(m_old_x * ratio, 0.9 * m_old_x), 2.0 * m_old_x), 1.0), self.p.m_max)
+        F_hat_A = (per["pa_audit_confirmed"] / per["pa_audit_adj"]) if per["pa_audit_adj"] else None
+        F_hat_La = (per["lie_sided"]["appeal"] / per["lie_adj"]["appeal"]) if per["lie_adj"]["appeal"] else None
+        F_hat_Ld = (per["lie_sided"]["dispute"] / per["lie_adj"]["dispute"]) if per["lie_adj"]["dispute"] else None
+        m_A_old, m_La_old, m_Ld_old = self.m_A, self.m_La, self.m_Ld
+        if self.p.plants_every_seat and self.p.planted_approval:
+            self.m_A = _step(self.m_A, F_hat_A)
+            self.pi_A = min(self.p.pi_A_max, self.p.pi_A0 * self.m_A)
+        if self.p.plants_every_seat and self.p.planted_lie:
+            self.m_La, self.m_Ld = _step(self.m_La, F_hat_La), _step(self.m_Ld, F_hat_Ld)
+            self.pi_La = min(self.p.pi_L_max, self.p.pi_L0 * self.m_La)
+            self.pi_Ld = min(self.p.pi_L_max, self.p.pi_L0 * self.m_Ld)
+            self.lie_quota = {"appeal": max(float(self.p.lie_floor), self.pi_La * per["real_appeals"]),
+                              "dispute": max(float(self.p.lie_floor), self.pi_Ld * per["real_disputes"])}
         shortfall = self.plants_due()
         self.plant_shortfall += shortfall
         self.plant_credit -= shortfall
@@ -3730,7 +3936,7 @@ class World:
         # 2.6.0: the trailing window rolls at the close — the plant's draws read the last `trailing_periods` closed periods
         self._trailing.append(self._cur_trailing)
         self._trailing = self._trailing[-max(1, self.p.trailing_periods):]
-        self._cur_trailing = {"betas": [], "taus": [], "deliv": []}
+        self._cur_trailing = {"betas": [], "taus": [], "deliv": [], "odds": []}
         for key in self._recent:                        # the rolling list need hold no more than the window's width k
             k = sum(len(per[key]) for per in self._trailing)
             self._recent[key] = self._recent[key][-max(1, k):]
@@ -3742,6 +3948,19 @@ class World:
                "m_before": round(m_old, 6), "m": round(self.m_t, 6), "pi": round(self.pi_t, 6), "X": self.X_t,
                "member_seats": self.member_seats,
                "plants_created": per["plants_created"], "plant_shortfall": shortfall,
+               # 2.9.0 §5: the dial per seat and the planted wrong steps' readings (under a 2.9.0 flag; the 2.8.0 record unchanged to the hash)
+               **({"real_approvals": per["real_approvals"], "real_appeals": per["real_appeals"], "real_disputes": per["real_disputes"],
+                   "pa_posted": per["pa_posted"], "pa_verdicts": per["pa_verdicts"], "pa_audit_adj": per["pa_audit_adj"],
+                   "pa_audit_confirmed": per["pa_audit_confirmed"], "pa_third": per["pa_third"], "pa_disputed_first": per["pa_disputed_first"],
+                   "pa_state_would_seat": per["pa_state_would_seat"], "lies_filed": dict(per["lies_filed"]), "lie_adj": dict(per["lie_adj"]),
+                   "lie_sided": dict(per["lie_sided"]), "obligations_discharged": per["obligations_discharged"],
+                   "F_hat_A": None if F_hat_A is None else round(F_hat_A, 6), "F_hat_La": None if F_hat_La is None else round(F_hat_La, 6),
+                   "F_hat_Ld": None if F_hat_Ld is None else round(F_hat_Ld, 6),
+                   "m_A_before": round(m_A_old, 6), "m_A": round(self.m_A, 6), "pi_A": round(self.pi_A, 6),
+                   "m_La_before": round(m_La_old, 6), "m_La": round(self.m_La, 6), "pi_La": round(self.pi_La, 6),
+                   "m_Ld_before": round(m_Ld_old, 6), "m_Ld": round(self.m_Ld, 6), "pi_Ld": round(self.pi_Ld, 6),
+                   "lie_quota": dict(self.lie_quota)}
+                  if self.p.plants_every_seat and (self.p.planted_approval or self.p.planted_lie) else {}),
                # 2.8.0 §5: the seats on plants by kind and the adjudications by seat kind, read beside the dial's clock (initial only)
                "plant_seats": dict(per["plant_seats"]), "plant_seat_failures": dict(per["plant_seat_failures"]),
                "plant_seats_at_state": per["plant_seats_at_state"], "plants_revised": per["plants_revised"], "plants_spent": per["plants_spent"],
@@ -3901,7 +4120,7 @@ class World:
         return self._live_audit_odds(c)
 
     def _live_audit_odds(self, c: Case) -> float:
-        if c.market_audit_only:
+        if c.market_audit_only or c.planted_approval:   # 2.9.0 §2.2: a planted approval is audited with certainty
             return 1.0
         r = self._initial_review(c) if any(self.reviews[x].role == "initial" and self.reviews[x].status == "done"
                                             for x in c.reviews) else None
@@ -4292,8 +4511,11 @@ class World:
             plant = c.plant is not None
             if plant and not self.p.plants_every_seat:
                 continue                                # 1.2.0: never a plant (2.8.0: the state's own verdict takes a plant's seat past w_R)
-            # the audit seat
+            # the audit seat — not while a dispute is open on the case: the dispute's panel judges the approval and the standing obligation
+            # is discharged at its settlement (2.9.0 §4), so the seat is not required meanwhile (before: the state's audit verdict joined
+            # the open dispute as a third answer and settled it over an open panelist)
             if c.state == "PENDING" and (c.audit_obligation or c.audit_vacated) \
+                    and (c.challenge is None or c.challenge["resolved"]) \
                     and not any(self.reviews[r].role == "audit" and self.reviews[r].status == "open" for r in c.reviews):
                 since = c.audit_vacated_at if c.audit_vacated else c.audit_rolled_at
                 if c.market_audit_only:
@@ -4311,7 +4533,12 @@ class World:
                     and not any(self.reviews[r].role == "initial" and self.reviews[r].status in ("open", "done", "vested")
                                 for r in c.reviews) \
                     and tick - c.seat_since + 1 >= self.p.w_R and not self._free_eligible_reviewer(c, "initial"):
-                if plant:
+                if c.planted_approval:
+                    # 2.9.0 §2.2: the planted approval's initial seat is nobody's — the pass passes it by; what it would have done is read
+                    if not c.pa_state_would_seat:
+                        c.pa_state_would_seat = True
+                        self.period["pa_state_would_seat"] += 1
+                elif plant:
                     self._state_verdict_on_plant(c, "initial", tick)
                 elif self._summon_review(c, "initial", tick) is None:
                     self.troop_held_ticks += 1

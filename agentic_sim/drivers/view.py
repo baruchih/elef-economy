@@ -80,7 +80,9 @@ _PLANT_FIELD_DEFAULTS = {"plant": None, "plant_commit": None, "plant_nonce": Non
                          "plant_reveal_hseq": None, "plant_market": False, "plant_submit_at": None, "plant_at_floor": False,
                          "plant_report_by": None, "plant_revised": None, "plant_revised_commit": None, "plant_revised_nonce": None,
                          "plant_revised_hseq": None, "plant_adjudications": (), "plant_state_seats": (), "phi_E_topped": 0.0,
-                         "phi_F_topped": 0.0, "plant_fee_destroyed": 0.0, "grade": None}
+                         "phi_F_topped": 0.0, "plant_fee_destroyed": 0.0, "grade": None,
+                         # 2.9.0 §2.6: the planted approval's mark and its masked field's draw
+                         "planted_approval": False, "audit_odds_public": None, "pa_state_would_seat": False}
 _PLANT_EVENT_KINDS = ("mint_plant", "retire_plant")
 
 
@@ -129,6 +131,9 @@ class Public:
         tr["log"] = lambda log, c=c: _public_log(c, log)
         for name, default in _PLANT_FIELD_DEFAULTS.items():
             tr[name] = _masked(c, default)
+        # 2.9.0 §2.6 (the ruling of October 27): a planted approval's audit odds show the value drawn once at the verdict from the real
+        # approvals' recorded odds until the reveal, the true 1 after; the roll reads the engine's 1 by the orchestrator's road (audit_odds)
+        tr["audit_odds_at_verdict"] = lambda v, c=c: (c.audit_odds_public if (c.planted_approval and not _revealed(c)) else v)
         return _Proxy(c, tr)
 
     def _pub_review(self, r):
@@ -341,9 +346,27 @@ class Public:
         """A case whose fulfillment the orchestrator knows by construction, funded by Ω."""
         return self._pub(self._w.create_plant(truth, B))
 
-    def post_plant(self, truth: bool) -> str:
-        """2.6.0 §2.1: the orchestrator posts a plant as a root under a fresh name; the market takes it from there."""
-        return self._pub(self._w.post_plant(truth))
+    def post_plant(self, truth: bool, approval: bool = False) -> str:
+        """2.6.0 §2.1: the orchestrator posts a plant as a root under a fresh name; the market takes it from there. 2.9.0 §2.2: `approval`
+        posts a planted approval — a bad plant marked at posting, its initial seat nobody's, its F the orchestrator's own."""
+        return self._pub(self._w.post_plant(truth, approval))
+
+    def planted_approvals_due(self) -> int:
+        """2.9.0 §2.2: whole planted approvals the rate π^A (per real pending approval) calls for and not yet posted."""
+        return self._w.planted_approvals_due()
+
+    def planted_lies_due(self, kind: str) -> int:
+        """2.9.0 §2.3: planted lies of `kind` (appeal | dispute) the period's quota still calls for."""
+        return self._w.planted_lies_due(kind)
+
+    def plant_seat(self, cid: str) -> str:
+        """2.9.0 §2.2: the orchestrator seats its own verdict's review on a planted approval (a system review under a plant reviewer alias)
+        when the drawn seating gap has elapsed; the verdict follows the next tick."""
+        return self._w.plant_seat(self._eng(cid))
+
+    def plant_verdict(self, cid: str):
+        """2.9.0 §2.2: the orchestrator's own initial verdict on a planted approval — F, wrong on purpose, audited with certainty."""
+        self._w.plant_verdict(self._eng(cid))
 
     def submit_plant(self, cid: str):
         """2.6.0 §7.6: the orchestrator's instrument submits for the plant actor at its drawn tick, in the members' submission step."""
@@ -383,6 +406,12 @@ class Public:
                 # 2.8.0: the plant at every seat — adjudications by seat kind, the state's seats, the revisions, the top-ups and the fees destroyed
                 "plant_seat_adjudications": {k: dict(v) for k, v in w.plant_seat_adjudications.items()}, "plant_seats_at_state": w.plant_seats_at_state,
                 "plants_revised": w.plants_revised, "plants_spent": w.plants_spent, "plant_top_ups": w.plant_top_ups, "plant_fees_destroyed": w.plant_fees_destroyed,
+                # 2.9.0 §5: the planted wrong steps — the credits due, the rates and multipliers per seat, the quotas, the cost of truth by kind
+                "planted_approvals_due": w.planted_approvals_due(), "planted_approvals_posted": w.planted_approvals_posted,
+                "planted_lies_due": {"appeal": w.planted_lies_due("appeal"), "dispute": w.planted_lies_due("dispute")},
+                "lie_quota": dict(w.lie_quota), "pi_A": w.pi_A, "m_A": w.m_A, "pi_La": w.pi_La, "m_La": w.m_La, "pi_Ld": w.pi_Ld, "m_Ld": w.m_Ld,
+                "obligations_discharged_by_dispute": w.obligations_discharged_by_dispute,
+                "plant_mint_by_kind": dict(w.plant_mint_by_kind), "plant_retire_by_kind": dict(w.plant_retire_by_kind),
                 "eligibility_shortfall": w.eligibility_shortfall, "reserve_shortfall_now": w.reserve_shortfall_now,
                 "suspensions": w.suspensions, "alarms": w.alarms, "alarm_streak": w.alarm_streak,
                 "member_seats": w.member_seats, "readmissions": w.readmissions,
@@ -453,8 +482,8 @@ class Public:
 
     def money(self) -> dict:
         L = self._w.ledger
-        from sim.engine import PLANT_REQ, PLANT_ACT, DUTY_FUND, TROOP_ACCT
-        plant_wallets = L.wallet(PLANT_REQ).W + L.wallet(PLANT_ACT).W
+        from sim.engine import PLANT_REQ, PLANT_ACT, PLANT_REV, DUTY_FUND, TROOP_ACCT
+        plant_wallets = L.wallet(PLANT_REQ).W + L.wallet(PLANT_ACT).W + L.wallet(PLANT_REV).W
         return {"M": L.M, "Res": L.Res, "v": L.v, "omega": L.wallet(L.OMEGA).U,
                 "omega_total": L.wallet(L.OMEGA).W + plant_wallets,      # Ω's money, plants' working capital included
                 "omega_in_plants": plant_wallets,

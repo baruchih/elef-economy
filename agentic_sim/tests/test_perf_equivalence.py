@@ -52,7 +52,7 @@ def scenario(seed: int, ticks: int, audit_every: int = 0, record_dir=None) -> Wo
     rng = random.Random(seed)
     # 1.2.0: short periods, a two-plant record and a short suspension, so the dial moves and
     # actors are suspended, readmitted and re-seated within the scenario's 200 ticks
-    w = World(Params(Res0=2e5, omega_rate=0.05, record_dir=record_dir, period_ticks=40, n_min=2, T_susp=30), ACTORS,
+    w = World(Params(Res0=2e5, omega_rate=0.05, record_dir=record_dir, period_ticks=40, n_min=2, T_susp=30, pi_A0=0.2), ACTORS,   # 2.9.0: planted approvals at a tenth of the real approvals, so their audit is reached
               humans={"H1": 60000.0, "H2": 30000.0, "D1": 30000.0}, delegates=["D1"], on_duty=ACTORS[:4])
 
     def free_actors():
@@ -70,6 +70,15 @@ def scenario(seed: int, ticks: int, audit_every: int = 0, record_dir=None) -> Wo
         for _ in range(w.plants_due()):                # 1.2.0: the orchestrator's plants at the rate the dial sets
             truth, _B = rng.random() >= 0.75, rng.choice([10, 20, 30])
             _try(w.post_plant, truth)                   # 2.6.0: the plant goes through the market (its ceiling the engine's draw)
+        for _ in range(w.planted_approvals_due()):     # 2.9.0: the planted approvals at the rate π^A sets (per real pending approval)
+            _try(w.post_plant, False, True)
+        for c in list(w.cases.values()):               # 2.9.0: the planted approval's seat is nobody's — the orchestrator seats and answers it
+            if c.planted_approval and c.state == "SUBMITTED":
+                held = [w.reviews[r] for r in c.reviews if w.reviews[r].role == "initial" and w.reviews[r].status == "open"]
+                if not held and rng.random() < 0.7:
+                    _try(w.plant_seat, c.id)
+                elif held and held[0].t_assign < t:
+                    _try(w.plant_verdict, c.id)
         for c in list(w.cases.values()):
             if c.state != "AVAILABLE":
                 continue
@@ -119,7 +128,12 @@ def scenario(seed: int, ticks: int, audit_every: int = 0, record_dir=None) -> Wo
         for c in list(w.cases.values()):
             if c.state == "AWAITING_RESPONSE" and rng.random() < 0.6:
                 act = rng.choice(["accept", "appeal", "revise", "supply_evidence"])
+                if c.plant is not None and c.verdict == N and c.plant is False and act == "accept" and w.planted_lies_due("appeal") > 0:
+                    act = "appeal"                      # 2.9.0: the planted lie — the plant actor appeals a bad plant's N while the quota stands
                 _try(w.respond, c.id, act, "grounds" if act == "appeal" else None)
+            if c.plant is True and c.state == "PENDING" and c.verdict == F and c.challenge is None and w.planted_lies_due("dispute") > 0 \
+                    and rng.random() < 0.5:
+                _try(w.dispute, c.id, c.requester, "not convinced")   # 2.9.0: the planted lie — a good plant's F disputed while the quota stands
             if c.plant is not None and c.state in ("AWAITING_RESPONSE", "RESUBMITTING") and c.verdict in (P, BOT) and rng.random() < 0.5:
                 _try(w.revise_plant, c.id, rng.random() < 0.5)   # 2.8.0: the instrument's resubmitted truth, re-sealed as the second marker
             if c.state == "PENDING" and c.outcome_or_verdict() == F and c.is_root:
@@ -208,12 +222,15 @@ GOLDEN = {
     # revised (the scenario drives revise_plant), its seats nobody is free to take taken by the orchestrator's own verdict, every verdict
     # adjudicated by truth, the fee destroyed at filing, the markers revealed at closure — so every plant's path and the whole fingerprint
     # move (the previous pins, b08ab798… / 9738 and 22acc239… / 10460, are in the History of this file).
-    1: {"head": "cd9c224c248493b5daaafead3f7c601815cf5b9b43d80ad213d08bb3d94dc1db", "entries": 9928,
-        "M": 120206.801797, "Res": 0.0,
-        "states": {"FINAL_N": 183, "VESTED": 65, "WITHDRAWN": 5, "PENDING": 6, "AVAILABLE": 2, "COMMITTED": 2}},
-    2: {"head": "4396ace2b51ce25bfb77ac5e577a517bf41e11514a6e5a3bf9d3a75b593881e2", "entries": 9718,
-        "M": 120619.513154, "Res": 0.0,
-        "states": {"FINAL_N": 193, "VESTED": 46, "WITHDRAWN": 4, "PENDING": 9, "AVAILABLE": 22, "COMMITTED": 3}},
+    # Re-pinned once at the 2.9.0 implementing commit (October 27, 2026; the plant takes the wrong step; the 2.8.0 pins were cd9c224c… / 9928 and
+    # 4396ace2… / 9718): the scenario posts planted approvals (π^A_0 0.2 here),
+    # seats and answers them, files planted lies while the quota stands, and the dispute's settlement discharges a standing obligation
+    1: {"head": "95953f96ed4c123a7decdc6cccb30cdee6715c958eb4b6502e815b8ee1b01fb1", "entries": 10327,
+        "M": 120265.892416, "Res": 0.0,
+        "states": {"FINAL_N": 212, "VESTED": 53, "WITHDRAWN": 16, "CANCELLED": 1, "AVAILABLE": 6, "PENDING": 3, "COMMITTED": 2}},
+    2: {"head": "b678a8b59cfe377783c4dfb9f97d867436a0bf76acf9cf2f0a69ac42aa0dc653", "entries": 10878,
+        "M": 120337.83039, "Res": 0.0,
+        "states": {"FINAL_N": 219, "VESTED": 56, "CANCELLED": 2, "WITHDRAWN": 8, "AVAILABLE": 16, "PENDING": 1, "SUBMITTED": 1, "COMMITTED": 2}},
 }
 
 

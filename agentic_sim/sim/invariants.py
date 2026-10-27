@@ -664,6 +664,13 @@ def _I20_every_seat(w, cases):
             if w.is_troop(r.reviewer):
                 _fail(f"I20 {c.id}: a troop sat on a plant ({rid})")
             if r.status in ("done", "vested", "overturned") and r.verdict in ("F", "N"):
+                if r.plant_outcome == "planted":
+                    # 2.9.0 §2.2: the orchestrator's own verdict on a planted approval — a system review under a plant reviewer alias, F,
+                    # not adjudicated, on a planted approval's initial seat alone
+                    if not (c.planted_approval and r.role == "initial" and r.verdict == "F" and r.reviewer in w.plant_rev_names
+                            and r.status in ("done", "vested")):
+                        _fail(f"I20 {c.id}: review {rid} 'planted' but not the planted verdict ({r.role} {r.verdict} by {r.reviewer}, {r.status})")
+                    continue
                 if r.plant_outcome not in ("stood", "failure") or r.plant_truth is None:
                     _fail(f"I20 {c.id}: review {rid} ({r.role}) {r.verdict} on a plant without adjudication")
                 right = (r.verdict == "F") == r.plant_truth
@@ -690,7 +697,8 @@ def _I20_every_seat(w, cases):
                                                            "commit": c.plant_revised_commit}
             reviews = [[rid, _peek(w.reviews, rid).reviewer, _peek(w.reviews, rid).verdict, _peek(w.reviews, rid).plant_outcome] for rid in c.reviews]
             want = {"case": c.id, "truth": "good" if c.plant else "bad", "nonce": c.plant_nonce, "commit": c.plant_commit, "revised": revised,
-                    "reviews": reviews, "state_seats": [list(s) for s in c.plant_state_seats], "outcome": c.plant_outcome}
+                    "reviews": reviews, "state_seats": [list(s) for s in c.plant_state_seats], "outcome": c.plant_outcome,
+                    **({"planted_approval": True, "audit_odds_public": c.audit_odds_public} if c.planted_approval else {})}
             entry = w.history.entries[c.plant_reveal_hseq] if c.plant_reveal_hseq < len(w.history.entries) else None
             t0 = entry["payload"].get("t") if entry is not None and entry.get("kind") == "plant_revealed" else None
             if t0 is None or not w.history.matches(c.plant_reveal_hseq, "plant_revealed", {"t": t0, **want}):
@@ -736,6 +744,80 @@ def I42_the_plant_at_every_seat(w, cases=None):
         if c.tree_closed and getattr(w, "bank_on", False):
             if w.ledger.pool(c.id).deposit > EPS or w.ledger.pool(c.id).fee_pot > EPS:
                 _fail(f"I42 {c.id}: a closed plant's pots not emptied")
+        if c.planted_approval:
+            # 2.9.0 §2.5 (I42 amended): the plant reviewer's bond is released and retired with the pots, never burned as a forfeit — the
+            # planted verdict's review is never overturned
+            for rid in c.reviews:
+                r = _peek(w.reviews, rid)
+                if r.reviewer in w.plant_rev_names and r.status == "overturned":
+                    _fail(f"I42 {c.id}: the plant reviewer's bond burned as a forfeit ({r.reviewer})")
+
+
+def I43_the_planted_approval(w, cases=None):
+    """2.9.0 §5 (I43, new): every planted approval is a bad plant marked at posting; from its submission to the orchestrator's verdict its
+    initial seat is nobody's — no member seated, the summons pass passing it by; its initial verdict is F, a system review under a plant
+    reviewer alias (outcome `planted`, no fee, a bond minted and locked); its audit obligation is recorded at the verdict at odds 1 under its
+    own mark and the seat filled at a real audit seat's step or discharged by a dispute's settlement; the dial's clock and the plant record do
+    not count the planted verdict; π^A within its cap."""
+    p = w.p
+    if not (getattr(p, "plants_every_seat", False) and getattr(p, "planted_approval", False)):
+        return
+    if w.pi_A > p.pi_A_max + EPS or w.pi_A < -EPS or not (1.0 - EPS <= w.m_A <= p.m_max + EPS):
+        _fail(f"I43 π^A={w.pi_A} / m^A={w.m_A} outside their bounds")
+    for c in _cases(w, cases):
+        if not c.planted_approval:
+            continue
+        if c.plant is not False or c.market_audit_only:
+            _fail(f"I43 {c.id}: a planted approval that is not a bad plant, or marked market_audit_only")
+        inits = [_peek(w.reviews, rid) for rid in c.reviews if _peek(w.reviews, rid).role == "initial"]
+        if any(r.reviewer not in w.plant_rev_names for r in inits):
+            _fail(f"I43 {c.id}: a reviewer other than the plant reviewer alias on a planted approval's initial seat")
+        if any(s[1] == "initial" for s in c.plant_state_seats):
+            _fail(f"I43 {c.id}: the state took a planted approval's initial seat")
+        for r in inits:
+            if r.cost > EPS or r.fee > EPS or r.fee_owed > EPS or r.fee_fixed > EPS:
+                _fail(f"I43 {c.id}: the planted verdict's review paid or owed a fee or cost")
+            if r.verdict is not None and (r.verdict != "F" or r.plant_outcome != "planted"):
+                _fail(f"I43 {c.id}: the planted verdict is {r.verdict} / {r.plant_outcome}")
+        if c.t_verdict is not None:
+            if c.plant_outcome != "planted" or c.audit_odds_at_verdict != 1.0 or c.audit_odds_public is None:
+                _fail(f"I43 {c.id}: the planted verdict's marks ({c.plant_outcome}, odds {c.audit_odds_at_verdict}, public {c.audit_odds_public})")
+            audits = [_peek(w.reviews, rid) for rid in c.reviews if _peek(w.reviews, rid).role == "audit" and _peek(w.reviews, rid).status != "withdrawn"]
+            state_audit = any(s[1] == "audit" for s in c.plant_state_seats)
+            ch = c.challenge
+            discharged = ch is not None and ch.get("kind") == "dispute" and ch["resolved"]
+            if len(audits) > 1:
+                _fail(f"I43 {c.id}: a planted approval audited more than once")
+            if not c.audit_obligation and not audits and not state_audit and not discharged and not c.audit_vacated:
+                _fail(f"I43 {c.id}: the obligation recorded at the verdict neither stands nor was met")
+
+
+def I44_the_planted_lie(w, cases=None):
+    """2.9.0 §5 (I44, new): a planted lying appeal is filed on a bad plant's N and a planted lying dispute on a good plant's F, on the real
+    challenge's path with the fee destroyed at filing; the panelists' verdicts are adjudicated by truth and the challenge resolved by truth; the
+    first reviewer is not adjudicated again; the rates within their caps."""
+    p = w.p
+    if not (getattr(p, "plants_every_seat", False) and getattr(p, "planted_lie", False)):
+        return
+    for pi_x, m_x, name in ((w.pi_La, w.m_La, "La"), (w.pi_Ld, w.m_Ld, "Ld")):
+        if pi_x > p.pi_L_max + EPS or pi_x < -EPS or not (1.0 - EPS <= m_x <= p.m_max + EPS):
+            _fail(f"I44 π^{name}={pi_x} / m^{name}={m_x} outside their bounds")
+    bank = getattr(w, "bank_on", False)
+    for c in _cases(w, cases):
+        ch = c.challenge
+        if c.plant is None or ch is None or not ch.get("lie"):
+            continue
+        truth = c.plant_revised if c.plant_revised is not None else c.plant
+        if not ((ch["kind"] == "appeal" and truth is False) or (ch["kind"] == "dispute" and truth is True)):
+            _fail(f"I44 {c.id}: a planted lie that is not a challenge against the plant's truth")
+        if bank and abs(c.plant_fee_destroyed - c.D) > EPS:
+            _fail(f"I44 {c.id}: the planted lie's fee not destroyed at filing")
+        initial = [rid for rid in c.reviews if _peek(w.reviews, rid).role == "initial"]
+        adj_initial = [x for x in c.plant_adjudications if x[1] in initial and x[4] in ("stood", "failure")]
+        if len(adj_initial) > 1:
+            _fail(f"I44 {c.id}: the first reviewer adjudicated twice")
+        if ch["resolved"] and ch.get("by") != "truth":
+            _fail(f"I44 {c.id}: a planted lie settled by {ch.get('by')}")
 
 
 def I21_dial_and_reserve(w, reviews=None):
@@ -753,6 +835,11 @@ def I21_dial_and_reserve(w, reviews=None):
         lo, hi = 0.9 * per["m_before"] - EPS, 2.0 * per["m_before"] + EPS
         if not (max(lo, 1.0 - EPS) <= per["m"] <= min(hi, p.m_max + EPS)) and per["m"] != per["m_before"]:
             _fail(f"I21 dial step {per['m_before']} → {per['m']} outside its bounds")
+        for k in ("m_A", "m_La", "m_Ld"):                # 2.9.0 §2.4: the dial per seat steps as m_t steps
+            if k in per:
+                lo, hi = 0.9 * per[k + "_before"] - EPS, 2.0 * per[k + "_before"] + EPS
+                if not (max(lo, 1.0 - EPS) <= per[k] <= min(hi, p.m_max + EPS)) and per[k] != per[k + "_before"]:
+                    _fail(f"I21 {k} step {per[k + '_before']} → {per[k]} outside its bounds")
     for a in w.actors.values():
         if a.on_duty and not a.duty_eligible and a.open_review is None:
             _fail(f"I21 {a.id} remains on duty, duty-ineligible, with no active review")
@@ -1061,7 +1148,7 @@ def I28_the_deficit(w):
 
 _CREATION_NOTES = {"creation: summons", "creation: plant", "creation: rebate", "creation: scenario: deficit shock"}
 _LOAN_NOTES = {"loan: delivery", "loan: review"}
-_PLANT_WALLETS = {"OMEGA-REQ", "OMEGA-ACT"}             # engine.PLANT_REQ / PLANT_ACT (not imported: no cycle)
+_PLANT_WALLETS = {"OMEGA-REQ", "OMEGA-ACT", "OMEGA-REV"}   # engine.PLANT_REQ / PLANT_ACT / PLANT_REV (not imported: no cycle)
 
 
 def I30_the_bank(w):
@@ -1451,6 +1538,8 @@ def check_all(w):
     I40_opaque_identifiers(w)
     I41_the_arrival_loan(w)
     I42_the_plant_at_every_seat(w)
+    I43_the_planted_approval(w)
+    I44_the_planted_lie(w)
     I16_history_is_authoritative(w)
 
 
@@ -1522,6 +1611,8 @@ def check_tick(w):
     I38_the_missed_child(w, cases)
     I39_the_plants_disguise(w, cases)
     I42_the_plant_at_every_seat(w, cases)
+    I43_the_planted_approval(w, cases)
+    I44_the_planted_lie(w, cases)
     I40_opaque_identifiers(w, cases)
     I41_the_arrival_loan(w, new_events)
 

@@ -196,6 +196,21 @@ class Params:
     # challenge round (1.2.0 §2.1) — `drivers.stamping --rules 2.7.0`.
     plants_every_seat: bool = True
 
+    # Design revision 17 (2.9.0): the plant takes the wrong step. `planted_approval`: beside the dial's plants the orchestrator posts bad
+    # plants marked at posting whose initial seat is nobody's and whose initial verdict is the orchestrator's own F (a system review under a
+    # plant reviewer alias, no fee, no adjudication), audited with certainty (the obligation at the verdict, odds 1) at a rate π^A per real
+    # pending approval with its own multiplier m^A on F̂^A (planted approvals confirmed at the audit seat). `planted_lie`: the plant actor
+    # appeals a bad plant's N and the plant requester disputes a good plant's F at rates per real appeal / dispute of the trailing period with
+    # a floor of two a period, each with its own multiplier; adjudicated by truth. Both False is 2.8.0 — `drivers.stamping --rules 2.8.0`.
+    planted_approval: bool = True
+    planted_lie: bool = True
+    pi_A0: float = 0.02         # planted approvals per real pending approval, the floor
+    pi_A_max: float = 0.40
+    pi_L0: float = 0.25         # planted lies per real appeal / per real dispute of the trailing period, the floor
+    pi_L_max: float = 2.0
+    lie_floor: int = 2          # planted lies a period of each kind when the trailing count is zero or the product under two
+    lie_delay_default: int = 0  # the planted lie's filing delay where the real window of the kind is empty
+
     def __post_init__(self):
         # 2.4.0 §2.3 (I33): the arrival float exists so that an arrival can post the reviewer's bond — a constraint on the parameters,
         # nominal, the index cancelling. A parameter set with F0 < G_V is refused at construction, not at arrival.

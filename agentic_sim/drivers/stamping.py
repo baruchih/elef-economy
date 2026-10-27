@@ -637,7 +637,7 @@ class Stamping:
             if task.t_panel_assign is not None:
                 add("panel_n", 1); add("panel_wait", task.t_panel_assign - task.t_filed)
         if task.plant:
-            add("state_seats", len(getattr(c, "plant_state_seats", ()) or ()))
+            add("state_seats", len(self.w.plant_record(c.id).plant_state_seats))   # the orchestrator's road
         else:
             add("state_seats", sum(1 for x in c.reviews if self.w.is_troop(self.w.review(x).reviewer)))
 
@@ -1639,7 +1639,7 @@ class Stamping:
         waiting_now = []
         for cid in list(self.active):
             c = w.case(cid)
-            if c.plant is not None or c.final:
+            if self.tasks[cid].plant or c.final:         # the instrument's own record of its plants (the view shows a plant as a real case)
                 continue
             open_roles = {w.review(r).role for r in c.reviews if w.review(r).status == "open"}
             if c.state == "SUBMITTED" and c.is_root and "initial" not in open_roles:
@@ -2034,7 +2034,8 @@ class Stamping:
             if c.state == "COMMITTED" and self.tasks[cid].plant and self.rev12:
                 # 2.6.0 §7.6 (the Q2 probe's correction): the orchestrator's instrument submits for the plant actor at its drawn tick, in
                 # this step — the same step a member's submission takes — so the plant reaches its seat with a real case's gap
-                if c.plant_submit_at is not None and w.t >= c.plant_submit_at:
+                at = w.plant_record(cid).plant_submit_at   # the orchestrator's road: the drawn tick is the instrument's to read
+                if at is not None and w.t >= at:
                     w.submit_plant(cid)
                 continue
             if c.state == "COMMITTED" and self.tasks[cid].learner_miss:
@@ -2435,7 +2436,9 @@ class Stamping:
             c = w.case(cid)
             task = self.tasks[cid]
             if task.plant:
-                # a plant leaves the queue once adjudicated and closed; its outcome is the reviewer's (2.8.0: every seat's reviewer's)
+                # a plant leaves the queue once adjudicated and closed; its outcome is the reviewer's (2.8.0: every seat's reviewer's);
+                # the plant's record is read by the orchestrator's road (plant_record), never through case()
+                c = w.plant_record(cid)
                 if c.plant_outcome is not None and c.tree_closed:
                     initial = [w.review(x) for x in c.reviews if w.review(x).role == "initial"]
                     r = initial[0] if initial else (w.review(c.reviews[-1]) if c.reviews else None)

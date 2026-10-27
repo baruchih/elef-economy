@@ -7,8 +7,9 @@ under the rules — and read what the rules let them read. Nothing here decides 
 
 Reads return live, read-only proxies of the engine's cases and reviews — every field as the engine holds it now — with their
 case identifiers translated to the public surface's: since 2.6.0 (I40) a case's public identifier is a hash of the engine's,
-carrying no order, translated both ways here. A plant's case log is shown without its plant entries until the reveal at closure (2.8.0 §2.1; the
-ruling after run 37). Events and the ReviewView come as translated copies; actors and wallets as the
+carrying no order, translated both ways here. A plant is shown as a real case until the reveal at closure (2.8.0 §2.1; the ruling after run 37 and its
+conformance pass): its log without the plant entries, its plant fields at a real root's values, its reviews without a plant outcome, the
+ledger copy's plant writes without case or note; the orchestrator's instrument reads its plant through `plant_record`. Events and the ReviewView come as translated copies; actors and wallets as the
 engine's own. Assigning to a proxy's field is refused: a driver reads, it never reaches in. Policies for reviewers get a
 `ReviewView` (`observe`), not a case.
 """
@@ -57,10 +58,38 @@ class _Proxy:
 _PLANT_ENTRY_PREFIXES = ("plant", "the orchestrator's own verdict takes the", "the state's audit verdict")
 
 
+def _revealed(c) -> bool:
+    """A real case, or a plant whose markers have been revealed at its closure (`_reveal_plant_closure`)."""
+    return c.plant is None or c.plant_reveal_hseq is not None
+
+
 def _public_log(c, log):
-    if c.plant is None or c.plant_reveal_hseq is not None:
+    if _revealed(c):
         return log
     return [e for e in log if not e[1].startswith(_PLANT_ENTRY_PREFIXES)]
+
+
+# The ruling after run 37, second part (the conformance pass of the view; notes §63): `_public_log`'s principle at every public accessor —
+# the public surface carries nothing the engine writes about a plant before its reveal. A plant's case shows a real root's values on the
+# plant fields (the markers, the outcome, the adjudications by seat, the state's seats, the drawn submission tick, the top-ups, the fee
+# destroyed, the grade), its reviews show no plant outcome, and the ledger copy's plant writes (the bank's `mint_plant` / `retire_plant` and
+# the `plant: …` transfers) carry no case and no note; at the reveal everything is shown. The alias names (`plant_req:` / `plant_act:` on
+# `requester` / `actor` and on the events' wallets) stay the disguise's stated boundary (2.6.0 §2.2); `review(rid).reviewer` on a real case
+# is the harness's and stays. The orchestrator's instrument and the oracle read a plant by the orchestrator's road, `plant_record(cid)`.
+_PLANT_FIELD_DEFAULTS = {"plant": None, "plant_commit": None, "plant_nonce": None, "plant_hseq": None, "plant_outcome": None,
+                         "plant_reveal_hseq": None, "plant_market": False, "plant_submit_at": None, "plant_at_floor": False,
+                         "plant_report_by": None, "plant_revised": None, "plant_revised_commit": None, "plant_revised_nonce": None,
+                         "plant_revised_hseq": None, "plant_adjudications": (), "plant_state_seats": (), "phi_E_topped": 0.0,
+                         "phi_F_topped": 0.0, "plant_fee_destroyed": 0.0, "grade": None}
+_PLANT_EVENT_KINDS = ("mint_plant", "retire_plant")
+
+
+def _masked(c, default):
+    return lambda v: v if _revealed(c) else (list(default) if isinstance(default, tuple) else default)
+
+
+def _plant_write(e) -> bool:
+    return e.kind in _PLANT_EVENT_KINDS or e.note.startswith("plant")
 
 
 class Public:
@@ -85,13 +114,26 @@ class Public:
             return pid
         raise RuleError(f"unknown case {pid}")
 
-    def _pub_case(self, c):
+    def _ids(self):
         pub = self._pub
-        return _Proxy(c, {"id": pub, "root": pub, "parent": pub, "children": lambda xs: [pub(x) for x in xs],
-                          "log": lambda log, c=c: _public_log(c, log)})
+        return {"id": pub, "root": pub, "parent": pub, "children": lambda xs: [pub(x) for x in xs]}
+
+    def _case_ro(self, cid):
+        """The engine's case, read without claiming it (record mode: a paged-out case comes back as a copy)."""
+        store = self._w.cases
+        pk = getattr(store, "peek", None)
+        return store[cid] if pk is None else pk(cid)
+
+    def _pub_case(self, c):
+        tr = self._ids()
+        tr["log"] = lambda log, c=c: _public_log(c, log)
+        for name, default in _PLANT_FIELD_DEFAULTS.items():
+            tr[name] = _masked(c, default)
+        return _Proxy(c, tr)
 
     def _pub_review(self, r):
-        return _Proxy(r, {"case": self._pub})
+        c = self._case_ro(r.case)
+        return _Proxy(r, {"case": self._pub, "plant_outcome": _masked(c, None), "plant_truth": _masked(c, None)})
 
     # -- time -----------------------------------------------------------------
     @property
@@ -316,6 +358,15 @@ class Public:
         record of the trailing real revisions' outcomes, sealed as a second marker; the same reviewer resumes."""
         self._w.revise_plant(self._eng(cid), truth)
 
+    def plant_record(self, cid: str):
+        """The orchestrator's road (the conformance pass of the view after run 37): the instrument reads its own plant's record here —
+        the markers, the drawn submission tick, the outcome, the adjudications by seat, the state's seats, the revision, the top-ups —
+        whole and before the reveal, while `case(cid)` shows the plant as a real case until its closure. Refused on a real case."""
+        c = self._w.cases[self._eng(cid)]
+        if c.plant is None:
+            raise RuleError(f"plant_record: {cid} is not a plant")
+        return _Proxy(c, self._ids())
+
     def p_effective(self, aid: str) -> float:
         """The audit odds to roll for a reviewer: min(1, m_t · p_j)."""
         return self._w.actors[aid].p_eff
@@ -423,6 +474,8 @@ class Public:
         for e in self._w.ledger.events[n:]:
             k = copy.copy(e)
             k.case = self._pub(e.case)
+            if e.case is not None and _plant_write(e) and not _revealed(self._case_ro(e.case)):
+                k.case, k.note = None, ""                  # the bank's plant write on an unrevealed plant: the money, not the case (positions kept)
             out.append(k)
         return out
 

@@ -417,3 +417,52 @@ def test_the_public_view_of_a_plants_log_carries_no_plant_entry_until_its_closur
     w.advance(w.t + w.p.w_R + 1)
     assert c.tree_closed and list(pub.case(q).log) == list(c.log)
     check_all(w)
+
+
+# ------------------------------------------------------------ the public view shows a plant as a real case until the reveal (the conformance pass after run 37)
+def test_the_public_surface_carries_nothing_the_engine_writes_about_a_plant_before_its_reveal():
+    """The ruling after run 37's second part: `_public_log`'s principle at every public accessor. Before the reveal a plant's case shows a
+    real root's values on every plant field, its reviews show no plant outcome, the ledger copy's plant writes carry no case and no note
+    (the money and the positions kept), while the engine holds all of it and the orchestrator's road (`plant_record`) reads it whole; at
+    the reveal everything is shown. The alias names stay (the disguise's stated boundary); `review(rid).reviewer` stays (the harness's)."""
+    from drivers.view import Public, _PLANT_FIELD_DEFAULTS
+    w = make_world()
+    pub = Public(w)
+    real = w.post_root("H", 20)
+    w.award(real, "A", 20, 3)
+    q, r = plant_to(w, "C", False, F)                       # a bad plant stamped: adjudicated, PENDING, unrevealed
+    c = w.cases[q]
+    assert c.plant is False and c.plant_outcome == "failure" and c.plant_commit and c.plant_adjudications and c.plant_reveal_hseq is None
+    v = pub.case(q)
+    for name, default in _PLANT_FIELD_DEFAULTS.items():
+        got = getattr(v, name)
+        assert got == (list(default) if isinstance(default, tuple) else default), (name, got)
+        assert getattr(pub.case(real), name) == getattr(w.cases[real], name)    # a real root's fields pass through
+    assert v.plant is None and v.grade is None and v.plant_adjudications == [] and v.plant_outcome is None
+    assert v.requester == c.requester and v.actor == c.actor                    # the aliases stay: the stated boundary
+    assert pub.review(r).plant_outcome is None and pub.review(r).plant_truth is None and w.reviews[r].plant_outcome == "failure"
+    assert pub.review(r).reviewer == "C" and pub.review(r).verdict == F         # the harness's reviewer field stays
+    pr = pub.plant_record(q)                                                     # the orchestrator's road: whole, before the reveal
+    assert pr.plant is False and pr.plant_outcome == "failure" and pr.plant_commit == c.plant_commit and len(pr.plant_adjudications) == 1
+    with pytest.raises(RuleError):
+        pub.plant_record(real)
+    evs, raw = pub.events_since(0), w.ledger.events
+    assert len(evs) == len(raw) and all(k.seq == e.seq and k.amount == e.amount and k.kind == e.kind for k, e in zip(evs, raw))
+    writes = [(k, e) for k, e in zip(evs, raw) if e.case == q and (e.kind in ("mint_plant", "retire_plant") or e.note.startswith("plant"))]
+    assert writes and all(k.case is None and k.note == "" for k, e in writes)   # the money, not the case
+    others = [(k, e) for k, e in zip(evs, raw) if e.case == q and not (e.kind in ("mint_plant", "retire_plant") or e.note.startswith("plant"))]
+    assert others and all(k.case == pub.case(q).id and k.note == e.note for k, e in others)   # a plant's ordinary events as a real case's
+    assert all(k.case == pub.case(real).id and k.note == e.note for k, e in zip(evs, raw) if e.case == real)
+    # the plant's dispute, its panel: the review proxies of the later seats masked too
+    w.dispute(q, c.requester, "the result does not meet the request")
+    r1, r2 = w.assign_appeal(q, "D"), w.assign_appeal(q, "E")
+    w.advance(w.t + 1)
+    w.complete_review(r1, N, 2.0)
+    w.complete_review(r2, F, 0.0)
+    assert c.state == "FINAL_N" and c.plant_reveal_hseq is not None            # resolved by truth: revealed
+    v = pub.case(q)
+    assert v.plant is False and v.plant_outcome == "failure" and v.grade == c.grade and list(v.plant_adjudications) == list(c.plant_adjudications)
+    assert pub.review(r2).plant_outcome == "failure" and pub.review(r1).plant_outcome == "stood"
+    evs = pub.events_since(0)
+    assert all(k.case == pub.case(q).id and k.note == e.note for k, e in zip(evs, w.ledger.events) if e.case == q)   # shown at the reveal
+    check_all(w)

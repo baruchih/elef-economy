@@ -9,7 +9,9 @@ import numpy as np
 R = "results/redteam/stability"
 CELLS = [("pifloor", "careful", "(a) the dial pinned at its floor — `--dial off`, π_t = 0.10"),
          ("picap", "careful", "(b) the dial pinned at π_max — `--dial off --pi0 0.40` (the mirror; a diagnostic, not a rule)"),
-         ("liars", "disputes", "(c) untruthful real challengers — `--dispute-policy truthful --appeal-lie 0.1 --dispute-lie 0.1`")]
+         ("liars", "disputes", "(c) untruthful real challengers — `--dispute-policy truthful --appeal-lie 0.1 --dispute-lie 0.1`"),
+         ("pifloor2", "careful", "(a′) π_t pinned at its floor with the dial live — `--pi-max 0.10` (m_t answers the record on the odds, the reserve and ω)"),
+         ("picap2", "careful", "(b′) π_t pinned at π_max with the dial live — `--pi0 0.40`")]
 def load(chain, learner):
     p = f"{R}/learned-rev-{chain}-280/{learner}/eval/final/eval.json"
     try: return json.load(open(p))

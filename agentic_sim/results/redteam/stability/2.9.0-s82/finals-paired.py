@@ -6,7 +6,9 @@ import json, sys, math
 import numpy as np
 R="results/redteam/stability"
 CELLS=sys.argv[2:] or ["careful","liars","stamper","disputes","half","careful-A","liars-B"]
+BASE={"careful-A":"careful","liars-B":"liars"}   # the ablations' 2.8.0 side is the cell they ablate from
 def load(cell, suf, learner):
+    if suf=="-280": cell=BASE.get(cell,cell)
     p=f"{R}/learned-rev-{cell}{suf}/{learner}/eval/final/eval.json"
     try: return json.load(open(p))
     except FileNotFoundError: return None

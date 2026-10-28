@@ -91,10 +91,10 @@ HANDOFF.md                                   status, history table, open questio
 
 ```
 cd agentic_sim
-python3 run_tests.py        # expected: 372 passed, 0 failed, 32 expected failures
+python3 run_tests.py        # expected: 373 passed, 0 failed, 32 expected failures
 python3 -S run_tests.py     # same, with no site-packages
 python3 run_tests.py --record   # same, every World in record mode
-python3 -m pytest tests -q  # expected: 372 passed, 32 xfailed, 0 xpassed (conftest mirrors the runner; pytest is not installed here)
+python3 -m pytest tests -q  # expected: 373 passed, 32 xfailed, 0 xpassed (conftest mirrors the runner; pytest is not installed here)
 python3 -m drivers.load_run --actors 200 --ticks 10000 --on-duty 40 --tasks 30 --record-dir /path  # throughput run
 python3 -m drivers.stamping --actors 20 --ticks 1000 --stampers 0.6 --seed 1   # §18.1 q1 under 2.1.0: six requesters with wallets, members bidding, the state at its expected cost on the bank's loans under N_T 40
 python3 -m drivers.stamping --entry-pool 20 --stampers 0.6 --seed 21   # 2.9.0: the plant takes the wrong step — planted approvals (pa_* columns: posted, seated, verdicts, audited/confirmed/rejected, third, disputed, state_audit, state_would_seat) and planted lies (plant_lies_filed_*, lie_adj_*, lie_sided_*), the dial per seat (pi_A/m_A, pi_La/m_La, pi_Ld/m_Ld, F_hat_*), bad_met_<seat> the bad plants met by seat kind, the mints by kind; --rules 2.8.0 the control (both off), --planted-approval off (B alone), --planted-lie off (A alone)

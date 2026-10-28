@@ -14,7 +14,9 @@ cell = sys.argv[1].split(); seeds = [int(x) for x in sys.argv[2].split(",")]; dm
 br = boundary_read_for(cell, "auto")
 dm, _ = load_direct(dmp); dm.to(device()); wm, ck = load_model(wmp); wm.to(device())
 pols = {"direct": DirectPolicy(dm, boundary_read=br), "head alone": GreedyPolicy(wm, boundary_read=br), "hand": policy_of("hand", "reviewer")}
-CH = ["member confirmed", "state confirmed", "audited, rejected, vested", "never audited"]
+CH = ["member confirmed", "state confirmed", "audited, rejected, vested", "disputed, panel confirmed (a member sat)", "disputed, panel confirmed (the state's alone)", "never audited"]
+# the fifth and sixth channels (run 40): where disputes are on, a false approval the requester disputed and the panel confirmed has no audit
+# review — §4 discharges the obligation at the dispute's settlement — so it is split out of "never audited" by the panel's composition
 res = {n: {} for n in pols}
 for seed in seeds:
     for name, pol in pols.items():
@@ -29,6 +31,11 @@ for seed in seeds:
             if t is None or t.plant or not c.is_root or c.state != "VESTED" or t.fulfilled or W.is_troop(c.actor): continue
             audits = [W.reviews[x] for x in c.reviews if W.reviews[x].role == "audit"]
             if not audits:
+                panel = [W.reviews[x] for x in c.reviews if W.reviews[x].role == "dispute"]
+                if panel or getattr(c, "challenge_round_used", False):
+                    member_sat = any(not W.is_troop(p_.reviewer) for p_ in panel)
+                    cnt["disputed, panel confirmed (a member sat)" if member_sat else "disputed, panel confirmed (the state's alone)"] += 1
+                    continue
                 cnt["never audited"] += 1
                 if c.audit_rolled_at is not None: rolled_never += 1
                 if c.audit_odds_at_verdict is not None: odds.append(c.audit_odds_at_verdict)
@@ -41,7 +48,7 @@ for seed in seeds:
         print(f"seed {seed} {name}: {sum(cnt[k] for k in CH)} standing false approvals — " + ", ".join(f"{k} {cnt[k]}" for k in CH) + f"; rolled-never {rolled_never}; odds {cnt['odds at verdict, never audited (mean)']:.3f}", flush=True)
 L = []
 L.append(f"# The standing false approvals by channel (the reviewer's reading after run 38): run 38's finals on seeds {sys.argv[2].split(',')[0]}–{sys.argv[2].split(',')[-1]}, the careful basin's direct ({dmp}) and head alone ({wmp}), the hand beside. A standing false approval: a real root (not a plant, not the state's delivery) vested with its work unfulfilled. Channels: its audit seat confirmed it (a member's or the state's — a troop at the audit seat), it was audited and rejected yet vested (the third seat or a ruling), or it was never audited (no audit review: the roll never sent it). `rolled but never seated` counts never-audited cases with an obligation recorded (should be 0: a vested case has no standing obligation).\n")
-L.append("| policy | standing false approvals | member confirmed | state confirmed | audited, rejected, vested | never audited | never-audited share | odds at verdict of the never-audited (mean) |"); L.append("|---|---|---|---|---|---|---|---|")
+L.append("| policy | standing false approvals | " + " | ".join(CH) + " | never-audited share | odds at verdict of the never-audited (mean) |"); L.append("|---|---|" + "---|" * (len(CH) + 2))
 def ms(v): v = np.asarray(v, float); return f"{v.mean():.1f} ± {v.std(ddof=1)/np.sqrt(len(v)):.1f}"
 for name in pols:
     R = res[name]; tot = np.array([sum(R[s][k] for k in CH) for s in seeds])
@@ -54,7 +61,7 @@ L.append("| policy | total | " + " | ".join(CH) + " |"); L.append("|---|---|" + 
 for name in ("direct", "head alone"):
     d = [ms([sum(res[name][s][k] for k in CH) - sum(res["hand"][s][k] for k in CH) for s in seeds])] + [ms([res[name][s][k] - res["hand"][s][k] for s in seeds]) for k in CH]
     L.append(f"| {name} − hand | " + " | ".join(d) + " |")
-L.append("\nPer seed (member / state / rejected-vested / never):\n")
+L.append("\nPer seed (" + " / ".join(CH) + "):\n")
 for s in seeds:
-    L.append(f"- seed {s}: " + "; ".join(f"{n} {res[n][s]['member confirmed']} / {res[n][s]['state confirmed']} / {res[n][s]['audited, rejected, vested']} / {res[n][s]['never audited']}" for n in pols))
+    L.append(f"- seed {s}: " + "; ".join(f"{n} " + " / ".join(str(res[n][s][k]) for k in CH) for n in pols))
 open(out, "w").write("\n".join(L) + "\n"); print("\n".join(L))

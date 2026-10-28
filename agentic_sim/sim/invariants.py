@@ -836,14 +836,18 @@ def I21_dial_and_reserve(w, reviews=None):
         _fail(f"I21 π_t={w.pi_t} outside [0, {p.pi_max}]")
     if w.X_t < p.V_max + 1:
         _fail(f"I21 X_t={w.X_t} below V_max + 1")
+    # the period record holds the multipliers rounded to six decimals (the engine's round(m, 6) at the close), so a step's bounds are read
+    # with a tolerance covering that rounding at both ends — 2 × 5e-7 on the doubled before and 5e-7 on the after (the half cell's seed 36:
+    # m^A 7.272727 → 14.545455, an exact doubling in the engine, read 1e-6 over 2 × the rounded before)
+    R6 = 2e-6
     for per in w.periods[-1:]:
-        lo, hi = 0.9 * per["m_before"] - EPS, 2.0 * per["m_before"] + EPS
+        lo, hi = 0.9 * per["m_before"] - R6, 2.0 * per["m_before"] + R6
         if not (max(lo, 1.0 - EPS) <= per["m"] <= min(hi, p.m_max + EPS)) and per["m"] != per["m_before"]:
             _fail(f"I21 dial step {per['m_before']} → {per['m']} outside its bounds")
         for k in ("m_A", "m_La", "m_Ld"):                # 2.9.0 §2.4: the dial per seat steps as m_t steps, within its own bound
             if k in per:                                  # (m^A_max, m^L_max — the defaults correction after run 38, Appendix V)
                 cap = getattr(p, "m_A_max", p.m_max) if k == "m_A" else getattr(p, "m_L_max", p.m_max)
-                lo, hi = 0.9 * per[k + "_before"] - EPS, 2.0 * per[k + "_before"] + EPS
+                lo, hi = 0.9 * per[k + "_before"] - R6, 2.0 * per[k + "_before"] + R6
                 if not (max(lo, 1.0 - EPS) <= per[k] <= min(hi, cap + EPS)) and per[k] != per[k + "_before"]:
                     _fail(f"I21 {k} step {per[k + '_before']} → {per[k]} outside its bounds")
     for a in w.actors.values():

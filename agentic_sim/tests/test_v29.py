@@ -523,3 +523,33 @@ def test_the_states_own_work_disputed_before_a_panel_with_a_member_on_it_is_disc
     w.advance(c.window_end + 3)
     assert c.state == "VESTED" and not any(w.reviews[x].role == "audit" for x in c.reviews)
     check_all(w)                                             # I25 accepts the panel with a member on it
+
+
+def test_I21_reads_the_record_s_six_decimal_rounding_on_a_per_seat_step_and_still_catches_a_step_beyond_its_bound():
+    """The half cell on the corrected engine (run 41, seed 36 under the direct policy): m^A stepped ×2 from 7.2727… to 14.5454… — exact in the
+    engine — and I21, reading the period record's values rounded to six decimals (7.272727 → 14.545455) with a tolerance of 1e-6, failed the
+    run. The step's bounds are read with a tolerance covering the rounding at both ends; a step beyond ×2 or under ×0.9 is still caught, as is
+    the dial's own step on the same record (I21 called on a copy of the record — the record itself is hashed into the History at the close)."""
+    from sim.invariants import I21_dial_and_reserve
+    w = make_world(period_ticks=400, T_review=1000)
+    w.m_A = 8.0 / 1.1                                             # 7.272727…, whose doubling rounds up at the sixth decimal
+    w._seat_pool["A"] = [10, 10]                                  # a reading of 1.0 at the close: the step clamps at ×2
+    w.advance(w.period["start"] + 401)
+    per = w.periods[-1]
+    assert per["m_A_before"] == 7.272727 and per["m_A"] == 14.545455 and w.m_A == pytest.approx(16.0 / 1.1)
+    assert per["m_A"] > 2.0 * per["m_A_before"] + 1e-6           # the rounded pair reads over the bound at 1e-6
+    check_all(w)                                                  # and I21 reads it within the record's rounding
+    def fails(**over):
+        w.periods[-1] = dict(per, **over)
+        try:
+            with pytest.raises(InvariantError, match="I21 (m_A|dial) step"):
+                I21_dial_and_reserve(w)
+        finally:
+            w.periods[-1] = per
+    fails(m_A=round(2.0 * per["m_A_before"] + 1e-4, 6))           # a step beyond ×2 on the record is still a failure
+    fails(m_A=round(0.9 * per["m_A_before"] - 1e-4, 6))           # and under ×0.9
+    w.periods[-1] = dict(per, m_before=1.818182, m=3.636364)      # the dial's own record on the same shape (3.6363… = 2 × 1.8181…)
+    I21_dial_and_reserve(w)
+    w.periods[-1] = per
+    fails(m_before=1.818182, m=3.636464)
+    check_all(w)

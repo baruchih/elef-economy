@@ -193,6 +193,7 @@ for cell in CELLS:
             m,_=mse(arr(E,k,seeds)); return m
         da=[];ds=[];df=[]
         for s in seeds:
+            if "life_by_period" not in E[s]: continue             # the stage table by period is 8b26ebf6's; a 2.7.0 chain of record read before it has none
             lb=json.loads(E[s]["life_by_period"])
             na=0;ns=0;nf=0;npl=0
             for p,kk in lb.items():

@@ -1,0 +1,9 @@
+# pow_check.py on each platform
+macOS-26.5.1-arm64-arm-64bit-Mach-O arm64 python 3.13.11: 2.0 ** (-t/1000) leaves the correctly rounded double at 3 of 1000 ticks
+  t=112 native=0.9253044280378522 correctly rounded=0.9253044280378523 (-0.54 ulp)
+  t=181 native=0.8820913651971765 correctly rounded=0.8820913651971766 (-0.57 ulp)
+  t=338 native=0.7911373011854499 correctly rounded=0.7911373011854498 (+0.63 ulp)
+Linux-7.0.12-linuxkit-aarch64-with-glibc2.41 aarch64 python 3.12.16: 2.0 ** (-t/1000) leaves the correctly rounded double at 1 of 1000 ticks
+  t=338 native=0.7911373011854499 correctly rounded=0.7911373011854498 (+0.63 ulp)
+Linux-7.0.12-linuxkit-x86_64-with-glibc2.41 x86_64 python 3.12.16: 2.0 ** (-t/1000) leaves the correctly rounded double at 1 of 1000 ticks
+  t=338 native=0.7911373011854499 correctly rounded=0.7911373011854498 (+0.63 ulp)

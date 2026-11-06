@@ -20,6 +20,8 @@ from redteam.train import load_model, seeds_of
 from redteam.plan import LearnedPolicy, GreedyPolicy, boundary_read_for
 from redteam.direct import load_direct, DirectPolicy
 from redteam.model import device
+from drivers.stamping import LEARNER
+from sim.invariants import public_id
 
 
 ODDS_BANDS = [(0.0, 0.3), (0.3, 0.5), (0.5, 0.7), (0.7, 1.0), (1.0, 1.01)]
@@ -81,6 +83,32 @@ def trace_readings(trace):
             "stamps_while_not_member": int((stamp & (mem == 0)).sum()), "boundary_decisions": n_boundary, "leaves_chosen": leaves}
 
 
+def measured_seat_actions(env):
+    """The learner slots' review decisions read from the engine's reviews rather than from the actions (November 7, 2026, the record's
+    sixth review round): a review that spent care inspected; one that spent none gave a blind verdict of the sign it gave. The `hand`
+    reference (action 3: each slot answers as its scripted disposition by hand would) has none of the three actions, so the action counters
+    read 0 for it at every seat; this reading carries the mix's rates. For a learned policy the two readings agree except where a careful
+    review could not afford a cent of its care (the driver's `underfunded_careful_reviews`, reported beside — it reads blind here).
+    Seats by the review's role: initial (an initial review, not resumed), resumed, audit, panel (an appeal's or a dispute's)."""
+    run = getattr(env, "run", None)
+    if run is None or getattr(run, "w", None) is None:
+        return {}
+    W = run.w._w
+    out = {f"measured_{s}_{k}_{m}": 0 for s in ("initial", "audit", "panel", "resumed") for k in ("plant", "real") for m in ("seen", "approve_blind", "reject_blind")}
+    for rv in W.reviews.values():
+        if run.kind.get(rv.reviewer) != LEARNER or rv.verdict is None:
+            continue
+        seat = {"initial": "resumed" if rv.resumed else "initial", "audit": "audit", "appeal": "panel"}.get(rv.role)
+        if seat is None:
+            continue
+        t = run.tasks.get(public_id(rv.case)); kk = "plant" if (t is not None and t.plant) else "real"
+        out[f"measured_{seat}_{kk}_seen"] += 1
+        if not rv.cost > 0 and rv.verdict in ("F", "N"):
+            out[f"measured_{seat}_{kk}_{'reject_blind' if rv.verdict == 'N' else 'approve_blind'}"] += 1
+    out["underfunded_careful_reviews"] = run.c.get("underfunded_careful_reviews", 0)
+    return out
+
+
 def episode(env, policy, seed, rng):
     obs, info = env.reset(seed=seed)
     done = info.get("terminal", False)
@@ -132,6 +160,7 @@ def episode(env, policy, seed, rng):
         diag = [d[:4] + (None, d[4]) for d in diag]
     diag_work = [d[:5] for d in diag if d[5]]; diag = [d[:5] for d in diag if not d[5]]
     row = info.get("row", {})
+    measured = measured_seat_actions(env) if env.role == "reviewer" else {}   # the blind verdicts read from the engine's reviews (November 7, 2026)
     work = {k: row.get(k) for k in ("learner_role", "learner_work_decisions", "learner_bad_deliveries", "learner_good_deliveries", "learner_bad_approved", "learner_bad_caught",
                                    "learner_good_vested", "learner_good_final_n", "learner_forfeited", "learner_bad_paid", "learner_effort_saved",
                                    "slot_delivery_income", "slot_guarantees_forfeited", "slot_effort_burned", "slot_awards", "final_n_rate",
@@ -170,7 +199,7 @@ def episode(env, policy, seed, rng):
         work["pred_vs_realized_work"] = pred_vs_realized(diag_work, 2)
     reads = list(getattr(policy, "boundary_reads", []))[n_reads0:]
     return {"seed": seed, "decisions": len(acts), "lifetime_real_wealth": info.get("lifetime_real_wealth"), **trace_readings(trace), **work,
-            "blind_seats": blind_seats, "blind_seat_stamps": blind_seat_stamps, **by_seat,
+            "blind_seats": blind_seats, "blind_seat_stamps": blind_seat_stamps, **by_seat, **measured,
             "boundary_stay_read_mean": float(np.mean(reads)) if reads else None, "boundary_stay_negative": int(sum(1 for x in reads if x < 0)) if reads else (0 if getattr(policy, "boundary_read", None) == "one-step" else None),
             "leaves_effected": sum(1 for d in getattr(env, "_decisions", []) if d.get("case") is None and d.get("chosen") == 1 and d.get("action") == 1),   # version 4: the admitted leaves at boundaries (leaves_chosen is the choice)
             "pred_vs_realized": pred_vs_realized(diag, K), "attributed_sum": float(np.sum(attr)) if attr is not None else None,
@@ -284,6 +313,16 @@ def write_seat_table(f, summary):
             "| policy | initial plant / real | audit plant / real | panel plant / real | resumed plant / real |\n|---|---|---|---|---|\n")
     for name, s in summary.items():
         f.write(f"| {name} | {r(s, 'initial', 'plant')} / {r(s, 'initial', 'real')} | {r(s, 'audit', 'plant')} / {r(s, 'audit', 'real')} | {r(s, 'panel', 'plant')} / {r(s, 'panel', 'real')} | {r(s, 'resumed', 'plant')} / {r(s, 'resumed', 'real')} |\n")
+    if not any(s.get(f"measured_seats_{k}_plant") or s.get(f"measured_seats_{k}_real") for s in summary.values() for k in kinds):
+        return
+    def rm(s, k, kk):
+        v = s.get(f"measured_blind_rate_{k}_{kk}"); n = s.get(f"measured_seats_{k}_{kk}", 0); rb = s.get(f"measured_reject_blind_rate_{k}_{kk}")
+        return "—" if v is None else (f"{v:.3f} ({n})" + (f" [rej. blind {rb:.3f}]" if rb else ""))
+    f.write("\nThe same rates measured from the engine's reviews rather than from the actions (November 7, 2026): a review that spent care inspected, one that spent none gave a blind verdict of the sign it gave — the reading the record's exporter uses for the 60/40 mix (`hand`, action 3, which the action counters cannot see: they read 0 for it). For a learned policy the two readings agree except where a careful review could not afford a cent of its care — `underfunded careful reviews` is the run's count over every careful review (mean ± SE over the seeds), an upper bound on the blind readings that were a careful review paying nothing; `≠ actions` is the blind verdicts counted here less the actions' count, pooled over the seeds and the seats (for `hand` it is the whole count, the actions reading 0).\n\n"
+            "| policy | initial plant / real | audit plant / real | panel plant / real | resumed plant / real | underfunded careful reviews | ≠ actions |\n|---|---|---|---|---|---|---|\n")
+    for name, s in summary.items():
+        uf = s.get("underfunded_careful_reviews") or (float("nan"), float("nan")); d = sum(s.get(f"measured_minus_actions_{k}_{kk}", 0) or 0 for k in kinds for kk in ("plant", "real"))
+        f.write(f"| {name} | {rm(s, 'initial', 'plant')} / {rm(s, 'initial', 'real')} | {rm(s, 'audit', 'plant')} / {rm(s, 'audit', 'real')} | {rm(s, 'panel', 'plant')} / {rm(s, 'panel', 'real')} | {rm(s, 'resumed', 'plant')} / {rm(s, 'resumed', 'real')} | {uf[0]:.1f} ± {uf[1]:.1f} | {d:+d} |\n")
 
 
 def main(argv=None):
@@ -354,6 +393,12 @@ def main(argv=None):
                 summary[name][f"stamp_rate_{s}_{kk}"] = (st / seen) if seen else None
                 summary[name][f"reject_blind_rate_{s}_{kk}"] = (rb / seen) if seen else None
                 summary[name][f"seats_{s}_{kk}"] = seen
+                mseen = sum(r.get(f"measured_{s}_{kk}_seen", 0) for r in rows); ab = sum(r.get(f"measured_{s}_{kk}_approve_blind", 0) for r in rows); mrb = sum(r.get(f"measured_{s}_{kk}_reject_blind", 0) for r in rows)
+                summary[name][f"measured_blind_rate_{s}_{kk}"] = ((ab + mrb) / mseen) if mseen else None      # the reading from the engine's reviews (November 7, 2026)
+                summary[name][f"measured_reject_blind_rate_{s}_{kk}"] = (mrb / mseen) if mseen else None
+                summary[name][f"measured_seats_{s}_{kk}"] = mseen
+                summary[name][f"measured_minus_actions_{s}_{kk}"] = (ab + mrb) - st
+        summary[name]["underfunded_careful_reviews"] = mse([r.get("underfunded_careful_reviews") for r in rows])
         if a.role == "parent":                                      # Q5's line: the learned parent
             for k in ("delegate_decisions", "judge_decisions", "cancel_decisions", "delegate_share", "judge_care_share", "judge_stamp_share", "judge_reject_share", "cancel_share") + PARENT_KEYS:
                 summary[name][k] = mse([r.get(k) if r.get(k) not in ("", None) else None for r in rows])

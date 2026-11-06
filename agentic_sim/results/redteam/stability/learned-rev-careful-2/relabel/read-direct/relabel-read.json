@@ -1,0 +1,374 @@
+{
+ "data": "results/redteam/stability/learned-rev-careful-2/relabel/direct-offline",
+ "decisions": 1028482,
+ "review_decisions": 1028482,
+ "seeds": "1-20",
+ "seat_agreement_info_vs_obs": null,
+ "labels": {
+  "initial": {
+   "n": 753469,
+   "changed_share": 0.7419017902528173,
+   "pooled_mean": 3.8158285665963447,
+   "own_mean": 3.194838556682213,
+   "care": {
+    "n": 492502,
+    "pooled_mean": 4.093413030218921,
+    "own_mean": 4.17438345444838,
+    "pooled_minus_own_mean": -0.0809704242294598
+   },
+   "approve blind": {
+    "n": 206398,
+    "pooled_mean": 3.967040541136079,
+    "own_mean": 1.8958027770160493,
+    "pooled_minus_own_mean": 2.0712377641200295
+   },
+   "reject blind": {
+    "n": 54569,
+    "pooled_mean": 0.7386097679359732,
+    "own_mean": -0.7324724511811508,
+    "pooled_minus_own_mean": 1.471082219117124
+   },
+   "plant": {
+    "n": 156060,
+    "pooled_mean": 1.515934147202906,
+    "own_mean": 1.515934147202906
+   },
+   "real": {
+    "n": 597409,
+    "pooled_mean": 4.416625546706354,
+    "own_mean": 3.63341551508649
+   }
+  },
+  "audit": {
+   "n": 222700,
+   "changed_share": 0.9966726537943421,
+   "pooled_mean": 20.06200933486154,
+   "own_mean": 5.406042311747367,
+   "care": {
+    "n": 55975,
+    "pooled_mean": 17.52355695589846,
+    "own_mean": 4.8741386264822495,
+    "pooled_minus_own_mean": 12.64941832941621
+   },
+   "approve blind": {
+    "n": 156597,
+    "pooled_mean": 22.18445816245622,
+    "own_mean": 6.025940398919867,
+    "pooled_minus_own_mean": 16.158517763536352
+   },
+   "reject blind": {
+    "n": 10128,
+    "pooled_mean": 1.274563921908744,
+    "own_mean": -1.2389884913961093,
+    "pooled_minus_own_mean": 2.5135524133048532
+   },
+   "plant": {
+    "n": 0,
+    "pooled_mean": null,
+    "own_mean": null
+   },
+   "real": {
+    "n": 222700,
+    "pooled_mean": 20.06200933486154,
+    "own_mean": 5.406042311747367
+   }
+  },
+  "panel": {
+   "n": 52313,
+   "changed_share": 0.9981457763844551,
+   "pooled_mean": 5.583065150193034,
+   "own_mean": 4.253087920473723,
+   "care": {
+    "n": 30904,
+    "pooled_mean": 5.570128432951887,
+    "own_mean": 4.745280111759354,
+    "pooled_minus_own_mean": 0.8248483211925337
+   },
+   "approve blind": {
+    "n": 17385,
+    "pooled_mean": 7.4744778533734815,
+    "own_mean": 4.188481674778554,
+    "pooled_minus_own_mean": 3.2859961785949277
+   },
+   "reject blind": {
+    "n": 4024,
+    "pooled_mean": -2.489105211430142,
+    "own_mean": 0.7522112062389761,
+    "pooled_minus_own_mean": -3.2413164176691183
+   },
+   "plant": {
+    "n": 0,
+    "pooled_mean": null,
+    "own_mean": null
+   },
+   "real": {
+    "n": 52313,
+    "pooled_mean": 5.583065150193034,
+    "own_mean": 4.253087920473723
+   }
+  }
+ },
+ "argmax": {
+  "initial": {
+   "n": 753469,
+   "mix": {
+    "direct own": [
+     0.9632168012220808,
+     0.027937446663366377,
+     0.008845752114552822
+    ],
+    "direct pooled refit": [
+     0.6127896436349737,
+     0.3614242921739315,
+     0.02578606419109479
+    ],
+    "direct pooled refit (seed 1)": [
+     0.6034103592848544,
+     0.3710252180248955,
+     0.02556442269025003
+    ],
+    "direct stored": [
+     0.6127896436349737,
+     0.3614242921739315,
+     0.02578606419109479
+    ]
+   },
+   "mix_plant": {
+    "direct own": [
+     0.9757336921696783,
+     0.01250160194796873,
+     0.011764705882352941
+    ],
+    "direct pooled refit": [
+     0.6838844034345765,
+     0.2824426502627195,
+     0.033672946302704086
+    ],
+    "direct pooled refit (seed 1)": [
+     0.679117006279636,
+     0.2890170447263873,
+     0.03186594899397668
+    ],
+    "direct stored": [
+     0.6838844034345765,
+     0.2824426502627195,
+     0.033672946302704086
+    ]
+   },
+   "mix_real": {
+    "direct own": [
+     0.9599470379589192,
+     0.031969722585364464,
+     0.008083239455716268
+    ],
+    "direct pooled refit": [
+     0.5942176967538152,
+     0.38205651404649077,
+     0.023725789199694012
+    ],
+    "direct pooled refit (seed 1)": [
+     0.5836336580131869,
+     0.39244805485019474,
+     0.023918287136618296
+    ],
+    "direct stored": [
+     0.5942176967538152,
+     0.38205651404649077,
+     0.023725789199694012
+    ]
+   },
+   "changed direct own vs direct pooled refit": 0.3785490843020748,
+   "changed direct own vs direct pooled refit (plant)": 0.3236960143534538,
+   "changed direct own vs direct stored": 0.3785490843020748,
+   "changed direct own vs direct stored (plant)": 0.3236960143534538,
+   "changed direct pooled refit vs direct stored": 0.0,
+   "changed direct pooled refit vs direct stored (plant)": 0.0,
+   "changed direct pooled refit (seed 1) vs direct pooled refit": 0.23351989265649947,
+   "changed direct pooled refit (seed 1) vs direct pooled refit (plant)": 0.2560169165705498
+  },
+  "audit": {
+   "n": 222700,
+   "mix": {
+    "direct own": [
+     0.0862146385271666,
+     0.9136371800628649,
+     0.00014818140996856758
+    ],
+    "direct pooled refit": [
+     0.043475527615626404,
+     0.9564032330489448,
+     0.00012123933542882802
+    ],
+    "direct pooled refit (seed 1)": [
+     0.02750785810507409,
+     0.9724921418949259,
+     0.0
+    ],
+    "direct stored": [
+     0.043475527615626404,
+     0.9564032330489448,
+     0.00012123933542882802
+    ]
+   },
+   "mix_plant": {
+    "direct own": [
+     null,
+     null,
+     null
+    ],
+    "direct pooled refit": [
+     null,
+     null,
+     null
+    ],
+    "direct pooled refit (seed 1)": [
+     null,
+     null,
+     null
+    ],
+    "direct stored": [
+     null,
+     null,
+     null
+    ]
+   },
+   "mix_real": {
+    "direct own": [
+     0.0862146385271666,
+     0.9136371800628649,
+     0.00014818140996856758
+    ],
+    "direct pooled refit": [
+     0.043475527615626404,
+     0.9564032330489448,
+     0.00012123933542882802
+    ],
+    "direct pooled refit (seed 1)": [
+     0.02750785810507409,
+     0.9724921418949259,
+     0.0
+    ],
+    "direct stored": [
+     0.043475527615626404,
+     0.9564032330489448,
+     0.00012123933542882802
+    ]
+   },
+   "changed direct own vs direct pooled refit": 0.10465648854961832,
+   "changed direct own vs direct pooled refit (plant)": null,
+   "changed direct own vs direct stored": 0.10465648854961832,
+   "changed direct own vs direct stored (plant)": null,
+   "changed direct pooled refit vs direct stored": 0.0,
+   "changed direct pooled refit vs direct stored (plant)": null,
+   "changed direct pooled refit (seed 1) vs direct pooled refit": 0.058823529411764705,
+   "changed direct pooled refit (seed 1) vs direct pooled refit (plant)": null
+  },
+  "panel": {
+   "n": 52313,
+   "mix": {
+    "direct own": [
+     0.5051516831380345,
+     0.3560873970141265,
+     0.13876091984783898
+    ],
+    "direct pooled refit": [
+     0.4837612065834496,
+     0.48964884445548906,
+     0.026589948961061306
+    ],
+    "direct pooled refit (seed 1)": [
+     0.48464052912278016,
+     0.48217460287117925,
+     0.03318486800604056
+    ],
+    "direct stored": [
+     0.4837612065834496,
+     0.48964884445548906,
+     0.026589948961061306
+    ]
+   },
+   "mix_plant": {
+    "direct own": [
+     null,
+     null,
+     null
+    ],
+    "direct pooled refit": [
+     null,
+     null,
+     null
+    ],
+    "direct pooled refit (seed 1)": [
+     null,
+     null,
+     null
+    ],
+    "direct stored": [
+     null,
+     null,
+     null
+    ]
+   },
+   "mix_real": {
+    "direct own": [
+     0.5051516831380345,
+     0.3560873970141265,
+     0.13876091984783898
+    ],
+    "direct pooled refit": [
+     0.4837612065834496,
+     0.48964884445548906,
+     0.026589948961061306
+    ],
+    "direct pooled refit (seed 1)": [
+     0.48464052912278016,
+     0.48217460287117925,
+     0.03318486800604056
+    ],
+    "direct stored": [
+     0.4837612065834496,
+     0.48964884445548906,
+     0.026589948961061306
+    ]
+   },
+   "changed direct own vs direct pooled refit": 0.5300403341425649,
+   "changed direct own vs direct pooled refit (plant)": null,
+   "changed direct own vs direct stored": 0.5300403341425649,
+   "changed direct own vs direct stored (plant)": null,
+   "changed direct pooled refit vs direct stored": 0.0,
+   "changed direct pooled refit vs direct stored (plant)": null,
+   "changed direct pooled refit (seed 1) vs direct pooled refit": 0.3541184791543211,
+   "changed direct pooled refit (seed 1) vs direct pooled refit (plant)": null
+  },
+  "all review": {
+   "n": 1028482,
+   "mix": {
+    "direct own": [
+     0.7500179876750396,
+     0.23641152689108802,
+     0.013570485433872445
+    ],
+    "direct pooled refit": [
+     0.48295157328956656,
+     0.4967787477077868,
+     0.020269679002646618
+    ],
+    "direct pooled refit (seed 1)": [
+     0.47266748470075315,
+     0.5069160179760074,
+     0.020416497323239493
+    ],
+    "direct stored": [
+     0.48295157328956656,
+     0.4967787477077868,
+     0.020269679002646618
+    ]
+   },
+   "changed direct own vs direct pooled refit": 0.3269478707454287,
+   "changed direct own vs direct stored": 0.3269478707454287,
+   "changed direct pooled refit vs direct stored": 0.0,
+   "changed direct pooled refit (seed 1) vs direct pooled refit": 0.20182657547725677
+  }
+ },
+ "seconds": 408.9
+}

@@ -43,9 +43,10 @@ def main(argv=None):
     ap.add_argument("--seeds", default="1-20"); ap.add_argument("--policies", default=None)
     ap.add_argument("--epochs", type=int, default=40); ap.add_argument("--batch", type=int, default=256); ap.add_argument("--lr", type=float, default=1e-3)
     ap.add_argument("--d", type=int, default=128); ap.add_argument("--torch-seed", type=int, default=0)
+    ap.add_argument("--label", default="reward", help="the npz key read as the training reward (`pooled` in a relabelled set: the construction the chain trained on)")
     a, _ = ap.parse_known_args(argv)           # the online loop passes the world model's --horizon/--value/--gamma too; a direct policy has none
     torch.manual_seed(a.torch_seed); np.random.seed(a.torch_seed)
-    eps = load_episodes(a.data, seeds_of(a.seeds), a.policies.split(",") if a.policies else None)
+    eps = load_episodes(a.data, seeds_of(a.seeds), a.policies.split(",") if a.policies else None, label=a.label)
     X = torch.tensor(np.concatenate([e["obs"] for e in eps]), dtype=torch.float32)
     A = torch.tensor(np.concatenate([e["action"] for e in eps]), dtype=torch.long)
     R = torch.tensor(np.concatenate([e["reward"] for e in eps]), dtype=torch.float32)
@@ -76,7 +77,7 @@ def main(argv=None):
                               "predicted_mean": float(Q[:, k].mean())} for k in range(K)}
     os.makedirs(os.path.dirname(a.out) or ".", exist_ok=True)
     torch.save({"state": m.state_dict(), "config": {"obs_dim": int(X.shape[-1]), "n_actions": K, "d": a.d},
-                "train": {"data": a.data, "seeds": a.seeds, "policies": a.policies, "episodes": len(eps), "decisions": int(n), "epochs": a.epochs,
+                "train": {"data": a.data, "label": a.label, "seeds": a.seeds, "policies": a.policies, "episodes": len(eps), "decisions": int(n), "epochs": a.epochs,
                           "lr": a.lr, "batch": a.batch, "seconds": round(time.time() - t0, 1), "by_action": by_action, "log": log}}, a.out)
     print(f"saved {a.out}: {len(eps)} episodes, {n} decisions, {round(time.time()-t0,1)}s; by action {by_action}")
 

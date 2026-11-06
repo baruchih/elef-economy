@@ -90,7 +90,7 @@ def episode(env, policy, seed, rng):
     acts_work = []                                                # the pair: the work decisions apart from the review decisions
     acts_kind = {"delegate": [], "judge": [], "cancel": []}      # the parent: its three kinds apart
     blind_seats, blind_seat_stamps = 0, 0                         # the non-initial seats (2.7.0's "plant-blind" seats — audits and panels; under 2.8.0 a plant reaches them too)
-    by_seat = {f"seat_{s}_{k}_{m}": 0 for s in ("initial", "audit", "panel", "resumed") for k in ("plant", "real") for m in ("seen", "stamped")}   # 2.8.0: by seat kind
+    by_seat = {f"seat_{s}_{k}_{m}": 0 for s in ("initial", "audit", "panel", "resumed") for k in ("plant", "real") for m in ("seen", "stamped", "rejected_blind")}   # 2.8.0: by seat kind; `stamped` counts a verdict given without inspecting of either sign (the correction of November 6, 2026 — the label), `rejected_blind` the reject-blind part of it
     diag = []                                                     # per review decision: (action, predicted r per action, planner cost per first action, realized r)
     review_idx, k_all = [], 0                                     # the review decisions' positions among all decisions (the attributed reward is per decision)
     while not done:
@@ -113,7 +113,7 @@ def episode(env, policy, seed, rng):
         else:
             seat = info.get("seat") or ("initial" if info.get("initial", True) else "audit")
             kk = "plant" if info.get("is_plant") else "real"
-            by_seat[f"seat_{seat}_{kk}_seen"] += 1; by_seat[f"seat_{seat}_{kk}_stamped"] += int(a in (1, 2))
+            by_seat[f"seat_{seat}_{kk}_seen"] += 1; by_seat[f"seat_{seat}_{kk}_stamped"] += int(a in (1, 2)); by_seat[f"seat_{seat}_{kk}_rejected_blind"] += int(a == 2)
             if not info.get("initial", True):                     # a non-initial seat: read apart from the initial reviews' plant/real rates
                 blind_seats += 1; blind_seat_stamps += int(a in (1, 2))
             elif info.get("is_plant"):
@@ -278,9 +278,9 @@ def write_seat_table(f, summary):
     if not any(s.get(f"seats_{k}_plant") or s.get(f"seats_{k}_real") for s in summary.values() for k in kinds):
         return
     def r(s, k, kk):
-        v = s.get(f"stamp_rate_{k}_{kk}"); n = s.get(f"seats_{k}_{kk}", 0)
-        return "—" if v is None else f"{v:.3f} ({n})"
-    f.write("\nThe stamp rate by seat kind (2.8.0 §5), plant / real, with the decisions pooled over the seeds in parentheses — under 2.7.0 a plant reached the initial review alone; under 2.8.0 it reaches every seat.\n\n"
+        v = s.get(f"stamp_rate_{k}_{kk}"); n = s.get(f"seats_{k}_{kk}", 0); rb = s.get(f"reject_blind_rate_{k}_{kk}")
+        return "—" if v is None else (f"{v:.3f} ({n})" + (f" [rej. blind {rb:.3f}]" if rb else ""))
+    f.write("\nThe rate of verdicts given without inspecting by seat kind (2.8.0 §5) — `stamped` in the readers counts a blind verdict of either sign, approve blind or reject blind; the reject-blind part is shown in brackets where it is not zero (the label corrected November 6, 2026) — plant / real, with the decisions pooled over the seeds in parentheses; under 2.7.0 a plant reached the initial review alone, under 2.8.0 it reaches every seat.\n\n"
             "| policy | initial plant / real | audit plant / real | panel plant / real | resumed plant / real |\n|---|---|---|---|---|\n")
     for name, s in summary.items():
         f.write(f"| {name} | {r(s, 'initial', 'plant')} / {r(s, 'initial', 'real')} | {r(s, 'audit', 'plant')} / {r(s, 'audit', 'real')} | {r(s, 'panel', 'plant')} / {r(s, 'panel', 'real')} | {r(s, 'resumed', 'plant')} / {r(s, 'resumed', 'real')} |\n")
@@ -295,6 +295,7 @@ def main(argv=None):
     ap.add_argument("--hide", default=""); ap.add_argument("--ticks", type=int, default=1000)
     ap.add_argument("--role", choices=["reviewer", "deliverer", "pair", "child", "parent", "bidder", "requester"], default="reviewer", help="Q3: the learned deliverer (policies learned,greedy,direct,careful,zero,eps,random,leaver); Q4: the pair (careful,collude,eps,random,leaver)")
     ap.add_argument("--boundary-read", choices=["auto", "one-step", "learned"], default="auto", help="the ruling after run 30: at a boundary the stay head's one-step read against zero (a leave is worth zero by rule without re-arrival); `auto` is learned under `--learner-rearrive on`, one-step otherwise")
+    ap.add_argument("--attrib", choices=["own", "pooled"], default="own", help="the attribution's name rule (November 6, 2026): own-name credit, or run 32's pooled construction (the collusion cell); the evaluation's lifetime is unaffected")
     ap.add_argument("cell", nargs=argparse.REMAINDER)
     a = ap.parse_args(argv)
     cell = [x for x in a.cell if x != "--"]
@@ -303,7 +304,7 @@ def main(argv=None):
     m, ck = (load_model(a.model) if a.model else (None, {}))
     if m is not None:
         m.to(device())
-    env = ElefReviewerEnv(cell, ticks=a.ticks, hide=hide, obs_dim=ck.get("config", {}).get("obs_dim"), role=a.role)
+    env = ElefReviewerEnv(cell, ticks=a.ticks, hide=hide, obs_dim=ck.get("config", {}).get("obs_dim"), role=a.role, attrib=a.attrib)
     pols = {}
     for name in a.policies.split(","):
         if name == "learned":
@@ -349,8 +350,9 @@ def main(argv=None):
         summary[name]["blind_seats"] = mse([r["blind_seats"] for r in rows])
         for s in ("initial", "audit", "panel", "resumed"):          # 2.8.0: the plant and real stamp rates by seat kind (the "blind seats" label retired)
             for kk in ("plant", "real"):
-                seen = sum(r.get(f"seat_{s}_{kk}_seen", 0) for r in rows); st = sum(r.get(f"seat_{s}_{kk}_stamped", 0) for r in rows)
+                seen = sum(r.get(f"seat_{s}_{kk}_seen", 0) for r in rows); st = sum(r.get(f"seat_{s}_{kk}_stamped", 0) for r in rows); rb = sum(r.get(f"seat_{s}_{kk}_rejected_blind", 0) for r in rows)
                 summary[name][f"stamp_rate_{s}_{kk}"] = (st / seen) if seen else None
+                summary[name][f"reject_blind_rate_{s}_{kk}"] = (rb / seen) if seen else None
                 summary[name][f"seats_{s}_{kk}"] = seen
         if a.role == "parent":                                      # Q5's line: the learned parent
             for k in ("delegate_decisions", "judge_decisions", "cancel_decisions", "delegate_share", "judge_care_share", "judge_stamp_share", "judge_reject_share", "cancel_share") + PARENT_KEYS:
@@ -530,7 +532,7 @@ def main(argv=None):
                 f.write(f"| {name} | {fmt(s['boundary_decisions'][0])} | {fmt(s['leaves_chosen'][0])} | {fmt(s['leaves_effected'][0])} | {fmt(s['learner_departed_now'][0])} | {fmt(s['boundary_stay_read_mean'][0])} | {fmt(s['boundary_stay_negative'][0])} |\n")
             print(json.dumps(summary, indent=1, default=float))
             return
-        f.write(f"# Evaluation — cell `{' '.join(cell)}`, seeds {a.seeds}, hide `{a.hide}`, model `{a.model}` (value {ck.get('config', {}).get('value_mode', 'off')}, horizon {a.horizon})\n\nThe plant and real stamp rates are read on the initial reviews alone (the ruling after run 26); the non-initial seats — the audits and the panels, 2.7.0's plant-blind seats, which a plant reaches under 2.8.0 — are read apart: their share of the review decisions and the stamp rate on them, and below by seat kind.\n\n| policy | lifetime real wealth | paired − careful | decisions | care share | approve blind | reject blind | plant stamp rate (initial) | real stamp rate (initial) | non-initial share | non-initial stamp rate | run false approvals | learner's | departed |\n|---|---|---|---|---|---|---|---|---|---|---|---|---|---|\n")
+        f.write(f"# Evaluation — cell `{' '.join(cell)}`, seeds {a.seeds}, hide `{a.hide}`, model `{a.model}` (value {ck.get('config', {}).get('value_mode', 'off')}, horizon {a.horizon})\n\nThe plant and real stamp rates are read on the initial reviews alone (the ruling after run 26); the non-initial seats — the audits and the panels, 2.7.0's plant-blind seats, which a plant reaches under 2.8.0 — are read apart: their share of the review decisions and the stamp rate on them, and below by seat kind. A `stamp rate` here is the rate of verdicts given without inspecting, approve blind or reject blind (the label corrected November 6, 2026; the two signs are the `approve blind` / `reject blind` columns on the whole decision set, and the reject-blind part by seat is in the seat table).\n\n| policy | lifetime real wealth | paired − careful | decisions | care share | approve blind | reject blind | plant blind-verdict rate (initial) | real blind-verdict rate (initial) | non-initial share | non-initial blind-verdict rate | run false approvals | learner's | departed |\n|---|---|---|---|---|---|---|---|---|---|---|---|---|---|\n")
         for name, s in summary.items():
             pm = s.get("paired_minus_careful", (float("nan"), float("nan")))
             f.write(f"| {name} | {s['lifetime_real_wealth'][0]:.1f} ± {s['lifetime_real_wealth'][1]:.1f} | {pm[0]:.1f} ± {pm[1]:.1f} | {s['decisions'][0]:.1f} | {s['care_share'][0]:.3f} | {s['approve_blind_share'][0]:.3f} | {s['reject_blind_share'][0]:.3f} | {s['plant_stamp_rate']:.3f} | {s['real_stamp_rate']:.3f} | {s['blind_seat_share']:.3f} | {fmt(s['blind_seat_stamp_rate'])} | {s['false_approvals_run'][0]:.2f} | {s['learner_false_approvals'][0]:.2f} | {s['slot_departed'][0]:.2f} |\n")

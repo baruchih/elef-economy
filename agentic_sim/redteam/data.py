@@ -5,7 +5,9 @@ import numpy as np
 import torch
 
 
-def load_episodes(root, seeds=None, policies=None):
+def load_episodes(root, seeds=None, policies=None, label="reward"):
+    """`label` names the npz key read as the training reward: `reward` (the file's own — the attributed reward of its collection), or, in a
+    relabelled set (redteam.relabel), `pooled` for the construction the chain trained on beside the own-name labels in `reward`."""
     eps = []
     for f in sorted(glob.glob(os.path.join(root, "*-seed*.npz"))):
         z = np.load(f, allow_pickle=True)
@@ -14,7 +16,7 @@ def load_episodes(root, seeds=None, policies=None):
             continue
         if policies is not None and policy not in policies:
             continue
-        eps.append({"obs": z["obs"], "action": z["action"], "reward": z["reward"], "is_plant": z["is_plant"], "fulfilled": z["fulfilled"],
+        eps.append({"obs": z["obs"], "action": z["action"], "reward": z[label], "is_plant": z["is_plant"], "fulfilled": z["fulfilled"],
                     "t": z["t"], "seed": seed, "policy": policy, "lifetime": float(z["lifetime"]), "slot": z["slot"] if "slot" in z.files else None,
                     "n_actions": int(z["n_actions"]) if "n_actions" in z.files else 3, "role": str(z["role"]) if "role" in z.files else "reviewer"})
     return eps

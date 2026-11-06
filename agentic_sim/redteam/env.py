@@ -46,9 +46,14 @@ class _Abort(Exception):
 class ElefReviewerEnv(gym.Env if gym else object):
     metadata = {"render_modes": []}
 
-    def __init__(self, cell_args, ticks=1000, hide=(), final_audit=True, obs_dim=None, work_side=None, role="reviewer"):
+    def __init__(self, cell_args, ticks=1000, hide=(), final_audit=True, obs_dim=None, work_side=None, role="reviewer", attrib="own"):
         assert role in ("reviewer", "deliverer", "pair", "child", "parent", "bidder", "requester")
+        assert attrib in ("own", "pooled")
         self.role = role
+        # the attribution's name rule (the economy reviewer's ruling of November 6, 2026): `own` credits an event to a decision of the name whose
+        # wallet it touches — the population's corrected construction, the single learner's unchanged to the decimal; `pooled` is run 32's
+        # construction (an event to the latest decision on its case whatever slot's wallet it touched — the collusion cell, runs 34–41's)
+        self.attrib = attrib
         self.n_actions = 2 if role == "deliverer" else 3           # the child's three: well / badly / miss; the parent's judge has three, its other kinds two
         self.cell_args, self.ticks, self.hide, self.final_audit = list(cell_args), int(ticks), tuple(hide), final_audit
         self.work_side = bool(work_side) if work_side is not None else (role != "reviewer")    # the learner's own work attributed (Q3 on)
@@ -278,8 +283,10 @@ class ElefReviewerEnv(gym.Env if gym else object):
                 lineages = [[x] for x in self.run.learner_pair] if (self.role == "pair" and self.run.learner_pair) else None   # the pair: each member's own boundary
                 if getattr(self.run, "learner_pop", None):
                     lineages = [[x] for x in self.run.learner_chain]       # the population: each slot's unclaimed events to its own boundary decisions
+                own = self.attrib == "own" and self.role not in ("pair", "parent")      # the pair and the parent keep their shared and tree constructions
                 attributed, summ = attribute(self.run, self._marks, self._decisions, work_side=self.work_side, shared=(self.role == "pair"), lineages=lineages,
                                              tree=(self.role == "parent"),                                # Q5's parent: the child's events reach the delegate decision too
+                                             own_name=own,
                                              task_value=(self.run.a.task_value if self.role == "requester" else 0.0),
                                              task_cases=(list(self.run.req_received_cases) if self.role == "requester" else ()))   # Q7: a task received is worth v to the posting that made it
                 info["attributed"], info["attribution"] = [float(x) for x in attributed], summ

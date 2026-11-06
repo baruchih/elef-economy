@@ -39,12 +39,13 @@ def main(argv=None):
     ap.add_argument("--role", choices=["reviewer", "deliverer", "pair", "child", "parent", "bidder", "requester"], default="reviewer", help="Q3: `deliverer` — the slot's quality decisions (0 well, 1 badly at zero effort)")
     ap.add_argument("--ticks", type=int, default=1000)
     ap.add_argument("--hide", default="", help="observation fields zeroed (comma-separated), e.g. own_p_eff for Q1's hidden-odds cell")
+    ap.add_argument("--attrib", choices=["own", "pooled"], default="own", help="the attribution's name rule (November 6, 2026): own-name credit, or run 32's pooled construction (the collusion cell)")
     ap.add_argument("cell", nargs=argparse.REMAINDER, help="the stamping driver's cell arguments after --")
     a = ap.parse_args(argv)
     cell = [x for x in a.cell if x != "--"]
     lo, hi = (int(x) for x in a.seeds.split("-")) if "-" in a.seeds else (int(a.seeds), int(a.seeds))
     os.makedirs(a.out, exist_ok=True)
-    env = ElefReviewerEnv(cell, ticks=a.ticks, hide=tuple(x for x in a.hide.split(",") if x), role=a.role)
+    env = ElefReviewerEnv(cell, ticks=a.ticks, hide=tuple(x for x in a.hide.split(",") if x), role=a.role, attrib=a.attrib)
     summary = []
     t0 = time.time()
     for name in (a.policies or default_policies(a.role)).split(","):
@@ -59,7 +60,7 @@ def main(argv=None):
                             "plants": int(P.sum()), "error": info.get("error")})
             print(f"{name} seed {seed}: {len(A)} decisions, lifetime {info.get('lifetime_real_wealth', float('nan')):.1f}, plants {int(P.sum())}" + (f" ERROR {info['error']}" if info.get("error") else ""), flush=True)
     env.close()
-    json.dump({"cell": cell, "ticks": a.ticks, "hide": a.hide, "role": a.role, "n_actions": env.n_actions, "seconds": round(time.time() - t0, 1), "episodes": summary},
+    json.dump({"cell": cell, "ticks": a.ticks, "hide": a.hide, "role": a.role, "attrib": a.attrib, "n_actions": env.n_actions, "seconds": round(time.time() - t0, 1), "episodes": summary},
               open(os.path.join(a.out, "summary.json"), "w"), indent=1)
 
 

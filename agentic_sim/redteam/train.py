@@ -25,6 +25,7 @@ def main(argv=None):
     ap.add_argument("--batch", type=int, default=256); ap.add_argument("--lr", type=float, default=1e-3)
     ap.add_argument("--lam", type=float, default=0.05); ap.add_argument("--d", type=int, default=64)
     ap.add_argument("--torch-seed", type=int, default=0)
+    ap.add_argument("--label", default="reward", help="the npz key read as the training reward (`pooled` in a relabelled set: the construction the chain trained on)")
     ap.add_argument("--value", choices=["off", "mc", "td"], default="off", help="the terminal value head: off (Q2's planner), mc (the discounted return-to-go), td (bootstrapped)")
     ap.add_argument("--gamma", type=float, default=0.95, help="the discount per decision for the value head and the planner's sum")
     ap.add_argument("--heads", choices=["one", "two"], default="two", help="version 4: `two` — a review-side head and a boundary head on the latent; `one` is version 3's single head")
@@ -32,7 +33,7 @@ def main(argv=None):
     ap.add_argument("--stride", type=int, default=1, help="the windows' stride along an episode (the learned population's data is N slots wide; a stride keeps it in memory)")
     a = ap.parse_args(argv)
     torch.manual_seed(a.torch_seed); np.random.seed(a.torch_seed)
-    eps = load_episodes(a.data, seeds_of(a.seeds), a.policies.split(",") if a.policies else None)
+    eps = load_episodes(a.data, seeds_of(a.seeds), a.policies.split(",") if a.policies else None, label=a.label)
     K = n_actions_of(eps)                                            # 3 for the reviewer, 2 for Q3's deliverer
     O, A, R, G, D = windows(eps, a.horizon, n_actions=K, gamma=a.gamma, stride=a.stride)
     mean, std = obs_stats(eps)
@@ -73,7 +74,7 @@ def main(argv=None):
     os.makedirs(os.path.dirname(a.out) or ".", exist_ok=True)
     torch.save({"state": m.state_dict(), "config": {"obs_dim": obs_dim, "n_actions": K, "d": a.d, "horizon": a.horizon, "value_mode": a.value, "gamma": a.gamma, "side_heads": heads,
                                                    "kind_actions": kind_actions},
-                "train": {"data": a.data, "seeds": a.seeds, "policies": a.policies, "episodes": len(eps), "windows": int(n), "epochs": a.epochs, "role": eps[0].get("role", "reviewer"),
+                "train": {"data": a.data, "label": a.label, "seeds": a.seeds, "policies": a.policies, "episodes": len(eps), "windows": int(n), "epochs": a.epochs, "role": eps[0].get("role", "reviewer"),
                           "lam": a.lam, "lr": a.lr, "batch": a.batch, "value": a.value, "gamma": a.gamma, "heads": heads, "kind_actions": kind_actions,
                           "reward_scale": float(m.reward_scale), "reward_scale_b": float(m.reward_scale_b), "seconds": round(time.time() - t0, 1), "log": log}}, a.out)
     print(f"saved {a.out}: {len(eps)} episodes, {n} windows, {round(time.time()-t0,1)}s")

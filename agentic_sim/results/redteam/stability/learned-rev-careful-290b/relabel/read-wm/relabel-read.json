@@ -1,0 +1,602 @@
+{
+ "data": "results/redteam/stability/learned-rev-careful-290b/relabel/wm-offline",
+ "decisions": 889499,
+ "review_decisions": 889499,
+ "seeds": "1-20",
+ "seat_agreement_info_vs_obs": 1.0,
+ "labels": {
+  "initial": {
+   "n": 738672,
+   "changed_share": 0.74176088981307,
+   "pooled_mean": 6.406490029229606,
+   "own_mean": 3.7621720396231804,
+   "care": {
+    "n": 546923,
+    "pooled_mean": 6.576805320025864,
+    "own_mean": 4.569997881093146,
+    "pooled_minus_own_mean": 2.0068074389327175
+   },
+   "approve blind": {
+    "n": 150348,
+    "pooled_mean": 6.799517956995481,
+    "own_mean": 1.9359878556494683,
+    "pooled_minus_own_mean": 4.863530101346012
+   },
+   "reject blind": {
+    "n": 41401,
+    "pooled_mean": 2.7292766123578964,
+    "own_mean": -0.27771571676430673,
+    "pooled_minus_own_mean": 3.006992329122203
+   },
+   "plant": {
+    "n": 147117,
+    "pooled_mean": 2.099712066703684,
+    "own_mean": 2.377008405842076
+   },
+   "real": {
+    "n": 591555,
+    "pooled_mean": 7.477565843841816,
+    "own_mean": 4.1066558463883585
+   }
+  },
+  "audit": {
+   "n": 115872,
+   "changed_share": 0.9529912317039492,
+   "pooled_mean": 17.1703917848394,
+   "own_mean": 4.782286450195385,
+   "care": {
+    "n": 49210,
+    "pooled_mean": 15.981669069032376,
+    "own_mean": 4.680553276984339,
+    "pooled_minus_own_mean": 11.301115792048037
+   },
+   "approve blind": {
+    "n": 62285,
+    "pooled_mean": 19.210188782034372,
+    "own_mean": 5.290930405250281,
+    "pooled_minus_own_mean": 13.919258376784091
+   },
+   "reject blind": {
+    "n": 4377,
+    "pooled_mean": 1.5085889231932776,
+    "own_mean": -1.3119788655182671,
+    "pooled_minus_own_mean": 2.820567788711545
+   },
+   "plant": {
+    "n": 13633,
+    "pooled_mean": 3.068434155300267,
+    "own_mean": 1.7636939291518132
+   },
+   "real": {
+    "n": 102239,
+    "pooled_mean": 19.050809124245177,
+    "own_mean": 5.18479891451318
+   }
+  },
+  "panel": {
+   "n": 34955,
+   "changed_share": 0.9054498641109998,
+   "pooled_mean": 4.815507681393961,
+   "own_mean": 4.171885835964986,
+   "care": {
+    "n": 28548,
+    "pooled_mean": 5.433359540066937,
+    "own_mean": 4.65894971986382,
+    "pooled_minus_own_mean": 0.774409820203117
+   },
+   "approve blind": {
+    "n": 4611,
+    "pooled_mean": 4.027204968286129,
+    "own_mean": 1.9986190396724413,
+    "pooled_minus_own_mean": 2.028585928613688
+   },
+   "reject blind": {
+    "n": 1796,
+    "pooled_mean": -2.9815808772117873,
+    "own_mean": 2.009432294851953,
+    "pooled_minus_own_mean": -4.991013172063741
+   },
+   "plant": {
+    "n": 10592,
+    "pooled_mean": 6.05632831355756,
+    "own_mean": 3.884171782635445
+   },
+   "real": {
+    "n": 24363,
+    "pooled_mean": 4.276051451213899,
+    "own_mean": 4.296971714258566
+   }
+  }
+ },
+ "argmax": {
+  "initial": {
+   "n": 738672,
+   "mix": {
+    "direct own": [
+     0.9719388307665648,
+     0.020275575627612796,
+     0.007785593605822341
+    ],
+    "direct pooled refit": [
+     0.6899029609894514,
+     0.2893205644724587,
+     0.02077647453808998
+    ],
+    "direct pooled refit (seed 1)": [
+     0.700971473130158,
+     0.27937704420906706,
+     0.019651482660775012
+    ],
+    "direct stored": [
+     0.7074506682262222,
+     0.2786202807199948,
+     0.013929051053783005
+    ],
+    "wm own": [
+     0.9972477635540538,
+     0.002164695561764897,
+     0.0005875408841813416
+    ],
+    "wm pooled refit": [
+     0.7672823661923018,
+     0.23221267355470357,
+     0.0005049602529945632
+    ],
+    "wm pooled refit (seed 1)": [
+     0.7299708124851084,
+     0.26895293174778523,
+     0.0010762557671063747
+    ],
+    "wm stored": [
+     0.7672823661923018,
+     0.23221267355470357,
+     0.0005049602529945632
+    ]
+   },
+   "mix_plant": {
+    "direct own": [
+     0.9708531305015736,
+     0.01760503544797678,
+     0.011541834050449642
+    ],
+    "direct pooled refit": [
+     0.7282571014906503,
+     0.24430895137883454,
+     0.02743394713051517
+    ],
+    "direct pooled refit (seed 1)": [
+     0.7401048145353698,
+     0.23493545953220907,
+     0.024959725932421135
+    ],
+    "direct stored": [
+     0.7513339722805658,
+     0.23153680404032165,
+     0.017129223679112543
+    ],
+    "wm own": [
+     0.9978316577961759,
+     0.0014138406846251623,
+     0.0007545015191990048
+    ],
+    "wm pooled refit": [
+     0.81683286092022,
+     0.18262335420107806,
+     0.0005437848787019855
+    ],
+    "wm pooled refit (seed 1)": [
+     0.7890590482405161,
+     0.20999612553273925,
+     0.0009448262267446998
+    ],
+    "wm stored": [
+     0.81683286092022,
+     0.18262335420107806,
+     0.0005437848787019855
+    ]
+   },
+   "mix_real": {
+    "direct own": [
+     0.9722088394147628,
+     0.02093972665263585,
+     0.006851433932601364
+    ],
+    "direct pooled refit": [
+     0.6803644631522006,
+     0.30051474503638714,
+     0.019120791811412293
+    ],
+    "direct pooled refit (seed 1)": [
+     0.6912391916220808,
+     0.2904294613349562,
+     0.018331347042963037
+    ],
+    "direct stored": [
+     0.6965370929161279,
+     0.290329724201469,
+     0.013133182882403158
+    ],
+    "wm own": [
+     0.9971025517492034,
+     0.00235142970645164,
+     0.000546018544344989
+    ],
+    "wm pooled refit": [
+     0.754959386701152,
+     0.24454530855119136,
+     0.0004953047476566
+    ],
+    "wm pooled refit (seed 1)": [
+     0.7152758407924876,
+     0.2836152175199263,
+     0.0011089416875861078
+    ],
+    "wm stored": [
+     0.754959386701152,
+     0.24454530855119136,
+     0.0004953047476566
+    ]
+   },
+   "changed direct own vs direct pooled refit": 0.3151385188554595,
+   "changed direct own vs direct pooled refit (plant)": 0.2834410707124262,
+   "changed direct own vs direct stored": 0.30050144042281285,
+   "changed direct own vs direct stored (plant)": 0.2628044345656858,
+   "changed direct pooled refit vs direct stored": 0.2821888470119349,
+   "changed direct pooled refit vs direct stored (plant)": 0.2953431622450159,
+   "changed direct pooled refit (seed 1) vs direct pooled refit": 0.22077322546407607,
+   "changed direct pooled refit (seed 1) vs direct pooled refit (plant)": 0.2377631409014594,
+   "changed wm own vs wm pooled refit": 0.23288414885091083,
+   "changed wm own vs wm pooled refit (plant)": 0.18343223420814725,
+   "changed wm own vs wm stored": 0.23288414885091083,
+   "changed wm own vs wm stored (plant)": 0.18343223420814725,
+   "changed wm pooled refit vs wm stored": 0.0,
+   "changed wm pooled refit vs wm stored (plant)": 0.0,
+   "changed wm pooled refit (seed 1) vs wm pooled refit": 0.1386826629410618,
+   "changed wm pooled refit (seed 1) vs wm pooled refit (plant)": 0.12783023036086924
+  },
+  "audit": {
+   "n": 115872,
+   "mix": {
+    "direct own": [
+     0.6000241645954156,
+     0.3990437724385529,
+     0.000932062966031483
+    ],
+    "direct pooled refit": [
+     0.22731117094725214,
+     0.7724299226732947,
+     0.0002589063794531897
+    ],
+    "direct pooled refit (seed 1)": [
+     0.20740127036730185,
+     0.7918133802816901,
+     0.0007853493510080089
+    ],
+    "direct stored": [
+     0.2346813725490196,
+     0.7652236951118475,
+     9.493233913283624e-05
+    ],
+    "wm own": [
+     0.6587182408174538,
+     0.3410746340789837,
+     0.00020712510356255177
+    ],
+    "wm pooled refit": [
+     0.1208229770781552,
+     0.8791770229218447,
+     0.0
+    ],
+    "wm pooled refit (seed 1)": [
+     0.10002416459541563,
+     0.8999758354045844,
+     0.0
+    ],
+    "wm stored": [
+     0.1208229770781552,
+     0.8791770229218447,
+     0.0
+    ]
+   },
+   "mix_plant": {
+    "direct own": [
+     0.7238318785300374,
+     0.2742609843761461,
+     0.0019071370938164747
+    ],
+    "direct pooled refit": [
+     0.25438274774444364,
+     0.7441502237218514,
+     0.0014670285337049806
+    ],
+    "direct pooled refit (seed 1)": [
+     0.23479791681948214,
+     0.7595540233257537,
+     0.005648059854764175
+    ],
+    "direct stored": [
+     0.24572727939558425,
+     0.7539793148976748,
+     0.00029340570674099613
+    ],
+    "wm own": [
+     0.7597740776058094,
+     0.24007921954082007,
+     0.00014670285337049806
+    ],
+    "wm pooled refit": [
+     0.11208097997506052,
+     0.8879190200249395,
+     0.0
+    ],
+    "wm pooled refit (seed 1)": [
+     0.10415902589305362,
+     0.8958409741069464,
+     0.0
+    ],
+    "wm stored": [
+     0.11208097997506052,
+     0.8879190200249395,
+     0.0
+    ]
+   },
+   "mix_real": {
+    "direct own": [
+     0.5835150969786481,
+     0.41568286074785554,
+     0.0008020422734964153
+    ],
+    "direct pooled refit": [
+     0.2237013272821526,
+     0.7762008626844942,
+     9.781003335322138e-05
+    ],
+    "direct pooled refit (seed 1)": [
+     0.20374808047809545,
+     0.7961149854752101,
+     0.00013693404669450993
+    ],
+    "direct stored": [
+     0.23320846252408572,
+     0.766723070452567,
+     6.846702334725496e-05
+    ],
+    "wm own": [
+     0.6452430090278661,
+     0.35454180889875686,
+     0.00021518207337708703
+    ],
+    "wm pooled refit": [
+     0.1219886735981377,
+     0.8780113264018623,
+     0.0
+    ],
+    "wm pooled refit (seed 1)": [
+     0.09947280392022613,
+     0.9005271960797738,
+     0.0
+    ],
+    "wm stored": [
+     0.1219886735981377,
+     0.8780113264018623,
+     0.0
+    ]
+   },
+   "changed direct own vs direct pooled refit": 0.5591946285556476,
+   "changed direct own vs direct pooled refit (plant)": 0.6009682388322453,
+   "changed direct own vs direct stored": 0.5513411350455675,
+   "changed direct own vs direct stored (plant)": 0.6037555930462848,
+   "changed direct pooled refit vs direct stored": 0.3084696906931787,
+   "changed direct pooled refit vs direct stored (plant)": 0.32186606029487275,
+   "changed direct pooled refit (seed 1) vs direct pooled refit": 0.25729252968793154,
+   "changed direct pooled refit (seed 1) vs direct pooled refit (plant)": 0.2686862759480672,
+   "changed wm own vs wm pooled refit": 0.6050037972935653,
+   "changed wm own vs wm pooled refit (plant)": 0.683048485293039,
+   "changed wm own vs wm stored": 0.6050037972935653,
+   "changed wm own vs wm stored (plant)": 0.683048485293039,
+   "changed wm pooled refit vs wm stored": 0.0,
+   "changed wm pooled refit vs wm stored (plant)": 0.0,
+   "changed wm pooled refit (seed 1) vs wm pooled refit": 0.1314208782104391,
+   "changed wm pooled refit (seed 1) vs wm pooled refit (plant)": 0.12719137387222182
+  },
+  "panel": {
+   "n": 34955,
+   "mix": {
+    "direct own": [
+     0.7200686597053354,
+     0.0914318409383493,
+     0.18849949935631527
+    ],
+    "direct pooled refit": [
+     0.6973537405235303,
+     0.25332570447718494,
+     0.049320554999284796
+    ],
+    "direct pooled refit (seed 1)": [
+     0.6723787727077671,
+     0.294006579888428,
+     0.03361464740380489
+    ],
+    "direct stored": [
+     0.6565012158489486,
+     0.3081962523244171,
+     0.035302531826634245
+    ],
+    "wm own": [
+     0.9614647403804892,
+     0.0070948362179945644,
+     0.03144042340151623
+    ],
+    "wm pooled refit": [
+     0.660849663853526,
+     0.3374052353025318,
+     0.0017451008439422113
+    ],
+    "wm pooled refit (seed 1)": [
+     0.6509798312115577,
+     0.34736089257616937,
+     0.0016592762122729222
+    ],
+    "wm stored": [
+     0.660849663853526,
+     0.3374052353025318,
+     0.0017451008439422113
+    ]
+   },
+   "mix_plant": {
+    "direct own": [
+     0.7285687311178247,
+     0.10715634441087614,
+     0.1642749244712991
+    ],
+    "direct pooled refit": [
+     0.706570996978852,
+     0.24358006042296074,
+     0.04984894259818731
+    ],
+    "direct pooled refit (seed 1)": [
+     0.6946752265861027,
+     0.2691654078549849,
+     0.03615936555891239
+    ],
+    "direct stored": [
+     0.6682401812688822,
+     0.29626132930513593,
+     0.035498489425981876
+    ],
+    "wm own": [
+     0.96875,
+     0.008496978851963747,
+     0.022753021148036255
+    ],
+    "wm pooled refit": [
+     0.6474697885196374,
+     0.35215256797583083,
+     0.00037764350453172205
+    ],
+    "wm pooled refit (seed 1)": [
+     0.6567220543806647,
+     0.34299471299093653,
+     0.00028323262839879157
+    ],
+    "wm stored": [
+     0.6474697885196374,
+     0.35215256797583083,
+     0.00037764350453172205
+    ]
+   },
+   "mix_real": {
+    "direct own": [
+     0.7163731888519477,
+     0.08459549316586627,
+     0.1990313179821861
+    ],
+    "direct pooled refit": [
+     0.6933464680047613,
+     0.25756269753314454,
+     0.04909083446209416
+    ],
+    "direct pooled refit (seed 1)": [
+     0.6626852193900586,
+     0.3048064688256783,
+     0.03250831178426302
+    ],
+    "direct stored": [
+     0.6513976111316341,
+     0.31338505110208104,
+     0.03521733776628494
+    ],
+    "wm own": [
+     0.9582974182161474,
+     0.006485244017567623,
+     0.03521733776628494
+    ],
+    "wm pooled refit": [
+     0.6666666666666666,
+     0.3309937199852235,
+     0.0023396133481098386
+    ],
+    "wm pooled refit (seed 1)": [
+     0.6484833559085499,
+     0.3492591224397652,
+     0.002257521651684932
+    ],
+    "wm stored": [
+     0.6666666666666666,
+     0.3309937199852235,
+     0.0023396133481098386
+    ]
+   },
+   "changed direct own vs direct pooled refit": 0.43372908024603063,
+   "changed direct own vs direct pooled refit (plant)": 0.4070996978851964,
+   "changed direct own vs direct stored": 0.49638106136461163,
+   "changed direct own vs direct stored (plant)": 0.4744146525679758,
+   "changed direct pooled refit vs direct stored": 0.4031755113717637,
+   "changed direct pooled refit vs direct stored (plant)": 0.39001132930513593,
+   "changed direct pooled refit (seed 1) vs direct pooled refit": 0.33259905592905165,
+   "changed direct pooled refit (seed 1) vs direct pooled refit (plant)": 0.3109894259818731,
+   "changed wm own vs wm pooled refit": 0.3604062365899013,
+   "changed wm own vs wm pooled refit (plant)": 0.36744712990936557,
+   "changed wm own vs wm stored": 0.3604062365899013,
+   "changed wm own vs wm stored (plant)": 0.36744712990936557,
+   "changed wm pooled refit vs wm stored": 0.0,
+   "changed wm pooled refit vs wm stored (plant)": 0.0,
+   "changed wm pooled refit (seed 1) vs wm pooled refit": 0.3144042340151624,
+   "changed wm pooled refit (seed 1) vs wm pooled refit (plant)": 0.33638595166163143
+  },
+  "all review": {
+   "n": 889499,
+   "mix": {
+    "direct own": [
+     0.9135929326508517,
+     0.07241267275174003,
+     0.013994394597408205
+    ],
+    "direct pooled refit": [
+     0.6299355030191153,
+     0.3508390678348149,
+     0.019225429146069867
+    ],
+    "direct pooled refit (seed 1)": [
+     0.6355521478944889,
+     0.3467052801633279,
+     0.017742571942183184
+    ],
+    "direct stored": [
+     0.6438624439150578,
+     0.3431707062065275,
+     0.012966849878414703
+    ],
+    "wm own": [
+     0.9517424977431116,
+     0.04650707870385464,
+     0.0017504235530337864
+    ],
+    "wm pooled refit": [
+     0.6788877784010999,
+     0.3206243064916318,
+     0.00048791510726824876
+    ],
+    "wm pooled refit (seed 1)": [
+     0.6448056715072192,
+     0.3542353617036107,
+     0.0009589667891700833
+    ],
+    "wm stored": [
+     0.6788877784010999,
+     0.3206243064916318,
+     0.00048791510726824876
+    ]
+   },
+   "changed direct own vs direct pooled refit": 0.35159117660615696,
+   "changed direct own vs direct stored": 0.34087503189997964,
+   "changed direct pooled refit vs direct stored": 0.2903668244708538,
+   "changed direct pooled refit (seed 1) vs direct pooled refit": 0.2299249352725523,
+   "changed wm own vs wm pooled refit": 0.28637019265901364,
+   "changed wm own vs wm stored": 0.28637019265901364,
+   "changed wm pooled refit vs wm stored": 0.0,
+   "changed wm pooled refit (seed 1) vs wm pooled refit": 0.144642096281165
+  }
+ },
+ "seconds": 1482.6
+}

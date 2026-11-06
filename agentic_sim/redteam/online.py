@@ -34,6 +34,7 @@ def main(argv=None):
     ap.add_argument("--plan", choices=["cem", "greedy"], default="cem", help="the collecting policy on the world model: the CEM planner, or the head alone over the latent (version 4's stopping rule)")
     ap.add_argument("--boundary-read", choices=["auto", "one-step", "learned"], default="auto", help="the ruling after run 30 (run_q's): the stay head's one-step read against zero at a boundary; `auto` is learned only under `--learner-rearrive on`")
     ap.add_argument("--stride", type=int, default=1, help="the trainer's window stride (the learned population's data)")
+    ap.add_argument("--attrib", choices=["own", "pooled"], default="own", help="the attribution's name rule (November 6, 2026): own-name credit, or run 32's pooled construction (the collusion cell)")
     ap.add_argument("cell", nargs=argparse.REMAINDER)
     a = ap.parse_args(argv)
     direct = a.learner == "direct"
@@ -51,7 +52,7 @@ def main(argv=None):
     model_path = a.start or os.path.join(a.models, f"{stem}-0.pt")
     if not a.start:
         fit(a.data, model_path)
-    env = ElefReviewerEnv(cell, ticks=a.ticks, hide=hide, role=a.role)
+    env = ElefReviewerEnv(cell, ticks=a.ticks, hide=hide, role=a.role, attrib=a.attrib)
     log = []
     for k in range(a.first_round, a.first_round + a.rounds):
         t0 = time.time()
@@ -75,7 +76,7 @@ def main(argv=None):
         model_path = os.path.join(a.models, f"{stem}-{k}.pt")
         fit(a.data, model_path)
         rec = {"round": k, "train_lifetime_mean": float(np.nanmean(lifetimes)), "seconds": round(time.time() - t0, 1), "explore": a.explore, "value": a.value, "heads": a.heads, "kind_actions": a.kind_actions, "role": a.role, "plan": a.plan,
-               "boundary_read": br}
+               "boundary_read": br, "attrib": a.attrib}
         if k % a.eval_every == 0 or k == a.first_round + a.rounds - 1:
             out = os.path.join(a.evals, f"round-{k}")
             Q.main((["--direct-model", model_path] if direct else ["--model", model_path]) + ["--out", out, "--seeds", a.eval_seeds, "--policies", a.eval_policies, "--horizon", str(a.horizon),

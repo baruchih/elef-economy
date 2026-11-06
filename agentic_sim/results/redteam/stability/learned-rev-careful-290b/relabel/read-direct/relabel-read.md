@@ -1,0 +1,26 @@
+# The label recompute on `results/redteam/stability/learned-rev-careful-290b/relabel/direct-offline` (seeds 1-20; 903964 decisions, 903964 at review seats)
+
+The pooled label (the construction the chain trained on) and the own-name label on the same decisions, by seat and by the action taken: the mean credit, and the pooled purse's part — pooled minus own — per decision.
+
+| seat | decisions | label changed (share) | mean pooled | mean own | care: n / pooled / own / pooled − own | approve blind: n / pooled / own / pooled − own | reject blind: n / pooled / own / pooled − own | plant: n / pooled / own | real: n / pooled / own |
+|---|---|---|---|---|---|---|---|---|---|
+| initial | 755931 | 0.753 | 6.58 | 3.72 | 539188 / 6.83 / 4.64 / 2.19 | 168572 / 6.94 / 1.96 / 4.98 | 48171 / 2.58 / -0.37 / 2.96 | 148734 / 1.97 / 2.23 | 607197 / 7.71 / 4.09 |
+| audit | 111098 | 0.953 | 16.64 | 4.86 | 59404 / 16.21 / 4.94 / 11.27 | 47557 / 18.51 / 5.29 / 13.22 | 4137 / 1.40 / -1.17 / 2.56 | 13209 / 3.44 / 2.45 | 97889 / 18.42 / 5.19 |
+| panel | 36935 | 0.900 | 4.18 | 4.25 | 29442 / 4.82 / 4.82 / -0.00 | 5234 / 3.70 / 1.84 / 1.86 | 2259 / -3.06 / 2.44 / -5.50 | 11144 / 6.32 / 3.98 | 25791 / 3.25 / 4.37 |
+
+The argmax by seat on the same observations: the action mix (care / approve blind / reject blind) each model chooses over every decision at the seat, and the share of decisions whose argmax differs between two models — own-name against the pooled refit (the label rule's effect), own-name against the stored model, the pooled refit against the stored model (the same labels and torch seed: zero where the fit is deterministic, or the data differ from the stored model's), and a second pooled refit on another torch seed against the first (two fits of the same labels: the refit's own noise, the floor any difference must clear).
+
+| seat | decisions | direct own: mix | direct pooled refit: mix | direct pooled refit (seed 1): mix | direct stored: mix | direct own vs direct pooled refit | direct own vs direct stored | direct pooled refit vs direct stored | direct pooled refit (seed 1) vs direct pooled refit |
+|---|---|---|---|---|---|---|---|---|---|
+| initial | 755931 | 0.971 / 0.023 / 0.007 | 0.720 / 0.267 / 0.012 | 0.726 / 0.262 / 0.012 | 0.720 / 0.267 / 0.012 | 0.281 | 0.281 | 0.000 | 0.183 |
+| audit | 111098 | 0.569 / 0.429 / 0.002 | 0.238 / 0.762 / 0.000 | 0.194 / 0.806 / 0.000 | 0.238 / 0.762 / 0.000 | 0.509 | 0.509 | 0.000 | 0.268 |
+| panel | 36935 | 0.679 / 0.098 / 0.223 | 0.672 / 0.290 / 0.038 | 0.663 / 0.309 / 0.028 | 0.672 / 0.290 / 0.038 | 0.500 | 0.500 | 0.000 | 0.335 |
+| all review | 903964 | 0.910 / 0.076 / 0.015 | 0.659 / 0.329 / 0.012 | 0.658 / 0.331 / 0.011 | 0.659 / 0.329 / 0.012 | 0.318 | 0.318 | 0.000 | 0.199 |
+
+The same mix on the plants alone and on the real cases alone at each seat:
+
+| seat | direct own: plant / real | direct pooled refit: plant / real | direct pooled refit (seed 1): plant / real | direct stored: plant / real |
+|---|---|---|---|---|
+| initial | 0.974 / 0.016 / 0.010 — 0.970 / 0.024 / 0.006 | 0.775 / 0.209 / 0.016 — 0.707 / 0.281 / 0.012 | 0.781 / 0.202 / 0.017 — 0.712 / 0.277 / 0.011 | 0.775 / 0.209 / 0.016 — 0.707 / 0.281 / 0.012 |
+| audit | 0.701 / 0.291 / 0.007 — 0.551 / 0.448 / 0.001 | 0.282 / 0.718 / 0.001 — 0.232 / 0.768 / 0.000 | 0.244 / 0.755 / 0.000 — 0.188 / 0.812 / 0.000 | 0.282 / 0.718 / 0.001 — 0.232 / 0.768 / 0.000 |
+| panel | 0.685 / 0.116 / 0.200 — 0.676 / 0.090 / 0.233 | 0.688 / 0.273 / 0.039 — 0.665 / 0.298 / 0.037 | 0.690 / 0.280 / 0.030 — 0.652 / 0.321 / 0.028 | 0.688 / 0.273 / 0.039 — 0.665 / 0.298 / 0.037 |

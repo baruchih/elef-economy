@@ -47,10 +47,14 @@ class Params:
     # row have stood, and the doubling on an overturn or a plant failure can return a reviewer to
     # full audit — p_start and p_cap are 1.0 (were 0.5 / 0.5). The dial scales the odds a driver
     # rolls: min(1, m_t · p_j) (`Actor.p_eff`).
+    # The economy reviewer's defaults move (November 6, 2026; Appendix A under §19, not a rule change; notes §74): the halving
+    # window 5 → 20 and the floor 0.2 → 0.5, since together they close the never-audited channel of the own-money population's
+    # standing false approvals (17.6 → 1.8 a run on run 42's population) at the price of 18% more audits on the members' seats;
+    # the cost read on the honest populations in §8.3 before consolidation, the window retuned first if it runs too high.
     p_start: float = 1.0
-    p_floor: float = 0.2
+    p_floor: float = 0.5           # was 0.2 from 1.2.0 to November 6, 2026
     p_cap: float = 1.0
-    p_halve_every: int = 5
+    p_halve_every: int = 20        # was 5 from 1.2.0 to November 6, 2026
 
     # Design revision 2 (1.2.0): planted work, the plant record, the effort dial.
     dial: bool = True          # False: m_t stays 1 and X_t stays X — the 1.1.0 reserve and audit odds,

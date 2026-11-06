@@ -172,7 +172,9 @@ def test_readmission_needs_n_min_new_outcomes_and_a_passing_trailing_record_and_
 
 
 def test_newcomer_odds_are_pinned_until_the_bad_plant_record_is_determined():
-    w = make_world()
+    # the window pinned at the test's own 5 (the principle — pinned odds do not taper, the adaptive rule applies from 1.0 once the
+    # record is determined — is the same at any window; Appendix A's default moved to 20 on November 6, 2026, the reviewer's defaults move)
+    w = make_world(p_halve_every=5)
     C = w.actors["C"]
     assert C.pinned and C.p_eff == 1.0
     # five stood approvals do not taper the odds while pinned

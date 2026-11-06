@@ -252,6 +252,7 @@ def main(argv=None):
     ap.add_argument("--hide", default=""); ap.add_argument("--ticks", type=int, default=1000)
     ap.add_argument("--role", choices=["reviewer", "deliverer", "pair", "child", "parent", "bidder", "requester"], default="reviewer", help="Q3: the learned deliverer (policies learned,greedy,direct,careful,zero,eps,random,leaver); Q4: the pair (careful,collude,eps,random,leaver)")
     ap.add_argument("--boundary-read", choices=["auto", "one-step", "learned"], default="auto", help="the ruling after run 30: at a boundary the stay head's one-step read against zero (a leave is worth zero by rule without re-arrival); `auto` is learned under `--learner-rearrive on`, one-step otherwise")
+    ap.add_argument("--attrib", choices=["own", "pooled"], default="own")
     ap.add_argument("cell", nargs=argparse.REMAINDER)
     a = ap.parse_args(argv)
     cell = [x for x in a.cell if x != "--"]
@@ -260,7 +261,7 @@ def main(argv=None):
     m, ck = (load_model(a.model) if a.model else (None, {}))
     if m is not None:
         m.to(device())
-    env = ElefReviewerEnv(cell, ticks=a.ticks, hide=hide, obs_dim=ck.get("config", {}).get("obs_dim"), role=a.role)
+    env = ElefReviewerEnv(cell, ticks=a.ticks, hide=hide, obs_dim=ck.get("config", {}).get("obs_dim"), role=a.role, attrib=a.attrib)
     pols = {}
     for name in a.policies.split(","):
         if name == "learned":

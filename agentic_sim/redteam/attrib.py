@@ -16,6 +16,15 @@ events before the first boundary decision (the genesis name's first period) have
 work side during a suspension falls on the boundary decision that kept the name there. Everything here reads the public record after the
 fact — the ledger's events, the driver's suspension log, a plant's outcome — never the observation.
 
+**Own-name credit (the economy reviewer's ruling of November 6, 2026, on the record's first finding; `own_name=True`):** the rule above was
+written for one learner, where "the events touching a learner's name" and "the events of this learner" are the same set, and run 32's
+population build widened the name set to every slot and kept the case rule — so an event on a case was credited to the latest decision on
+that case whatever slot's wallet it touched: a learner worker's delivery price vested onto the learner auditor's decision that confirmed it,
+a market-wide shared purse (runs 34–41 trained on it; the pooled cells are kept as the collusion cell, `own_name=False`). Under own-name credit
+every event goes to a decision *of the name whose wallet it touches*: the latest decision of that name on the event's case, else that name's
+lineage boundary decision (the unclaimed rule, unchanged), and a transfer between two learner names is two legs — a debit to the one, a
+credit to the other — where the pooled rule dropped it. For one learner the two rules are the same function to the decimal (the tests).
+
 `classify(e, names)` is shared with `redteam.timing`, whose decomposition of the realized reward is the examination this ruling answers."""
 from __future__ import annotations
 
@@ -80,7 +89,7 @@ def classify(e, names):
     return s, sign * float(e.amount)
 
 
-def attribute(run, marks, decisions, work_side=False, shared=False, lineages=None, tree=False, task_value=0.0, task_cases=()):
+def attribute(run, marks, decisions, work_side=False, shared=False, lineages=None, tree=False, task_value=0.0, task_cases=(), own_name=False):
     """The attributed reward per decision. `marks[i]` = (t, n_events, case, boundary, real_factor, wealth_real) at decision i's observation,
     `marks[n]` the terminal; `decisions[i]` = {"identity", "case", "is_plant", "fulfilled", "action"}. Returns (attributed (n,), summary).
     `work_side` is recorded only: since version 3 every source is claimed — by the case's decision when there is one, else by the boundary decision.
@@ -109,11 +118,14 @@ def attribute(run, marks, decisions, work_side=False, shared=False, lineages=Non
     bounds = [m[1] for m in marks]
     attributed = np.zeros(n, dtype=np.float64)
     by_source = defaultdict(float)
-    # the decision a case's events belong to: the latest decision on that case at or before the event's tick
+    assert not (own_name and (shared or tree)), "own-name credit is the population's construction; the pair and the parent keep theirs"
+    # the decision a case's events belong to: the latest decision on that case at or before the event's tick (own-name: of the event's name)
     by_case = defaultdict(list)
+    by_case_name = defaultdict(list)
     for i, d in enumerate(decisions):
         if d["case"] is not None:
             by_case[d["case"]].append(i)
+            by_case_name[(d["case"], d["identity"])].append(i)
     boundary_idx = [i for i in range(n) if marks[i][3]]                     # the boundary decisions, in order
     boundary_pos = [marks[i][1] for i in boundary_idx]                       # their marks' ledger positions
     lineages = lineages or [list(run.learner_chain)]
@@ -136,18 +148,30 @@ def attribute(run, marks, decisions, work_side=False, shared=False, lineages=Non
     def latest_on(cid, t, pos):                                          # the decisions on the case taken before the event: by the ledger's position under `tree`, by the tick otherwise
         cands = [i for i in by_case[cid] if (marks[i][1] <= pos if tree else marks[i][0] <= t)]
         return cands, (cands[-1] if cands else None)
-    for pos, e in enumerate(events):
+    def legs(e):                                                     # (name, source, signed change) per learner name the event touches
+        if own_name:
+            out = []
+            for x in dict.fromkeys((e.src, e.dst)):
+                if x in names:
+                    cl = classify(e, {x})                            # the leg as the name sees it: its sign and its source
+                    if cl is not None:
+                        out.append((x, cl[0], cl[1]))
+            return out
         cl = classify(e, names)
-        if cl is None:
-            continue
-        s, d = cl
+        return [] if cl is None else [(None, cl[0], cl[1])]
+    for pos, e, name_leg, s, d in ((pos, e, *leg) for pos, e in enumerate(events) for leg in legs(e)):
         j = int(np.searchsorted(bounds, pos, side="right")) - 1     # the window the event landed in; its closing index prices it
         r1 = marks[min(max(j, 0) + 1, len(marks) - 1)][4]
         pid = parent_of(e.case) if (tree and e.case is not None) else None
         on_root = pid is not None and pid in by_case                 # Q5's parent: the child's root carries a delegate decision
-        cands, i = latest_on(e.case, e.t, pos) if e.case in by_case else ([], None)
-        if e.case in by_case and i is None and not on_root:
-            cands, i = by_case[e.case], by_case[e.case][-1]          # before every decision on the case and no delegate decision: the case's own (the earlier rule)
+        if own_name:                                                 # the event's name's own decisions on the case, else nothing claims it on the case
+            own = by_case_name.get((e.case, name_leg), [])
+            cands = [i for i in own if marks[i][0] <= e.t]
+            i = cands[-1] if cands else (own[-1] if own else None)
+        else:
+            cands, i = latest_on(e.case, e.t, pos) if e.case in by_case else ([], None)
+            if e.case in by_case and i is None and not on_root:
+                cands, i = by_case[e.case], by_case[e.case][-1]      # before every decision on the case and no delegate decision: the case's own (the earlier rule)
         if i is not None:                                            # the case's events to the decision on that case (the latest before the event)
             if (shared or tree) and len(cands) > 1:                  # Q4: the pair's decisions on one case share its events; Q5: the parent's decisions on one child too
                 for i2 in cands[:-1]:
@@ -167,7 +191,7 @@ def attribute(run, marks, decisions, work_side=False, shared=False, lineages=Non
             if i is None:
                 i = by_case[pid][-1]
         else:                                                        # no decision claims it: the boundary decision that kept the name there (its lineage's)
-            name = e.dst if e.dst in names else e.src
+            name = name_leg if own_name else (e.dst if e.dst in names else e.src)
             lin = lineage_of.get(name, 0)
             bpos, bidx = b_pos_by_lin.get(lin, boundary_pos), b_idx_by_lin.get(lin, boundary_idx)
             k = int(np.searchsorted(bpos, pos, side="right")) - 1
@@ -216,7 +240,7 @@ def attribute(run, marks, decisions, work_side=False, shared=False, lineages=Non
             prev_s0 = s0
     return attributed, {"by_source": dict(by_source), "boundary_by_source": dict(boundary_by_source), "boundary_real": boundary_real,
                         "boundary_decisions": len(boundary_idx), "pre_boundary_real": pre_boundary, "suspension_charges": charges, "work_side": work_side,
-                        "shared": shared, "shared_double_counted": shared_double, "tree": tree, "tree_double_counted": tree_double}
+                        "shared": shared, "shared_double_counted": shared_double, "tree": tree, "tree_double_counted": tree_double, "own_name": own_name}
 
 
 def _plant_failed(run, cid):

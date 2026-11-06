@@ -46,9 +46,11 @@ class _Abort(Exception):
 class ElefReviewerEnv(gym.Env if gym else object):
     metadata = {"render_modes": []}
 
-    def __init__(self, cell_args, ticks=1000, hide=(), final_audit=True, obs_dim=None, work_side=None, role="reviewer"):
+    def __init__(self, cell_args, ticks=1000, hide=(), final_audit=True, obs_dim=None, work_side=None, role="reviewer", attrib="own"):
         assert role in ("reviewer", "deliverer", "pair", "child", "parent", "bidder", "requester")
+        assert attrib in ("own", "pooled")
         self.role = role
+        self.attrib = attrib    # the worktree at 8b26ebf6 (the 2.7.0 chain of record's commit) with the own-name attribution of November 6, 2026 patched in; nothing else moved
         self.n_actions = 2 if role == "deliverer" else 3           # the child's three: well / badly / miss; the parent's judge has three, its other kinds two
         self.cell_args, self.ticks, self.hide, self.final_audit = list(cell_args), int(ticks), tuple(hide), final_audit
         self.work_side = bool(work_side) if work_side is not None else (role != "reviewer")    # the learner's own work attributed (Q3 on)
@@ -275,8 +277,10 @@ class ElefReviewerEnv(gym.Env if gym else object):
                 lineages = [[x] for x in self.run.learner_pair] if (self.role == "pair" and self.run.learner_pair) else None   # the pair: each member's own boundary
                 if getattr(self.run, "learner_pop", None):
                     lineages = [[x] for x in self.run.learner_chain]       # the population: each slot's unclaimed events to its own boundary decisions
+                own = self.attrib == "own" and self.role not in ("pair", "parent")
                 attributed, summ = attribute(self.run, self._marks, self._decisions, work_side=self.work_side, shared=(self.role == "pair"), lineages=lineages,
                                              tree=(self.role == "parent"),                                # Q5's parent: the child's events reach the delegate decision too
+                                             own_name=own,
                                              task_value=(self.run.a.task_value if self.role == "requester" else 0.0),
                                              task_cases=(list(self.run.req_received_cases) if self.role == "requester" else ()))   # Q7: a task received is worth v to the posting that made it
                 info["attributed"], info["attribution"] = [float(x) for x in attributed], summ

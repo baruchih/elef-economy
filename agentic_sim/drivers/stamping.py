@@ -261,7 +261,7 @@ class Stamping:
             a.duty_cap = "twothirds" if rev7 else "half"
         if a.tie_break is None:
             a.tie_break = "draw" if rev12 else "id"                      # 2.6.0 §2.3: the tie after κ by a seeded draw; `id` the control
-        p = Params(Res0=a.res0, X=a.on_duty, G_V=a.gv, p_start=a.p_start, p_cap=a.p_cap, p_floor=a.p_floor, band=a.band, G_frac_nested=a.child_g_frac,
+        p = Params(Res0=a.res0, X=a.on_duty, G_V=a.gv, p_start=a.p_start, p_cap=a.p_cap, p_floor=a.p_floor, p_halve_every=a.p_halve_every, band=a.band, G_frac_nested=a.child_g_frac,
                    record_dir=a.record_dir, f_fee=a.fee, phi_E_root=a.phi_e, phi_F_root=a.phi_f,
                    pi0=a.pi0, pi_max=a.pi_max, dial=(a.dial == "on"), beta_P=a.beta_p, Omega0=a.omega0,
                    membership=rev3, duty_fund=(rev3 and a.fund == "on"), net_plant_capital=rev3, m_max=a.m_max,
@@ -3248,6 +3248,7 @@ def build_parser():
     ap.add_argument("--p-start", type=float, default=1.0, help="a newcomer's audit odds (1.2.0 §2.4: 1.0; 1.1.0: 0.5)")
     ap.add_argument("--p-cap", type=float, default=1.0, help="the audit odds' cap on doubling (1.2.0 §2.4: 1.0; 1.1.0: 0.5)")
     ap.add_argument("--p-floor", type=float, default=0.2, help="the audit rate's floor (§8.3)")
+    ap.add_argument("--p-halve-every", type=int, default=5, help="the stood streak that halves a reviewer's audit odds (§8.3; Appendix A 5) — the economy reviewer's defaults read after run 42")
     ap.add_argument("--rules", choices=["2.9.0", "2.8.0", "2.7.0", "2.6.0", "2.5.0", "2.4.0", "2.3.0", "2.2.0", "2.1.0", "2.0.0", "1.7.1", "1.7.0", "1.6.0", "1.5.0", "1.4.0", "1.3.0", "1.2.0", "1.1.0"], default="2.9.0",
                     help="2.6.0: the plant's disguise (a plant goes through the market: posted under a fresh name, bid on, awarded on the market's report, submitted at a drawn tick; opaque public ids); 2.5.0: the missed child (no cancellation of a nested request at or after its deadline; the lapse forfeits the child's guarantee); 2.4.0: the same without the refusal — the control admitting the deadline-tick cancellation; 2.4.0 also: the state's reservation (the state delivers at max(B̄, 8), never below; the mark; the clock's one condition; the award pass gathering β ≥ p_T); 2.3.0: the supply side (entry and exit, the parent's pots, the reviewer advance from the pool) — the control, the state at B̄; 2.2.0: the rebate from income (the period's fee pool, claims pro rata at the close, the rest forgone); 2.1.0: the bank with the liability stock (the control); 2.1.0 also: the bank (loans, the debt, the wall, the expected cost, P_t once a period, refusals told); 2.0.0: the price of work with "
                          "Ω's creation and retirement (the control); 1.7.1 (= 1.7.0): the fixed-price control — "

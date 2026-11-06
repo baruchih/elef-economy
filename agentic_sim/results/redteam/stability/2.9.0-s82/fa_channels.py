@@ -52,7 +52,8 @@ for seed in seeds:
                     continue
                 cnt["never audited"] += 1
                 if c.audit_rolled_at is not None: rolled_never += 1
-                if c.audit_odds_at_verdict is not None: odds.append(c.audit_odds_at_verdict)
+                ov = getattr(c, "audit_odds_at_verdict", None)             # 2.8.0's field; absent on the 2.7.0 engine (the worktree's chains)
+                if ov is not None: odds.append(ov)
                 continue
             conf = [a for a in audits if a.verdict == "F" and a.status in ("done", "vested")]
             if conf: cnt["state confirmed" if W.is_troop(conf[-1].reviewer) else "member confirmed"] += 1

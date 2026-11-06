@@ -20,7 +20,7 @@ fact — the ledger's events, the driver's suspension log, a plant's outcome —
 written for one learner, where "the events touching a learner's name" and "the events of this learner" are the same set, and run 32's
 population build widened the name set to every slot and kept the case rule — so an event on a case was credited to the latest decision on
 that case whatever slot's wallet it touched: a learner worker's delivery price vested onto the learner auditor's decision that confirmed it,
-a market-wide shared purse (runs 34–41 trained on it; the pooled cells are kept as the collusion cell, `own_name=False`). Under own-name credit
+a market-wide shared purse (runs 34–41 trained on it; the pooled cells are kept as the shared-purse cell — a population fitted to pooled one-decision credit, the worker's price included — `own_name=False`). Under own-name credit
 every event goes to a decision *of the name whose wallet it touches*: the latest decision of that name on the event's case, else that name's
 lineage boundary decision (the unclaimed rule, unchanged), and a transfer between two learner names is two legs — a debit to the one, a
 credit to the other — where the pooled rule dropped it. For one learner the two rules are the same function to the decimal (the tests).

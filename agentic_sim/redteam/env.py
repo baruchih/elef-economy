@@ -52,7 +52,7 @@ class ElefReviewerEnv(gym.Env if gym else object):
         self.role = role
         # the attribution's name rule (the economy reviewer's ruling of November 6, 2026): `own` credits an event to a decision of the name whose
         # wallet it touches — the population's corrected construction, the single learner's unchanged to the decimal; `pooled` is run 32's
-        # construction (an event to the latest decision on its case whatever slot's wallet it touched — the collusion cell, runs 34–41's)
+        # construction (an event to the latest decision on its case whatever slot's wallet it touched — the shared-purse cell, runs 34–41's)
         self.attrib = attrib
         self.n_actions = 2 if role == "deliverer" else 3           # the child's three: well / badly / miss; the parent's judge has three, its other kinds two
         self.cell_args, self.ticks, self.hide, self.final_audit = list(cell_args), int(ticks), tuple(hide), final_audit

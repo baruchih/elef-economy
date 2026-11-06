@@ -34,7 +34,7 @@ def main(argv=None):
     ap.add_argument("--plan", choices=["cem", "greedy"], default="cem", help="the collecting policy on the world model: the CEM planner, or the head alone over the latent (version 4's stopping rule)")
     ap.add_argument("--boundary-read", choices=["auto", "one-step", "learned"], default="auto", help="the ruling after run 30 (run_q's): the stay head's one-step read against zero at a boundary; `auto` is learned only under `--learner-rearrive on`")
     ap.add_argument("--stride", type=int, default=1, help="the trainer's window stride (the learned population's data)")
-    ap.add_argument("--attrib", choices=["own", "pooled"], default="own", help="the attribution's name rule (November 6, 2026): own-name credit, or run 32's pooled construction (the collusion cell)")
+    ap.add_argument("--attrib", choices=["own", "pooled"], default="own", help="the attribution's name rule (November 6, 2026): own-name credit, or run 32's pooled construction (the shared-purse cell)")
     ap.add_argument("cell", nargs=argparse.REMAINDER)
     a = ap.parse_args(argv)
     direct = a.learner == "direct"

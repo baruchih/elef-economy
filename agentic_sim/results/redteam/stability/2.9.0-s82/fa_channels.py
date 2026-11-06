@@ -32,10 +32,16 @@ for seed in seeds:
         while not done:
             obs, r, done, _, info = env.step(int(pol(obs, rng)))
         run = env.run; W = run.w._w
-        cnt = dict.fromkeys(CH, 0); rolled_never = 0; odds = []; other_kinds = 0
+        cnt = dict.fromkeys(CH, 0); rolled_never = 0; odds = []; other_kinds = 0; aud_m = aud_s = roots = 0
         for cid, c in W.cases.items():
             t = run.tasks.get(public_id(cid))                      # the driver keys its tasks by the public id
-            if t is None or t.plant or not c.is_root or c.state != "VESTED" or t.fulfilled or W.is_troop(c.actor): continue
+            if t is None or t.plant or not c.is_root or W.is_troop(c.actor): continue
+            # the audits bought on every real root (the defaults read, November 6, 2026): audit reviews by who sat, the roots beside
+            roots += 1
+            for x in c.reviews:
+                rv = W.reviews[x]
+                if rv.role == "audit": aud_m, aud_s = (aud_m, aud_s + 1) if W.is_troop(rv.reviewer) else (aud_m + 1, aud_s)
+            if c.state != "VESTED" or t.fulfilled: continue
             audits = [W.reviews[x] for x in c.reviews if W.reviews[x].role == "audit"]
             if not audits:
                 ch = c.challenge
@@ -58,9 +64,9 @@ for seed in seeds:
             conf = [a for a in audits if a.verdict == "F" and a.status in ("done", "vested")]
             if conf: cnt["state confirmed" if W.is_troop(conf[-1].reviewer) else "member confirmed"] += 1
             else: cnt["audited, rejected, vested"] += 1
-        cnt["rolled but never seated"] = rolled_never; cnt["odds at verdict, never audited (mean)"] = float(np.mean(odds)) if odds else float("nan"); cnt["other challenge kinds"] = other_kinds
+        cnt["rolled but never seated"] = rolled_never; cnt["odds at verdict, never audited (mean)"] = float(np.mean(odds)) if odds else float("nan"); cnt["other challenge kinds"] = other_kinds; cnt["audits (member)"] = aud_m; cnt["audits (state)"] = aud_s; cnt["real roots"] = roots
         res[name][seed] = cnt
-        print(f"seed {seed} {name}: {sum(cnt[k] for k in CH)} standing false approvals — " + ", ".join(f"{k} {cnt[k]}" for k in CH) + f"; rolled-never {rolled_never}; other kinds {other_kinds}; odds {cnt['odds at verdict, never audited (mean)']:.3f}", flush=True)
+        print(f"seed {seed} {name}: {sum(cnt[k] for k in CH)} standing false approvals — " + ", ".join(f"{k} {cnt[k]}" for k in CH) + f"; rolled-never {rolled_never}; other kinds {other_kinds}; audits {aud_m} member / {aud_s} state on {roots} roots; odds {cnt['odds at verdict, never audited (mean)']:.3f}", flush=True)
 L = []
 L.append(f"# The standing false approvals by channel (the reviewer's reading after run 38; the reader corrected November 6, 2026 — the panel read from the case's challenge record with its kind, a paid appeal its own channel): the chain's finals on seeds {sys.argv[2].split(',')[0]}–{sys.argv[2].split(',')[-1]}, the direct ({dmp}) and head alone ({wmp}), the hand beside. A standing false approval: a real root (not a plant, not the state's delivery) vested with its work unfulfilled. Channels: its audit seat confirmed it (a member's or the state's — a troop at the audit seat), it was audited and rejected yet vested (the third seat or a ruling), it was disputed by its requester and the panel confirmed it (no audit review: §4 discharges the obligation at the dispute's settlement; split by whether a member sat on the panel or the state's reviewers alone did), its actor appealed its N and the panel sided with the appellant — a paid appeal (the same split), or it was never audited (no audit review, no challenge: the roll never sent it). `rolled but never seated` counts never-audited cases with an obligation recorded (should be 0: a vested case has no standing obligation).\n")
 L.append("| policy | standing false approvals | " + " | ".join(CH) + " | never-audited share | odds at verdict of the never-audited (mean) |"); L.append("|---|---|" + "---|" * (len(CH) + 2))
@@ -71,6 +77,10 @@ for name in pols:
     never = np.array([R[s]["never audited"] for s in seeds]); share = never.sum() / max(1, tot.sum())
     od = np.array([R[s]["odds at verdict, never audited (mean)"] for s in seeds]); od = od[~np.isnan(od)]
     L.append(f"| {name} | " + " | ".join(cols) + f" | {share:.3f} | {od.mean():.3f} |")
+L.append("\nThe audits bought a run on every real root (audit reviews by who sat; mean ± SE), the real roots beside:\n")
+L.append("| policy | audits, a member sat | audits, the state sat | real roots |"); L.append("|---|---|---|---|")
+for name in pols:
+    R = res[name]; L.append(f"| {name} | {ms([R[s]['audits (member)'] for s in seeds])} | {ms([R[s]['audits (state)'] for s in seeds])} | {ms([R[s]['real roots'] for s in seeds])} |")
 L.append("\nPaired against the hand on the same seeds (policy − hand):\n")
 L.append("| policy | total | " + " | ".join(CH) + " |"); L.append("|---|---|" + "---|" * len(CH))
 for name in ("direct", "head alone"):

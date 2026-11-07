@@ -270,7 +270,9 @@ before — the spec's formula to the double on every platform and under `python3
 re-pinned once and checked identical in Linux arm64 and x86-64 containers (`golden-pins-cr-three-platforms.txt`); `test_perf_equivalence`
 pins the emission against a 60-digit reference at the three arguments and over a 1,000-tick sweep. Every run on record before the commit is
 macOS arm64's episode at its commit (all 12,385 manifests say so); every run from it reproduces anywhere. The finals of record were
-re-evaluated once on the corrected engine with the chains' models of record (`results/redteam/stability/cr-finals/`, notes §77).
+re-evaluated once on the corrected engine with the chains' models of record (`results/redteam/stability/cr-finals/`, notes §77): the seam alone is
+noise, the 2.9.0 finals at the consolidated defaults read the defaults' move (§75), the 2.7.0 pairing keeps its sentence on one episode, and the
+60/40 mix's 20-seed seat rates are in `cr-finals/mix-seats-20.md` for the record's aggregates.
 
 ## Design revision 1 — the verification deposit is two pots (1.1.0, October 17, 2026)
 

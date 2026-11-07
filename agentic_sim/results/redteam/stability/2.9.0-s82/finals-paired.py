@@ -6,13 +6,14 @@ Env: SUF290 (default -290) the 2.9.0 side's directory suffix (e.g. -290b, the re
 BASESUF (default -280) the base side's; TAG290 / TAGBASE their column labels (default 2.9.0 / 2.8.0)."""
 import json, sys, math, os
 SUF290=os.environ.get("SUF290","-290"); BASESUF=os.environ.get("BASESUF","-280"); TAG290=os.environ.get("TAG290","2.9.0"); TAGBASE=os.environ.get("TAGBASE","2.8.0")
+FINAL=os.environ.get("FINAL","final"); BASEFINAL=os.environ.get("BASEFINAL",FINAL)   # November 7, 2026: the finals' directory on each side (final-cr: the re-evaluation on the corrected engine, notes §77)
 import numpy as np
 R="results/redteam/stability"
 CELLS=sys.argv[2:] or ["careful","liars","stamper","disputes","half","careful-A","liars-B"]
 BASE={"careful-A":"careful","liars-B":"liars"}   # the ablations' 2.8.0 side is the cell they ablate from
-def load(cell, suf, learner):
-    if suf==BASESUF and BASESUF=="-280": cell=BASE.get(cell,cell)
-    p=f"{R}/learned-rev-{cell}{suf}/{learner}/eval/final/eval.json"
+def load(cell, suf, learner, side="290"):
+    if side=="base" and BASESUF=="-280": cell=BASE.get(cell,cell)
+    p=f"{R}/learned-rev-{cell}{suf}/{learner}/eval/{FINAL if side=='290' else BASEFINAL}/eval.json"
     try: return json.load(open(p))
     except FileNotFoundError: return None
 def eps(d,pol): return {e["seed"]:e for e in d["episodes"][pol]}
@@ -54,12 +55,12 @@ NEW=[("pa_posted","planted approvals posted",1),("pa_verdicts","their verdicts",
      ("plant_mint_dial","minted: the dial's plants",0),("plant_mint_approval","minted: the planted approvals",0),("plant_mint_lie","minted: the planted lies",0),("plant_mint_rev","minted: the alias reviewer's bonds",0)]
 out=[]
 def P(*a): out.append(" ".join(str(x) for x in a))
-P(f"# §8.2: the {TAG290} chains' finals (learned-rev-<cell>{SUF290}/, seeds 21–40) beside the {TAGBASE} chains' ({BASESUF}/), the same seeds and references; paired 2.9.0 − 2.8.0 by seed; within 2.9.0 paired against the hand; the 2.9.0 readings; the rounds' mix; the stages after the first verdict. Produced by finals-paired.py over the eval.json files.")
+P(f"# §8.2: the {TAG290} chains' finals (learned-rev-<cell>{SUF290}/{{direct,wm}}/eval/{FINAL}/, seeds 21–40) beside the {TAGBASE} chains' ({BASESUF}/, eval/{BASEFINAL}/), the same seeds and references; paired {TAG290} − {TAGBASE} by seed; within 2.9.0 paired against the hand; the 2.9.0 readings; the rounds' mix; the stages after the first verdict. Produced by finals-paired.py over the eval.json files.")
 for cell in CELLS:
     W={}
-    for suf,tag in ((SUF290,TAG290),(BASESUF,TAGBASE)):
+    for suf,tag,side in ((SUF290,TAG290,"290"),(BASESUF,TAGBASE,"base")):
         for L in ("direct","wm"):
-            d=load(cell,suf,L)
+            d=load(cell,suf,L,side)
             if d is not None: W[(tag,L)]=d
     if not any(k[0]==TAG290 for k in W): continue
     P(f"\n## {cell}\n")
@@ -87,6 +88,16 @@ for cell in CELLS:
             pr,pn=pooled_rate(E,seeds,seat,"plant"); rr,rn=pooled_rate(E,seeds,seat,"real")
             r.append(f"{fmt(pr,d=3)} ({pn}) / {fmt(rr,d=3)} ({rn})")
         P(f"| {seat} seats stamped plant / real | "+" | ".join(r)+" |")
+    for seat in ("initial","audit","panel"):                               # the same rates measured from the engine's reviews (November 7, 2026; carries the hand's)
+        r=[]; anyv=False
+        for n,E in cols:
+            if E is None: r.append("—"); continue
+            def mrate(kind):
+                n_=sum(E[s].get(f"measured_{seat}_{kind}_seen",0) for s in seeds); b=sum(E[s].get(f"measured_{seat}_{kind}_approve_blind",0)+E[s].get(f"measured_{seat}_{kind}_reject_blind",0) for s in seeds)
+                return (b/n_ if n_ else np.nan), n_
+            if not any(f"measured_{seat}_real_seen" in E[s] for s in seeds): r.append("—"); continue
+            anyv=True; pr,pn=mrate("plant"); rr,rn=mrate("real"); r.append(f"{fmt(pr,d=3)} ({pn}) / {fmt(rr,d=3)} ({rn})")
+        if anyv: P(f"| {seat} seats blind, measured from the reviews, plant / real | "+" | ".join(r)+" |")
     r=[]
     for n,E in cols:
         if E is None: r.append("—"); continue

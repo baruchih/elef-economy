@@ -256,6 +256,22 @@ audits. Strategy runs therefore use the regime the 300,000-case run used — the
 tick and one `check_all` at the end — and `full_check_every` is for conformance runs of the engine
 itself. Every run's manifest records which regime it ran under.
 
+## The emission correctly rounded — a seed's episode no longer depends on the platform (November 7, 2026)
+
+The record's reviewer 1 ran the plain driver from the `5186c18f6` archive on Linux x86-64 and read a different episode of seed 21 from the one
+on record (9 standing false approvals against 12). The site was `Params.emission`'s `2.0 ** (-t / H)` — the C library's `pow`, the engine's one
+transcendental call: Apple's libm returns a value more than half an ulp off the true one at t = 112, 181 and 338 of a 1,000-tick run, glibc's
+at 338 alone, and the emission share is a ledger amount hashed into the History, whose head keys the engine's seed-free draws (`_plant_draw`,
+the plant alias names and nonces, the state's coin on a plant), so the histories part at tick 181's settlement batch and the episodes with
+them (`results/studies/seed-episode-platform/`: the evidence, the Linux containers reproducing reviewer 1's line to the digit, the suite on
+Linux failing the four golden tests alone). An implementation effect (spec §18.2); no rule moves. The correction, landed on the economy
+reviewer's and Baruchi's ruling: the power is computed with the standard library's `decimal` at 40 digits and the double product taken as
+before — the spec's formula to the double on every platform and under `python3 -S`, ~50 µs a call, once a settlement batch. The goldens were
+re-pinned once and checked identical in Linux arm64 and x86-64 containers (`golden-pins-cr-three-platforms.txt`); `test_perf_equivalence`
+pins the emission against a 60-digit reference at the three arguments and over a 1,000-tick sweep. Every run on record before the commit is
+macOS arm64's episode at its commit (all 12,385 manifests say so); every run from it reproduces anywhere. The finals of record were
+re-evaluated once on the corrected engine with the chains' models of record (`results/redteam/stability/cr-finals/`, notes §77).
+
 ## Design revision 1 — the verification deposit is two pots (1.1.0, October 17, 2026)
 
 The first scoped run (`drivers/stamping.py`, October 16) showed careful reviewers paying for their own

@@ -1,6 +1,7 @@
 """Provisional defaults (spec §18.1) and initialization values (§19)."""
 from __future__ import annotations
 from dataclasses import dataclass
+from decimal import Decimal, localcontext
 from typing import Optional
 
 
@@ -261,7 +262,16 @@ class Params:
         return self.phi_E_root + self.phi_F_root
 
     def emission(self, t: int) -> float:
-        return self.E0 * 2.0 ** (-t / self.H)
+        """E_t = E0 · 2^(−t/H), the power correctly rounded (November 7, 2026; a conformance correction of the implementation, spec §18.2;
+        notes §76–§77). It was `2.0 ** (-t / H)` — the C library's `pow`, the engine's one transcendental call — and Apple's libm returns a
+        value more than half an ulp from the true one at three of a 1,000-tick run's arguments (t = 112, 181, 338) where glibc's does at one,
+        so the emission share, a ledger amount hashed into the History, differed by a bit between platforms and every History-head-keyed draw
+        after it (the plants' ceilings and submission ticks, their names and nonces, the state's coin) with it: a seed's episode depended on the
+        platform. The standard library's `decimal` at 40 digits, then the double product as before, gives the spec's formula to the double on
+        every platform and under `python3 -S`. The runs recorded before this commit are macOS arm64's episodes at their commits."""
+        with localcontext() as ctx:
+            ctx.prec = 40
+            return self.E0 * float(Decimal(2) ** Decimal(-t / self.H))
 
     @property
     def M0(self) -> float:

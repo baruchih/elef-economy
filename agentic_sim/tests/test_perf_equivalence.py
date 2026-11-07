@@ -229,13 +229,18 @@ GOLDEN = {
     # and 39 (October 27, 2026; Appendix V): the planted approvals' base is the real approvals audited by members, their audit seat a member's
     # or nobody's (an unseated one closes by truth at the window's end), the per-seat multipliers step on at least ten pooled adjudications
     # within their own bounds, the planted lies' quota is the floor alone (the rate a coin in the driver), and a dispute's panel on the state's
-    # own work discharges the audit where a member sat on it — so every planted approval's posting tick and the whole path move.
-    1: {"head": "d9f2e9c243328b5d3c5ee4b9adbfd1dcd583630a44a5772d282b317837d2a396", "entries": 9703,
-        "M": 120234.810247, "Res": 0.0,
-        "states": {"FINAL_N": 178, "VESTED": 63, "WITHDRAWN": 11, "CANCELLED": 1, "AVAILABLE": 7, "PENDING": 2, "SUBMITTED": 1, "COMMITTED": 1}},
-    2: {"head": "81cfa76aab9084f165880920a4b3a0a4b5255f361737a8b24e61215c5e309a8a", "entries": 9380,
-        "M": 120308.989383, "Res": 0.0,
-        "states": {"FINAL_N": 191, "VESTED": 44, "WITHDRAWN": 6, "CANCELLED": 1, "PENDING": 3, "COMMITTED": 1}},
+    # own work discharges the audit where a member sat on it — so every planted approval's posting tick and the whole path move
+    # (those pins, d9f2e9c2… / 9703 and 81cfa76a… / 9380, held on macOS arm64 alone). Re-pinned once more on November 7, 2026 with the
+    # emission's power correctly rounded (`Params.emission`; a conformance correction of the implementation, notes §76–§77): the pins before
+    # it were the platform's `pow` at ticks 112 and 181 — Apple's libm a bit off the true value there, glibc's not — hashed into the History
+    # and keying every plant draw after it, so this file's goldens failed on Linux and nowhere else. From this commit a run reproduces on every
+    # platform; the two pins below were checked identical in a Linux container (`results/studies/seed-episode-platform/`).
+    1: {"head": "0cc29df63d0ccf093611da2d410167bf34b811a6938cc8a5d278e0edfb05ff62", "entries": 9153,
+        "M": 120325.572998, "Res": 0.0,
+        "states": {"FINAL_N": 165, "VESTED": 61, "WITHDRAWN": 12, "CANCELLED": 1, "AVAILABLE": 13, "PENDING": 4, "SUBMITTED": 1, "COMMITTED": 2}},
+    2: {"head": "14e7b0878fd288bb860be930a7cbba9f9a0edf7b8d0b61fe51829b00bf95314b", "entries": 10146,
+        "M": 120438.498127, "Res": 0.0,
+        "states": {"FINAL_N": 200, "VESTED": 52, "WITHDRAWN": 6, "CANCELLED": 1, "AVAILABLE": 24, "PENDING": 4, "SUBMITTED": 1, "COMMITTED": 1}},
 }
 
 
@@ -272,7 +277,9 @@ def test_full_audit_agrees_with_tick_check_and_behaviour_is_unchanged(seed):
     assert w.fund_in > 0 and w.p.floating and w.troop_wallet == w.ledger.OMEGA and w.R_T == 0
     # and, since 2.1.0, the bank's: loans made and repaid, debt from the drive's failed state deliveries, the wall reached in this
     # random drive (its state deliveries fail far above a fifth), the index published at the boundaries, a plant's pots minted
-    assert w.bank_on and w.deficit_created == 0 and w.bank_minted["loan"] >= w.bank_destroyed["repayment"] >= 0
+    # the repayments are summed from the inflows that made them (min(inflow, L) each, the last the remainder), so their float sum may sit an
+    # ulp above the loan minted (seed 1's episode with the correctly rounded emission: 37.32757583081485 against …486) — a tolerance, not a rule
+    assert w.bank_on and w.deficit_created == 0 and w.bank_minted["loan"] + 1e-6 >= w.bank_destroyed["repayment"] >= 0
     assert w.debt_created >= 0 and w.troop_refused_credit_seats == 0
     assert w.bank_minted["mint_plant"] > 0 and w.bank_destroyed["retire_plant"] > 0 and w._P_published_at is not None
     assert w.pool_on and not w.omega_liabilities and w.liabilities_accrued == 0                             # 2.2.0: the pool, no stock
@@ -280,6 +287,24 @@ def test_full_audit_agrees_with_tick_check_and_behaviour_is_unchanged(seed):
     assert w.supply_on and w.parent_pots and any(c.own_pots for c in w.cases.values()) and any(c.node_closed for c in w.cases.values())   # 2.3.0
     assert abs(w.ledger.wallet("DUTY-FUND").W - (w.fund_in - w.fund_out)) < 1e-6
     assert w.ledger.wallet(w.troop_wallet).W + w.troop_surplus_paid > 0          # the troops earned, and it is the state's
+
+
+def test_the_emission_is_the_correctly_rounded_power_on_every_platform():
+    """November 7, 2026 (notes §76–§77): `Params.emission` is E0 · 2^(−t/H) with the power correctly rounded to the double, not the platform's
+    `pow`. The engine's one transcendental call was the one place a seed's episode depended on the platform: Apple's libm returns a value more
+    than half an ulp off at t = 112, 181 and 338 of a 1,000-tick run, glibc's at 338 alone, and the emission share is hashed into the History
+    whose head keys the plant draws. The reference here is the same formula at 60 digits; the three arguments are the ones the platforms
+    disagreed on, the sweep is every tick of a 1,000-tick run."""
+    from decimal import Decimal, localcontext
+    p = Params()
+    def ref(t):
+        with localcontext() as ctx:
+            ctx.prec = 60
+            return p.E0 * float(Decimal(2) ** Decimal(-t / p.H))
+    for t in (112, 181, 338):
+        assert p.emission(t) == ref(t)
+    assert all(p.emission(t) == ref(t) for t in range(0, 1001))
+    assert p.emission(0) == p.E0 and p.emission(1000) == p.E0 / 2
 
 
 def test_scheduled_full_audit_runs_inside_advance():

@@ -1,6 +1,7 @@
 """Provisional defaults (spec §18.1) and initialization values (§19)."""
 from __future__ import annotations
 from dataclasses import dataclass
+from decimal import Decimal, localcontext
 from typing import Optional
 
 
@@ -226,7 +227,11 @@ class Params:
         return self.phi_E_root + self.phi_F_root
 
     def emission(self, t: int) -> float:
-        return self.E0 * 2.0 ** (-t / self.H)
+        """E_t = E0 · 2^(−t/H), the power correctly rounded (November 7, 2026; the conformance correction landed on main the same day, ported
+        to this provenance branch so the 2.7.0 pairing's re-evaluation reads the platform-free episode; notes §76–§77)."""
+        with localcontext() as ctx:
+            ctx.prec = 40
+            return self.E0 * float(Decimal(2) ** Decimal(-t / self.H))
 
     @property
     def M0(self) -> float:

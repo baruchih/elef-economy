@@ -1,5 +1,7 @@
 # Handoff — where the economic loop stands, October 18, 2026
 
+> **Kept as history.** This is the handoff written on October 18, 2026, when rulebook 1.1.0 was in force, and extended section by section through the 2.x work that followed (the later sections are dated). The rulebook in force is **2.9.0** (`spec/agentic_economics_loop_spec_v2_9_0.md`); its appendices are the current change log, `README.md` the current status, and `agentic_sim/results/studies/2.7.0-notes-for-reviewer.md` the running record of the runs.
+
 ## In one paragraph
 
 We have a rulebook and an engine that implements it, and they are consistent with each other as far

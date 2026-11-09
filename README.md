@@ -1,13 +1,73 @@
-# Agentic-OS — the economic loop
+# ELEF — the economic loop
 
-A rulebook for a task → verification → dispute → settlement loop among autonomous actors, and a reference
-implementation that encodes it with no strategies.
+ELEF (Agentic Economics) is a rulebook for a task → verification → dispute → settlement loop among autonomous
+actors, and a reference implementation of it with no strategies in the engine. Work is posted, awarded, delivered,
+reviewed, challenged and settled under rules that an orchestrator applies and a hash-chained ledger records; a
+learned red team and hand-written populations then play the rules to find where they fail. The readable account
+of the project — what it is, what was found, and what is still open — is at **https://elef.baruchih.com**.
 
-- **Start with `HANDOFF.md`** — status, history, what is open, and the proposed next step.
-- `CLAUDE.md` — working conventions and the change discipline (read automatically by Claude Code).
-- `spec/agentic_economics_loop_spec_v2_5_0.md` — the baseline in force (2.5.0: design revision 13, the missed child, accepted October 19, 2026 — a nested request's cancellation only before its deadline, the lapse at the deadline forfeiting the child's guarantee to the parent, stated; on 2.4.0, the state's reservation, the same day — the state delivers at max(B̄, 8) and never below its public reservation, a request below it marked and told with its clock stopped, the award pass gathering only what the state may take, the arrival float the bond's capital, the kill fee exercised; on 2.3.0, the supply side, the same day — actors arrive as probationers with a bank-minted float and depart with their wallets, costs differ across actors, a nested request carries its own pots posted by the parent, delegation runs; on 2.2.0, the rebate from income, accepted the same day — the clock's claim paid at the period's close from the period's fee pool pro rata, the rest forgone and read; on 2.1.0, the bank, accepted the same day — a second account that alone creates and destroys credits, mints by rule, publishes the index once a period and lends the state a summons's shortfall repaid from its own return; the state at its expected cost, its debt repaid from every inflow, the wall, refusals told; on 2.0.0, the first major version: floating prices, the price level indexing every nominal, no backing, the state's deficit read in public, the capacity parameter; on top of 1.7.1's per-request summons, 1.7.0's the state's earnings, 1.6.0's auto-scale, 1.5.0's the reserve is sized to the need, 1.4.0's the orchestrator's troops, 1.3.0's inspection is membership, 1.2.0's the loop's own clock and 1.1.0's two pots; the accepted revision texts and the implementer's reviews of their candidates are in `spec/design_revisions/`; superseded texts in `spec/history/`).
-- `reviews/` — ten external reviews, one per version, with an index.
-- `agentic_sim/` — engine, invariants, tests, drivers, results. `cd agentic_sim && python3 run_tests.py` → 373 passed, 0 failed, 32 expected failures.
-- `docs/` — text export of the `_line` map of the loop.
+## The rulebook in force
 
-Status: rulebook 2.8.0 in force (design revision 16, the plants reach every seat, October 26, 2026 — after runs 34 and 35 showed every reviewer learning in self-play stamp the seats where no plant could come — the audit seat and the panels — and so capture the layer that priced every other stamp: a planted case now lives the whole life of a real one, audited, appealed, disputed and revised at the real population's rates, every verdict on it adjudicated by its truth, the case resolved by truth, nothing minted for it reaching Ω; run 36 read it on the self-play chains — the standing false approvals fall by 60% and the dispute layer answers as the hand's, the audit seat still stamped three times in four; on 2.7.0, the arrival loan, October 21, 2026 — after run 23's learner harvested the arrival float by cycling names, the float is a loan of the bank's on the name, repaid from income first and recovered at departure; on 2.6.0, the plant's disguise, October 20, 2026 — after run 20, the learned red team's Q2 run hand-written first, found a plant built submitted told apart by its id's age: a plant now goes through the market, posted, bid on, awarded on the market's report and submitted at a drawn tick, with the indistinguishability test widened to everything a member observes; on 2.5.0, the missed child, October 19, 2026 — after run 18's last batch showed a lowballer's miss free under a cancellation at its deadline; on 2.4.0, the state's reservation, the same day — after run 17's patient customers took the price to 4.8 and the state to 86% of the work below cost; on 2.3.0, the supply side, the same day — entry, exit, competence and delegation; on 2.2.0, the rebate from income, the same day, on 2.1.0, the bank, the same day — run 14 found the state neutral and the lateness liability four times its fee income; runs 12–13 under 2.0.0 found the state at cost below cost, the rebate a pump and the price the members' strategy under scarce supply); before it, after its seventh design revision; engine conformant; runs 1–8 done under 1.0.1 to 1.6.0 (run 8 found the panel rule the honesty gain and the troops' earnings paying the reviewers while Ω went broke on the clock's rebates — 1.7.0 moves the troops' surplus to Ω); run 7 found the reviewing seat, not the treasury, capping the market); the revision's §8 runs (run 9) are next, beginning with the three one-factor cells against the 1.6.0 control, plants unfunded read first.
+Rulebook **2.9.0** (design revision 17, *the plant takes the wrong step*, October 27, 2026) is the text in force:
+`spec/agentic_economics_loop_spec_v2_9_0.md`, standalone, with its defaults in Appendix A, the errata in Appendix E
+and the accepted design revisions and rulings in Appendices F–V. Every accepted revision is kept verbatim in
+`spec/design_revisions/`, beside the implementer's review of each candidate; the superseded texts v0.1 … v2.8.0 are
+in `spec/history/`, for provenance only. Rules move only by a design revision under the spec's §19; a conformance
+correction changes how a rule is applied, never what participants may do.
+
+## The results are not settled
+
+The findings are evaluations under fixed rules, and the question that drove the last four revisions is still open:
+a reviewer population learning in self-play against its own audits still approves blind at the audit seat about
+half the time (the audit seat's remaining half-stamp), with 2.9.0's per-seat dial still moving. The runs, their
+manifests and the notes written for the economy's reviewer are under `agentic_sim/results/`
+(`results/studies/2.7.0-notes-for-reviewer.md` is the running record, §1–§77). Nothing here should be read as a
+settled result; the website states what is settled and what is not, sentence by sentence against the record.
+
+## Running the engine
+
+```
+cd agentic_sim
+python3 run_tests.py        # 374 passed, 0 failed, 32 expected failures
+python3 -S run_tests.py     # the same with no site-packages
+python3 run_tests.py --record   # the same with every world in record mode (the storage layer's conformance check)
+```
+
+The engine needs Python 3.11 or later and nothing else. The 32 expected failures are reviewer tests pinned to
+withdrawn or superseded figures, each with a stated reason in `run_tests.py`; an expected failure that passes is a
+regression. The drivers (`agentic_sim/drivers/`) run the hand-written populations; `agentic_sim/README.md` documents
+the engine and lists the command for every cell. The learned red team (`agentic_sim/redteam/`) needs a conda
+environment with PyTorch, gymnasium and stable-worldmodel; the suite never imports it. Its trained policies are
+PyTorch `.pt` files under `results/`, which load through pickle as PyTorch models do.
+
+## The rest of the repository
+
+- `reviews/` — ten external reviews of the rulebook, R01 of v0.2 to R10 of v1.0, one per version, with the
+  reviewers' notes and an index. Later versions were reviewed by the economy's reviewer inside the record; those
+  rulings are in the spec's appendices and in the notes.
+- `docs/` — the reviewer's consolidated account of 2.0.0 → 2.5.0, the learned red team's brief and build plan, each
+  with the implementer's review beside it, and a text export of the `_line` map of the loop.
+- `CLAUDE.md` — the working conventions and the change discipline of the session that maintains the repository,
+  published as they were used.
+- `HANDOFF.md` — the handoff written on October 18, 2026 at rulebook 1.1.0 and extended through the 2.x work; kept
+  as part of the record. The spec's own change log is the current status.
+
+## Licence
+
+MIT. The `LICENSE` file carries the text.
+
+## Size, and how to clone
+
+The repository tracks every result the record cites — about 78,000 files and 5.5 GB, nearly all of it under
+`agentic_sim/results/` (`.npz`, `.csv`, `.pt` and `.json`). The history is not rewritten: the website and the
+record cite commits by hash, so the results stay where they are. To read and run the text without the results:
+
+```
+git clone --filter=blob:none --sparse https://github.com/baruchih/elef-economy.git
+cd elef-economy
+git sparse-checkout set spec reviews docs agentic_sim/sim agentic_sim/drivers agentic_sim/tests agentic_sim/redteam
+```
+
+That checks out the spec, the reviews, the docs and the engine with its tests and drivers, and leaves
+`agentic_sim/results/` on the server; the test suite runs from it. Or read the files on GitHub. Result files
+record the paths of the machine they were made on, as the manifests always have.

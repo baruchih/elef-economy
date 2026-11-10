@@ -16,7 +16,7 @@ cell = ["--entry-pool", "20", "--stampers", "0.6", "--learner-pop", "all", "--le
 br = boundary_read_for(cell, "auto"); dm, _ = load_direct(dmp); dm.to(device())
 pols = {"direct": DirectPolicy(dm, boundary_read=br), "careful": policy_of("careful", "reviewer")}
 MK = ["two members", "one member, one of the state's", "two of the state's"]
-res = {}
+res = {}; JOINT = {}; SEATF = {}
 for name, pol in pols.items():
     per = {k: [] for k in MK}; counters = []
     for seed in seeds:
@@ -24,6 +24,7 @@ for name, pol in pols.items():
         while not done:
             obs, r, done, _, info = env.step(int(pol(obs, rng)))
         run = env.run; W = run.w._w; cnt = {k: [0, 0] for k in MK}
+        joint = JOINT.setdefault(name, {}); seatF = SEATF.setdefault(name, {})
         for cid, c in W.cases.items():
             t = run.tasks.get(public_id(cid))
             if t is None or t.plant or not c.is_root or W.is_troop(c.actor) or t.fulfilled: continue
@@ -34,6 +35,12 @@ for name, pol in pols.items():
             k = MK[2 - members] if len(panel) >= 2 else None
             if k is None: continue
             cnt[k][0] += 1; cnt[k][1] += int(ch.get("outcome") == "N")
+            # the joint of the two verdicts on the panel (the reviewer's read of November 10, the two-member panels the question): both confirm
+            # the standing F, split, both reject — against the product of the single-seat confirmation rates
+            vs = tuple(sorted(p_.verdict for p_ in panel[:2]))
+            jk = "both confirm" if vs == ("F", "F") else ("both reject" if vs == ("N", "N") else "split")
+            joint.setdefault(k, {"both confirm": 0, "split": 0, "both reject": 0})[jk] += 1
+            seatF.setdefault(k, [0, 0]); seatF[k][0] += sum(1 for p_ in panel[:2] if p_.verdict == "F"); seatF[k][1] += 2
         for k in MK: per[k].append(cnt[k])
         cc = run.c
         counters.append({x: cc.get(x, 0) for x in ("appeals_unassignable_ticks", "panel_short_tier_ticks", "panel_short_free_ticks", "seated_appeal_member", "troop_panel_seats", "troop_audits", "panel_ineligible_member_periods", "disputes_filed", "disputes_won")})
@@ -49,4 +56,12 @@ L.append("\n| policy | member panel seats | state panel seats (audit + appeal) |
 for name, (per, counters) in res.items():
     g = lambda x: ms([c[x] for c in counters])
     L.append(f"| {name} | {g('seated_appeal_member')} | {g('troop_panel_seats')} | {g('troop_audits')} | {g('appeals_unassignable_ticks')} | {g('panel_short_tier_ticks')} | {g('panel_short_free_ticks')} | {g('panel_ineligible_member_periods')} |")
+L.append("\nThe joint of the two verdicts on the customers' truthful disputes, by make-up (pooled): both confirm the standing F / split / both reject, against the product of the single-seat F rate p on the same panels (p², 2p(1−p), (1−p)²):\n")
+L.append("| policy | make-up | panels | single-seat F rate p | both confirm (observed / p²) | split (observed / 2p(1−p)) | both reject (observed / (1−p)²) |"); L.append("|---|---|---|---|---|---|---|")
+for name in res:
+    for k in MK:
+        j = JOINT.get(name, {}).get(k); sf = SEATF.get(name, {}).get(k)
+        if not j or not sf or not sf[1]: continue
+        n = sum(j.values()); p = sf[0] / sf[1]
+        L.append(f"| {name} | {k} | {n} | {p:.3f} | {j['both confirm'] / n:.3f} / {p * p:.3f} | {j['split'] / n:.3f} / {2 * p * (1 - p):.3f} | {j['both reject'] / n:.3f} / {(1 - p) ** 2:.3f} |")
 open(out, "w").write("\n".join(L) + "\n"); print("\n".join(L))

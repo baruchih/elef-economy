@@ -11,8 +11,9 @@ import numpy as np
 R="results/redteam/stability"
 CELLS=sys.argv[2:] or ["careful","liars","stamper","disputes","half","careful-A","liars-B"]
 BASE={"careful-A":"careful","liars-B":"liars"}   # the ablations' 2.8.0 side is the cell they ablate from
+BASECELL=dict(x.split(":") for x in os.environ.get("BASECELL","").split(",") if x)   # November 10, 2026: the base cell by name (e.g. pifloor:careful — the owed pinned cells against run 42)
 def load(cell, suf, learner, side="290"):
-    if side=="base" and BASESUF=="-280": cell=BASE.get(cell,cell)
+    if side=="base": cell=BASECELL.get(cell, BASE.get(cell,cell) if BASESUF=="-280" else cell)
     p=f"{R}/learned-rev-{cell}{suf}/{learner}/eval/{FINAL if side=='290' else BASEFINAL}/eval.json"
     try: return json.load(open(p))
     except FileNotFoundError: return None
@@ -42,6 +43,9 @@ KEYS=[("false_approvals_run","false approvals (run)",1),("bad_plants_approved","
       ("learner_pop_n","slots alive",1),("pop_surplus_nominal","nominal surplus",0),("lifetime_real_wealth","real lifetime",0),("pop_tasks_per_1000","tasks per 1,000",1),
       ("P_t","P_t",1),("member_price_mean","members' price",1),("requester_wallet_mean","requesters' wallet",0),("state_share","state share",3),("awarded","awarded",0),("idle_for_bond_ticks","idle for bond",0),
       ("cost_of_truth","cost of truth",0),("life_real_state_seats","state seats per real root",3),("life_plant_state_seats","state seats per plant",3),("F_hat","F̂",3)]
+KEYS+=[("leak_paid","leak: false approvals per vested task",4),("leak_bad","leak: false approvals per bad delivery",3),("sys_overhead_per_vested","system overhead a vested task",3),("cust_overhead_per_vested","customers' overhead a vested task",3),
+       ("vest_ticks_p50","ticks to vest p50",1),("vest_ticks_p90","ticks to vest p90",1),("rulings","rulings sought",1),("rulings_wrong","rulings wrong",1),
+       ("false_penalty_initial","false penalties: initial seat",2),("false_penalty_audit","false penalties: audit seat",2),("false_penalty_appeal","false penalties: panel seat",2)]   # November 10, 2026: the two leak figures and the overhead views (notes §78's plan), the owed cells read with them
 ERR={"false_approvals_run","pop_surplus_nominal","lifetime_real_wealth","P_t","pop_tasks_per_1000","cost_of_truth"}
 NEW=[("pa_posted","planted approvals posted",1),("pa_verdicts","their verdicts",1),("pa_audited","audited by a member",1),("pa_confirmed","confirmed at the audit seat",1),
      ("pa_rejected","rejected at the audit seat",1),("pa_third","third seats",1),("pa_state_audit","audited by the state (past w_R)",1),("pa_state_would_seat","the pass would have seated (read)",1),

@@ -18,7 +18,9 @@ def ms(v):
 L = [f"# The payoff table (A1 r2 §6): own money by action and seat on the scripted ε population, per arm\n",
      "Each cell: the mean attributed own-money reward of a decision (credits, real) ± the SE across seeds, and the decisions behind it. "
      "`truth-checked bad` is the share of the seat's cases that are bad plants (at the audit seat under 2.9.0: planted approvals) — a stamp "
-     "there is caught on these and on nothing else; `plant share` every plant. The careful's own error is the driver's 5 in 100.\n"]
+     "there is caught on these and on nothing else; `plant share` every plant. The careful's own error is the driver's 5 in 100. The three "
+     "action columns are each action's own money in absolute credits; the two edge columns are the blind verdicts against inspecting — the "
+     "second guards each arm against opening the other blind verdict (the reviewer's question of November 10).\n"]
 for key, label in ARMS:
     files = sorted(glob.glob(os.path.join(root, key, "eps-seed*.npz")))
     if not files:
@@ -38,13 +40,14 @@ for key, label in ARMS:
                 ma = m & (act == a)
                 per[s][a].append(float(rew[ma].mean()) if ma.any() else np.nan)
     L.append(f"\n## {label} ({len(files)} seeds)\n")
-    L.append("| seat | decisions | truth-checked bad | plant share | inspect | approve blind | reject blind | approve blind − inspect |")
-    L.append("|---|---|---|---|---|---|---|---|")
+    L.append("| seat | decisions | truth-checked bad | plant share | inspect | approve blind | reject blind | approve blind − inspect | reject blind − inspect |")
+    L.append("|---|---|---|---|---|---|---|---|---|")
     for s in SEATS:
         if n_dec[s] == 0: continue
         sh = ms(share[s]); pl = ms(plant[s]); cells = []
         for a in ACTS:
             mm = ms(per[s][a]); cells.append(f"{mm[0]:+.3f} ± {mm[1]:.3f}" if mm[2] else "—")
         d = np.asarray(per[s][1], float) - np.asarray(per[s][0], float); dm = ms(d)
-        L.append(f"| {s} | {n_dec[s]} | {sh[0]:.3f} ± {sh[1]:.3f} | {pl[0]:.3f} | " + " | ".join(cells) + f" | {dm[0]:+.3f} ± {dm[1]:.3f} |")
+        d2 = np.asarray(per[s][2], float) - np.asarray(per[s][0], float); dm2 = ms(d2)
+        L.append(f"| {s} | {n_dec[s]} | {sh[0]:.3f} ± {sh[1]:.3f} | {pl[0]:.3f} | " + " | ".join(cells) + f" | {dm[0]:+.3f} ± {dm[1]:.3f} | {dm2[0]:+.3f} ± {dm2[1]:.3f} |")
 open(out, "w").write("\n".join(L) + "\n"); print("\n".join(L))

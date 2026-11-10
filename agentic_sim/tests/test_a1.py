@@ -464,3 +464,20 @@ def test_I45_I46_I47_catch_a_ruling_a_members_audit_and_a_member_panel_under_the
     c.challenge["escalated"] = False
     with pytest.raises(InvariantError):
         check_all(w3)
+
+
+def test_the_dials_carried_in_start_the_four_multipliers_and_their_rates_and_nothing_else_moves():
+    # A1 addendum 4 (November 10, 2026): a harness option, no rule — a world may start its dials where a run before ended; unset, every
+    # dial starts at the floor as every run of record did (the goldens pin that). The rates follow the multipliers by the rule.
+    w = make_world(pi0=0.10, pi_max=0.40, m_max=4.0)
+    assert (w.m_t, w.m_A, w.m_La, w.m_Ld) == (1.0, 1.0, 1.0, 1.0) and w.pi_t == 0.10 and w.pi_A == 0.02
+    w2 = make_world(pi0=0.10, pi_max=0.40, m_max=4.0, dial_start=(2.0, 8.0, 3.0, 1.5))
+    assert (w2.m_t, w2.m_A, w2.m_La, w2.m_Ld) == (2.0, 8.0, 3.0, 1.5)
+    assert abs(w2.pi_t - 0.20) < 1e-9 and abs(w2.pi_A - 0.16) < 1e-9 and abs(w2.pi_La - 0.75) < 1e-9 and abs(w2.pi_Ld - 0.375) < 1e-9
+    w3 = make_world(pi0=0.10, pi_max=0.40, m_max=4.0, dial_start=(4.0, 20.0, 8.0, 8.0))
+    assert w3.pi_t == 0.40 and w3.pi_A == 0.40 and w3.pi_La == 2.0        # at the caps the rates sit at theirs
+    for bad in ((0.5, 1, 1, 1), (1, 21, 1, 1), (1, 1, 9, 1), (1, 1, 1)):
+        with pytest.raises(ValueError):
+            Params(dial_start=bad)
+    w2.advance(30)
+    check_all(w2)

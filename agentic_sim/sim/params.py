@@ -220,6 +220,11 @@ class Params:
     m_L_max: float = 8.0
     seat_dial_min_adj: int = 10
     lie_floor: int = 2          # planted lies a period of each kind when the trailing count is zero or the product under two
+    # A harness option, no rule (the economy reviewer's addendum 4 to ablation brief A1, November 10, 2026 — "arm 0 with the dials carried"):
+    # the four multipliers a world starts with, (m_t, m^A, m^La, m^Ld), each within [1, its cap], the rates following by the rule
+    # (π = min(π_max, π_0 m)); None starts every dial at the floor as every run of record did. A run that begins with a cold dial is the
+    # harness's assumption, not the rulebook's: with this set, each run of a round can start its dials where the round before ended.
+    dial_start: tuple | None = None
     lie_delay_default: int = 0  # the planted lie's filing delay where the real window of the kind is empty
 
     # Ablation brief A1, revision 2 (November 10, 2026; notes §79): the small core's arms behind flags — candidate configurations for
@@ -236,6 +241,14 @@ class Params:
                                         # no member panel; plants file no challenge (the truthful ones included)
 
     def __post_init__(self):
+        if self.dial_start is not None:
+            ds = tuple(float(x) for x in self.dial_start)
+            if len(ds) != 4:
+                raise ValueError("Params: dial_start is (m_t, m_A, m_La, m_Ld)")
+            for v, cap, name in zip(ds, (self.m_max, self.m_A_max, self.m_L_max, self.m_L_max), ("m_t", "m_A", "m_La", "m_Ld")):
+                if not (1.0 - 1e-9 <= v <= cap + 1e-9):
+                    raise ValueError(f"Params: dial_start's {name} {v} is outside [1, {cap}]")
+            self.dial_start = ds
         # A1: the arms are built on arm 1; the state's audit turns the planted approval off
         if (self.sampled_confirmation > 0 or self.lenient_false_alarm or self.state_audit or self.state_bench) and not self.trusted_ruling:
             raise ValueError("Params: A1's arms 1b, 1c, 2, 3 and 4 are built on the trusted ruling (trusted_ruling=True)")

@@ -946,7 +946,10 @@ audit or panel seat keeps its bond (released; `Review.bond_kept`, `lenient_bonds
 refuses a member on it and on a plant), a plant's obligation discharged with no seat (`plant_audits_waived`), `planted_approval` forced off in
 `__post_init__`, the roster sized without the audit demand (`_waiting_reviews`, `audit_rate` 0 at the period's end — C1). `Params.state_bench`
 (arm 3): `_open_challenge` escalates an appeal or dispute on a member's delivery at the filing; `respond("appeal")` and `dispute` refuse a plant.
-Arm 4 is the three together. I45–I48 (`sim/invariants.py`), `tests/test_a1.py` (16). The driver: `--arm 0|1|1b|1c|2|3|4`, `--sample-rate`,
+Arm 4 is the three together. I45–I48 (`sim/invariants.py`), `tests/test_a1.py` (17). The driver: `--arm 0|1|1b|1c|2|3|4`, `--sample-rate`,
 `--pi-a0` / `--pi-a-max` (the pinned cells of arm 0), the seating skips, the plants' challenges skipped under the bench, the row's `deciding_*`,
 `state_cost_unreimbursed`, `state_audit_seats`, `plant_audits_waived`, `confirmations_*`, `lenient_bonds_kept`, `bad_deliveries`,
 `false_penalty_<role>` and the two leak figures `leak_paid` (over vested roots) / `leak_bad` (over bad deliveries); the manifest's `a1` block.
+
+**The dials carried (the reviewer's addendum 4 to the brief, November 10, 2026; a harness option, no rule):** `Params.dial_start` = (m_t, m^A, m^La, m^Ld) at genesis, each in [1, its cap], the rates following by the rule (π = min(π_max, π_0 m)); None (the default, every run of record) starts every dial at the floor — a run that begins with a cold dial is the harness's assumption, not the rulebook's. The driver's `--dial-start m_t,m_A,m_La,m_Ld` (the manifest records it); `redteam.online --carry-dials mean --dial-start …` runs a chain whose rounds carry the dials — each round's runs start at the mean over the round before's runs of the four multipliers at their end, the round's evaluation at the mean of its own, the first round at `--dial-start` (the online log's `dials` block keeps every run's end). `test_a1`'s seventeenth test pins the start and the rates.
+

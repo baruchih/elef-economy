@@ -3,7 +3,7 @@
 **Status:** candidate configurations for evaluation, **not in force**. No version number, nothing consolidated, no rule moved. Built behind flags and labelled as release candidates are. Adoption of any arm is a design revision drafted after the runs.  
 **Date:** November 10, 2026 (r1 and r2) · **From:** the economy's reviewer · **Supersedes:** r1 of the same day.  
 **What r2 settles:** the implementer's review against the engine at `2417219ba` (notes §78): eight corrections accepted (D1–D3, A1.1, A1.2, A2.1, A2.2, A3.1, A4.1, with A4.2 and A5.1–A5.3 noted); the four items put to the reviewer ruled (D4, C1, A1.3, Q1); hypothesis 1 restated, because its second clause was wrong; two arms and two pinned cells added, on the arithmetic of §2.  
-**Addenda 1–3** (same day: after the payoff table; after the scripted sweep and the panel check; B5 amended before its cells) are at the end. Nothing in §1–§9 is changed by them except §7.3, which gains one chain (B3).  
+**Addenda 1–4** (same day: after the payoff table; after the scripted sweep and the panel check; B5 amended before its cells; the dial's clock) are at the end. Nothing in §1–§9 is changed by them except §7.3, which gains two chains (B3, D3) and one evaluation (D2).  
 **Rulebook in force:** 2.9.0 with the consolidated defaults.
 
 ## 1. The question
@@ -249,3 +249,37 @@ C1–C3 were written before this result reached the reviewer.
 - **The retrained cells** (C5's order) are read by the panel's make-up as well, with the orchestrator's share of the panel seats beside the members' own rate.
 - **Provenance, standing from here.** Every collection on record is made by a script kept in the repo, and its note names the script and the commit. The probe collections of notes §53 and §57 were made by a script not kept; nothing is re-made for them — both are the shared-purse cells', and the owed §8.4 re-reads the probe on own-name credit. No read on record was taken through a fresh fit where a frozen policy was meant (confirmed by the implementer).
 - **Readings noted for the design revision, no arm.** One seat of the orchestrator's on a panel is worth most of two; the careful population's 27 in 100 is the tier's own cost — the undetermined kept off the panel in a population that fails no plant.
+
+---
+
+## Addendum 4 to revision 2 — the dial's clock, and two cells added under arm 0
+
+*November 10, 2026, evening. Read at `f4b59c233` (the addendum of notes §88), notes §89–§90 as summarised, and `73e8097df`. Notes §88 itself — the owed cells' finals — has not reached the reviewer; the cap cell is ruled when it does. No rule, arm or flag of the rulebook is changed. Added: what is now known of the dial in the cells of record; one evaluation and one chain under arm 0, both harness options; their expectations, stated before them.*
+
+### D1. What is now known
+
+- **A run starts its dials at the floor and lasts five periods.** In run 42 m^A is first fed at the fourth close and doubles at each close after: 1 → 1 → 1.15 → 2.30 → 4.37, ending at 4.8 / 3.8 (π^A 0.095 / 0.076) — a quarter of the way to the cap as the run ends. The hand's stays at 1 (its failure estimate 0.03–0.09). The liar chain's is never fed: every planted approval is disputed before its audit.
+- **So every 2.9.0 cell on record has read the lever mostly at its floor**, reaching the line's neighbourhood only as the run ends. The half-stamped audit seat is that reading. A run that begins with a cold dial is the harness's assumption — each run a newborn economy — and not the rulebook's. (The reviewer's guess that the dial never left 1 was wrong; it is fed late.)
+- **§8.7's floor cell** pinned π_t, which run 42 never moves, and so reproduced run 42 to the decimal. It is recorded as that, and not as the cell 2.9.0's §8.7 named (m^A at 1). That cell is closed without a chain: run 42, three periods of five at the floor, is its reading to within the last two periods' climb.
+- **§8.5's first half:** the deliverer unmoved; the CEM on the expected line (−695 ± 282, its audit seats 211 → 57); the line planner −65 ± 323. Notes §58's −1,012 returns at the old roll defaults on the corrected engine (−673 ± 318): what took the stamp away is the consolidated roll defaults of the reviewer's fourth ruling, not a correction of the plants' path. (§58's 0.22 / 0.16 was a per-seed mean; pooled 0.100 / 0.098, now 0.065 / 0.077.)
+- **§8.4 on own money** (notes §90, as summarised): the probe blind at the audit seat, at its floor at the initial seat, and the panel's gap the question's base rate whole. No tell at any seat.
+
+### D2. An evaluation: the frozen policy in a long run (the reviewer's word given)
+
+Run 42's policy, frozen, in runs of 2,000 ticks. It reads the climb directly and what the tiers do at full length. It does not read whether a population that learns closes the seat itself.
+
+**Expected.** Against a population that does not adapt, the dial reaches the cap by about the eighth close. Every member stamps about half its stings, so the members' records fail across the population and they leave the tier; the orchestrator takes the audit seats they lose, as it took the panel seats in the frozen dispute cells. By the last quarter of the run the orchestrator holds more than half of the audit seats on members' work and the member-confirmed channel is under half of run 42's: **2.9.0, left to run against a population that does not learn, moves the audit seat to the state by itself.** Refuted if the members keep most of the audit seats at the cap, or the member-confirmed channel stays at run 42's.
+
+Read by quarter of the run: each dial's path; the audit seats by holder; the panel- and duty-ineligible member-periods; the channel split; the cost of truth; the members' fee income and the members alive.
+
+### D3. A chain: arm 0 with the dials carried
+
+A harness option, no rule: each run of a round starts its dials where the runs of the round before ended (all four dials; the carry rule the implementer's, stated in the note). From run 42's final policy; the stamper start if it holds. It is 2.9.0 as written in an economy that does not restart, and it is the reference the ablation's arms should be set against.
+
+**Expected.** Once carried, the dial climbs past the line and the audit seat's blind-verdict rate falls below 0.15 in the rounds where π^A is above about 0.08. The dial then comes down by its slow step and settles, or cycles, in a band of π^A between about 0.05 and 0.2. Over the chain's last three rounds the blind-verdict rate averages under 0.25 and the standing false approvals are within 4 a run of the hand's; the cost of truth rises by about the 0.10 pin's on the scripted read (+2.4 a task) or less. **Refuted** if the audit seat stays above 0.3 in rounds with the dial above 0.10, or the dial runs to the cap and stays there.
+
+If this holds, 2.9.0 as written closes the audit seat by its own dial, the finals of record under-read it for the cold dial, and the ablation's question becomes which is cheaper — the dial's stings or the state's seat — and no longer whether the seat can be closed.
+
+### D4. Order of the learned chains
+
+Arm 0 pinned at 0.10; arm 0 with the dials carried; arm 4; arm 1c; arm 2. The frozen long evaluation whenever the machine has a gap; it trains nothing.

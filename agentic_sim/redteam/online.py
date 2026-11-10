@@ -35,6 +35,11 @@ def main(argv=None):
     ap.add_argument("--boundary-read", choices=["auto", "one-step", "learned"], default="auto", help="the ruling after run 30 (run_q's): the stay head's one-step read against zero at a boundary; `auto` is learned only under `--learner-rearrive on`")
     ap.add_argument("--stride", type=int, default=1, help="the trainer's window stride (the learned population's data)")
     ap.add_argument("--attrib", choices=["own", "pooled"], default="own", help="the attribution's name rule (November 6, 2026): own-name credit, or run 32's pooled construction (the shared-purse cell)")
+    ap.add_argument("--carry-dials", choices=["none", "mean"], default="none",
+                    help="A1 addendum 4 (November 10, 2026), 'arm 0 with the dials carried' — a harness option, no rule: `mean` starts every run of a round at the "
+                         "mean over the round before's runs of the four multipliers at their end (m_t, m_A, m_La, m_Ld; each bounded by its cap by construction), "
+                         "the rates following by the rule, and the round's evaluation at the mean of that round's ends; the first round at --dial-start")
+    ap.add_argument("--dial-start", default=None, help="with --carry-dials: the first round's start, 'm_t,m_A,m_La,m_Ld' (where the policy of record's final runs ended)")
     ap.add_argument("cell", nargs=argparse.REMAINDER)
     a = ap.parse_args(argv)
     direct = a.learner == "direct"
@@ -52,10 +57,17 @@ def main(argv=None):
     model_path = a.start or os.path.join(a.models, f"{stem}-0.pt")
     if not a.start:
         fit(a.data, model_path)
-    env = ElefReviewerEnv(cell, ticks=a.ticks, hide=hide, role=a.role, attrib=a.attrib)
+    carry = a.carry_dials == "mean"
+    dials = tuple(float(x) for x in a.dial_start.split(",")) if (carry and a.dial_start) else None
+    def with_dials(c, d):
+        return c + (["--dial-start", ",".join(f"{x:.6f}" for x in d)] if d is not None else [])
+    env = ElefReviewerEnv(with_dials(cell, dials), ticks=a.ticks, hide=hide, role=a.role, attrib=a.attrib)
     log = []
     for k in range(a.first_round, a.first_round + a.rounds):
         t0 = time.time()
+        if carry and k > a.first_round:
+            env.close(); env = ElefReviewerEnv(with_dials(cell, dials), ticks=a.ticks, hide=hide, role=a.role, attrib=a.attrib)
+        ends = []
         if direct:
             m, _ = load_direct(model_path); m.to(device()); pol = DirectPolicy(m, boundary_read=br)
         else:
@@ -73,14 +85,22 @@ def main(argv=None):
                                 realized=info.get("realized_rewards", R), lifetime=info.get("lifetime_real_wealth", float("nan")), seed=seed, policy=f"online{k}",
                                 role=a.role, n_actions=env.n_actions, slot=info["slot"])
             lifetimes.append(info.get("lifetime_real_wealth", float("nan")))
+            row = info.get("row") or {}
+            if carry and all(k_ in row for k_ in ("m", "m_A", "m_La", "m_Ld")):
+                ends.append((float(row["m"]), float(row["m_A"]), float(row["m_La"]), float(row["m_Ld"])))
         model_path = os.path.join(a.models, f"{stem}-{k}.pt")
         fit(a.data, model_path)
         rec = {"round": k, "train_lifetime_mean": float(np.nanmean(lifetimes)), "seconds": round(time.time() - t0, 1), "explore": a.explore, "value": a.value, "heads": a.heads, "kind_actions": a.kind_actions, "role": a.role, "plan": a.plan,
                "boundary_read": br, "attrib": a.attrib}
+        if carry:
+            E = np.array(ends) if ends else np.zeros((0, 4))
+            rec["dials"] = {"start": dials, "ends_mean": (E.mean(0).tolist() if len(E) else None), "ends_min": (E.min(0).tolist() if len(E) else None),
+                            "ends_max": (E.max(0).tolist() if len(E) else None), "ends": E.tolist(), "rule": "the mean over the round's runs of each multiplier at its end"}
+            dials = tuple(E.mean(0).tolist()) if len(E) else dials      # the carry: the next round's runs and this round's evaluation start here
         if k % a.eval_every == 0 or k == a.first_round + a.rounds - 1:
             out = os.path.join(a.evals, f"round-{k}")
             Q.main((["--direct-model", model_path] if direct else ["--model", model_path]) + ["--out", out, "--seeds", a.eval_seeds, "--policies", a.eval_policies, "--horizon", str(a.horizon),
-                    "--hide", a.hide, "--ticks", str(a.ticks), "--role", a.role, "--boundary-read", a.boundary_read, "--"] + cell)
+                    "--hide", a.hide, "--ticks", str(a.ticks), "--role", a.role, "--boundary-read", a.boundary_read, "--"] + with_dials(cell, dials))
             s = json.load(open(os.path.join(out, "eval.json")))["summary"]
             rec["eval"] = {lead: s[lead]["lifetime_real_wealth"], "careful": s["careful"]["lifetime_real_wealth"],
                            "paired": s[lead]["paired_minus_careful"], "care_share": s[lead].get("care_share"), "bad_share": s[lead].get("bad_share"),

@@ -28,7 +28,7 @@ settled result; the website states what is settled and what is not, sentence by 
 
 ```
 cd agentic_sim
-python3 run_tests.py        # 390 passed, 0 failed, 32 expected failures
+python3 run_tests.py        # 391 passed, 0 failed, 32 expected failures
 python3 -S run_tests.py     # the same with no site-packages
 python3 run_tests.py --record   # the same with every world in record mode (the storage layer's conformance check)
 ```

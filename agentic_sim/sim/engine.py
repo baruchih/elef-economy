@@ -498,6 +498,12 @@ class World:
         self.pi_La: float = min(self.p.pi_L_max, self.p.pi_L0)
         self.pi_Ld: float = min(self.p.pi_L_max, self.p.pi_L0)
         self.lie_quota: dict = {"appeal": float(self.p.lie_floor), "dispute": float(self.p.lie_floor)}
+        if params.dial_start is not None:               # the dials carried in (a harness option, no rule; Params.dial_start): the four
+            self.m_t, self.m_A, self.m_La, self.m_Ld = params.dial_start    # multipliers at genesis, the rates by the rule from them
+            self.pi_t = min(params.pi_max, params.pi0 * self.m_t) if params.dial else params.pi0
+            self.pi_A = min(params.pi_A_max, params.pi_A0 * self.m_A)
+            self.pi_La = min(params.pi_L_max, params.pi_L0 * self.m_La)
+            self.pi_Ld = min(params.pi_L_max, params.pi_L0 * self.m_Ld)
         self.obligations_discharged_by_dispute: int = 0
         # the rulings after runs 38–39 (Appendix V): the per-seat readings pooled forward to at least seat_dial_min_adj adjudications
         # (confirmed-or-sided, adjudicated); the planted approvals closed unseated; the state's own work's disputes by panel kind

@@ -284,7 +284,7 @@ class Stamping:
                    arrival_loan=(rev13 and a.arrival_loan == "on"),
                    plants_every_seat=(rev14 and a.plants_every_seat == "on"),
                    planted_approval=(rev15 and a.planted_approval == "on"), planted_lie=(rev15 and a.planted_lie == "on"),
-                   pi_A0=a.pi_a0, pi_A_max=a.pi_a_max,
+                   pi_A0=a.pi_a0, pi_A_max=a.pi_a_max, dial_start=(tuple(float(x) for x in a.dial_start.split(",")) if a.dial_start else None),
                    # ablation brief A1 r2 (November 10, 2026): the arms as flags — candidate configurations, not in force; arm 0 is 2.9.0
                    trusted_ruling=(a.arm != "0"), sampled_confirmation=(a.sample_rate if a.arm == "1b" else 0.0),
                    lenient_false_alarm=(a.arm == "1c"), state_audit=(a.arm in ("2", "4")), state_bench=(a.arm in ("3", "4")))
@@ -3326,6 +3326,7 @@ def build_parser():
     ap.add_argument("--sample-rate", type=float, default=0.25, help="A1 arm 1b: a confirming member audit or panel on a member's delivery sampled to the deciding verdict at this rate")
     ap.add_argument("--pi-a0", type=float, default=0.02, help="π^A_0, planted approvals per real approval audited by a member — the floor (Appendix A 0.02); A1's pinned cells: --pi-a0 0.10 --pi-a-max 0.10")
     ap.add_argument("--pi-a-max", type=float, default=0.40, help="π^A_max (Appendix A 0.40); equal to --pi-a0 pins π^A, the dial's other multipliers live")
+    ap.add_argument("--dial-start", default=None, help="a harness option, no rule (A1 addendum 4, November 10, 2026): the four multipliers the world starts with, 'm_t,m_A,m_La,m_Ld' (each in [1, its cap]; the rates follow by the rule) — the dials carried from a run before; unset, every dial starts at the floor")
     ap.add_argument("--p-start", type=float, default=1.0, help="a newcomer's audit odds (1.2.0 §2.4: 1.0; 1.1.0: 0.5)")
     ap.add_argument("--p-cap", type=float, default=1.0, help="the audit odds' cap on doubling (1.2.0 §2.4: 1.0; 1.1.0: 0.5)")
     ap.add_argument("--p-floor", type=float, default=Params.p_floor, help="the audit rate's floor (§8.3; Appendix A 0.5 from November 6, 2026 — the economy reviewer's defaults move after run 42's read; 0.2 before)")
@@ -3595,7 +3596,7 @@ def main(argv=None):
                                 "beta": a.beta, "work_ticks": a.work_ticks, "seed": a.seed,
                                 "rules": a.rules, "fund": a.fund if a.rules in ("1.3.0", "1.4.0", "1.5.0", "1.6.0") else "n/a", "m_max": a.m_max,
                                 "a1": {"arm": a.arm, "trusted_ruling": run.p.trusted_ruling, "sampled_confirmation": run.p.sampled_confirmation, "lenient_false_alarm": run.p.lenient_false_alarm,
-                                       "state_audit": run.p.state_audit, "state_bench": run.p.state_bench, "pi_A0": a.pi_a0, "pi_A_max": a.pi_a_max,
+                                       "state_audit": run.p.state_audit, "state_bench": run.p.state_bench, "pi_A0": a.pi_a0, "pi_A_max": a.pi_a_max, "dial_start": run.p.dial_start,
                                        "status": "ablation brief A1 r2 (November 10, 2026): candidate configurations, not in force; arm 0 is 2.9.0"},
                                 "troops": {"spec": "1.4.0 design revision 4 — the orchestrator's troops" if a.rules in ("1.4.0", "1.5.0", "1.6.0") and a.troops == "on" else "off",
                                            "reserve": ("1.5.0 design revision 5 — the reserve is sized to the need: R_T is the current period's peak "

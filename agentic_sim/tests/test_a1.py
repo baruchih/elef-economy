@@ -262,6 +262,9 @@ def test_a_confirming_audit_sampled_to_the_deciding_verdict_is_overturned_where_
     for s in deciding_open(w2, c):
         w2.complete_review(s.id, F, 0.0)
     assert c.state == "PENDING" and w2.reviews[r].status == "done" and w2.reviews[ra].status == "done" and w2.confirmations_overturned == 0
+    with pytest.raises(RuleError):
+        w2.dispute(q, "H", "the result does not meet the request")   # the sample spent the case's one round: the dispute refused, counted
+    assert w2.disputes_refused_after_sample == 1
     w2.advance(c.window_end + 3)
     assert c.state == "VESTED"
     check_all(w2)
@@ -332,6 +335,7 @@ def test_under_the_states_audit_a_disagreeing_seat_is_the_deciding_verdicts_firs
     w.complete_review(s2.id, N, 0.0)
     assert c.deciding["resolved"] and c.deciding["outcome"] == N and c.state == "FINAL_N"
     assert w.reviews[r].status == "overturned" and ra.status == "done"
+    assert w.deciding_outcomes_by_reason == {"state_audit:overturned": 1}
     w.advance(w.t + 1)
     check_all(w)
 

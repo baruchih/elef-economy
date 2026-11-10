@@ -511,6 +511,8 @@ class World:
         self.deciding_splits: int = 0
         self.deciding_by_reason: dict = {}
         self.deciding_outcomes: dict = {"confirmed": 0, "overturned": 0}
+        self.deciding_outcomes_by_reason: dict = {}   # "<reason>:confirmed|overturned" — arm 2's own-error verdicts the second seat corrected read here
+        self.disputes_refused_after_sample: int = 0  # arm 1b: the round spent by a sampled confirmation that stood, the dispute refused for it
         self.state_cost_unreimbursed: float = 0.0
         self.state_audit_seats: int = 0
         self.plant_audits_waived: int = 0
@@ -1952,6 +1954,8 @@ class World:
     def _open_challenge(self, c: Case, kind: str, challenger: Optional[str], audit_review: Optional[Review] = None,
                         d: Optional[str] = None):
         if c.challenge_round_used:
+            if c.challenge is not None and c.challenge.get("sampled"):
+                self.disputes_refused_after_sample += 1   # A1 arm 1b: the round spent by a sampled confirmation that stood
             raise RuleError("one challenge round per case (§8)")
         # 2.9.0 §2.3: a plant's challenge against its truth is a planted lie — the plant actor's appeal of a bad plant's N, the plant
         # requester's dispute of a good plant's F — read from the kind and the truth, no flag on the filing; the real challenges counted apart
@@ -2011,6 +2015,8 @@ class World:
         if self.t > c.window_end:
             raise RuleError("dispute: window closed")
         if c.challenge_round_used:
+            if c.challenge is not None and c.challenge.get("sampled"):
+                self.disputes_refused_after_sample += 1   # A1 arm 1b: the round spent by a sampled confirmation that stood
             raise RuleError("one challenge round per case (§8)")
         if any(a[3] == "override" for a in c.assessments):
             raise RuleError("dispute: a human ruling has settled this case's assessment; a disagreement with "
@@ -4551,6 +4557,8 @@ class World:
         if ch is None or ch["resolved"]:
             raise RuleError(f"A1 {c.id}: a deciding verdict resolved with no open challenge record")
         self.deciding_outcomes["confirmed" if outcome == c.verdict else "overturned"] += 1
+        key = f"{d['reason']}:{'confirmed' if outcome == c.verdict else 'overturned'}"
+        self.deciding_outcomes_by_reason[key] = self.deciding_outcomes_by_reason.get(key, 0) + 1
         if ch.get("sampled") and outcome != c.verdict:
             self.confirmations_overturned += 1
         self._settle_challenge(c, outcome=outcome, by="deciding verdict")

@@ -2937,6 +2937,9 @@ class Stamping:
               "state_cost_unreimbursed": round(tr["state_cost_unreimbursed"], 6), "state_audit_seats": tr["state_audit_seats"],
               "plant_audits_waived": tr["plant_audits_waived"], "confirmations_sampled": tr["confirmations_sampled"],
               "confirmations_overturned": tr["confirmations_overturned"], "lenient_bonds_kept": tr["lenient_bonds_kept"],
+              "deciding_sa_confirmed": tr["deciding_outcomes_by_reason"].get("state_audit:confirmed", 0),     # arm 2: the audit seat's error the second seat corrected
+              "deciding_sa_overturned": tr["deciding_outcomes_by_reason"].get("state_audit:overturned", 0),
+              "disputes_refused_after_sample": tr["disputes_refused_after_sample"],
               "leak_paid": round(self.c["false_approvals"] / max(1, self.c["vested"]), 6),
               "leak_bad": round(self.c["false_approvals"] / max(1, self.c["bad_deliveries"]), 6)}
         row.update(a1)

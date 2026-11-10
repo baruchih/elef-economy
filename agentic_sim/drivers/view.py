@@ -243,6 +243,7 @@ class Public:
                 "state_cost_unreimbursed": w.state_cost_unreimbursed, "state_audit_seats": w.state_audit_seats,
                 "plant_audits_waived": w.plant_audits_waived, "confirmations_sampled": w.confirmations_sampled,
                 "confirmations_overturned": w.confirmations_overturned, "lenient_bonds_kept": w.lenient_bonds_kept,
+                "deciding_outcomes_by_reason": dict(w.deciding_outcomes_by_reason), "disputes_refused_after_sample": w.disputes_refused_after_sample,
                 "shortfall_seats": w.troop_shortfall_seats, "shortfall_awards": w.troop_shortfall_awards,
                 "held_ticks": w.troop_held_ticks, "troop_ticks_reviews": w.troop_ticks_reviews,
                 "troop_ticks_deliveries": w.troop_ticks_deliveries,

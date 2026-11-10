@@ -829,7 +829,9 @@ def I45_the_trusted_ruling(w, cases=None):
             r = _peek(w.reviews, rid)
             if r.status != "overturned":
                 continue
-            if w.is_troop(r.reviewer) and ch["by"] == "deciding verdict":
+            if w.is_troop(r.reviewer) and r.role != "initial" and ch["by"] == "deciding verdict":
+                # a troop's initial seat on a member's delivery is overturned by the deciding verdict as a panel overturns it today (its bond
+                # burned, the loan closed as debt — 2.1.0 §2.4, the orchestrator's own cost); the verdict's seats and the state's audit seat never
                 _fail(f"I45 {c.id}: the orchestrator's seat {rid} overturned by the deciding verdict")
             if ch["by"] == "deciding verdict" and r.verdict == ch["outcome"]:
                 _fail(f"I45 {c.id}: {rid} overturned while matching the deciding verdict")

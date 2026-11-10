@@ -1,0 +1,117 @@
+seed 21: 9540 decisions, 2671 audit seats on real cases, blind there 0.203, m^A at the end 8.54 [52s]
+seed 22: 10182 decisions, 2836 audit seats on real cases, blind there 0.246, m^A at the end 9.81 [113s]
+seed 23: 9791 decisions, 2602 audit seats on real cases, blind there 0.327, m^A at the end 11.81 [172s]
+seed 24: 10272 decisions, 2869 audit seats on real cases, blind there 0.176, m^A at the end 7.45 [231s]
+seed 25: 10052 decisions, 2823 audit seats on real cases, blind there 0.247, m^A at the end 6.20 [290s]
+seed 26: 10987 decisions, 3165 audit seats on real cases, blind there 0.151, m^A at the end 11.00 [370s]
+seed 27: 9687 decisions, 2728 audit seats on real cases, blind there 0.242, m^A at the end 8.98 [447s]
+seed 28: 9707 decisions, 2802 audit seats on real cases, blind there 0.220, m^A at the end 8.64 [522s]
+seed 29: 10167 decisions, 2970 audit seats on real cases, blind there 0.219, m^A at the end 12.26 [600s]
+seed 30: 10207 decisions, 2948 audit seats on real cases, blind there 0.195, m^A at the end 6.15 [679s]
+seed 31: 10651 decisions, 3189 audit seats on real cases, blind there 0.208, m^A at the end 8.50 [759s]
+seed 32: 9790 decisions, 2783 audit seats on real cases, blind there 0.241, m^A at the end 11.45 [837s]
+seed 33: 10320 decisions, 3032 audit seats on real cases, blind there 0.212, m^A at the end 6.90 [915s]
+seed 34: 10267 decisions, 2875 audit seats on real cases, blind there 0.165, m^A at the end 14.73 [994s]
+seed 35: 9992 decisions, 2923 audit seats on real cases, blind there 0.183, m^A at the end 3.72 [1073s]
+seed 36: 10007 decisions, 3028 audit seats on real cases, blind there 0.189, m^A at the end 3.48 [1128s]
+seed 37: 10327 decisions, 2985 audit seats on real cases, blind there 0.187, m^A at the end 9.04 [1188s]
+seed 38: 10053 decisions, 2997 audit seats on real cases, blind there 0.223, m^A at the end 5.67 [1245s]
+seed 39: 10743 decisions, 3344 audit seats on real cases, blind there 0.129, m^A at the end 3.84 [1304s]
+seed 40: 10551 decisions, 3150 audit seats on real cases, blind there 0.171, m^A at the end 8.34 [1362s]
+# The frozen head-alone policy at the audit seat, by the dial's level — what it reads when it turns to inspecting (`audit_attrib.py`; the reviewer's second read after §92)
+
+Cell `--entry-pool 20 --stampers 0.6 --learner-pop all --learner-role reviewer --learner-exit rule`, the policy of record `results/redteam/stability/learned-rev-careful-290-own/wm/models/wm-online-10.pt` frozen, 20 seeds, 2,000 ticks; 58,720 audit-seat decisions on real cases (10,334 on plants beside), the blind rate 0.205 pooled. The head's argmax recomputed from the saved observations agrees with the action taken on 1.0000 of them (the rest the boundary read's or the tie's). A blind verdict is a verdict of either sign with no care spent; the band is m^A at the decision's tick.
+
+## By the dial's level
+
+| band | decisions (seeds) | blind rate | on plants | the head's margin for care over the better blind verdict (real, mean) | seeds' blind rate min–max |
+|---|---|---|---|---|---|
+| m^A 1–1.5 | 13,724 (20) | **0.565** | 0.534 | -0.02 | 0.33–0.84 |
+| 1.5–4 | 8,769 (20) | **0.282** | 0.276 | +0.23 | 0.07–0.54 |
+| 4–8 | 15,716 (20) | **0.084** | 0.059 | +0.52 | 0.00–0.31 |
+| 8–14 | 16,387 (17) | **0.028** | 0.024 | +0.58 | 0.00–0.14 |
+| 14–20 | 4,124 (10) | **0.008** | 0.007 | +0.72 | 0.00–0.07 |
+
+## The fields by band (the mean of each field over the band's audit-seat decisions; the 16 that move most from the lowest band to the highest, in standard deviations of the field over all audit decisions)
+
+| field | m^A 1–1.5 | 1.5–4 | 4–8 | 8–14 | 14–20 | move (SD) |
+|---|---|---|---|---|---|---|
+| `probationers` | 0.643 | 0.058 | 0.001 | 0.000 | 0.000 | -2.16 |
+| `own_plant_bad_n` | 0.613 | 0.983 | 1.633 | 1.932 | 1.966 | +2.08 |
+| `own_reviews` | 0.941 | 1.567 | 2.593 | 3.391 | 3.606 | +1.83 |
+| `own_overturned` | 0.332 | 0.624 | 1.134 | 1.573 | 1.650 | +1.72 |
+| `own_plant_failures` | 0.017 | 0.073 | 0.196 | 0.325 | 0.373 | +1.64 |
+| `own_ticks_since_admission` | 0.321 | 0.591 | 1.040 | 1.266 | 1.197 | +1.59 |
+| `own_plant_good_n` | 0.220 | 0.435 | 0.804 | 1.071 | 1.090 | +1.56 |
+| `own_awards` | 0.379 | 0.731 | 1.269 | 1.517 | 1.370 | +1.47 |
+| `dial_m` | 1.032 | 1.167 | 1.841 | 2.093 | 2.298 | +1.46 |
+| `dial_pi` | 0.103 | 0.117 | 0.184 | 0.209 | 0.230 | +1.46 |
+| `own_unlocked` | 0.586 | 1.122 | 1.647 | 1.881 | 1.892 | +1.40 |
+| `own_wealth_real` | 0.626 | 1.157 | 1.680 | 1.912 | 1.923 | +1.39 |
+| `members_free` | 0.476 | 0.511 | 0.374 | 0.318 | 0.293 | -1.09 |
+| `period_pos` | 0.491 | 0.442 | 0.347 | 0.286 | 0.247 | -0.94 |
+| `state_price_rel` | 0.966 | 0.800 | 0.978 | 1.164 | 1.213 | +0.92 |
+| `B_bar_rel` | 0.966 | 0.800 | 0.978 | 1.164 | 1.213 | +0.92 |
+
+## The attribution by clamping
+
+The high-dial audit decisions (m^A 8.0–20.0, 4,000 drawn; the policy blind on 0.025 of them as saved, 0.025 recomputed) with one field replaced by draws of it from the low-dial decisions (m^A 1.0–1.0, 4,000 drawn; blind 0.558), the head asked again — the rise in the blind rate is what the field carries of the turn to inspecting; the reverse clamp beside (the low-dial decisions given the field's high-dial draws — the fall in their blind rate). Three draws averaged. Fields sorted by the first clamp's rise; the groups below the fields.
+
+| field | high-dial blind rate with the field's low-dial values | rise | low-dial blind rate with the field's high-dial values | fall | rank AUC care vs blind, pooled | within the high band |
+|---|---|---|---|---|---|---|
+| `own_plant_good_n` | 0.112 | **+0.087** | 0.308 | +0.250 | 0.836 | 0.906 |
+| `own_awards` | 0.067 | **+0.042** | 0.080 | +0.478 | 0.832 | 0.924 |
+| `dial_pi` | 0.047 | **+0.021** | 0.459 | +0.099 | 0.772 | 0.837 |
+| `probationers` | 0.042 | **+0.017** | 0.174 | +0.384 | 0.220 | 0.500 |
+| `own_plant_failures` | 0.041 | **+0.016** | 0.176 | +0.382 | 0.796 | 0.770 |
+| `dial_m` | 0.037 | **+0.012** | 0.523 | +0.035 | 0.772 | 0.837 |
+| `time_to_membership` | 0.031 | **+0.005** | 0.342 | +0.216 | 0.350 | 0.427 |
+| `own_ticks_since_admission` | 0.030 | **+0.005** | 0.040 | +0.518 | 0.842 | 0.948 |
+| `rv_bond_rel` | 0.029 | **+0.004** | 0.559 | -0.001 | 0.576 | 0.879 |
+| `P_t_rel` | 0.029 | **+0.003** | 0.478 | +0.080 | 0.579 | 0.877 |
+| `rv_cap_rel` | 0.028 | **+0.002** | 0.570 | -0.012 | 0.576 | 0.879 |
+| `own_wealth_real` | 0.027 | **+0.002** | 0.272 | +0.286 | 0.808 | 0.742 |
+| `own_kappa` | 0.027 | **+0.002** | 0.486 | +0.073 | 0.662 | 0.748 |
+| `own_rho` | 0.027 | **+0.001** | 0.534 | +0.024 | 0.555 | 0.655 |
+| `own_overturned` | 0.027 | **+0.001** | 0.646 | -0.088 | 0.821 | 0.850 |
+| `seen_beta_rel` | 0.027 | **+0.001** | 0.550 | +0.008 | 0.513 | 0.501 |
+| `state_price_rel` | 0.026 | **+0.001** | 0.531 | +0.027 | 0.659 | 0.848 |
+| `period_pos` | 0.026 | **+0.001** | 0.445 | +0.113 | 0.359 | 0.482 |
+| `B_bar_rel` | 0.026 | **+0.001** | 0.479 | +0.079 | 0.659 | 0.848 |
+| `seen_before` | 0.026 | **+0.000** | 0.555 | +0.003 | 0.513 | 0.503 |
+| `available_roots` | 0.026 | **+0.000** | 0.563 | -0.005 | 0.578 | 0.696 |
+| `my_bid_lost` | 0.026 | **+0.000** | 0.559 | -0.001 | 0.499 | 0.484 |
+| `own_reviews` | 0.026 | **+0.000** | 0.274 | +0.284 | 0.858 | 0.900 |
+| `state_share_period` | 0.026 | **+0.000** | 0.556 | +0.002 | 0.508 | 0.534 |
+| `refused_waiting` | 0.025 | **+0.000** | 0.558 | +0.000 | 0.500 | 0.500 |
+| `forgone_share_period` | 0.025 | **+0.000** | 0.558 | +0.000 | 0.500 | 0.500 |
+| `own_member` | 0.025 | **+0.000** | 0.558 | +0.000 | 0.500 | 0.500 |
+| `own_probationer` | 0.025 | **+0.000** | 0.558 | +0.000 | 0.500 | 0.500 |
+| `own_suspended` | 0.025 | **+0.000** | 0.558 | +0.000 | 0.500 | 0.500 |
+| `rv_is_nested` | 0.025 | **+0.000** | 0.558 | +0.000 | 0.500 | 0.500 |
+| `rv_q_fulfillment` | 0.025 | **+0.000** | 0.558 | +0.000 | 0.500 | 0.500 |
+| `rv_q_appeal` | 0.025 | **+0.000** | 0.558 | +0.000 | 0.500 | 0.500 |
+| `rv_q_dispute` | 0.025 | **+0.000** | 0.558 | +0.000 | 0.500 | 0.500 |
+| `rv_responses_available` | 0.025 | **+0.000** | 0.558 | +0.000 | 0.500 | 0.500 |
+| `rv_resumed` | 0.025 | **+0.000** | 0.558 | +0.000 | 0.500 | 0.500 |
+| `seen_ticks_since` | 0.025 | **-0.000** | 0.556 | +0.002 | 0.514 | 0.505 |
+| `on_time_share` | 0.025 | **-0.000** | 0.570 | -0.012 | 0.486 | 0.424 |
+| `members_total` | 0.025 | **-0.000** | 0.494 | +0.064 | 0.426 | 0.228 |
+| `rv_gap` | 0.025 | **-0.001** | 0.567 | -0.009 | 0.479 | 0.548 |
+| `members_free` | 0.025 | **-0.001** | 0.619 | -0.061 | 0.330 | 0.321 |
+| `below_market_waiting` | 0.025 | **-0.001** | 0.530 | +0.028 | 0.581 | 0.669 |
+| `own_p_eff` | 0.023 | **-0.002** | 0.491 | +0.067 | 0.606 | 0.447 |
+| `own_unlocked` | 0.022 | **-0.003** | 0.287 | +0.271 | 0.808 | 0.742 |
+| `own_plant_bad_n` | 0.012 | **-0.014** | 0.107 | +0.451 | 0.858 | 0.798 |
+
+| group | high-dial blind rate with the group's low-dial values | rise | low-dial blind rate with the group's high-dial values | fall |
+|---|---|---|---|---|
+| the market (public) | 0.054 | **+0.029** | 0.176 | +0.382 |
+| the dial and the period's position (public) | 0.075 | **+0.050** | 0.333 | +0.225 |
+| own standing and record | 0.140 | **+0.114** | 0.070 | +0.488 |
+| the assignment | 0.029 | **+0.004** | 0.595 | -0.037 |
+| the seen set | 0.026 | **+0.001** | 0.552 | +0.006 |
+| own penalties (overturned, plant failures) | 0.023 | **-0.003** | 0.201 | +0.357 |
+| own odds alone | 0.023 | **-0.003** | 0.492 | +0.066 |
+| own plant record (bad, good met) | 0.017 | **-0.009** | 0.098 | +0.460 |
+| every field (the whole observation) | 0.558 | — | 0.025 | — |

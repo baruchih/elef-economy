@@ -62,11 +62,27 @@ def read_world(run, ticks, nq=4):
     chan = {q: dict.fromkeys(CH, 0) for q in range(nq)}
     fees = {q: {"member": 0.0, "state": 0.0, "member_n": 0, "state_n": 0} for q in range(nq)}
     roots = {q: 0 for q in range(nq)}
+    # the quarter's price (the reviewer's read after §92): the care spent by case kind and the state's seats' cost by the quarter of the review's
+    # completion, a plant's awarded price by the quarter of its closure, the bad deliveries vested — the system's overhead a vested task by quarter
+    price = {q: {"care_real": 0.0, "care_plant": 0.0, "troop_cost": 0.0, "plant_price": 0.0, "bad_vested": 0, "fa_vested": 0, "bad_settled": 0, "fa_settled": 0} for q in range(nq)}
+    for rv in W.reviews.values():
+        tq = rv.t_done if rv.t_done is not None else rv.t_assign
+        if tq is None or rv.cost is None or rv.cost <= 0: continue
+        q = q_of(tq); cc = W.cases.get(rv.case) if hasattr(rv, "case") else None
+        tk = run.tasks.get(public_id(rv.case)) if hasattr(rv, "case") else None
+        if W.is_troop(rv.reviewer): price[q]["troop_cost"] += rv.cost
+        elif str(rv.reviewer).startswith("plant_rev:") or rv.reviewer == "PLANT_REV": pass
+        else: price[q]["care_plant" if (tk is not None and tk.plant) else "care_real"] += rv.cost
     for cid, c in W.cases.items():
         t = run.tasks.get(public_id(cid))
         if t is None or not c.is_root or W.is_troop(c.actor):
             continue
         plant = bool(t.plant)
+        if plant and c.tree_closed and c.t_closed is not None:
+            price[q_of(c.t_closed)]["plant_price"] += float(c.B or 0.0)
+        if not plant and c.tree_closed and not t.fulfilled:      # the driver's `bad_deliveries` by the quarter of the settlement (every outcome), the false approvals among them
+            qs = q_of(c.t_closed if c.t_closed is not None else W.t); price[qs]["bad_settled"] += 1
+            if c.state == "VESTED": price[qs]["fa_settled"] += 1
         for x in c.reviews:
             rv = W.reviews[x]
             if rv.role not in ("audit", "appeal") or rv.t_assign is None:
@@ -84,6 +100,7 @@ def read_world(run, ticks, nq=4):
         q = q_of(c.t_vest if c.t_vest is not None else W.t); roots[q] += 1
         if t.fulfilled:
             continue
+        price[q]["bad_vested"] += 1; price[q]["fa_vested"] += 1
         audits = [W.reviews[x] for x in c.reviews if W.reviews[x].role == "audit"]
         if not audits:
             ch = c.challenge
@@ -119,7 +136,7 @@ def read_world(run, ticks, nq=4):
                     rv = W.reviews[rid]
                     if rv.reviewer == e.dst: role = {"initial": "initial", "audit": "audit", "appeal": "panel"}.get(rv.role, rv.role)
             fees_role[f"{who} {role}"] = fees_role.get(f"{who} {role}", 0.0) + e.amount
-    return {"seats": seats, "channels": chan, "fees": fees, "roots_vested": roots, "periods": periods, "seats_all": seats_all, "fees_role": fees_role}
+    return {"seats": seats, "channels": chan, "fees": fees, "roots_vested": roots, "periods": periods, "seats_all": seats_all, "fees_role": fees_role, "price": price}
 
 
 def main(argv=None):
@@ -203,6 +220,19 @@ def write_md(out, path, label):
                 other = np.mean([sum(c[k] for k in CH if k not in ("member confirmed", "state confirmed", "never audited")) for c in C])
                 cot_prev = np.mean([r["snaps"][q - 1]["cost_of_truth"] for r in runs]) if q > 0 else 0.0
                 f.write(f"| Q{q + 1} (t {q * T // nq}–{(q + 1) * T // nq}) | {np.mean([s['members_alive'] for s in sn]):.1f} | {np.mean([s['duty_ineligible'] for s in sn]):.1f} / {np.mean([s['panel_ineligible'] for s in sn]):.1f} | {np.mean([s['probationers'] for s in sn]):.1f} / {np.mean([s['suspended'] for s in sn]):.1f} | {mi:.0f} / {mb:.0f} / {st_:.0f} | **{share:.2f}** | **{blind:.3f}** | {np.mean([s['audit plant member'] for s in S]):.0f} ({np.mean([s['audit plant member blind'] for s in S]):.0f}) / {np.mean([s['audit plant state'] for s in S]):.0f} | {np.mean([s['panel member inspected'] for s in S]):.0f} / {np.mean([s['panel member blind'] for s in S]):.0f} / {np.mean([s['panel state'] for s in S]):.0f} | **{ms([c['member confirmed'] for c in C])}** / {ms([c['state confirmed'] for c in C])} / {ms([c['never audited'] for c in C])} / {other:.1f} | {np.mean(R):.0f} | {np.mean([x['member'] for x in F]):.0f} / {np.mean([x['state'] for x in F]):.0f} | {np.mean([s['cost_of_truth'] for s in sn]):.0f} ({np.mean([s['cost_of_truth'] for s in sn]) - cot_prev:.0f}) | {np.mean([s['m_A'] for s in sn]):.2f} / {np.mean([s['pi_A'] for s in sn]):.3f} |\n")
+            if all("price" in r for r in runs):
+                f.write("\n**The quarter's price** (the system's overhead per task vested in the quarter: the care spent on real and planted cases, the state's seats' cost, the cost of truth and the plants' awarded price, by the quarter of each; the standing false approvals vested in the quarter over the bad deliveries vested in it, per thousand; the bad deliveries here are a member's real roots vested unfulfilled, the false approvals among them those vested approved — every unfulfilled root that vests is a false approval, so the two counts coincide; the leak per thousand bad deliveries is read on the bad deliveries settled in the quarter at every outcome — the driver's `bad_deliveries` by the quarter of the settlement — and the false approvals among them):\n\n| quarter | roots vested | care on real / on plants | the state's seats' cost | the cost of truth (the quarter's) | the plants' price | system overhead a vested task | standing false approvals vested | per thousand tasks vested | bad deliveries settled / false approvals among them | leak per thousand bad deliveries |\n|---|---|---|---|---|---|---|---|---|---|---|\n")
+                tot = {"care_real": 0.0, "care_plant": 0.0, "troop_cost": 0.0, "cot": 0.0, "plant_price": 0.0, "roots": 0.0, "fa": 0.0, "bad_s": 0.0, "fa_s": 0.0}
+                for q in range(nq):
+                    P = [r["price"][str(q)] if str(q) in r["price"] else r["price"][q] for r in runs]
+                    R = [r["roots_vested"][str(q)] if str(q) in r["roots_vested"] else r["roots_vested"][q] for r in runs]
+                    cot_q = np.mean([r["snaps"][q]["cost_of_truth"] - (r["snaps"][q - 1]["cost_of_truth"] if q > 0 else 0.0) for r in runs])
+                    cr, cp, tc, pp = (np.mean([x["care_real"] for x in P]), np.mean([x["care_plant"] for x in P]), np.mean([x["troop_cost"] for x in P]), np.mean([x["plant_price"] for x in P]))
+                    nv = max(1e-9, np.mean(R)); fa = np.mean([x["fa_vested"] for x in P])
+                    bs = np.mean([x.get("bad_settled", 0) for x in P]); fs = np.mean([x.get("fa_settled", 0) for x in P])
+                    for k, v in (("care_real", cr), ("care_plant", cp), ("troop_cost", tc), ("cot", cot_q), ("plant_price", pp), ("roots", nv), ("fa", fa), ("bad_s", bs), ("fa_s", fs)): tot[k] += v
+                    f.write(f"| Q{q + 1} | {nv:.0f} | {cr:.0f} / {cp:.0f} | {tc:.0f} | {cot_q:.0f} | {pp:.0f} | **{(cr + cp + tc + cot_q + pp) / nv:.2f}** | {ms([x['fa_vested'] for x in P])} | {fa / nv * 1000:.1f} | {bs:.0f} / {fs:.1f} | **{fs / max(1e-9, bs) * 1000:.1f}** |\n")
+                f.write(f"| the run (the quarters summed) | {tot['roots']:.0f} | {tot['care_real']:.0f} / {tot['care_plant']:.0f} | {tot['troop_cost']:.0f} | {tot['cot']:.0f} | {tot['plant_price']:.0f} | **{(tot['care_real'] + tot['care_plant'] + tot['troop_cost'] + tot['cot'] + tot['plant_price']) / max(1e-9, tot['roots']):.2f}** | {tot['fa']:.1f} | {tot['fa'] / max(1e-9, tot['roots']) * 1000:.1f} | {tot['bad_s']:.0f} / {tot['fa_s']:.1f} | **{tot['fa_s'] / max(1e-9, tot['bad_s']) * 1000:.1f}** |\n")
             # the whole run: the seats by holder and role, the fees by holder and seat kind, Ω's net, the leak
             SA = {}; FR = {}
             for r in runs:

@@ -536,7 +536,7 @@ class Stamping:
                   "true_approvals_disputed": 0, "true_approvals_overturned": 0,
                   "care_cost_plant": 0.0, "care_cost_real": 0.0, "care_reviews_plant": 0, "care_reviews_real": 0,   # 2.8.0 §8.6: the care spent by case kind
                   "tell_initial_cared": 0, "tell_later_plant_stamped": 0, "tell_later_real_stamped": 0, "tell_later_plant_cared": 0, "tell_later_real_cared": 0,
-                  "awards_unfilled_ticks": 0, "appeals_unassignable_ticks": 0, "underfunded_careful_reviews": 0,
+                  "awards_unfilled_ticks": 0, "appeals_unassignable_ticks": 0, "underfunded_careful_reviews": 0, "panel_short_tier_ticks": 0, "panel_short_free_ticks": 0,
                   "omega_unrecovered_advances": 0.0, "allowance_refunded": 0.0, "pot_refunded": 0.0,
                   "trees_closed": 0, "disposition_switches": 0,
                   # 1.2.0: planted work and the dial
@@ -2541,6 +2541,11 @@ class Stamping:
                             task.t_panel_assign = w.t
                     else:
                         self.c["appeals_unassignable_ticks"] += 1
+                        # the shortfall's cause (the reviewer's read 2, November 10): a free on-duty member kept off the panel tier by its record,
+                        # or no member free at all — the state's share of the panel seats by cause
+                        free_any = [aid for aid in self.actors if (lambda ac: ac.on_duty and ac.open_review is None and ac.committed is None)(w.actor(aid))
+                                    and aid != c.actor and aid != c.requester and aid not in c.excluded and w.unlocked(aid) + 1e-9 >= c.G_V]
+                        self.c["panel_short_tier_ticks" if free_any else "panel_short_free_ticks"] += 1
                 elif not task.plant and len(done) == 2 and done[0].verdict != done[1].verdict and not c.challenge.get("escalated"):
                     truth = F if task.fulfilled else N
                     by_truth = self.rng.random() < a.ruling_accuracy

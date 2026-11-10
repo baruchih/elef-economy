@@ -8,6 +8,7 @@ SELF=/Users/baruchi-admin/projects/elef-economy/agentic_sim/results/redteam/stab
 cd /Users/baruchi-admin/projects/elef-economy/agentic_sim
 X=/Users/baruchi-admin/projects/elef-economy/agentic_sim/results/redteam/stability/ablation-A1/learned/arm1c
 CELL=(--entry-pool 20 --stampers 0.6 --learner-pop all --learner-role reviewer --learner-exit rule --arm 1c)
+[ -f $X/go ] || { echo "held: 1c's chain waits on the panel check (the reviewer's note of November 10); touch $X/go to release"; exit 0; }
 step=${1:-collect}
 case $step in
   collect)

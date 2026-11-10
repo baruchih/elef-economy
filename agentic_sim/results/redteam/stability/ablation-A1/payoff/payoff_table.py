@@ -50,4 +50,33 @@ for key, label in ARMS:
         d = np.asarray(per[s][1], float) - np.asarray(per[s][0], float); dm = ms(d)
         d2 = np.asarray(per[s][2], float) - np.asarray(per[s][0], float); dm2 = ms(d2)
         L.append(f"| {s} | {n_dec[s]} | {sh[0]:.3f} ± {sh[1]:.3f} | {pl[0]:.3f} | " + " | ".join(cells) + f" | {dm[0]:+.3f} ± {dm[1]:.3f} | {dm2[0]:+.3f} ± {dm2[1]:.3f} |")
+# the panel by its question (the reviewer's check of November 10, before 1c's chain): the appeal panel — where a rejection is the confirming
+# verdict and 1c's lenience would cheapen a blind confirmation — and the dispute panel, read from the observation's own question one-hot as
+# redteam.probe --seat appeal|dispute reads it (the appeal question carries the third seat too); the two edges against inspecting per arm
+sys.path.insert(0, os.getcwd()); sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "..", "..", "..")))
+from redteam.obs import IDX
+L.append("\n## The panel by its question: the two edges against inspecting (arms 0, 1, 1c)\n")
+L.append("| arm | panel | decisions | truth-checked bad | inspect | approve blind | reject blind | approve blind − inspect | reject blind − inspect |")
+L.append("|---|---|---|---|---|---|---|---|---|")
+for key, label in ARMS:
+    files = sorted(glob.glob(os.path.join(root, key, "eps-seed*.npz")))
+    if not files: continue
+    for q, qlab in (("rv_q_appeal", "appeal"), ("rv_q_dispute", "dispute")):
+        per = {a: [] for a in ACTS}; share = []; n = 0
+        for f in files:
+            z = np.load(f, allow_pickle=True)
+            O = z["obs"]; seat = z["seat"].astype(str); act = z["action"]; rew = z["reward"].astype(float); isp = z["is_plant"].astype(bool); ful = z["fulfilled"].astype(bool)
+            m = (seat == "panel") & (O[:, IDX[q]] > 0.5)
+            if not m.any():
+                for a in ACTS: per[a].append(np.nan)
+                share.append(np.nan); continue
+            n += int(m.sum()); share.append(float((isp[m] & ~ful[m]).mean()))
+            for a in ACTS:
+                ma = m & (act == a); per[a].append(float(rew[ma].mean()) if ma.any() else np.nan)
+        if n == 0: continue
+        sh = ms(share); cells = []
+        for a in ACTS:
+            mm = ms(per[a]); cells.append(f"{mm[0]:+.3f} ± {mm[1]:.3f}" if mm[2] else "—")
+        d1 = ms(np.asarray(per[1], float) - np.asarray(per[0], float)); d2 = ms(np.asarray(per[2], float) - np.asarray(per[0], float))
+        L.append(f"| {label.split(' — ')[0]} | {qlab} | {n} | {sh[0]:.3f} ± {sh[1]:.3f} | " + " | ".join(cells) + f" | {d1[0]:+.3f} ± {d1[1]:.3f} | {d2[0]:+.3f} ± {d2[1]:.3f} |")
 open(out, "w").write("\n".join(L) + "\n"); print("\n".join(L))

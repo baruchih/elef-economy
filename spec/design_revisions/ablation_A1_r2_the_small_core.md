@@ -3,6 +3,7 @@
 **Status:** candidate configurations for evaluation, **not in force**. No version number, nothing consolidated, no rule moved. Built behind flags and labelled as release candidates are. Adoption of any arm is a design revision drafted after the runs.  
 **Date:** November 10, 2026 (r1 and r2) · **From:** the economy's reviewer · **Supersedes:** r1 of the same day.  
 **What r2 settles:** the implementer's review against the engine at `2417219ba` (notes §78): eight corrections accepted (D1–D3, A1.1, A1.2, A2.1, A2.2, A3.1, A4.1, with A4.2 and A5.1–A5.3 noted); the four items put to the reviewer ruled (D4, C1, A1.3, Q1); hypothesis 1 restated, because its second clause was wrong; two arms and two pinned cells added, on the arithmetic of §2.  
+**Addendum 1** (same day, after the payoff table) is at the end; nothing in §1–§9 is changed by it.  
 **Rulebook in force:** 2.9.0 with the consolidated defaults.
 
 ## 1. The question
@@ -102,3 +103,54 @@ Three ways to satisfy it at a later seat, and the brief tests all three: **more 
 ## 9. Invariants under the flags
 
 I8 admits the deciding verdict's positions under `trusted_ruling`. Under `trusted_ruling`: no member review is overturned except by a plant's truth or a deciding verdict, and no ruling is recorded on a member's delivery (the orchestrator's own deliveries keep the ruling). Under `state_audit`: no member audit review exists on a member's delivery, and every such obligation is discharged by a state seat. Under `state_bench`: no member review of role `appeal` on a member's delivery. Under `lenient_false_alarm`: no bond is burned on an overruled rejection at an audit or panel seat. I25 unchanged in every arm; I20 live with `plants_every_seat` on; I43–I44 vacuous where their flags are off.
+
+---
+
+## Addendum 1 to revision 2 — after the payoff table
+
+*November 10, 2026. Read at `ce0694775` (the payoff table, notes §80) and `e781edc0f` (both blind verdicts' edges, every arm and seat). §1–§9 stand as built at `24490af3b`: no arm, flag or hypothesis is changed. Added here: what the table measured; one guard; a drafting point on arm 1c's panels and how it is decided; readings with two counters; and what the reviewer expects of the chains, stated after the table and before any of them.*
+
+### A1. §2, measured
+
+The audit seat on the scripted eps population, in an inspector's own money: a blind approval's edge over inspecting, in credits an audit.
+
+| Cell | Blind approval − inspecting |
+|---|---|
+| Arm 0 at its dial (3.8 truth-checked bad cases in 100) | +0.02 ± 0.06 |
+| Arm 0, the lever pinned at 0.10 | −0.62 |
+| Arm 0, the lever pinned at 0.20 | −1.33 |
+| Arm 1 | +0.19 |
+| Arm 1b | −0.02 |
+| Arm 1c | −0.13 |
+
+- §2's inequality is the money's own account: on the line at 2.9.0's dial, under it at the pins. 2.9.0's half-stamped audit seat is the line.
+- Arm 1 moves the edge against checking, as hypothesis 1 (restated) says — by 0.17, not "a few hundredths": the sign was right, the size understated.
+- Arm 1b returns the seat to the line and no further, as §4 expected of it.
+- Arm 1c is under the line at the present dial, by about a fifth of the 0.10 pin's margin.
+
+### A2. The guard: both blind verdicts, every seat
+
+Each arm's row carries the blind approval's and the blind rejection's edge over inspecting at every seat. At the audit seat a blind rejection reads −6.51 ± 0.10 under arm 0 and −4.64 ± 0.09 under arm 1c. (The "−1.93 → +0.36" first reported was that action's own money in absolute credits, not its edge.) Arm 1c does not open the blind rejection at the audit seat; **hypothesis 3 stands as written and arm 1c is as written.** The bounty form drafted in case — an upheld rejection earning the overturned review's bond — is withdrawn unbuilt.
+
+Before any arm's chain is trained its row is reported beside arm 0's, with any blind verdict that pays under the arm and not under arm 0 flagged. The member seats on the orchestrator's own deliveries under arms 2–4 are expected to show it and are read as §5 rules; any other waits for a word.
+
+### A3. Arm 1c at the panels — a drafting point, the reviewer's
+
+§4 gives the lenience to an overruled **rejection** "at an audit or panel seat". At the audit seat and at the dispute panel a rejection is the verdict that disagrees with the standing one — the alarm the arm is named for. **At the appeal panel a rejection is the confirming verdict.** There the lenience cheapens what the arm means to keep dear: a blind confirmation of a wrong rejection, priced since 2.8.0 by the truthful planted appeal and by a careful partner's disagreement, falls from bond and fee to the fee. At the dispute panel the lenience is on the alarm, as meant, and about halves what 2.9.0's planted lying dispute costs a blind uphold; under arm 1 an uphold only escalates, so what that can add is the state's seats and a panel's fee paid for nothing, not a wrong outcome. Neither pays bad work. The first can let a panel wave away an honest worker's appeal more cheaply.
+
+Not rebuilt on reasoning. The appeal panel's and the dispute panel's rows are read under arms 0, 1 and 1c before arm 1c's chain: **if under arm 1c a blind verdict at either panel is at or above inspecting, within the spread, where under arm 1 it is clearly below, arm 1c's chain runs with the lenience at the audit seat only** — the seat hypothesis 3 is about — and its scripted cells are re-read under that scope. Otherwise as built. If the arm is ever drafted as a rule, its text gives the lenience to the verdict that disagrees with the standing one, at every seat.
+
+### A4. Readings added to §6, and two counters
+
+- **Latency:** the escalation's tick, and a split's two.
+- **The state's cost under arm 2:** its own-error verdicts (about 30 a run), with the false overturns the second seat prevented counted.
+- **Arm 1b:** the round spent by a sampled confirmation that stands, with the disputes refused for it counted.
+- **Every learned chain:** the first review's blind-verdict rate beside the audit seat's — what a seat the plants have always priced looks like to the same learner.
+
+The two counts are built as counters before the ablation's chains start.
+
+### A5. What the reviewer expects of the chains, stated before them
+
+1. **The order.** On the learned population the audit seat's blind-verdict rate follows the table's edge: arm 0 at its dial highest, arm 1c under it, the pin at 0.10 under that, the pin at 0.20 lowest.
+2. **Arm 1c's margin.** On own money this learner has turned an edge of +0.36 into 94–97 blind verdicts in 100 (2.7.0's audit seat) and one of +0.01 to +0.02 into 41–56 (2.9.0's). By those two points an edge of −0.13 gives about a quarter. The reviewer therefore expects **hypothesis 3's threshold (below 0.15) to be missed** — the seat between a quarter and arm 0's rate — **and hypothesis 2's to be met** at the pins. Hypothesis 3 is left as written and is refuted as written if so.
+3. **The refuter of §2, amended before any chain, and marked as an amendment.** §8 named arm 1c beside the pins before its margin was known. §2 is refuted if the order of (1) is broken beyond the seeds' spread, or if the pins leave the audit seat no better than arm 0's. Arm 1c leaving the seat above 0.15 and under arm 0's rate refutes hypothesis 3 and not §2: the lenience lowers the line and, at this dial, not far enough alone.

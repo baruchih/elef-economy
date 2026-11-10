@@ -21,7 +21,7 @@ The findings are evaluations under fixed rules, and the question that drove the 
 a reviewer population learning in self-play against its own audits still approves blind at the audit seat about
 half the time (the audit seat's remaining half-stamp), with 2.9.0's per-seat dial still moving. The runs, their
 manifests and the notes written for the economy's reviewer are under `agentic_sim/results/`
-(`results/studies/2.7.0-notes-for-reviewer.md` is the running record, §1–§89). Nothing here should be read as a
+(`results/studies/2.7.0-notes-for-reviewer.md` is the running record, §1–§90). Nothing here should be read as a
 settled result; the website states what is settled and what is not, sentence by sentence against the record.
 
 ## Running the engine

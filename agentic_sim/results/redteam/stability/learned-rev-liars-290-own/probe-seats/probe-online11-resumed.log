@@ -1,0 +1,12 @@
+Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "/Users/baruchi-admin/projects/elef-economy/agentic_sim/redteam/probe.py", line 178, in <module>
+    main()
+  File "/Users/baruchi-admin/projects/elef-economy/agentic_sim/redteam/probe.py", line 127, in main
+    Ztr, Zte = stack(tr, lambda e: latents(m, e["obs"])), stack(te, lambda e: latents(m, e["obs"]))
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/baruchi-admin/projects/elef-economy/agentic_sim/redteam/probe.py", line 126, in stack
+    return np.concatenate([f(e) for e in eps], 0)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: need at least one array to concatenate

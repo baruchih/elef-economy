@@ -1,0 +1,622 @@
+{
+ "cell": [
+  "--entry-pool",
+  "20",
+  "--stampers",
+  "0.6",
+  "--learner-pop",
+  "all",
+  "--learner-role",
+  "reviewer",
+  "--learner-exit",
+  "rule"
+ ],
+ "ticks": 1000,
+ "seeds": "21-23",
+ "model": null,
+ "direct_model": "results/redteam/stability/learned-rev-careful-290-own/direct/models/direct-online-10.pt",
+ "runs": {
+  "direct": [
+   {
+    "seed": 21,
+    "error": null,
+    "periods": [
+     {
+      "t": 184,
+      "start": 0,
+      "m_A_before": 1.0,
+      "m_A": 1.0,
+      "pi_A": 0.02,
+      "F_hat_A": null,
+      "pa_posted": 0,
+      "pa_verdicts": 0,
+      "pa_audit_adj": 0,
+      "pa_audit_confirmed": 0,
+      "pa_third": 0,
+      "pa_disputed_first": 0,
+      "pa_pass_would_audit": 0,
+      "pa_unseated": 0,
+      "real_member_audits": 20,
+      "real_approvals": 380,
+      "seat_pool": {
+       "A": [
+        0,
+        0
+       ],
+       "La": [
+        0,
+        0
+       ],
+       "Ld": [
+        0,
+        0
+       ]
+      },
+      "m": 1.0,
+      "pi": 0.1,
+      "F_hat": 0.029412
+     },
+     {
+      "t": 384,
+      "start": 184,
+      "m_A_before": 1.0,
+      "m_A": 1.0,
+      "pi_A": 0.02,
+      "F_hat_A": null,
+      "pa_posted": 1,
+      "pa_verdicts": 1,
+      "pa_audit_adj": 1,
+      "pa_audit_confirmed": 1,
+      "pa_third": 0,
+      "pa_disputed_first": 0,
+      "pa_pass_would_audit": 0,
+      "pa_unseated": 0,
+      "real_member_audits": 69,
+      "real_approvals": 353,
+      "seat_pool": {
+       "A": [
+        1,
+        1
+       ],
+       "La": [
+        0,
+        1
+       ],
+       "Ld": [
+        0,
+        0
+       ]
+      },
+      "m": 1.111111,
+      "pi": 0.111111,
+      "F_hat": 0.111111
+     },
+     {
+      "t": 557,
+      "start": 384,
+      "m_A_before": 1.0,
+      "m_A": 1.0,
+      "pi_A": 0.02,
+      "F_hat_A": null,
+      "pa_posted": 5,
+      "pa_verdicts": 5,
+      "pa_audit_adj": 5,
+      "pa_audit_confirmed": 3,
+      "pa_third": 1,
+      "pa_disputed_first": 0,
+      "pa_pass_would_audit": 1,
+      "pa_unseated": 0,
+      "real_member_audits": 255,
+      "real_approvals": 343,
+      "seat_pool": {
+       "A": [
+        4,
+        6
+       ],
+       "La": [
+        1,
+        3
+       ],
+       "Ld": [
+        0,
+        0
+       ]
+      },
+      "m": 1.0,
+      "pi": 0.1,
+      "F_hat": 0.025641
+     },
+     {
+      "t": 750,
+      "start": 557,
+      "m_A_before": 1.0,
+      "m_A": 2.0,
+      "pi_A": 0.04,
+      "F_hat_A": 0.5,
+      "pa_posted": 6,
+      "pa_verdicts": 6,
+      "pa_audit_adj": 6,
+      "pa_audit_confirmed": 2,
+      "pa_third": 4,
+      "pa_disputed_first": 0,
+      "pa_pass_would_audit": 2,
+      "pa_unseated": 0,
+      "real_member_audits": 300,
+      "real_approvals": 415,
+      "seat_pool": {
+       "A": [
+        0,
+        0
+       ],
+       "La": [
+        2,
+        9
+       ],
+       "Ld": [
+        0,
+        2
+       ]
+      },
+      "m": 1.0,
+      "pi": 0.1,
+      "F_hat": 0.071429
+     },
+     {
+      "t": 937,
+      "start": 750,
+      "m_A_before": 2.0,
+      "m_A": 4.0,
+      "pi_A": 0.08,
+      "F_hat_A": 0.454545,
+      "pa_posted": 12,
+      "pa_verdicts": 12,
+      "pa_audit_adj": 11,
+      "pa_audit_confirmed": 5,
+      "pa_third": 5,
+      "pa_disputed_first": 0,
+      "pa_pass_would_audit": 0,
+      "pa_unseated": 0,
+      "real_member_audits": 282,
+      "real_approvals": 392,
+      "seat_pool": {
+       "A": [
+        0,
+        0
+       ],
+       "La": [
+        0,
+        0
+       ],
+       "Ld": [
+        0,
+        2
+       ]
+      },
+      "m": 1.0,
+      "pi": 0.1,
+      "F_hat": 0.052632
+     }
+    ],
+    "partial": {
+     "t": 1000,
+     "start": 937,
+     "pa_audit_adj": 9,
+     "pa_audit_confirmed": 2,
+     "pa_posted": 8,
+     "real_member_audits": 111,
+     "m_A": 4.0,
+     "pi_A": 0.08,
+     "seat_pool": null
+    },
+    "m_A_end": 4.0,
+    "pi_A_end": 0.08,
+    "pa_posted": 32,
+    "pa_audited": 32,
+    "pa_confirmed": 13,
+    "F_hat_A_row": 0.454545,
+    "care_share": 0.8409749034749034,
+    "false_approvals_run": 18
+   },
+   {
+    "seed": 22,
+    "error": null,
+    "periods": [
+     {
+      "t": 182,
+      "start": 0,
+      "m_A_before": 1.0,
+      "m_A": 1.0,
+      "pi_A": 0.02,
+      "F_hat_A": null,
+      "pa_posted": 1,
+      "pa_verdicts": 1,
+      "pa_audit_adj": 1,
+      "pa_audit_confirmed": 0,
+      "pa_third": 0,
+      "pa_disputed_first": 0,
+      "pa_pass_would_audit": 1,
+      "pa_unseated": 0,
+      "real_member_audits": 77,
+      "real_approvals": 374,
+      "seat_pool": {
+       "A": [
+        0,
+        1
+       ],
+       "La": [
+        0,
+        0
+       ],
+       "Ld": [
+        0,
+        0
+       ]
+      },
+      "m": 1.0,
+      "pi": 0.1,
+      "F_hat": 0.0
+     },
+     {
+      "t": 382,
+      "start": 182,
+      "m_A_before": 1.0,
+      "m_A": 1.0,
+      "pi_A": 0.02,
+      "F_hat_A": null,
+      "pa_posted": 4,
+      "pa_verdicts": 4,
+      "pa_audit_adj": 4,
+      "pa_audit_confirmed": 0,
+      "pa_third": 3,
+      "pa_disputed_first": 0,
+      "pa_pass_would_audit": 3,
+      "pa_unseated": 0,
+      "real_member_audits": 194,
+      "real_approvals": 347,
+      "seat_pool": {
+       "A": [
+        0,
+        5
+       ],
+       "La": [
+        0,
+        4
+       ],
+       "Ld": [
+        0,
+        2
+       ]
+      },
+      "m": 1.0,
+      "pi": 0.1,
+      "F_hat": 0.030303
+     },
+     {
+      "t": 582,
+      "start": 382,
+      "m_A_before": 1.0,
+      "m_A": 2.0,
+      "pi_A": 0.04,
+      "F_hat_A": 0.3,
+      "pa_posted": 5,
+      "pa_verdicts": 5,
+      "pa_audit_adj": 5,
+      "pa_audit_confirmed": 3,
+      "pa_third": 2,
+      "pa_disputed_first": 0,
+      "pa_pass_would_audit": 1,
+      "pa_unseated": 0,
+      "real_member_audits": 275,
+      "real_approvals": 349,
+      "seat_pool": {
+       "A": [
+        0,
+        0
+       ],
+       "La": [
+        0,
+        0
+       ],
+       "Ld": [
+        0,
+        4
+       ]
+      },
+      "m": 1.0,
+      "pi": 0.1,
+      "F_hat": 0.0625
+     },
+     {
+      "t": 771,
+      "start": 582,
+      "m_A_before": 2.0,
+      "m_A": 4.0,
+      "pi_A": 0.08,
+      "F_hat_A": 0.428571,
+      "pa_posted": 14,
+      "pa_verdicts": 14,
+      "pa_audit_adj": 14,
+      "pa_audit_confirmed": 6,
+      "pa_third": 8,
+      "pa_disputed_first": 0,
+      "pa_pass_would_audit": 0,
+      "pa_unseated": 0,
+      "real_member_audits": 352,
+      "real_approvals": 383,
+      "seat_pool": {
+       "A": [
+        0,
+        0
+       ],
+       "La": [
+        0,
+        6
+       ],
+       "Ld": [
+        0,
+        6
+       ]
+      },
+      "m": 1.351351,
+      "pi": 0.135135,
+      "F_hat": 0.135135
+     },
+     {
+      "t": 912,
+      "start": 771,
+      "m_A_before": 4.0,
+      "m_A": 8.0,
+      "pi_A": 0.16,
+      "F_hat_A": 0.45,
+      "pa_posted": 20,
+      "pa_verdicts": 20,
+      "pa_audit_adj": 20,
+      "pa_audit_confirmed": 9,
+      "pa_third": 11,
+      "pa_disputed_first": 0,
+      "pa_pass_would_audit": 0,
+      "pa_unseated": 0,
+      "real_member_audits": 251,
+      "real_approvals": 292,
+      "seat_pool": {
+       "A": [
+        0,
+        0
+       ],
+       "La": [
+        0,
+        0
+       ],
+       "Ld": [
+        0,
+        6
+       ]
+      },
+      "m": 1.216216,
+      "pi": 0.121622,
+      "F_hat": 0.025
+     }
+    ],
+    "partial": {
+     "t": 1000,
+     "start": 912,
+     "pa_audit_adj": 25,
+     "pa_audit_confirmed": 6,
+     "pa_posted": 26,
+     "real_member_audits": 163,
+     "m_A": 8.0,
+     "pi_A": 0.16,
+     "seat_pool": null
+    },
+    "m_A_end": 8.0,
+    "pi_A_end": 0.16,
+    "pa_posted": 70,
+    "pa_audited": 69,
+    "pa_confirmed": 24,
+    "F_hat_A_row": 0.45,
+    "care_share": 0.8345307588684329,
+    "false_approvals_run": 12
+   },
+   {
+    "seed": 23,
+    "error": null,
+    "periods": [
+     {
+      "t": 185,
+      "start": 0,
+      "m_A_before": 1.0,
+      "m_A": 1.0,
+      "pi_A": 0.02,
+      "F_hat_A": null,
+      "pa_posted": 0,
+      "pa_verdicts": 0,
+      "pa_audit_adj": 0,
+      "pa_audit_confirmed": 0,
+      "pa_third": 0,
+      "pa_disputed_first": 0,
+      "pa_pass_would_audit": 0,
+      "pa_unseated": 0,
+      "real_member_audits": 47,
+      "real_approvals": 383,
+      "seat_pool": {
+       "A": [
+        0,
+        0
+       ],
+       "La": [
+        0,
+        0
+       ],
+       "Ld": [
+        0,
+        0
+       ]
+      },
+      "m": 1.0,
+      "pi": 0.1,
+      "F_hat": 0.057143
+     },
+     {
+      "t": 385,
+      "start": 185,
+      "m_A_before": 1.0,
+      "m_A": 1.0,
+      "pi_A": 0.02,
+      "F_hat_A": null,
+      "pa_posted": 2,
+      "pa_verdicts": 2,
+      "pa_audit_adj": 2,
+      "pa_audit_confirmed": 2,
+      "pa_third": 0,
+      "pa_disputed_first": 0,
+      "pa_pass_would_audit": 0,
+      "pa_unseated": 0,
+      "real_member_audits": 70,
+      "real_approvals": 361,
+      "seat_pool": {
+       "A": [
+        2,
+        2
+       ],
+       "La": [
+        0,
+        0
+       ],
+       "Ld": [
+        0,
+        0
+       ]
+      },
+      "m": 1.0,
+      "pi": 0.1,
+      "F_hat": 0.0
+     },
+     {
+      "t": 585,
+      "start": 385,
+      "m_A_before": 1.0,
+      "m_A": 1.0,
+      "pi_A": 0.02,
+      "F_hat_A": null,
+      "pa_posted": 4,
+      "pa_verdicts": 4,
+      "pa_audit_adj": 4,
+      "pa_audit_confirmed": 3,
+      "pa_third": 0,
+      "pa_disputed_first": 0,
+      "pa_pass_would_audit": 2,
+      "pa_unseated": 0,
+      "real_member_audits": 206,
+      "real_approvals": 328,
+      "seat_pool": {
+       "A": [
+        5,
+        6
+       ],
+       "La": [
+        0,
+        5
+       ],
+       "Ld": [
+        0,
+        0
+       ]
+      },
+      "m": 1.0,
+      "pi": 0.1,
+      "F_hat": 0.057143
+     },
+     {
+      "t": 784,
+      "start": 585,
+      "m_A_before": 1.0,
+      "m_A": 2.0,
+      "pi_A": 0.04,
+      "F_hat_A": 0.833333,
+      "pa_posted": 6,
+      "pa_verdicts": 6,
+      "pa_audit_adj": 6,
+      "pa_audit_confirmed": 5,
+      "pa_third": 1,
+      "pa_disputed_first": 0,
+      "pa_pass_would_audit": 0,
+      "pa_unseated": 0,
+      "real_member_audits": 307,
+      "real_approvals": 381,
+      "seat_pool": {
+       "A": [
+        0,
+        0
+       ],
+       "La": [
+        0,
+        0
+       ],
+       "Ld": [
+        0,
+        4
+       ]
+      },
+      "m": 1.0,
+      "pi": 0.1,
+      "F_hat": 0.051282
+     },
+     {
+      "t": 974,
+      "start": 784,
+      "m_A_before": 2.0,
+      "m_A": 4.0,
+      "pi_A": 0.08,
+      "F_hat_A": 0.461538,
+      "pa_posted": 13,
+      "pa_verdicts": 13,
+      "pa_audit_adj": 13,
+      "pa_audit_confirmed": 6,
+      "pa_third": 7,
+      "pa_disputed_first": 0,
+      "pa_pass_would_audit": 0,
+      "pa_unseated": 0,
+      "real_member_audits": 324,
+      "real_approvals": 391,
+      "seat_pool": {
+       "A": [
+        0,
+        0
+       ],
+       "La": [
+        0,
+        0
+       ],
+       "Ld": [
+        0,
+        8
+       ]
+      },
+      "m": 1.0,
+      "pi": 0.1,
+      "F_hat": 0.085714
+     }
+    ],
+    "partial": {
+     "t": 1000,
+     "start": 974,
+     "pa_audit_adj": 4,
+     "pa_audit_confirmed": 2,
+     "pa_posted": 4,
+     "real_member_audits": 48,
+     "m_A": 4.0,
+     "pi_A": 0.08,
+     "seat_pool": null
+    },
+    "m_A_end": 4.0,
+    "pi_A_end": 0.08,
+    "pa_posted": 29,
+    "pa_audited": 28,
+    "pa_confirmed": 17,
+    "F_hat_A_row": 0.461538,
+    "care_share": 0.8099696356275303,
+    "false_approvals_run": 9
+   }
+  ]
+ }
+}

@@ -16,6 +16,9 @@ for chain in ("careful", "liars"):
                 continue                      # the careful basin has no dispute seat (disputes off) and its appeal question is its panel
             e = json.load(open(f))
             abl = e.get("case_field_ablation") or {}
+            fa = f.replace(".json", "-abl.json")       # the per-field ablation (`--ablate-case`), run after the seats' probes (ablate.sh); the gap's carriers
+            if not abl and os.path.exists(fa):
+                abl = json.load(open(fa)).get("case_field_ablation") or {}
             top = sorted(((v["added_to_context"][0], k) for k, v in abl.items()), reverse=True)[:3]
             L.append(f"| {s} | {seat} | {e['test_decisions']:,} | {e['plant_share_test']:.3f} | {f3(e['auc_raw_obs'])} | {f3(e['auc_context_only'])} | {f3(e['auc_case_fields_only'])} | {f3(e['auc_latent'])} | **{e['auc_gap_raw_minus_context'][0]:+.4f} ± {e['auc_gap_raw_minus_context'][2]:.4f}** | " + ", ".join(f"{k} {v:+.4f}" for v, k in top) + " |")
 open(out, "w").write("\n".join(L) + "\n"); print("wrote", out)

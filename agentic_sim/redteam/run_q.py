@@ -42,6 +42,15 @@ REV_POP_KEYS = tuple(dict.fromkeys(POP_KEYS + ("P_t", "member_price_mean", "awar
                                              "false_approvals", "suspensions", "bad_plants_approved", "good_plants_rejected", "audits_held", "audits_overturning", "audit_overturn_rate", "F_hat",
                                              "disputes_filed", "disputes_won", "false_approvals_disputed", "false_approvals_overturned",   # §52: the dispute layer in the disputes-on cell   # the reviewers in self-play (the ruling after run 33): honesty first
                                              "appeals_filed", "appeals_won", "false_rejections", "false_rejections_appealed", "false_rejections_overturned", "rulings",
+                                             # ablation brief A1 (November 10, 2026): the leak's two figures, the false penalties by seat and by source, the deciding verdict,
+                                             # the orchestrator's seats and cost, the two overhead views and the time to vesting — in every learned chain's record
+                                             "rulings_wrong", "leak_paid", "leak_bad", "bad_deliveries", "false_penalty_initial", "false_penalty_audit", "false_penalty_appeal", "false_penalty_bond_kept",
+                                             "false_penalty_by_ruling", "false_penalty_by_peers", "false_penalty_by_deciding", "deciding_opened", "deciding_seats", "deciding_splits",
+                                             "deciding_confirmed", "deciding_overturned", "deciding_audit", "deciding_state_audit", "deciding_panel", "deciding_bench", "deciding_sampled",
+                                             "deciding_sa_confirmed", "deciding_sa_overturned", "disputes_refused_after_sample", "state_cost_unreimbursed", "state_audit_seats",
+                                             "plant_audits_waived", "confirmations_sampled", "confirmations_overturned", "lenient_bonds_kept", "troop_reviews", "troop_review_cost",
+                                             "cost_of_truth", "cust_overhead_per_vested", "cust_overhead_share", "sys_overhead_per_vested", "sys_overhead_share",
+                                             "vest_ticks_mean", "vest_ticks_p50", "vest_ticks_p90",
                                              "true_rejections_appealed", "true_rejections_overturned", "true_approvals_disputed", "true_approvals_overturned",
                                              # 2.9.0 §5: the planted wrong steps' readings
                                              "pa_posted", "pa_verdicts", "pa_closed", "pa_audited", "pa_confirmed", "pa_rejected", "pa_third", "pa_disputed",
@@ -492,7 +501,8 @@ def main(argv=None):
             d = [r["lifetime_real_wealth"] - base[r["seed"]] for r in results[name] if r["seed"] in base]
             summary[name]["paired_minus_careful"] = mse(d)
             if a.role == "bidder" or (a.role == "reviewer" and results[name] and results[name][0].get("learner_pop") not in (None, "", "off")):   # the population's measures paired by seed: the members' nominal surplus, the customers' tasks per credit, the price; the reviewers' honesty
-                for k in ("pop_surplus_nominal", "pop_tasks_per_1000", "P_t", "member_price_mean", "state_share", "false_approvals", "awarded", "suspensions", "bad_plants_approved", "audit_overturn_rate", "departures"):
+                for k in ("pop_surplus_nominal", "pop_tasks_per_1000", "P_t", "member_price_mean", "state_share", "false_approvals", "awarded", "suspensions", "bad_plants_approved", "audit_overturn_rate", "departures",
+                          "leak_paid", "leak_bad", "sys_overhead_per_vested", "cust_overhead_per_vested", "cost_of_truth", "false_penalty_initial", "false_penalty_audit", "false_penalty_appeal"):   # A1
                     bk = {r["seed"]: r.get(k) for r in results["careful"]}
                     dk = [float(r[k]) - float(bk[r["seed"]]) for r in results[name] if r["seed"] in bk and r.get(k) not in ("", None) and bk[r["seed"]] not in ("", None)]
                     summary[name][f"paired_{k}"] = mse(dk) if dk else (float("nan"), float("nan"))

@@ -514,6 +514,7 @@ class Stamping:
         # economy counters
         self.c = {"posted": 0, "awarded": 0, "vested": 0, "final_n": 0, "false_approvals": 0, "false_rejections": 0,
                   "bad_deliveries": 0, "false_penalty_initial": 0, "false_penalty_audit": 0, "false_penalty_appeal": 0, "false_penalty_bond_kept": 0,
+                  "false_penalty_by_ruling": 0, "false_penalty_by_peers": 0, "false_penalty_by_deciding": 0,
                   "deciding_answers": 0,                                     # A1 r2 (not in force): the leak's denominator, the false penalties, the seats
                   "troop_review_cost": 0.0, "plant_price_sum": 0.0, "cust_pots_consumed": 0.0, "cust_fee": 0.0, "cust_court_net": 0.0, "cust_rebates": 0.0,
                   "vested_price_sum": 0.0, "vested_real_roots": 0,          # A1 §6: the two overhead views' parts
@@ -2811,11 +2812,16 @@ class Stamping:
                     if not task.fulfilled:
                         self.c["bad_deliveries"] += 1
                     truth_v = F if task.fulfilled else N
+                    ch_by = (c.challenge or {}).get("by")
                     for x in revs_c:
                         if x.status == "overturned" and not w.is_troop(x.reviewer) and x.verdict == truth_v:
                             self.c[f"false_penalty_{x.role}"] += 1
                             if getattr(x, "bond_kept", False):
                                 self.c["false_penalty_bond_kept"] += 1
+                            # by source (the reviewer's note of November 10): the driver's ruling at a split, two wrong peers agreeing, the deciding verdict's error
+                            src = {"orchestrator": "ruling", "appeal reviewers": "peers", "deciding verdict": "deciding"}.get(ch_by)
+                            if src is not None:
+                                self.c[f"false_penalty_by_{src}"] += 1
                 if any(x.role == "audit" for x in revs_c):                   # the audit layer's overturn rate (the ruling after run 33's honesty readings)
                     self.c["audits_held"] += 1
                     if any(x.role == "initial" and x.status == "overturned" for x in revs_c):

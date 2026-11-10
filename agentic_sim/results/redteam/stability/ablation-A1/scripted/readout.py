@@ -18,6 +18,8 @@ COLS = [("false_approvals", "standing false approvals"), ("leak_paid", "leak ove
         ("vested", "vested"), ("false_rejections", "standing false rejections"),
         ("false_penalty_initial", "false penalties, initial"), ("false_penalty_audit", "false penalties, audit"), ("false_penalty_appeal", "false penalties, panel"),
         ("false_penalty_bond_kept", "… of which bond kept (1c)"),
+        ("false_penalty_by_ruling", "false penalties: the ruling's error"), ("false_penalty_by_peers", "… two wrong peers"), ("false_penalty_by_deciding", "… the deciding verdict's error"),
+        ("rulings", "rulings sought"), ("rulings_wrong", "rulings wrong"),
         ("deciding_opened", "deciding verdicts"), ("deciding_seats", "deciding seats"), ("deciding_splits", "splits"), ("deciding_overturned", "deciding: overturned"),
         ("deciding_audit", "… from a member audit"), ("deciding_state_audit", "… from the state's audit"), ("deciding_panel", "… from a panel"), ("deciding_bench", "… the bench"),
         ("deciding_sampled", "… sampled"), ("confirmations_overturned", "sampled confirmations overturned"), ("lenient_bonds_kept", "bonds kept (1c)"),

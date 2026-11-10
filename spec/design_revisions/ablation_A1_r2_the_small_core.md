@@ -3,7 +3,7 @@
 **Status:** candidate configurations for evaluation, **not in force**. No version number, nothing consolidated, no rule moved. Built behind flags and labelled as release candidates are. Adoption of any arm is a design revision drafted after the runs.  
 **Date:** November 10, 2026 (r1 and r2) · **From:** the economy's reviewer · **Supersedes:** r1 of the same day.  
 **What r2 settles:** the implementer's review against the engine at `2417219ba` (notes §78): eight corrections accepted (D1–D3, A1.1, A1.2, A2.1, A2.2, A3.1, A4.1, with A4.2 and A5.1–A5.3 noted); the four items put to the reviewer ruled (D4, C1, A1.3, Q1); hypothesis 1 restated, because its second clause was wrong; two arms and two pinned cells added, on the arithmetic of §2.  
-**Addendum 1** (same day, after the payoff table) is at the end; nothing in §1–§9 is changed by it.  
+**Addenda 1 and 2** (same day: after the payoff table; after the scripted sweep and the panel check) are at the end. Nothing in §1–§9 is changed by them except §7.3, which gains one chain (B3).  
 **Rulebook in force:** 2.9.0 with the consolidated defaults.
 
 ## 1. The question
@@ -154,3 +154,45 @@ The two counts are built as counters before the ablation's chains start.
 1. **The order.** On the learned population the audit seat's blind-verdict rate follows the table's edge: arm 0 at its dial highest, arm 1c under it, the pin at 0.10 under that, the pin at 0.20 lowest.
 2. **Arm 1c's margin.** On own money this learner has turned an edge of +0.36 into 94–97 blind verdicts in 100 (2.7.0's audit seat) and one of +0.01 to +0.02 into 41–56 (2.9.0's). By those two points an edge of −0.13 gives about a quarter. The reviewer therefore expects **hypothesis 3's threshold (below 0.15) to be missed** — the seat between a quarter and arm 0's rate — **and hypothesis 2's to be met** at the pins. Hypothesis 3 is left as written and is refuted as written if so.
 3. **The refuter of §2, amended before any chain, and marked as an amendment.** §8 named arm 1c beside the pins before its margin was known. §2 is refuted if the order of (1) is broken beyond the seeds' spread, or if the pins leave the audit seat no better than arm 0's. Arm 1c leaving the seat above 0.15 and under arm 0's rate refutes hypothesis 3 and not §2: the lenience lowers the line and, at this dial, not far enough alone.
+
+---
+
+## Addendum 2 to revision 2 — after the scripted sweep and the panel check
+
+*November 10, 2026. Read at `80fbec3df` (§7.2: 1,100 scripted runs, notes §81), `5233e468d` (I45 scoped) and `daaadd578` (the panels by their question). No arm or flag is changed. Ruled here: the ruling's default; hypothesis 1 in two parts; one chain added to §7.3; arm 1c at the panels; one watch item for the detection sweep; I45. The sweep's figures are in the run record, "Ablation A1 — first reads".*
+
+### B1. The ruling's default: 0.8 stays for every cell of record
+
+The sweep puts 2.9.0's false penalties on the driver's ruling: at an accuracy of 1.0 they fall from 20 / 12 to 4 / 0 a run in every cell with no arm. The default is **not moved** — for the owed cells, for arm 0 and its pins, and for the learned chains:
+
+- it is the world every run on record was read in, run 42 — the chains' reference — included; it was swept at 1.5.0 and left; and the rulebook is frozen while the ablation runs;
+- 0.95 or 1.0 is not a default to move to: the driver's ruling is drawn, not seated, and an accurate ruling at no cost is free truth. What an accurate ruling costs is what arm 1 pays — 240 deciding verdicts and 940 of c_T a run.
+
+What changes is the reading. **False penalties are reported by source** — the ruling's error, two wrong peers, the deciding verdict's error — and the swept cells (0.95, 1.0) stay beside arm 0's. **The ruling seated only where it is sought today** (one troop's seat at 0.95, or the deciding verdict) is costed from the swept cells and the count of rulings a run, with no build, beside arm 1's 240 verdicts. Who rules, and at what cost, is for the design revision after the runs.
+
+### B2. Hypothesis 1, in two parts
+
+It stands on the scripted cells (false penalties −18 / −11 a run, of 20 / 12; the leak does not rise) and is recorded as two effects: **the judge's accuracy**, which carries most of it and needs no restructuring of the members' seats; and **the structure** — a panel that confirms or escalates — which removes the two-wrong-peers overturn, about 4 a run.
+
+### B3. §7.3 gains one chain: arm 2 on the learned population
+
+Hypothesis 5 says "every population", and §7.3 set no learned chain for it. Added after arm 1c's: **arm 2, the earnings predictor, careful start** (the stamper start if it holds). Arm 2 is the lighter of the two state arms — the orchestrator takes the audits and nothing else — and the one in which the members' panels still have to hold. Order of the learned chains: arm 0 pinned at 0.10; arm 4; arm 1c; arm 2. Every learned chain's note carries the system's overhead a task beside the leak, so that the pins (+2.4 / +4.5 a task on the scripted cells), the lenience, and the state's seats (−0.7 / −1.4) are read on both together.
+
+### B4. Arm 1c at the panels: the condition of A3 is not met
+
+- **Appeal panel.** Both blind verdicts are clearly under inspecting in every arm. The blind confirmation reads −5.03 ± 0.41 under arm 1 and −2.50 ± 0.17 under arm 1c: the lenience is worth half of its price, as A3 said, and it is still 2.5 under.
+- **Dispute panel, the blind rejection** (siding with the dispute): −5.09 ± 0.22 under arm 1c, halved from −10.13 and still 5 under.
+- **Dispute panel, the blind confirmation** of the standing approval: at inspecting under arm 0 (+0.13 ± 0.54) and arm 1c (+0.46 ± 0.25) alike; arm 1's −2.06 ± 2.26 is one seed's lump on 170 decisions. The lenience does not touch a confirmation; this is the world's composition (B5).
+
+**Arm 1c runs as built.** The drafting point of A3 stands for any later text.
+
+### B5. The dispute panel's confirmation — a watch item, stated before the detection sweep
+
+In run 24's world no customer disputes, so every dispute is a planted lie on a good plant and the standing approval is always right: at the dispute panel a blind confirmation is at inspecting **in every arm, arm 0 included**. Harmless there — no truthful dispute exists to be waved away. The suspicion it raises, to be tested and not built on: **where customers dispute rarely, a panel taught by planted lies confirms blind, two confirmations stand unchecked, and the rare truthful dispute is lost** — under arms 0, 1 and 2 alike, whose dispute panels are members'; not under arms 3 and 4. The planted lie prices siding with a dispute; it also fills the panel with cases on which confirming is right.
+
+- Read now, from data on disk: the dispute panel's blind-confirmation rate in run 42's finals.
+- Read in the implementer's step 4 (the customer's detection swept from 0 to 1) and in §7.4: truthful disputes won, by the customer's detection, on the learned population. **Expected:** far under the scripted figure at low detection under arms 0, 1 and 2; 99 in 100 under arms 3 and 4. **Refuted** if at a detection of 0.25 the learned dispute panel inspects and truthful disputes are won at the scripted rate.
+
+### B6. I45
+
+Scoped as the implementer has it: the deciding verdict's seats are never overturned; a troop's ordinary seat is overturned as today.

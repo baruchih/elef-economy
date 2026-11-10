@@ -51,6 +51,7 @@ REV_POP_KEYS = tuple(dict.fromkeys(POP_KEYS + ("P_t", "member_price_mean", "awar
                                              "plant_audits_waived", "confirmations_sampled", "confirmations_overturned", "lenient_bonds_kept", "troop_reviews", "troop_review_cost",
                                              "cost_of_truth", "cust_overhead_per_vested", "cust_overhead_share", "sys_overhead_per_vested", "sys_overhead_share",
                                              "vest_ticks_mean", "vest_ticks_p50", "vest_ticks_p90",
+                                             "troop_panel_seats", "seated_appeal_member", "seated_audit_member", "troop_audits", "seated_initial_member", "seated_initial_probationer",   # the seats by their holder (the reviewer's (a), November 10)
                                              "true_rejections_appealed", "true_rejections_overturned", "true_approvals_disputed", "true_approvals_overturned",
                                              # 2.9.0 §5: the planted wrong steps' readings
                                              "pa_posted", "pa_verdicts", "pa_closed", "pa_audited", "pa_confirmed", "pa_rejected", "pa_third", "pa_disputed",

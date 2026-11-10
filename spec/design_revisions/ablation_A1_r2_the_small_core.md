@@ -3,7 +3,7 @@
 **Status:** candidate configurations for evaluation, **not in force**. No version number, nothing consolidated, no rule moved. Built behind flags and labelled as release candidates are. Adoption of any arm is a design revision drafted after the runs.  
 **Date:** November 10, 2026 (r1 and r2) · **From:** the economy's reviewer · **Supersedes:** r1 of the same day.  
 **What r2 settles:** the implementer's review against the engine at `2417219ba` (notes §78): eight corrections accepted (D1–D3, A1.1, A1.2, A2.1, A2.2, A3.1, A4.1, with A4.2 and A5.1–A5.3 noted); the four items put to the reviewer ruled (D4, C1, A1.3, Q1); hypothesis 1 restated, because its second clause was wrong; two arms and two pinned cells added, on the arithmetic of §2.  
-**Addenda 1 and 2** (same day: after the payoff table; after the scripted sweep and the panel check) are at the end. Nothing in §1–§9 is changed by them except §7.3, which gains one chain (B3).  
+**Addenda 1–3** (same day: after the payoff table; after the scripted sweep and the panel check; B5 amended before its cells) are at the end. Nothing in §1–§9 is changed by them except §7.3, which gains one chain (B3).  
 **Rulebook in force:** 2.9.0 with the consolidated defaults.
 
 ## 1. The question
@@ -196,3 +196,46 @@ In run 24's world no customer disputes, so every dispute is a planted lie on a g
 ### B6. I45
 
 Scoped as the implementer has it: the deciding verdict's seats are never overturned; a troop's ordinary seat is overturned as today.
+
+---
+
+## Addendum 3 to revision 2 — B5 amended before its cells
+
+*November 10, 2026. Read at `8929a6304` (notes §82) and `a45201457` (notes §83). The frozen evaluation of B5's suspicion is running; the retrained cells are not. The expectation for the retrained cells is amended here, before them, because the panel's composition is now known. Marked as an amendment.*
+
+### C1. What is now known
+
+- **The first half of B5 is shown.** On run 42's population (the round-10 collection) the dispute panel confirms blind 0.787 ± 0.045 on 187 decisions, every one a planted lie, and inspects 0.17. No truthful dispute was lost there, because none exists there.
+- **The engine, confirmed by the implementer.** The truthful planted dispute follows the real requesters' rate on a wrongly approved bad plant and is zero where none disputes; the planted lie comes at the dial's floor. In the careful basin the dispute panel sees lies only.
+- **A second point.** The liar chain's panel is 28 in 100 truthful, half of those on bad plants; its population inspects 0.90 on both kinds and confirms blind 0.055 / 0.048. The two kinds are not told apart.
+
+### C2. The line at this seat, by §2
+
+A blind confirmation is punished on a truthful dispute whose truth is checked — surely on a plant, and through the partner's disagreement and the ruling otherwise. Inspecting is punished for its own mistakes, ε. So the panel looks where truthful disputes are a large enough share of what it sees, and the line is a truthful share of roughly one in twenty to one in eight, by the start and by the plants' share of the truthful disputes.
+
+### C3. The expectations, the second one amended
+
+With T the truthful disputes a run at a detection of 1 (the customers' and the plants') and L the lies a run, the truthful share at a detection d is d·T / (d·T + L). The floor's lies are few, so the share is large at any moderate detection.
+
+1. **The frozen evaluation (unchanged, running).** Run 42's policy at a detection of 0.1 and 0.25 wins under a half of the customers' truthful disputes — about three in ten — against more than nine in ten for the scripted careful population. Read on the customers' disputes; the plants' apart. Refuted above eight in ten.
+2. **The retrained cells (amended).** At a detection of 0.25 the retrained population's dispute panel **inspects** and truthful disputes are won near the scripted rate; at 0.1 probably the same. B5 expected the opposite at low detection and named 0.25 in its refuter; with the composition known, the reviewer expects that refuter to be met. A capture in a retrained population, if there is one, lies under the detection d* at which the truthful share falls to the line of C2. d* is stated from T and L before those cells run, and the sweep takes points on both sides of it.
+3. **What would then remain of B5.** A population taught where nobody disputes loses the first disputes it meets (1); and the customers' dispute is void where disputes are rarer than d*.
+
+The candidates of the run record stand for a later draft, none drafted: the planted challenge in both truths at the dial's rate; the sampled confirmation; the state's bench.
+
+### C4. The frozen evaluation, read (`26c8fd367`, notes §84)
+
+C1–C3 were written before this result reached the reviewer.
+
+- Run 42's policy, frozen, at a detection of 0.1 / 0.25 wins truthful disputes 0.72 / 0.70 (4.1 / 11.0 filed a run; 1.2 / 3.3 lost a run, with the court fee each), against the scripted careful population's 0.97 / 0.99 and the hand's 0.98 / 0.96.
+- **The expectation of C3.1 (under a half, about three in ten) is missed on this figure; its refuter (above eight in ten) is not met.** The trained population loses about three truthful disputes in ten where a careful one loses one to three in a hundred.
+- **One split is open, and the expectation was about the customers' disputes:** how many of those filed are the customers' and how many the plants', and whether a plant's truthful dispute is settled by the panel's verdicts or by its truth. By the standing false approvals (about 16 a run) the customers would file about 1.6 / 4.1 of the 4.1 / 11.0; if the rest are the plants' and are settled by truth, the losses are all the customers' and their rate is about a quarter. Recorded when the split is read.
+- At these detections the customers' disputes hardly move the standing false approvals (16.3 a run at none; 14.7 / 15.4), still +7.6 / +8.8 over the hand's, and the audit seat is blind 0.52–0.54. The leak remains the audit seat's.
+- The result gives T of C3: about 42 truthful disputes a run at a detection of 1. L, the floor's lies a run, places d*.
+
+### C5. The split, d*, and what the next read separates (the implementer's reply to C4)
+
+- **The split.** The driver counts the plants' disputes apart: the 4.1 / 11.0 filed and the 2.95 / 7.7 won are the customers' alone, and a plant's truthful dispute settles by its truth, never by the panel's verdicts. The customers lose 28–30 truthful disputes in 100. The alternative reading of C4 (about a quarter won) is withdrawn. **The expectation of C3.1 is missed as stated: seven in ten won, not three.** Its refuter (above eight in ten) is not met.
+- **d\*.** L is the floor, about 10 lies a run (two a period, five periods); T about 42. d* is 0.012 at a line of one in twenty and 0.034 at one in eight. The truthful share the panel saw in the frozen cells was about 0.42 at 0.1 and 0.62 at 0.25.
+- **The retrained cells, ordered by what they decide.** After the ablation's chains: run 42's final policy as the start — its dispute panel is the captured start — at a detection of 0.25, then 0.1, read beside the frozen figures. One point under d* (0.01) last, and only if the machine is free: at that rate a customer files fewer than one dispute in two runs, and the loss is small whatever the panel does. This replaces "points on both sides" of C3.2.
+- **Why seven in ten and not three — what the next read separates.** The reviewer's three in ten assumed two members' seats at the round-10 collection's rate. Seven in ten needs each seat to confirm a truthful dispute about 0.44 of the time. Three ways that can be: the orchestrator's inspectors hold part of those seats; the members confirm blind far more on the planted lies than on the customers' disputes in the same cell — a tell; or the final policy's own rate is lower than the collection's. The panel's actions by the dispute's truth, its owner and the seat's holder separate them. **If it is the second, the tell is found before anything else is read on the panels.**

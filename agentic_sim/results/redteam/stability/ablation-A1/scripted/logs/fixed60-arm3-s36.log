@@ -1,0 +1,27 @@
+Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "/Users/baruchi-admin/projects/elef-economy/agentic_sim/drivers/stamping.py", line 3770, in <module>
+    sys.exit(main())
+             ~~~~^^
+  File "/Users/baruchi-admin/projects/elef-economy/agentic_sim/drivers/stamping.py", line 3703, in main
+    run.tick(t)
+    ~~~~~~~~^^^
+  File "/Users/baruchi-admin/projects/elef-economy/agentic_sim/drivers/stamping.py", line 2576, in tick
+    w.advance(t)
+    ~~~~~~~~~^^^
+  File "/Users/baruchi-admin/projects/elef-economy/agentic_sim/drivers/view.py", line 154, in advance
+    self._w.advance(to_t)
+    ~~~~~~~~~~~~~~~^^^^^^
+  File "/Users/baruchi-admin/projects/elef-economy/agentic_sim/sim/engine.py", line 2734, in advance
+    check_tick(self)
+    ~~~~~~~~~~^^^^^^
+  File "/Users/baruchi-admin/projects/elef-economy/agentic_sim/sim/invariants.py", line 1723, in check_tick
+    I45_the_trusted_ruling(w, cases)
+    ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^
+  File "/Users/baruchi-admin/projects/elef-economy/agentic_sim/sim/invariants.py", line 833, in I45_the_trusted_ruling
+    _fail(f"I45 {c.id}: the orchestrator's seat {rid} overturned by the deciding verdict")
+    ~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/baruchi-admin/projects/elef-economy/agentic_sim/sim/invariants.py", line 43, in _fail
+    raise InvariantError(msg)
+sim.invariants.InvariantError: I45 q1544: the orchestrator's seat r3056 overturned by the deciding verdict

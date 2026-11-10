@@ -1,5 +1,5 @@
 """Ablation brief A1 r2 §7.2 — the scripted populations at seeds 21–40 under nine configurations: arm 0 (2.9.0 as in force), arm 0 with π^A
-pinned at 0.10 and 0.20, arms 1, 1b (r 0.25), 1c, 2, 3, 4. Reads the final row of every run under runs/ (named <cell>-<arm>-s<seed>) and
+pinned at 0.10 and 0.20, arms 1, 1b (r 0.25), 1c, 2, 3, 4 — and the step-3 default swept beside them, the ruling's accuracy 0.95 / 1.0 on arm 0. Reads the final row of every run under runs/ (named <cell>-<arm>-s<seed>) and
 writes finals.md: per cell the levels under each arm (mean ± SE over seeds) and the paired differences arm − arm 0 on the identical seeds, over
 the brief's readings — the leak (standing false approvals; over vested roots; over bad deliveries), the false penalties by seat, the deciding
 verdict's counts, the orchestrator's seats and its unreimbursed cost, the challenges by their truth, the two overhead views, the time to
@@ -11,8 +11,8 @@ out = sys.argv[2] if len(sys.argv) > 2 else os.path.join(os.path.dirname(os.path
 CELLS = ["careful", "entry60", "fixed60", "disputes", "liars"]
 LABEL = {"careful": "all-careful with arrivals", "entry60": "run 24's entry cell (60/40, the entry pool of 20)", "fixed60": "the fixed population's 60/40",
          "disputes": "the entry cell with truthful disputes", "liars": "the entry cell with liars at 0.1 (truthful disputes)"}
-ARMS = ["arm0", "arm0-pa10", "arm0-pa20", "arm1", "arm1b", "arm1c", "arm2", "arm3", "arm4"]
-ARM_LABEL = {"arm0": "arm 0 (2.9.0)", "arm0-pa10": "arm 0, π^A 0.10", "arm0-pa20": "arm 0, π^A 0.20", "arm1": "arm 1 trusted ruling", "arm1b": "arm 1b sampled 0.25",
+ARMS = ["arm0", "arm0-pa10", "arm0-pa20", "arm0-r95", "arm0-r100", "arm1", "arm1b", "arm1c", "arm2", "arm3", "arm4"]
+ARM_LABEL = {"arm0": "arm 0 (2.9.0)", "arm0-pa10": "arm 0, π^A 0.10", "arm0-pa20": "arm 0, π^A 0.20", "arm0-r95": "arm 0, ruling 0.95", "arm0-r100": "arm 0, ruling 1.0", "arm1": "arm 1 trusted ruling", "arm1b": "arm 1b sampled 0.25",
              "arm1c": "arm 1c cheaper false alarm", "arm2": "arm 2 state's audit", "arm3": "arm 3 state's bench", "arm4": "arm 4 small core"}
 COLS = [("false_approvals", "standing false approvals"), ("leak_paid", "leak over vested roots"), ("leak_bad", "leak over bad deliveries"), ("bad_deliveries", "bad deliveries"),
         ("vested", "vested"), ("false_rejections", "standing false rejections"),

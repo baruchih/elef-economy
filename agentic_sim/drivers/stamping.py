@@ -443,6 +443,7 @@ class Stamping:
         self.appeal_pos_window: list[tuple[int, int]] = []          #   every real root appeal's filing offset from its period's start
         self.dispute_pos_window: list[tuple[int, int]] = []
         self.lie_floor_ticks: dict = {"appeal": [], "dispute": []}
+        self.vest_ticks: list = []                                   # A1 §6: submission → vesting, real roots
         self.lies_filed_period: dict = {"appeal": 0, "dispute": 0}
         self._lie_period: int = -1
         self.appeal_window: list[tuple[int, int]] = []
@@ -514,6 +515,8 @@ class Stamping:
         self.c = {"posted": 0, "awarded": 0, "vested": 0, "final_n": 0, "false_approvals": 0, "false_rejections": 0,
                   "bad_deliveries": 0, "false_penalty_initial": 0, "false_penalty_audit": 0, "false_penalty_appeal": 0, "false_penalty_bond_kept": 0,
                   "deciding_answers": 0,                                     # A1 r2 (not in force): the leak's denominator, the false penalties, the seats
+                  "troop_review_cost": 0.0, "plant_price_sum": 0.0, "cust_pots_consumed": 0.0, "cust_fee": 0.0, "cust_court_net": 0.0, "cust_rebates": 0.0,
+                  "vested_price_sum": 0.0, "vested_real_roots": 0,          # A1 §6: the two overhead views' parts
                   "audits_rolled": 0, "audits_assigned": 0, "audit_unassignable_ticks": 0, "audits_lapsed": 0,
                   "challenges": 0, "rulings": 0, "rulings_wrong": 0, "reviews_unassignable_ticks": 0,
                   "appeals_filed": 0, "appeals_unfunded": 0, "appeals_won": 0, "appeals_lost": 0,
@@ -2618,6 +2621,7 @@ class Stamping:
                 # the plant's record is read by the orchestrator's road (plant_record), never through case()
                 c = w.plant_record(cid)
                 if c.plant_outcome is not None and c.tree_closed:
+                    self.c["plant_price_sum"] = round(self.c["plant_price_sum"] + (c.B or 0.0), 6)   # A1 §6: the plant's own awarded price, its shadow cost
                     initial = [w.review(x) for x in c.reviews if w.review(x).role == "initial"]
                     r = initial[0] if initial else (w.review(c.reviews[-1]) if c.reviews else None)
                     if c.t_verdict is not None:
@@ -2759,6 +2763,10 @@ class Stamping:
                         self.c["learner_forfeited"] = round(self.c["learner_forfeited"] + (c.G_award if c.G_award is not None else c.G), 6)
                 if c.state == "VESTED":
                     self.c["vested"] += 1
+                    if not task.plant and c.is_root and c.t_submit is not None:
+                        self.vest_ticks.append(w.t - c.t_submit)             # A1 §6: submission → vesting
+                        self.c["vested_price_sum"] = round(self.c["vested_price_sum"] + (c.B or 0.0), 6)
+                        self.c["vested_real_roots"] += 1
                     if w.is_troop(c.actor):
                         self.c["troop_delivered_vested"] += 1
                     if not task.fulfilled:
@@ -2823,6 +2831,16 @@ class Stamping:
                 # root cases only in this run: the tree is the case, and it closes with it
                 if c.tree_closed:
                     self.c["trees_closed"] += 1
+                    # A1 §6: the customer's cost beyond the price (pots consumed, the service fee, court fees net of refunds, less rebates) and the
+                    # system's verification consumption (the orchestrator's seats at c_T, each plant's own awarded price as its shadow cost)
+                    if task.plant:
+                        self.c["plant_price_sum"] = round(self.c["plant_price_sum"] + (c.B or 0.0), 6)
+                    elif c.is_root:
+                        self.c["cust_pots_consumed"] = round(self.c["cust_pots_consumed"] + (c.phi_E + c.phi_F) - (c.allowance_refunded + c.pot_refunded), 6)
+                        self.c["cust_fee"] = round(self.c["cust_fee"] + self.p.omega_rate * (c.m_post or 1.0) * (c.B or 0.0), 6)
+                        self.c["cust_court_net"] = round(self.c["cust_court_net"] + ((c.D - c.court_fee_reimbursed) if c.court_fee_paid_by == c.requester else 0.0), 6)
+                        self.c["cust_rebates"] = round(self.c["cust_rebates"] + c.rebate_paid, 6)
+                    self.c["troop_review_cost"] = round(self.c["troop_review_cost"] + sum(w.review(x).cost for x in c.reviews if w.is_troop(w.review(x).reviewer)), 6)
                     self.c["omega_unrecovered_advances"] = round(self.c["omega_unrecovered_advances"] + c.omega_advance, 6)
                     self.c["allowance_refunded"] = round(self.c["allowance_refunded"] + c.allowance_refunded, 6)
                     self.c["pot_refunded"] = round(self.c["pot_refunded"] + c.pot_refunded, 6)
@@ -3262,6 +3280,15 @@ class Stamping:
         row.update({"pfa_route_upheld": len(self.pfa_upheld_by), "pfa_route_overturned": self.pfa_overturned,
                     "pfa_route_other": self.pfa_other, "pfa_kind_troop": kinds["troop"], "pfa_kind_standing": kinds["standing"],
                     "pfa_kind_lag": kinds["lag"], "pfa_kind_readmitted": kinds["readmitted"]})
+        # A1 §6: the two overhead views per delivered task and as a share of the price, and the time from submission to vesting
+        nv = max(1, self.c["vested_real_roots"]); price = max(1e-9, self.c["vested_price_sum"])
+        cust = self.c["cust_pots_consumed"] + self.c["cust_fee"] + self.c["cust_court_net"] - self.c["cust_rebates"]
+        sysv = self.c["care_cost_real"] + self.c["care_cost_plant"] + self.c["troop_review_cost"] + float(row.get("cost_of_truth", 0.0) or 0.0) + self.c["plant_price_sum"]
+        vt = sorted(self.vest_ticks)
+        row.update({"cust_overhead_per_vested": round(cust / nv, 4), "cust_overhead_share": round(cust / price, 4),
+                    "sys_overhead_per_vested": round(sysv / nv, 4), "sys_overhead_share": round(sysv / price, 4),
+                    "vest_ticks_mean": round(sum(vt) / len(vt), 3) if vt else "", "vest_ticks_p50": vt[len(vt) // 2] if vt else "",
+                    "vest_ticks_p90": vt[min(len(vt) - 1, int(0.9 * len(vt)))] if vt else ""})
         return row
 
 

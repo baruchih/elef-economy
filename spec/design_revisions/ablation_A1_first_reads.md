@@ -117,8 +117,29 @@ Panels pooled are blind 0.17–0.21 on real cases; the audit seat 0.52–0.54.
   - *No tell.* On the dispute panel the members confirm blind the customers' truthful disputes 0.62 ± 0.07 / 0.69 ± 0.06 and the planted lies 0.61 ± 0.06 / 0.69 ± 0.04. They do not tell them apart; the disguise holds at this seat.
   - *The final policy's own rate* over every kind is 0.65 / 0.70, under the collection's 0.79.
   - Per seat, 0.61 × 0.62 + 0.39 × 0.05 ≈ 0.40 gives a lost dispute at about 0.26, against the measured 0.28 / 0.30.
-- **Stated as it is: the members' dispute panel does not look, and the customers' seven in ten is the orchestrator's seats.** By the reviewer's arithmetic from these rates (the direct read by the panel's make-up is asked for): two members' seats win about a half of truthful disputes, one seat of each about 84 in 100, two of the orchestrator's 98. The expectation of three in ten was wrong for the outcome because it left the orchestrator's seats out; for the members' own behaviour it was close.
-- **A correction on the implementer's side, caught before any read** (`73231d019`): the online driver fits afresh unless started from the frozen model; the first collections of this evaluation were discarded for it. Confirmation asked that no read on record was taken that way where a frozen policy was meant.
+- **Stated as it is: the members' dispute panel does not look, and the customers' seven in ten is the orchestrator's seats.** The direct read by the panel's make-up (notes §86, `235ed2b96`; the customers' truthful disputes, run 42's policy, detection 0.1 / 0.25):
+
+  | Panel | Won |
+  |---|---|
+  | Two members | 0.44 (34 disputes) / 0.23 (64) |
+  | One member, one of the orchestrator's | 0.89 / 0.82 |
+  | Two of the orchestrator's | 1.00 / 0.98 |
+  | The scripted careful population, any make-up | 0.97–1.00 |
+
+  The expectation of three in ten was wrong for the outcome because it left the orchestrator's seats out; for panels of two members it is what was measured (about three in ten over the 98 disputes).
+- **Two members are two seats that mostly do not look — the reviewer's first reading corrected (notes §87, `6d56ec8f0`).** The reviewer read the two-member figure at 0.25 (0.23 won, against about 0.43 for independent seats at 0.69) as the one shared policy confirming together, and asked for the joint. The joint says otherwise:
+
+  | Two-member panels, the customers' truthful disputes | Detection 0.1 (34 panels) | Detection 0.25 (64 panels) |
+  |---|---|---|
+  | The single seat confirms (seeds 21–40) | 0.71 | 0.83 |
+  | Both confirm, observed against the product | 0.500 against 0.498 | 0.75 against 0.69 |
+  | Split | | 0.16 against 0.29 |
+  | Both reject | | 0.094 against 0.030 |
+
+  The seats are independent at 0.1 and mildly correlated at 0.25. Independent seats at 0.83 win about 0.26 against the 0.23 observed: **the seat's own rate carries the loss, the correlation very little.** The 0.62 / 0.69 of notes §85 was the blind rate on seeds 1–20 under exploration; without it the final policy's seat confirms as often as the round-10 collection's 0.79. So the third of the three ways named before the read falls away as well: the customers' seven in ten is the orchestrator's seats alone. The correlation at 0.25 is recorded as mild and unexplained — 64 panels over 20 seeds cannot separate a shared choice on the same case from seeds with different rates — and is left to the implementer's step 5.
+- **Why the orchestrator is on the panel: the tier (notes §86).** Of 263 / 276 unfilled panel-seat ticks a run, 262.5 / 275.4 had a free member kept off the panel tier and 0.5 / 0.1 had none free. The learned population has 92 panel-ineligible member-periods a run against the careful population's 63 (the undetermined); the 29 more are its members' records — the audit seat's half-stamp on bad plants. **2.9.0's price on the audit seat does not deter this learner, which cannot perceive eligibility; it filters.** Members whose records fail lose their panel seats, the orchestrator takes them, and that — not the members' care — holds the customers' disputes at seven in ten.
+- **Readings for the design revision, no arm:** one seat of the orchestrator's on a panel is worth most of two (0.82–0.89 against 0.98–1.00); and the careful population's 27 in 100 is the tier's own cost — the undetermined kept off the panel in a population that fails no plant.
+- **A correction on the implementer's side, caught before any read** (`73231d019`): the online driver fits afresh unless started from the frozen model; the first collections of this evaluation were discarded for it. **Confirmed by the implementer** that no read on record was taken that way where a frozen policy was meant: the start option has been in the online driver since October 20, every final is `run_q` loading the model directly, and the rounds are meant to fit. **One provenance gap, stated:** the probe collections of notes §53 and §57 were made by a script that loaded the round-10 model as the policy, by the notes' description; the script was not kept in the repo. Nothing is re-made for them: both are from the shared-purse cells, and the owed §8.4 re-reads the probe on own-name credit. **From here every collection on record is made by a script kept in the repo, and its note names the script and the commit.**
 - **The retrained cells**, after the ablation's chains: run 42's final policy as the start, at a detection of 0.25, then 0.1; one point under d* (0.01) last and only if the machine is free.
 - **What the same cells say of the leak.** At these detections the customers' disputes hardly move the bad work that stands, and the trained population still leaves about twice the hand's. The leak remains the audit seat's; the dispute does not make up for it.
 

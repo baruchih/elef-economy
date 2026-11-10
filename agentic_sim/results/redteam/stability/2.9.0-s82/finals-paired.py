@@ -14,7 +14,8 @@ BASE={"careful-A":"careful","liars-B":"liars"}   # the ablations' 2.8.0 side is 
 BASECELL=dict(x.split(":") for x in os.environ.get("BASECELL","").split(",") if x)   # November 10, 2026: the base cell by name (e.g. pifloor:careful — the owed pinned cells against run 42)
 def load(cell, suf, learner, side="290"):
     if side=="base": cell=BASECELL.get(cell, BASE.get(cell,cell) if BASESUF=="-280" else cell)
-    p=f"{R}/learned-rev-{cell}{suf}/{learner}/eval/{FINAL if side=='290' else BASEFINAL}/eval.json"
+    p=f"{R}/learned-rev-{cell}{suf}/{learner}/eval/{FINAL if side=='290' else BASEFINAL}/eval.json" if "/" not in cell else \
+      f"{R}/{cell}/{learner}/eval/{FINAL if side=='290' else BASEFINAL}/eval.json"   # November 10, 2026: a cell given as a path under results/redteam/stability (the ablation chains, ablation-A1/learned/<arm>)
     try: return json.load(open(p))
     except FileNotFoundError: return None
 def eps(d,pol): return {e["seed"]:e for e in d["episodes"][pol]}

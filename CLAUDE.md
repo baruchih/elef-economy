@@ -75,7 +75,7 @@ and what is proposed next.
 spec/agentic_economics_loop_spec_v2_9_0.md   the text in force (standalone; Appendix A defaults, E errata incl. 2.6.1 and 2.6.2, F–V design revisions 1–17 and the rulings)
 spec/design_revisions/                       accepted design revisions, verbatim (dr1: two pots; dr2: the loop's own clock; dr3:
                                              inspection is membership; dr4: the orchestrator's troops; dr5: the reserve is sized to
-                                             the need; dr6: auto-scale; dr7: the state's earnings; dr8: the price of work; dr9: the bank; dr10: the rebate from income; dr11: the supply side; dr12: the state's reservation; dr13: the missed child; dr14: the plant's disguise; dr15: the arrival loan; dr16: the plants reach every seat; dr17: the plant takes the wrong step), and the implementer's reviews of dr2–dr17's candidates
+                                             the need; dr6: auto-scale; dr7: the state's earnings; dr8: the price of work; dr9: the bank; dr10: the rebate from income; dr11: the supply side; dr12: the state's reservation; dr13: the missed child; dr14: the plant's disguise; dr15: the arrival loan; dr16: the plants reach every seat; dr17: the plant takes the wrong step), and the implementer's reviews of dr2–dr17's candidates; ablation brief A1 (the small core's arms, November 10, 2026 — candidate configurations, not in force) with the implementer's review beside it
 spec/history/                                v0.1 … v2.8.0 — superseded, kept for provenance only
 reviews/                                     R01–R10, one external review per version, with the reviewer's notes
 agentic_sim/                                 the engine, 42 invariants, 34 test files, runner, drivers, results
@@ -84,6 +84,7 @@ agentic_sim/redteam/                         the learned red team (docs/red_team
 docs/line_map_economic_loop_v1_0_1.txt       text export of the _line map of the loop (the live map is the source)
 docs/economy_2x_account.md                   the reviewer's consolidated account of 2.0.0 → 2.5.0 and runs 12–19 (verbatim), with the implementer's review beside it
 docs/red_team_brief.md                       the learned red team's brief (verbatim; LeWorldModel on the public view), with the implementer's review and build plan beside it
+docs/economy_review_2026-11-10_a_step_back.md  the economy reviewer's step-back review of the whole (November 10, 2026; an opinion, not a ruling); the plan it led to is notes §78
 HANDOFF.md                                   status, history table, open questions, proposed next step
 ```
 

@@ -1,6 +1,6 @@
 # Ablation A1 — first reads: the payoff table, the scripted sweep and the panels
 
-*November 10, 2026. The economy's reviewer (Claude), for Baruchi, the implementer and the record. Read from the implementer's summaries of notes §80–§81 and `payoff.md`, at `ce0694775` (the payoff table), `e781edc0f` (both blind edges, every arm and seat), `80fbec3df` (§7.2, 1,100 scripted runs), `5233e468d` (I45 scoped) and `daaadd578` (the panels by their question). The notes themselves have not reached this session: every figure below is the summaries', and the tables behind them are the implementer's. Rulebook in force: 2.9.0 with the consolidated defaults. The arms are flags under brief A1 revision 2 with addenda 1 and 2; nothing here is in force.*
+*November 10, 2026. The economy's reviewer (Claude), for Baruchi, the implementer and the record. Read from the implementer's summaries of notes §80–§81 and `payoff.md`, at `ce0694775` (the payoff table), `e781edc0f` (both blind edges, every arm and seat), `80fbec3df` (§7.2, 1,100 scripted runs), `5233e468d` (I45 scoped), `daaadd578` (the panels by their question) and `8929a6304` (notes §82: the rulings counted, the dispute panel on run 42's population). The notes themselves have not reached this session: every figure below is the summaries', and the tables behind them are the implementer's. Rulebook in force: 2.9.0 with the consolidated defaults. The arms are flags under brief A1 revision 2 with addenda 1 and 2; nothing here is in force.*
 
 ## In plain words
 
@@ -43,6 +43,8 @@ Five scripted populations, paired against arm 0; 1,100 runs with the swept defau
 - Arm 1's fall in false penalties is mostly the judge's accuracy; its structure (a panel confirms or escalates) removes the two-wrong-peers overturn, about 4 a run.
 - Arm 3 against arm 1: the members' panel is a filter in front of the deciding verdict worth a quarter of a paid lie a run.
 - Three runs stopped on I45 as first written (a troop's ordinary seat overturned by the deciding verdict, which is today's rule); scoped and re-run.
+- **The rulings sought under arm 0** (notes §82): about 100 a run by cell (80 in the fixed 60/40), a fifth of them wrong.
+- **Derived by the reviewer from these counts, not measured:** seating the ruling only where it is sought today takes about 100 deciding verdicts a run — about 390 of c_T at arm 1's own rate (940 for 240) — and removes about 19 of the 20 wrong rulings. Arm 1's further 140 verdicts, about 550 of c_T, buy the two-wrong-peers overturn (about 4 a run) and a panel that cannot pay a lie on its own. For the design revision after the runs; no arm.
 
 ## 3. The panels under arm 1c
 
@@ -77,12 +79,28 @@ The lenience halves the price of a blind confirmation at the appeal panel, as ad
 4. **Expectations stated before the chains**: the audit seat's blind-verdict rate follows the table's edge across cells; arm 1c gives about a quarter, not under 0.15; the refuter of §2 amended and marked.
 5. **I45** scoped as the implementer has it.
 
-## 6. A suspicion to attack, not yet a finding
+## 6. The dispute panel does not look — the first half of a suspicion, shown; the second half to be tested
 
-At the dispute panel, a blind confirmation of the standing approval is at inspecting under 2.9.0 in a world with no real disputes: the planted lie prices siding with a dispute, and also fills the panel with cases on which confirming is right. Where customers dispute rarely, a panel taught this way may confirm blind and lose the rare truthful dispute, under every arm that leaves the dispute panel to members (0, 1, 1b, 1c, 2). To be read from run 42's finals now (the dispute panel's blind-confirmation rate) and tested in the customer's detection sweep.
+**The suspicion** (stated in addendum 2, B5, before the number was read): at the dispute panel, a blind confirmation of the standing approval is at inspecting under 2.9.0 in a world with no real disputes. The planted lie prices siding with a dispute, and also fills the panel with cases on which confirming is right. Where customers dispute rarely, a panel taught this way would confirm blind and lose the rare truthful dispute, under every arm that leaves the dispute panel to members (0, 1, 1b, 1c, 2).
+
+**What is shown** (notes §82, the round-10 collection; the final policy's own collection follows with §8.4):
+
+| Population | Dispute-panel decisions | Blind confirmation | Inspecting |
+|---|---|---|---|
+| Run 42's (the careful basin, 2.9.0, own money) | 187, every one a planted lie | 0.787 ± 0.045 | 0.17 (the cell's ε floor 0.07) |
+| The liar chain's | 7,541 | 0.050 ± 0.004 | 0.91 |
+
+**What it is and is not.** No truthful dispute was lost in run 42's world, because none exists there. What is shown is that the careful basin's dispute panel does not look.
+
+**The reviewer's reading, for the implementer to correct against the engine:** 2.8.0's truthful planted dispute arrives only when a member has wrongly approved a bad plant — at a rate the population controls, and which a careful population drives to nothing — while 2.9.0's planted lie arrives at the dial's rate. So in the careful basin that panel sees lies only. It is the record's central finding once more, on one side of one seat: a seat is honest only where truth it cannot anticipate arrives at a rate the population does not control, and here it arrives against one of the two blind verdicts only.
+
+**The test, nothing built on it.** When the customer's detection can be set between 0 and 1, the first cells are evaluations: run 42's final policy, frozen, at a detection of 0.1 and 0.25, against the scripted careful population in the same worlds. **Expected**, from the collection's rates: truthful disputes won under a half — about three in ten (both seats confirm 0.64 of the time; a split goes to the 0.8 ruling) — against more than nine in ten for the scripted careful population; each lost dispute leaves the bad work paid and costs the customer the court fee. **Refuted** if the frozen population wins more than eight in ten. The retrained cells from both starts follow. Arm 2's learned chain reads its dispute panel the same way; arms 3 and 4 have none to read.
+
+**Candidates for a later draft, none drafted:** the planted challenge in both truths at the dial's rate; the sampled confirmation; the state's bench.
 
 ## 7. Open
 
 - The learned chains: arm 0 pinned at 0.10; arm 4; arm 1c; arm 2 — and the owed cells of 2.9.0.
-- From notes §81 when they reach this session: hypothesis 4's split by cell; the bond sweep (×2, ×4), expected to change nothing; c_T and Ω's net by arm; the count of rulings a run.
+- The dispute panel: the final policy's own collection; the liar chain's decisions by the dispute's truth; the frozen evaluation at a detection of 0.1 and 0.25.
+- From notes §81 when they reach this session: hypothesis 4's split by cell; the bond sweep (×2, ×4), expected to change nothing; c_T and Ω's net by arm.
 - For the record's account: 2.9.0's penalties on correct verdicts are mostly the ruling's declared error of one in five, an Appendix A default and not the rulebook's structure.

@@ -222,7 +222,25 @@ class Params:
     lie_floor: int = 2          # planted lies a period of each kind when the trailing count is zero or the product under two
     lie_delay_default: int = 0  # the planted lie's filing delay where the real window of the kind is empty
 
+    # Ablation brief A1, revision 2 (November 10, 2026; notes §79): the small core's arms behind flags — candidate configurations for
+    # evaluation, NOT in force; all off is 2.9.0 as in force. Adoption of any arm is a design revision drafted after the runs.
+    trusted_ruling: bool = False        # arm 1: a disagreeing audit or a non-confirming member panel on a member's delivery escalates to the deciding
+                                        # verdict (two state seats, a third on a split); a member panel confirms or escalates, never overturns; the
+                                        # driver's ruling is never sought on a member's delivery; a member's review is overturned only against the
+                                        # deciding verdict or a plant's truth. The orchestrator's own deliveries are judged as 2.9.0 has it (A1.3).
+    sampled_confirmation: float = 0.0   # arm 1b: a confirming member audit or panel on a member's delivery sampled to the deciding verdict at this rate
+    lenient_false_alarm: bool = False   # arm 1c: an overruled rejection at an audit or panel seat forfeits its fee and keeps its bond
+    state_audit: bool = False           # arm 2: every audit obligation on a member's delivery is the orchestrator's seat in the tick's pass; a plant's
+                                        # audit obligation discharged with no seat; `planted_approval` off (its base is zero by construction)
+    state_bench: bool = False           # arm 3: an appeal or dispute on a member's delivery is decided by the deciding verdict at the filing's pass;
+                                        # no member panel; plants file no challenge (the truthful ones included)
+
     def __post_init__(self):
+        # A1: the arms are built on arm 1; the state's audit turns the planted approval off
+        if (self.sampled_confirmation > 0 or self.lenient_false_alarm or self.state_audit or self.state_bench) and not self.trusted_ruling:
+            raise ValueError("Params: A1's arms 1b, 1c, 2, 3 and 4 are built on the trusted ruling (trusted_ruling=True)")
+        if self.state_audit:
+            self.planted_approval = False
         # 2.4.0 §2.3 (I33): the arrival float exists so that an arrival can post the reviewer's bond — a constraint on the parameters,
         # nominal, the index cancelling. A parameter set with F0 < G_V is refused at construction, not at arrival.
         if self.supply and self.bank and self.floating and self.F0 + 1e-9 < self.G_V:

@@ -237,6 +237,12 @@ class Public:
                 "active_reviews": sum(1 for t in w.troops.values() if t["kind"] == "review" and t["t_release"] is None),
                 "active_deliveries": sum(1 for t in w.troops.values() if t["kind"] == "delivery" and t["t_release"] is None),
                 "summons_reviews": w.troop_summons_reviews, "summons_deliveries": w.troop_summons_deliveries,
+                # A1 (not in force): the deciding verdict and the arms' readings
+                "deciding_opened": w.deciding_opened, "deciding_seats": w.deciding_seats, "deciding_splits": w.deciding_splits,
+                "deciding_by_reason": dict(w.deciding_by_reason), "deciding_outcomes": dict(w.deciding_outcomes),
+                "state_cost_unreimbursed": w.state_cost_unreimbursed, "state_audit_seats": w.state_audit_seats,
+                "plant_audits_waived": w.plant_audits_waived, "confirmations_sampled": w.confirmations_sampled,
+                "confirmations_overturned": w.confirmations_overturned, "lenient_bonds_kept": w.lenient_bonds_kept,
                 "shortfall_seats": w.troop_shortfall_seats, "shortfall_awards": w.troop_shortfall_awards,
                 "held_ticks": w.troop_held_ticks, "troop_ticks_reviews": w.troop_ticks_reviews,
                 "troop_ticks_deliveries": w.troop_ticks_deliveries,

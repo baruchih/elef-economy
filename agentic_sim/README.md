@@ -153,7 +153,7 @@ tests/test_v28.py                   design revision 16 (2.8.0): the plants reach
                                     own verdict on a plant's seat past w_R with no troop and no fee; the flag off = 2.7.0 and the kept refusals; I20's and
                                     I42's catches — 10
 
-Run: `python3 run_tests.py` — 374 pass, 0 fail, 32 expected failures, each with a stated reason (one original,
+Run: `python3 run_tests.py` — 390 pass, 0 fail, 32 expected failures, each with a stated reason (one original,
 four superseded by the view contract, nineteen on the withdrawn reopening path, one superseded by design
 revision 1, one by design revision 2, two by design revisions 10 and 11 — a service fee pooled until the close and the pool's advance move the reimbursement figures they pin — two by design revision 11 — the parent's pots make three children unaffordable on a float of 50, and the root's allowance is no longer exhausted by a nested review — two by design revision 8 — the backing's v_t and the pay-in refused at posting; the three 1.x figures 2.0.0's moving index broke pass again under 2.1.0's index per period). With pytest: `python3 -m pytest tests -q` reports 259 passed, 31 xfailed; the
 runner expands pytest parametrization as pytest does, including multi-argument and stacked marks. (Spec Appendix D
@@ -924,3 +924,29 @@ w.advance(4); w.submit(q); r = w.assign_initial(q, "C")
 w.advance(6); w.complete_review(r, "F", 3)
 w.advance(17); print(w.cases[q].state, w.cases[q].grade, w.W("A") - 50)
 ```
+
+
+## Ablation brief A1 — the small core's arms behind flags (November 10, 2026; candidate configurations, NOT in force)
+
+The economy reviewer's brief (`spec/design_revisions/ablation_A1_r2_the_small_core.md`, with the implementer's review of r1 beside it) sets the
+orchestrator's seat beside the plants on what leaks and what it costs. Every flag off is 2.9.0 as in force (the goldens unmoved); adoption of
+any arm is a design revision drafted after the runs. **The deciding verdict** (§3): two seats of the orchestrator's own inspectors on the troop
+seat's road — `_summon_deciding_seat`, role `deciding`, seated in the tick's summons pass (`_seat_deciding`) without the w_R wait or the
+free-member test, answered by the driver at the next tick's reviews as every troop's seat is, a third seat on a split (`_deciding_result`);
+its seats take no fee (D4), their c_T from the root's allowance while it lasts and the rest the orchestrator's own (`Case.state_unreimbursed`,
+`World.state_cost_unreimbursed`; no advance, no claim); never overturned; never on a plant or the orchestrator's own delivery (A1.3:
+`_member_delivery`). I8 admits the seats (`_deciding_positions`). `Params.trusted_ruling` (arm 1): a disagreeing audit opens the challenge
+record as today and escalates (`challenge["escalated"]`, `_open_deciding`) — no member's third seat, `assign_appeal` refused, `rule` refused on a
+member's delivery; a member panel confirms or escalates and never overturns on its own word (`_maybe_settle_challenge`); the deciding verdict
+settles it through `_settle_challenge(by="deciding verdict")`, a member's review overturned only where it differs, the orchestrator's seats
+skipped. `Params.sampled_confirmation` r (arm 1b): a confirming member audit or panel sampled to it at r on a History-head coin (`_a1_coin`;
+`challenge["sampled"]`, `confirmations_sampled/overturned`). `Params.lenient_false_alarm` (arm 1c): in `_overturn_review` a member's N at an
+audit or panel seat keeps its bond (released; `Review.bond_kept`, `lenient_bonds_kept`) and forfeits its fee (overturned: none at settlement).
+`Params.state_audit` (arm 2): the summons pass takes every audit obligation on a member's delivery at once (`state_audit_seats`; `assign_audit`
+refuses a member on it and on a plant), a plant's obligation discharged with no seat (`plant_audits_waived`), `planted_approval` forced off in
+`__post_init__`, the roster sized without the audit demand (`_waiting_reviews`, `audit_rate` 0 at the period's end — C1). `Params.state_bench`
+(arm 3): `_open_challenge` escalates an appeal or dispute on a member's delivery at the filing; `respond("appeal")` and `dispute` refuse a plant.
+Arm 4 is the three together. I45–I48 (`sim/invariants.py`), `tests/test_a1.py` (16). The driver: `--arm 0|1|1b|1c|2|3|4`, `--sample-rate`,
+`--pi-a0` / `--pi-a-max` (the pinned cells of arm 0), the seating skips, the plants' challenges skipped under the bench, the row's `deciding_*`,
+`state_cost_unreimbursed`, `state_audit_seats`, `plant_audits_waived`, `confirmations_*`, `lenient_bonds_kept`, `bad_deliveries`,
+`false_penalty_<role>` and the two leak figures `leak_paid` (over vested roots) / `leak_bad` (over bad deliveries); the manifest's `a1` block.

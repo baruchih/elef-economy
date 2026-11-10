@@ -283,7 +283,11 @@ class Stamping:
                    supply=rev11, F0=a.f0, nested_pots=a.nested_pots,
                    arrival_loan=(rev13 and a.arrival_loan == "on"),
                    plants_every_seat=(rev14 and a.plants_every_seat == "on"),
-                   planted_approval=(rev15 and a.planted_approval == "on"), planted_lie=(rev15 and a.planted_lie == "on"))
+                   planted_approval=(rev15 and a.planted_approval == "on"), planted_lie=(rev15 and a.planted_lie == "on"),
+                   pi_A0=a.pi_a0, pi_A_max=a.pi_a_max,
+                   # ablation brief A1 r2 (November 10, 2026): the arms as flags — candidate configurations, not in force; arm 0 is 2.9.0
+                   trusted_ruling=(a.arm != "0"), sampled_confirmation=(a.sample_rate if a.arm == "1b" else 0.0),
+                   lenient_false_alarm=(a.arm == "1c"), state_audit=(a.arm in ("2", "4")), state_bench=(a.arm in ("3", "4")))
         self.p = p
         if rev8:
             humans = {f"R{i:02d}": a.wallet for i in range(1, a.requesters + 1)}
@@ -508,6 +512,8 @@ class Stamping:
         self.rec = rec
         # economy counters
         self.c = {"posted": 0, "awarded": 0, "vested": 0, "final_n": 0, "false_approvals": 0, "false_rejections": 0,
+                  "bad_deliveries": 0, "false_penalty_initial": 0, "false_penalty_audit": 0, "false_penalty_appeal": 0, "false_penalty_bond_kept": 0,
+                  "deciding_answers": 0,                                     # A1 r2 (not in force): the leak's denominator, the false penalties, the seats
                   "audits_rolled": 0, "audits_assigned": 0, "audit_unassignable_ticks": 0, "audits_lapsed": 0,
                   "challenges": 0, "rulings": 0, "rulings_wrong": 0, "reviews_unassignable_ticks": 0,
                   "appeals_filed": 0, "appeals_unfunded": 0, "appeals_won": 0, "appeals_lost": 0,
@@ -697,7 +703,7 @@ class Stamping:
         if task.fulfilled:
             if task.plant_file_at is None:
                 rate = self._win_rate(self.appeal_window, per)
-                task.plant_file_at = (w.t + int(self._win_draw(self.appeal_delay_window, per, 0))) if (rate > 0 and self.plant_rng.random() < rate) else -1
+                task.plant_file_at = (w.t + int(self._win_draw(self.appeal_delay_window, per, 0))) if (rate > 0 and self.plant_rng.random() < rate and not self.p.state_bench) else -1
             if task.plant_file_at >= 0:
                 if w.t < task.plant_file_at:
                     self.c["plant_appeals_held"] += 1
@@ -712,7 +718,7 @@ class Stamping:
             # real appeals × π^La, the floor of two), at a delay from every real appeal's window (truthful and lying alike; the default where empty)
             if task.plant_file_at is None:
                 # the eighth conformance item: a lie the coin (or the floor) wants is filed on this plant, in this pass; no quota, no delay
-                if self.lies_wanted["appeal"] > 0:
+                if self.lies_wanted["appeal"] > 0 and not self.p.state_bench:   # A1 arm 3: plants file no challenge
                     self.lies_wanted["appeal"] -= 1
                     task.plant_file_at = w.t
                     task.lie = True
@@ -2211,6 +2217,8 @@ class Stamping:
                             self.c["troop_audits"] += 1
                         if r.role in ("audit", "appeal"):
                             self.c["troop_panel_seats"] += 1
+                        if r.role == "deciding":
+                            self.c["deciding_answers"] += 1   # A1: a seat of the deciding verdict, answered as any troop's
                         continue
                     on_probation = w.actor(r.reviewer).probation
                     task = self.tasks[cid]
@@ -2418,7 +2426,7 @@ class Stamping:
                     if task.fulfilled:
                         # 2.9.0 §2.3 (B): the planted lie — the plant requester disputes a good plant's F; since the eighth conformance item a
                         # lie the coin (or the floor) wants is filed on this plant, in this pass (no quota, no delay)
-                        if self.lies_wanted["dispute"] > 0:
+                        if self.lies_wanted["dispute"] > 0 and not self.p.state_bench:   # A1 arm 3: plants file no challenge
                             self.lies_wanted["dispute"] -= 1
                             task.plant_file_at = w.t
                             task.lie = True
@@ -2426,7 +2434,7 @@ class Stamping:
                             task.plant_file_at = -1
                     else:
                         task.plant_file_at = (w.t + int(self._win_draw(self.dispute_delay_window, per, 0))) \
-                            if (rate > 0 and self.plant_rng.random() < rate) else -1
+                            if (rate > 0 and self.plant_rng.random() < rate and not self.p.state_bench) else -1
                 if task.plant_file_at >= 0 and w.t < task.plant_file_at:
                     continue                                 # held for the drawn delay; the roll waits as it does for a real requester acting first
                 task.dispute_rolled = True
@@ -2497,7 +2505,9 @@ class Stamping:
                         self.c["audit_obligations"] += 1
                 elif (c.market_audit_only or task.planted_approval) and not task.audit_rolled:
                     task.audit_rolled, task.audit_wanted = True, True      # the engine recorded this one at the verdict (2.9.0: the planted approval's too)
-                if task.audit_wanted and (c.audit_obligation or c.audit_vacated):
+                if task.audit_wanted and (c.audit_obligation or c.audit_vacated) \
+                        and not (self.p.state_audit and (task.plant or (not w.is_troop(c.actor) and not c.market_audit_only))):
+                    # A1 arm 2: the audit of a member's work is the orchestrator's seat in the engine's pass; a plant's obligation discharged there
                     el = self.eligible_reviewers(cid, panel=True)
                     if el:
                         rid = w.assign_audit(cid, self.pick_reviewer(el))
@@ -2517,7 +2527,9 @@ class Stamping:
                 done = [w.review(r) for r in ch["reviews"] if w.review(r).status == "done"]
                 if len(ch["reviews"]) + len(ch.get("state_verdicts", ())) < 2:     # 2.8.0: the state's verdict on a plant holds a seat
                     el = self.eligible_reviewers(cid, panel=True)
-                    if el:
+                    if c.challenge.get("escalated"):
+                        pass                                 # A1: the deciding verdict holds this challenge — no member seat, no ruling
+                    elif el:
                         rid = w.assign_appeal(cid, self.pick_reviewer(el))
                         self.c["seated_appeal_member"] += 1
                         self.review_owner[rid] = w.review(rid).reviewer
@@ -2525,7 +2537,7 @@ class Stamping:
                             task.t_panel_assign = w.t
                     else:
                         self.c["appeals_unassignable_ticks"] += 1
-                elif not task.plant and len(done) == 2 and done[0].verdict != done[1].verdict:
+                elif not task.plant and len(done) == 2 and done[0].verdict != done[1].verdict and not c.challenge.get("escalated"):
                     truth = F if task.fulfilled else N
                     by_truth = self.rng.random() < a.ruling_accuracy
                     outcome = truth if by_truth else (N if truth == F else F)
@@ -2786,6 +2798,16 @@ class Stamping:
                     self.by_grade[c.grade][0] += 1
                     self.by_grade[c.grade][1] += int(correct)
                 revs_c = [w.review(rid) for rid in c.reviews]
+                if not task.plant and not w.is_troop(c.actor) and c.is_root:
+                    # A1 §6: the leak's second denominator and the false penalties by seat — a member's delivery, its truth the task's
+                    if not task.fulfilled:
+                        self.c["bad_deliveries"] += 1
+                    truth_v = F if task.fulfilled else N
+                    for x in revs_c:
+                        if x.status == "overturned" and not w.is_troop(x.reviewer) and x.verdict == truth_v:
+                            self.c[f"false_penalty_{x.role}"] += 1
+                            if getattr(x, "bond_kept", False):
+                                self.c["false_penalty_bond_kept"] += 1
                 if any(x.role == "audit" for x in revs_c):                   # the audit layer's overturn rate (the ruling after run 33's honesty readings)
                     self.c["audits_held"] += 1
                     if any(x.role == "initial" and x.status == "overturned" for x in revs_c):
@@ -2889,6 +2911,17 @@ class Stamping:
                     "probationers": sum(1 for aid in self.actors if w.actor(aid).probation),
                     "awards_waiting": sum(1 for cid in self.active if w.case(cid).state == "AVAILABLE")})
         tr = w.troops()
+        a1 = {"deciding_opened": tr["deciding_opened"], "deciding_seats": tr["deciding_seats"], "deciding_splits": tr["deciding_splits"],
+              "deciding_confirmed": tr["deciding_outcomes"]["confirmed"], "deciding_overturned": tr["deciding_outcomes"]["overturned"],
+              "deciding_audit": tr["deciding_by_reason"].get("audit", 0), "deciding_state_audit": tr["deciding_by_reason"].get("state_audit", 0),
+              "deciding_panel": tr["deciding_by_reason"].get("panel", 0), "deciding_bench": tr["deciding_by_reason"].get("bench", 0),
+              "deciding_sampled": tr["deciding_by_reason"].get("sample_audit", 0) + tr["deciding_by_reason"].get("sample_panel", 0),
+              "state_cost_unreimbursed": round(tr["state_cost_unreimbursed"], 6), "state_audit_seats": tr["state_audit_seats"],
+              "plant_audits_waived": tr["plant_audits_waived"], "confirmations_sampled": tr["confirmations_sampled"],
+              "confirmations_overturned": tr["confirmations_overturned"], "lenient_bonds_kept": tr["lenient_bonds_kept"],
+              "leak_paid": round(self.c["false_approvals"] / max(1, self.c["vested"]), 6),
+              "leak_bad": round(self.c["false_approvals"] / max(1, self.c["bad_deliveries"]), 6)}
+        row.update(a1)
         row.update({"troops_active_reviews": tr["active_reviews"], "troops_active_deliveries": tr["active_deliveries"],
                     "troop_summons_reviews": tr["summons_reviews"], "troop_summons_deliveries": tr["summons_deliveries"],
                     "troop_shortfall_seats": tr["shortfall_seats"], "troop_shortfall_awards": tr["shortfall_awards"],
@@ -3245,6 +3278,13 @@ def build_parser():
     ap.add_argument("--accuracy", type=float, default=0.95, help="careful reviewer: P(verdict = truth)")
     ap.add_argument("--fail-rate", type=float, default=0.2, help="b: P(task is truly unfulfilled)")
     ap.add_argument("--ruling-accuracy", type=float, default=0.8, help="r: P(orchestrator rules by the truth)")
+    ap.add_argument("--arm", choices=["0", "1", "1b", "1c", "2", "3", "4"], default="0",
+                    help="ablation brief A1 r2 (November 10, 2026; candidate configurations, NOT in force): 0 = 2.9.0 as in force; 1 the trusted ruling "
+                         "(trusted_ruling); 1b + the sampled confirmation at --sample-rate; 1c + the cheaper false alarm (lenient_false_alarm); "
+                         "2 = 1 + the state's audit (state_audit; --planted-approval forced off); 3 = 1 + the state's bench (state_bench); 4 = 1 + 2 + 3, the small core")
+    ap.add_argument("--sample-rate", type=float, default=0.25, help="A1 arm 1b: a confirming member audit or panel on a member's delivery sampled to the deciding verdict at this rate")
+    ap.add_argument("--pi-a0", type=float, default=0.02, help="π^A_0, planted approvals per real approval audited by a member — the floor (Appendix A 0.02); A1's pinned cells: --pi-a0 0.10 --pi-a-max 0.10")
+    ap.add_argument("--pi-a-max", type=float, default=0.40, help="π^A_max (Appendix A 0.40); equal to --pi-a0 pins π^A, the dial's other multipliers live")
     ap.add_argument("--p-start", type=float, default=1.0, help="a newcomer's audit odds (1.2.0 §2.4: 1.0; 1.1.0: 0.5)")
     ap.add_argument("--p-cap", type=float, default=1.0, help="the audit odds' cap on doubling (1.2.0 §2.4: 1.0; 1.1.0: 0.5)")
     ap.add_argument("--p-floor", type=float, default=Params.p_floor, help="the audit rate's floor (§8.3; Appendix A 0.5 from November 6, 2026 — the economy reviewer's defaults move after run 42's read; 0.2 before)")
@@ -3513,6 +3553,9 @@ def main(argv=None):
                                 "spike": None if a.spike_tasks == 0 else {"tasks": a.spike_tasks, "from": a.spike_from, "ticks": a.spike_ticks},
                                 "beta": a.beta, "work_ticks": a.work_ticks, "seed": a.seed,
                                 "rules": a.rules, "fund": a.fund if a.rules in ("1.3.0", "1.4.0", "1.5.0", "1.6.0") else "n/a", "m_max": a.m_max,
+                                "a1": {"arm": a.arm, "trusted_ruling": run.p.trusted_ruling, "sampled_confirmation": run.p.sampled_confirmation, "lenient_false_alarm": run.p.lenient_false_alarm,
+                                       "state_audit": run.p.state_audit, "state_bench": run.p.state_bench, "pi_A0": a.pi_a0, "pi_A_max": a.pi_a_max,
+                                       "status": "ablation brief A1 r2 (November 10, 2026): candidate configurations, not in force; arm 0 is 2.9.0"},
                                 "troops": {"spec": "1.4.0 design revision 4 — the orchestrator's troops" if a.rules in ("1.4.0", "1.5.0", "1.6.0") and a.troops == "on" else "off",
                                            "reserve": ("1.5.0 design revision 5 — the reserve is sized to the need: R_T is the current period's peak "
                                                        "troop demand, held plus refused for funds" if a.rules in ("1.5.0", "1.6.0") else

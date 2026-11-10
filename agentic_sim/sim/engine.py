@@ -39,7 +39,7 @@ UPHELD, REJECTED = "upheld", "rejected"          # disposition of a ⊥ objectio
 # Label grades (§15.3); `plant` since 1.2.0 — truth known by construction, never promoted
 HUMAN, DELEGATE, DEFAULT, PROCEDURAL, PLANT = "human-explicit", "delegate-explicit", "protocol-default", "procedural", "plant"
 
-ROLE_W = {"initial": "w_ordinary", "appeal": "w_appeal", "audit": "w_audit"}
+ROLE_W = {"initial": "w_ordinary", "appeal": "w_appeal", "audit": "w_audit", "deciding": "w_audit"}   # A1: the deciding verdict's seat (fee 0)
 PANEL_ROLES = ("appeal", "audit")              # the challenge-panel seats (1.2.0 §2.2)
 
 # The orchestrator's two system wallets (1.2.0 §2.1, Appendix A): a plant's requester and its actor.
@@ -230,6 +230,7 @@ class Review:
     contradicted_by_override: bool = False
     reimbursed_pending: float = 0.0   # an Ω claim outstanding for this review's costs
     panel_ok: bool = True             # the reviewer was eligible for this tier when assigned (1.2.0 §2.2, I21)
+    bond_kept: bool = False           # A1 arm 1c: an overruled rejection at an audit or panel seat kept its bond (the fee forfeited)
     uplift: float = 0.0               # the duty-fund uplift paid at settlement (1.3.0 §2.4), included in `fee`
     # 2.8.0 §2.2: a review on a plant is adjudicated by the plant's truth the moment it is given, at any seat — stood | failure — and
     # the truth it was judged against (the resubmitted one for a review after a revision)
@@ -325,6 +326,8 @@ class Case:
     pa_pass_would_audit: bool = False      # the pass would have given the state its audit seat past w_R (read; the seat is a member's or nobody's)
     pa_unseated: bool = False              # no member took its audit seat by the window's close: closed by truth, spent (Appendix V)
     audit_after_dispute: bool = False      # the state's own work disputed before a panel of the state's alone: the audit seat admitted after (Appendix V)
+    deciding: Optional[dict] = None        # A1 (not in force): the deciding verdict on this case — reason, the seats, the verdicts, want, resolved, outcome
+    state_unreimbursed: float = 0.0        # A1 (D4): the deciding verdict's cost the allowance did not cover — the orchestrator's own, read apart
     phi_E_topped: float = 0.0                                 # (A) what the bank added to a plant's allowance and fee pot at its seats' assignment
     phi_F_topped: float = 0.0
     plant_fee_destroyed: float = 0.0                          # (A) the plant challenger's court fee, minted to its alias and destroyed at filing
@@ -502,6 +505,18 @@ class World:
         self.planted_approvals_unseated: int = 0
         self.state_work_discharged_by_panel: int = 0
         self.state_work_audit_after_dispute: int = 0
+        # A1 (November 10, 2026; candidate configurations, not in force): the deciding verdict and the arms' readings
+        self.deciding_opened: int = 0
+        self.deciding_seats: int = 0
+        self.deciding_splits: int = 0
+        self.deciding_by_reason: dict = {}
+        self.deciding_outcomes: dict = {"confirmed": 0, "overturned": 0}
+        self.state_cost_unreimbursed: float = 0.0
+        self.state_audit_seats: int = 0
+        self.plant_audits_waived: int = 0
+        self.confirmations_sampled: int = 0
+        self.confirmations_overturned: int = 0
+        self.lenient_bonds_kept: int = 0
         self.plant_mint_by_kind: dict = {"dial": 0.0, "approval": 0.0, "lie": 0.0, "rev": 0.0}
         self.plant_retire_by_kind: dict = {"dial": 0.0, "approval": 0.0, "lie": 0.0, "rev": 0.0}
         self.plants_created = 0
@@ -1576,7 +1591,7 @@ class World:
 
     def _new_review(self, c: Case, reviewer: str, role: str) -> Review:
         self._eligible(c, reviewer, role)
-        if self._positions(c) + 1 > self.p.V_max + (1 if (c.audit_after_dispute and role == "audit") else 0):
+        if self._positions(c) + 1 > self.p.V_max + (1 if (c.audit_after_dispute and role == "audit") else 0) + self._deciding_positions(c):
             # Appendix V (the ruling after run 39): the state's own work disputed before a panel of the state's alone keeps its audit seat
             # after the dispute — one position beyond V_max, the panel having used the round's two
             raise RuleError(f"case {c.id} would exceed V_max={self.p.V_max} review positions")
@@ -1640,6 +1655,9 @@ class World:
         c = self._case(cid)
         if c.plant is not None and not self.p.plants_every_seat:
             raise RuleError("audit: a plant is adjudicated by its known truth; no challenge is opened on it (1.2.0 §2.1)")
+        if self.p.state_audit and (c.plant is not None or self._member_delivery(c)):
+            raise RuleError("audit: under the state's audit (A1 arm 2) the audit of a member's work is the orchestrator's seat, and a plant's "
+                            "obligation is discharged with no seat; the orchestrator's own deliveries keep 2.9.0's path (A1.3)")
         if c.state != "PENDING" or c.outcome_or_verdict() != F:
             raise RuleError("audit: only an F verdict in PENDING may be audited (§8.3)")
         if self.t > c.window_end and not c.audit_vacated and not c.audit_obligation:
@@ -1681,6 +1699,8 @@ class World:
         c = self._case(cid)
         if not c.challenge or c.challenge.get("resolved"):
             raise RuleError("assign_appeal: no open challenge")
+        if c.challenge.get("escalated"):
+            raise RuleError("assign_appeal: the deciding verdict holds this challenge (A1); no member seat")
         if len(c.challenge["reviews"]) + len(c.challenge.get("state_verdicts", ())) >= 2:
             raise RuleError("assign_appeal: two appeal reviews already assigned")
         r = self._new_review(c, reviewer, "appeal")
@@ -1704,6 +1724,14 @@ class World:
             self.ledger.pay_from_deposit(pots.id, r.reviewer, take,
                                          note=f"{'nested ' if c.is_nested() and not c.own_pots else ''}reimburse {r.id}")
         rest = amt - take
+        if r.role == "deciding":
+            # A1 §3 (D4, ruled): the deciding verdict's cost from the root's allowance while it lasts, up to K a seat; the rest is the
+            # orchestrator's own cost, read apart — no advance, no deferral, no claim
+            r.reimbursed += take
+            c.reimb_total += take
+            c.state_unreimbursed += rest
+            self.state_cost_unreimbursed += rest
+            return
         adv = 0.0
         if rest > 1e-12:
             adv = min(rest, self.ledger.wallet(Ledger.OMEGA).U)
@@ -1770,6 +1798,8 @@ class World:
                 self._initial_verdict(c, verdict, None, troop_reviewer=True)
             elif r.role == "audit":
                 self._audit_result(c, r)
+            elif r.role == "deciding":
+                self._deciding_result(c, r)             # A1: a seat of the deciding verdict
             else:
                 self._maybe_settle_challenge(c)
             return
@@ -1884,6 +1914,8 @@ class World:
                 return
             self._finalize_N(c, reason="rejection accepted")
         elif action == "appeal":
+            if c.plant is not None and self.p.state_bench:
+                raise RuleError("appeal: plants file no challenge under the state's bench (A1 arm 3)")
             if c.verdict not in (N, BOT):
                 raise RuleError("appeal: only N and ⊥ are appealable; a P is revised or accepted (§6.1)")
             self._check_grounds(d)
@@ -1959,11 +1991,17 @@ class World:
         self.history.append("challenge", {"t": self.t, "case": c.id, "kind": kind, "challenger": challenger,
                                           "appealed": c.verdict, "d": d})
         self._log(c, f"challenge opened: {kind} by {challenger}")
+        if self.p.state_bench and kind in ("appeal", "dispute") and self._member_delivery(c):
+            # A1 arm 3: the deciding verdict decides an appeal or a dispute on a member's delivery, seated at the filing's pass; no member panel
+            c.challenge["escalated"] = True
+            self._open_deciding(c, "bench")
 
     def dispute(self, cid: str, challenger: str, d: Optional[str] = None):
         c = self._case(cid)
         if c.plant is not None and not self.p.plants_every_seat:
             raise RuleError("dispute: no challenge is opened on a plant (1.2.0 §2.1)")
+        if c.plant is not None and self.p.state_bench:
+            raise RuleError("dispute: plants file no challenge under the state's bench (A1 arm 3)")
         if not c.is_root:
             raise RuleError("only root requesters dispute; a requester-actor is its own judge")
         if challenger != c.requester:
@@ -2006,10 +2044,29 @@ class World:
             self._maybe_settle_challenge(c)
             return
         c.open_items -= 1
-        if r.verdict == c.outcome_or_verdict():        # the live assessment, never a superseded one
-            self._log(c, f"audit {r.id} agrees")
-        else:
+        agrees = r.verdict == c.outcome_or_verdict()   # the live assessment, never a superseded one
+        a1 = self.p.trusted_ruling and self._member_delivery(c)
+        if agrees and a1 and self.p.sampled_confirmation > 0 and not self.is_system_reviewer(r.reviewer) \
+                and self._a1_coin(c, "sample audit") < self.p.sampled_confirmation:
+            # A1 arm 1b: a confirming member audit sampled to the deciding verdict — the challenge record opened as for a disagreement
             self._open_challenge(c, "audit", challenger=None, audit_review=r)
+            c.challenge["escalated"], c.challenge["sampled"] = True, True
+            self.confirmations_sampled += 1
+            self._open_deciding(c, "sample_audit")
+            return
+        if agrees:
+            self._log(c, f"audit {r.id} agrees")
+            return
+        if a1:
+            # A1 arm 1: no member's third seat — the deciding verdict settles the audit's disagreement; arm 2: the state's audit seat is its first
+            self._open_challenge(c, "audit", challenger=None, audit_review=r)
+            c.challenge["escalated"] = True
+            if self.is_troop(r.reviewer):
+                self._open_deciding(c, "state_audit", first=(r.id, r.verdict))
+            else:
+                self._open_deciding(c, "audit")
+            return
+        self._open_challenge(c, "audit", challenger=None, audit_review=r)
 
     def _maybe_settle_challenge(self, c: Case):
         ch = c.challenge
@@ -2018,6 +2075,8 @@ class World:
         if c.plant is not None and self.p.plants_every_seat:
             self._maybe_settle_plant_challenge(c)         # 2.8.0 §2.2: by truth, once every seat has answered
             return
+        if c.deciding is not None and not c.deciding["resolved"]:
+            return                                      # A1: the deciding verdict settles it
         done = [self.reviews[r] for r in ch["reviews"] if self.reviews[r].status == "done"]
         if len(done) < 2:
             return
@@ -2034,6 +2093,20 @@ class World:
             else:
                 self._log(c, "⊥ objection rejected but fulfillment split; awaiting orchestrator ruling")
             return
+        if self.p.trusted_ruling and self._member_delivery(c):
+            # A1 arm 1: a member panel confirms or escalates; it never overturns on its own word (today's rule settles on any agreement)
+            both_confirm = r1.verdict == r2.verdict == c.verdict
+            if both_confirm and self.p.sampled_confirmation > 0 and self._a1_coin(c, "sample panel") < self.p.sampled_confirmation:
+                ch["escalated"], ch["sampled"] = True, True              # arm 1b: the confirmation sampled to the deciding verdict
+                self.confirmations_sampled += 1
+                self._open_deciding(c, "sample_panel")
+                return
+            if both_confirm:
+                self._settle_challenge(c, outcome=c.verdict, by="appeal reviewers")
+                return
+            ch["escalated"] = True
+            self._open_deciding(c, "panel")
+            return
         if r1.verdict == r2.verdict:
             self._settle_challenge(c, outcome=r1.verdict, by="appeal reviewers")
         else:
@@ -2044,6 +2117,8 @@ class World:
         c = self._case(cid)
         if c.plant is not None:
             raise RuleError("rule: no ruling is sought on a plant; its challenge resolves by its known truth (1.2.0 §2.1, 2.8.0 §2.2)")
+        if self.p.trusted_ruling and self._member_delivery(c):
+            raise RuleError("rule: under the trusted ruling (A1 arm 1) the deciding verdict settles a member's delivery; no ruling is sought")
         ch = c.challenge
         if ch is None or ch["resolved"]:
             raise RuleError("rule: no open challenge")
@@ -2086,6 +2161,8 @@ class World:
             r = self.reviews[rid]
             if r.status != "done":
                 continue
+            if by == "deciding verdict" and self.is_system_reviewer(r.reviewer):
+                continue                                # A1 §3: the orchestrator's own seats are never overturned; a minority seat stands
             if c.verdict == BOT:
                 wrong = (r.objection != objection) or (objection == REJECTED and r.verdict != outcome)
             else:
@@ -2117,7 +2194,14 @@ class World:
             self.ledger.transfer_locked(r.reviewer, pay_fee_to, c.D, key=f"bond:{r.id}", case=c.id, note="court fee")
             c.court_fee_reimbursed = c.D
             bond -= c.D
-        self.ledger.burn_locked(r.reviewer, bond, key=f"bond:{r.id}", case=c.id, note="bond burned")
+        if self.p.lenient_false_alarm and a is not None and r.role in PANEL_ROLES and r.verdict == N:
+            # A1 arm 1c: an overruled rejection at an audit or panel seat forfeits its fee (overturned: no fee at settlement) and keeps its bond;
+            # the record's entry, the odds and the streak as today
+            self.ledger.release(r.reviewer, bond, key=f"bond:{r.id}", case=c.id, note="bond kept: an overruled rejection forfeits its fee (A1 arm 1c)")
+            r.bond_kept = True
+            self.lenient_bonds_kept += 1
+        else:
+            self.ledger.burn_locked(r.reviewer, bond, key=f"bond:{r.id}", case=c.id, note="bond burned")
         if a is None and self.bank_on:
             self._close_loan(r.reviewer)                # 2.1.0 §2.4: the seat settled against the state — its loan is debt
         self._log(c, f"review {r.id} overturned; {r.reviewer} forfeits bond")
@@ -2401,7 +2485,7 @@ class World:
             if e > 0:
                 self.ledger.mint_emission_to_pool(c.id, e)
             r.fee = e
-            r.fee_owed = 0.0 if r.reviewer in self.plant_rev_names else self._w(r.role) * self.p.f_fee   # 2.9.0 §2.5: the alias is paid no fee
+            r.fee_owed = 0.0 if (r.reviewer in self.plant_rev_names or r.role == "deciding") else self._w(r.role) * self.p.f_fee   # 2.9.0 §2.5: the alias is paid no fee; A1 (D4): the deciding seat too
         # 1. expense debts, every review — an overturned reviewer's bond was the penalty; its cost survives
         for rid in c.reviews:
             r = self.reviews[rid]
@@ -2873,10 +2957,11 @@ class World:
                                                                 for r in c.reviews):
                 initial += 1
             if c.state == "PENDING" and (c.audit_obligation or c.audit_vacated) and (c.challenge is None or c.challenge["resolved"]) \
-                    and not any(self.reviews[r].role == "audit" and self.reviews[r].status == "open" for r in c.reviews):
-                panel += 1                                  # 2.9.0 §4: not while a dispute is open (its panel is counted below)
+                    and not any(self.reviews[r].role == "audit" and self.reviews[r].status == "open" for r in c.reviews) \
+                    and not (self.p.state_audit and (c.plant is not None or self._member_delivery(c))):
+                panel += 1                                  # 2.9.0 §4: not while a dispute is open (its panel is counted below); A1 (C1): not a seat the state carries
             ch = c.challenge
-            if ch and not ch["resolved"] and len(ch["reviews"]) < 2:
+            if ch and not ch["resolved"] and len(ch["reviews"]) < 2 and not ch.get("escalated"):
                 panel += 2 - len(ch["reviews"])
         return initial, panel
 
@@ -3943,6 +4028,8 @@ class World:
                 duty = [a for a in self.actors.values() if a.on_duty]
                 p_bar = (sum(a.p_audit for a in duty) / len(duty)) if duty else self.p.p_start
                 audit_rate = self.m_t * p_bar * (per["approvals"] / ticks)
+            if self.p.state_audit:
+                audit_rate = 0.0                        # A1 (C1, ruled): the audit seats are the orchestrator's; the roster is sized without them
             challenge_rate = per["challenge_reviews"] / ticks
             r_t = (per["initial"] / ticks) * (1.0 + self.pi_t) + audit_rate + challenge_rate
             self.X_t = max(self.p.V_max + 1, int(math.ceil(r_t * d_bar - 1e-9)))
@@ -4363,6 +4450,111 @@ class World:
     def _free_fundable_member(self, G: float) -> bool:
         return self._free_fundable_members(G) > 0
 
+    # ------------------------------------------------------- ablation brief A1 (November 10, 2026; candidate configurations, not in force)
+    def _member_delivery(self, c: Case) -> bool:
+        """A1: a real case delivered by a member — not a plant, not the orchestrator's own delivery (A1.3, ruled: the orchestrator does not
+        judge its own work; its deliveries are judged as 2.9.0 has it in every arm)."""
+        return c.plant is None and not self.is_troop(c.actor) and not c.market_audit_only
+
+    def _deciding_positions(self, c: Case) -> int:
+        """A1 §3: the deciding verdict's seats are review positions beyond V_max under the flag (I8)."""
+        return len(c.deciding["seats"]) if c.deciding is not None else 0
+
+    def _a1_coin(self, c: Case, tag: str) -> float:
+        """A1 arm 1b: the sample's coin on the History's head — seed-free, reproducible, the orchestrator's own."""
+        h = int(hashlib.sha256(f"{self.history.head}|A1 {tag}|{c.id}|{self.t}".encode()).hexdigest()[:12], 16)
+        return h / float(16 ** 12)
+
+    def _open_deciding(self, c: Case, reason: str, first=None):
+        """A1 §3: the deciding verdict — two seats of the orchestrator's own inspectors, a third on a split; seated in the tick's summons pass
+        on the troop seat's road (`_summon_deciding_seat`) and answered by the driver at the next tick's reviews, as every troop's seat is.
+        `first` is a state audit seat already answered (arm 2), counted as the verdict's first seat."""
+        assert c.deciding is None or c.deciding["resolved"], "A1: a deciding verdict is already open"
+        c.deciding = {"reason": reason, "opened": self.t, "seats": [], "verdicts": ([first] if first is not None else []),
+                      "want": 2, "resolved": False, "outcome": None}
+        self.deciding_opened += 1
+        self.deciding_by_reason[reason] = self.deciding_by_reason.get(reason, 0) + 1
+        self.history.append("deciding", {"t": self.t, "case": c.id, "reason": reason, "msg": "opened"})
+        self._log(c, f"the deciding verdict opened ({reason})")
+
+    def _seat_deciding(self, c: Case, tick: int):
+        d = c.deciding
+        open_seats = sum(1 for rid in d["seats"] if self.reviews[rid].status == "open")
+        while len(d["verdicts"]) + open_seats < d["want"]:
+            if self._summon_deciding_seat(c, tick) is None:
+                self.troop_held_ticks += 1
+                self.period["troop_held_ticks"] += 1
+                break
+            open_seats += 1
+
+    def _summon_deciding_seat(self, c: Case, tick: int) -> Optional[str]:
+        """A seat of the deciding verdict: the troop seat's road without the positions bound (I8 admits it under the flag), the w_R wait or
+        the free-member test — the capacity and the carry check as any seat's; c_T purchased at the summons, the bond locked; no fee (D4)."""
+        cost_credits = self.p.c_T * (self.ledger.index() if self.p.floating else 1.0)
+        need = cost_credits + c.G_V
+        self._last_refusal_funds = False
+        if self._capacity_refuses(1):
+            self.troop_refused_capacity_seats += 1
+            self.period["refused_capacity_seats"] += 1
+            c.refused_capacity += 1
+            self._mark_refused(c, "capacity", tick)
+            return None
+        if not self._fund_can_carry(need, c.id, "review"):
+            self.troop_shortfall_seats += 1
+            self.period["troop_shortfall_seats"] += 1
+            self._pass_refused += need
+            self._last_refusal_funds = True
+            return None
+        tid = self._new_troop("review", c.id, cost_credits, c.G_V)
+        credits = self.ledger.purchase(tid, cost_credits if self.p.floating else cost_credits * self.ledger.v, case=c.id, note="troop cost (deciding)")
+        self.ledger.lock(tid, c.G_V, key=f"bond:r{self._n_review + 1}", case=c.id, note="bond (deciding, troop)")
+        self._n_review += 1
+        rid = f"r{self._n_review}"
+        r = Review(rid, c.id, tid, "deciding", tick, tick + self.p.T_review, bond=c.G_V)
+        r.cost = credits
+        self.reviews[rid] = r
+        self._live_reviews[rid] = r
+        c.reviews.append(rid)
+        c.excluded.add(tid)
+        self.troops[tid]["review"] = rid
+        c.deciding["seats"].append(rid)
+        self.deciding_seats += 1
+        self.troop_summons_reviews += 1
+        self.period["troop_summons_reviews"] += 1
+        self.troop_capital_peak = max(self.troop_capital_peak, self._troop_capital_now())
+        self.history.append("troop", {"t": tick, "troop": tid, "kind": "review", "seat": "deciding", "case": c.id, "review": rid, "msg": "summoned"})
+        self._log(c, f"troop {tid} summoned for a seat of the deciding verdict ({rid})")
+        return rid
+
+    def _deciding_result(self, c: Case, r: Review):
+        d = c.deciding
+        d["verdicts"].append((r.id, r.verdict))
+        vs = [v for _, v in d["verdicts"]]
+        if len(vs) < 2:
+            return
+        if len(vs) == 2:
+            if vs[0] == vs[1]:
+                self._resolve_deciding(c, vs[0])
+            else:
+                d["want"] = 3
+                self.deciding_splits += 1
+                self._log(c, "the deciding verdict split; a third seat decides")
+            return
+        self._resolve_deciding(c, F if vs.count(F) >= 2 else N)
+
+    def _resolve_deciding(self, c: Case, outcome: str):
+        d = c.deciding
+        d["resolved"], d["outcome"] = True, outcome
+        self.history.append("deciding", {"t": self.t, "case": c.id, "reason": d["reason"], "verdict": outcome, "seats": len(d["verdicts"])})
+        self._log(c, f"the deciding verdict: {outcome} ({d['reason']}, {len(d['verdicts'])} seats)")
+        ch = c.challenge
+        if ch is None or ch["resolved"]:
+            raise RuleError(f"A1 {c.id}: a deciding verdict resolved with no open challenge record")
+        self.deciding_outcomes["confirmed" if outcome == c.verdict else "overturned"] += 1
+        if ch.get("sampled") and outcome != c.verdict:
+            self.confirmations_overturned += 1
+        self._settle_challenge(c, outcome=outcome, by="deciding verdict")
+
     def _summon_review(self, c: Case, role: str, tick: int) -> Optional[str]:
         if self._positions(c) + 1 > self.p.V_max:
             return None                                 # no seat to take: the path is full (I8)
@@ -4586,6 +4778,23 @@ class World:
                 if c.market_audit_only:
                     held_now += 1
                     held_max_age = max(held_max_age, tick - (since or tick))
+                elif self.p.state_audit and plant:
+                    # A1 arm 2: no member sits the audit seat, so a plant's audit obligation is discharged at once with no seat — the plants
+                    # test the first review and the panels
+                    if c.audit_vacated:
+                        c.audit_vacated = False
+                    else:
+                        c.audit_obligation = False
+                    c.open_items -= 1
+                    self.plant_audits_waived += 1
+                    self._log(c, "plant: the audit obligation discharged with no seat (A1 arm 2)")
+                elif self.p.state_audit and self._member_delivery(c):
+                    # A1 arm 2: every audit obligation on a member's delivery is the orchestrator's seat in the tick's pass — no wait, no free-member test
+                    if self._summon_review(c, "audit", tick) is None:
+                        self.troop_held_ticks += 1
+                        self.period["troop_held_ticks"] += 1
+                    else:
+                        self.state_audit_seats += 1
                 elif self.p.troops and since is not None and tick - since + 1 >= self.p.w_R \
                         and not self._free_eligible_reviewer(c, "audit"):
                     if c.planted_approval:
@@ -4617,7 +4826,7 @@ class World:
             # the panel seats
             ch = c.challenge
             seats_held = (len(ch["reviews"]) + len(ch.get("state_verdicts", ()))) if ch else 0
-            if self.p.troops and ch and not ch["resolved"] and seats_held < 2 \
+            if self.p.troops and ch and not ch["resolved"] and seats_held < 2 and not ch.get("escalated") \
                     and tick - ch.get("seat_since", tick) + 1 >= self.p.w_R and not self._free_eligible_reviewer(c, "appeal"):
                 remaining = 2 - seats_held
                 for i in range(remaining):
@@ -4632,6 +4841,8 @@ class World:
                         if self._last_refusal_funds:    # 1.5.0 §2.1: a case's demand is its unfilled seats — both
                             self._pass_refused += (remaining - i - 1) * (self.p.c_T + c.G_V)
                         break
+            if c.deciding is not None and not c.deciding["resolved"]:
+                self._seat_deciding(c, tick)            # A1 §3: the deciding verdict's seats, seated in the tick's pass
         # second pass: the awards, oldest request first. 1.4.0 §2.3 read per request (patch 1.7.1): a free member takes
         # the oldest request it can, so the oldest w_A-old requests, as many as there are free fundable members, are the
         # market's and the rest are the state's — summoned for, oldest first. (1.4.0–1.7.0 read the rule per tick: one

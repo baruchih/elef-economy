@@ -181,7 +181,11 @@ def I8_positions_bound(w, cases=None):
     for c in _cases(w, cases):
         # the engine's `_positions`, read without claiming the case or its reviews
         n = sum(1 for rid in c.reviews if _peek(w.reviews, rid).status != "withdrawn")
-        if n > w.p.V_max + (1 if getattr(c, "audit_after_dispute", False) else 0):   # Appendix V: the audit seat after a state-alone panel
+        room = (1 if getattr(c, "audit_after_dispute", False) else 0)            # Appendix V: the audit seat after a state-alone panel
+        d = getattr(c, "deciding", None)
+        if d is not None:
+            room += len(d["seats"])                                               # A1 §3: the deciding verdict's seats under the flag
+        if n > w.p.V_max + room:
             _fail(f"I8 {c.id} holds {n} review positions > V_max")
 
 
@@ -795,6 +799,92 @@ def I43_the_planted_approval(w, cases=None):
                 _fail(f"I43 {c.id}: the obligation recorded at the verdict neither stands nor was met")
             if c.pa_unseated and (audits or c.state != "FINAL_N" or discharged):
                 _fail(f"I43 {c.id}: an unseated planted approval that was audited, disputed or did not close by truth")
+
+
+def _a1_member_delivery(w, c):
+    return c.plant is None and not w.is_troop(c.actor) and not c.market_audit_only
+
+
+def I45_the_trusted_ruling(w, cases=None):
+    """A1 arm 1 (not in force): on a member's delivery no ruling is recorded, a member panel never overturns on its own word, an escalated
+    challenge is settled by the deciding verdict's outcome, and no member review is overturned while matching the deciding verdict. The
+    orchestrator's own seats are never overturned by it."""
+    if not w.p.trusted_ruling:
+        return
+    for c in _cases(w, cases):
+        if not _a1_member_delivery(w, c):
+            continue
+        ch = c.challenge
+        if ch is None or not ch["resolved"] or c.verdict == "⊥":
+            continue
+        if ch["by"] == "orchestrator":
+            _fail(f"I45 {c.id}: a ruling on a member's delivery under the trusted ruling")
+        if ch["by"] == "appeal reviewers" and ch["outcome"] != c.verdict:
+            _fail(f"I45 {c.id}: a member panel overturned on its own word")
+        d = getattr(c, "deciding", None)
+        if ch.get("escalated"):
+            if ch["by"] != "deciding verdict" or d is None or not d["resolved"] or d["outcome"] != ch["outcome"]:
+                _fail(f"I45 {c.id}: an escalated challenge not settled by the deciding verdict")
+        for rid in c.reviews:
+            r = _peek(w.reviews, rid)
+            if r.status != "overturned":
+                continue
+            if w.is_troop(r.reviewer) and ch["by"] == "deciding verdict":
+                _fail(f"I45 {c.id}: the orchestrator's seat {rid} overturned by the deciding verdict")
+            if ch["by"] == "deciding verdict" and r.verdict == ch["outcome"]:
+                _fail(f"I45 {c.id}: {rid} overturned while matching the deciding verdict")
+
+
+def I46_the_states_audit(w, cases=None):
+    """A1 arm 2 (not in force): no member audit review on a member's delivery or a plant; a vested member's delivery with an obligation
+    recorded carries the orchestrator's audit seat or a resolved challenge that discharged it."""
+    if not w.p.state_audit:
+        return
+    for c in _cases(w, cases):
+        if c.plant is None and (w.is_troop(c.actor) or c.market_audit_only):
+            continue                                        # A1.3: the orchestrator's own deliveries keep 2.9.0's path
+        audits = [_peek(w.reviews, rid) for rid in c.reviews if _peek(w.reviews, rid).role == "audit"]
+        if any(not w.is_troop(r.reviewer) for r in audits):
+            _fail(f"I46 {c.id}: a member audit under the state's audit")
+        if c.state == "VESTED" and c.plant is None and not w.is_troop(c.actor) and c.audit_rolled_at is not None \
+                and not audits and not (c.challenge is not None and c.challenge["resolved"]):
+            _fail(f"I46 {c.id}: vested with an obligation recorded and no seat of the orchestrator's")
+
+
+def I47_the_states_bench(w, cases=None):
+    """A1 arm 3 (not in force): no member panel review on a member's delivery; its appeal or dispute is escalated and settled by the deciding
+    verdict; a plant files no challenge."""
+    if not w.p.state_bench:
+        return
+    for c in _cases(w, cases):
+        ch = c.challenge
+        if c.plant is not None:
+            if ch is not None and ch.get("challenger") is not None:
+                _fail(f"I47 {c.id}: a plant filed a challenge under the state's bench")
+            continue
+        if not _a1_member_delivery(w, c) or ch is None or ch["kind"] not in ("appeal", "dispute"):
+            continue
+        if not ch.get("escalated"):
+            _fail(f"I47 {c.id}: a {ch['kind']} on a member's delivery not escalated under the state's bench")
+        if any(_peek(w.reviews, rid).role == "appeal" and not w.is_troop(_peek(w.reviews, rid).reviewer) for rid in c.reviews):
+            _fail(f"I47 {c.id}: a member panel seat under the state's bench")
+
+
+def I48_the_lenient_false_alarm(w, cases=None):
+    """A1 arm 1c (not in force): an overruled rejection by a member at an audit or panel seat kept its bond — no bond burn on it."""
+    if not w.p.lenient_false_alarm:
+        return
+    by_case = w.ledger.events_by_case
+    for c in _cases(w, cases):
+        for rid in c.reviews:
+            r = _peek(w.reviews, rid)
+            if r.status != "overturned" or w.is_troop(r.reviewer) or r.role not in ("audit", "appeal") or r.verdict != "N":
+                continue
+            if not r.bond_kept:
+                _fail(f"I48 {c.id}: the overruled rejection {rid} did not keep its bond")
+            for e in by_case.get(c.id, ()):
+                if e.kind == "burn_bond" and e.src == r.reviewer and e.note.startswith(f"bond:{rid} "):
+                    _fail(f"I48 {c.id}: a bond burned on the overruled rejection {rid}")
 
 
 def I44_the_planted_lie(w, cases=None):
@@ -1553,6 +1643,10 @@ def check_all(w):
     I42_the_plant_at_every_seat(w)
     I43_the_planted_approval(w)
     I44_the_planted_lie(w)
+    I45_the_trusted_ruling(w)
+    I46_the_states_audit(w)
+    I47_the_states_bench(w)
+    I48_the_lenient_false_alarm(w)
     I16_history_is_authoritative(w)
 
 
@@ -1626,6 +1720,10 @@ def check_tick(w):
     I42_the_plant_at_every_seat(w, cases)
     I43_the_planted_approval(w, cases)
     I44_the_planted_lie(w, cases)
+    I45_the_trusted_ruling(w, cases)
+    I46_the_states_audit(w, cases)
+    I47_the_states_bench(w, cases)
+    I48_the_lenient_false_alarm(w, cases)
     I40_opaque_identifiers(w, cases)
     I41_the_arrival_loan(w, new_events)
 

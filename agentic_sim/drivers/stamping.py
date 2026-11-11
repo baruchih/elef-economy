@@ -556,7 +556,7 @@ class Stamping:
                   "awards_refused_members_only_ticks": 0, "probation_false_approvals": 0,
                   # 1.4.0: troops
                   "audit_obligations": 0, "audits_held": 0, "audits_overturning": 0, "troop_reviews": 0, "troop_audits": 0, "troop_deliveries": 0,
-                  "troop_delivered_vested": 0, "troop_delivered_final_n": 0, "troop_false_approvals": 0, "troop_bad_delivered": 0, "troop_bad_standing": 0,
+                  "troop_delivered_vested": 0, "troop_delivered_final_n": 0, "troop_false_approvals": 0, "troop_bad_delivered": 0, "troop_bad_standing": 0, "troop_bad_final_n": 0,
                   # 1.6.0: panels held by troops; the red team's withdrawals
                   "troop_panel_seats": 0, "withdrawn_unawarded": 0,
                   # 2.0.0: the demand side and the effort burned
@@ -2883,6 +2883,8 @@ class Stamping:
                     self.c["final_n"] += 1
                     if w.is_troop(c.actor):
                         self.c["troop_delivered_final_n"] += 1
+                        if not task.fulfilled:
+                            self.c["troop_bad_final_n"] += 1   # addendum 7's reading: the orchestrator's own bad work caught (final N)
                     if task.fulfilled:
                         self.c["false_rejections"] += 1
                     if task.appealed:
@@ -3226,6 +3228,8 @@ class Stamping:
                     "troop_deliveries": self.c["troop_deliveries"], "troop_delivered_vested": self.c["troop_delivered_vested"],   # addendum 7's reading (November 12, 2026): the orchestrator's own work —
                     "troop_bad_delivered": self.c["troop_bad_delivered"], "troop_bad_standing": self.c["troop_bad_standing"],   # delivered, vested, bad, bad and standing
                     "troop_false_approvals": self.c["troop_false_approvals"],   # (the standing false approvals whose first review a troop sat — the state's reviewers', not its work)
+                    "troop_delivered_final_n": self.c["troop_delivered_final_n"], "troop_bad_final_n": self.c["troop_bad_final_n"],   # … caught (final N), and the bad work still pending at the row
+                    "troop_bad_pending": self.c["troop_bad_delivered"] - self.c["troop_bad_standing"] - self.c["troop_bad_final_n"],
 
                     "requester_wallet_real": round(sum(w.wealth(r) for r in reqs) / max(1, len(reqs)) * real, 3),
                     "state_price_over_market": round(mk["state_price"] - mk["B_bar"], 4) if mk.get("state_price") is not None else "",

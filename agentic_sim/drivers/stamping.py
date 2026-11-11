@@ -113,6 +113,8 @@ from drivers.results import RunRecorder                             # noqa: E402
 
 CAREFUL, STAMPER = "careful", "stamper"
 TELL = "tell"      # the learned red team's Q2, hand-written first: a reviewer that reads the view for a plant's tells and stamps the rest
+HAND_ACTION = 9      # the `hand` reference's code (the reviewers in self-play): the slot answers as its disposition by hand would — never a learner's action (was 3 until the stressed world's fourth action took that code, November 11, 2026)
+CLAIM_ACTION = 3     # the stressed world's fourth reviewing action (--temptation > 0): claim the allowance and stamp
 LEARNER = "learner"   # the learned red team: the slot actor whose decisions a policy supplies through `Stamping.learner` (redteam.env)
 GRADES = ("human-explicit", "delegate-explicit", "procedural", "protocol-default", PLANT)
 
@@ -198,6 +200,7 @@ class Task:
     pa_seated: bool = False
     lie: bool = False                        # 2.9.0 (B): this plant's challenge is a planted lie (the instrument's choice)
     plant_file_at: Optional[int] = None      #   a plant's filing (appeal or dispute) drawn at the real rate: the tick it is filed (−1: drawn not to file)
+    hard: Optional[bool] = None              # the stressed world's shared difficulty (step 5): the case's shared coin, drawn once at its first read on the driver's own stream
     plant_revise_at: Optional[int] = None    #   a plant's revision drawn from the real window: the tick it is resubmitted
     revised_truth: Optional[bool] = None     #   the resubmitted truth drawn (B)
     revised: bool = False
@@ -261,7 +264,7 @@ class Stamping:
             a.duty_cap = "twothirds" if rev7 else "half"
         if a.tie_break is None:
             a.tie_break = "draw" if rev12 else "id"                      # 2.6.0 §2.3: the tie after κ by a seeded draw; `id` the control
-        p = Params(Res0=a.res0, X=a.on_duty, G_V=a.gv, p_start=a.p_start, p_cap=a.p_cap, p_floor=a.p_floor, p_halve_every=a.p_halve_every, band=a.band, G_frac_nested=a.child_g_frac,
+        p = Params(Res0=a.res0, X=a.on_duty, G_V=a.gv, p_start=a.p_start, p_cap=a.p_cap, p_floor=a.p_floor, p_halve_every=a.p_halve_every, band=a.band, G_frac_nested=a.child_g_frac, bond_mult_later=a.bond_mult_later,
                    record_dir=a.record_dir, f_fee=a.fee, phi_E_root=a.phi_e, phi_F_root=a.phi_f,
                    pi0=a.pi0, pi_max=a.pi_max, dial=(a.dial == "on"), beta_P=a.beta_p, Omega0=a.omega0,
                    membership=rev3, duty_fund=(rev3 and a.fund == "on"), net_plant_capital=rev3, m_max=a.m_max,
@@ -452,7 +455,12 @@ class Stamping:
         self.dispute_delay_window: list[tuple[int, int]] = []
         self.revision_window: list[tuple[int, bool]] = []
         self.revision_delay_window: list[tuple[int, int]] = []
-        self.plant_rng = random.Random(a.seed * 15485863 + 29)        # the plant's filing and revision draws — their own stream
+        self.plant_rng = random.Random(a.seed * 15485863 + 29)
+        self.diff_rng = random.Random(a.seed * 2654435761 + 7)       # the stressed world's shared difficulty (the plan's step 5): the cases' hard coins and their reads — their own stream, untouched at rho 0
+        self.bond_mult = a.bond_mult_later                           # the stressed world: the bond at an audit or panel seat as a multiple of G_V (the driver's funding checks follow the engine's)
+        self.e_shared = 1.0 - a.accuracy                            #   a case is hard with the careful's error rate
+        self.learner_private_real = 0.0                             # the stressed world's fourth action (step 3): the private benefit of the allowance claimed without the care, real, summed
+        self.learner_last_benefit = 0.0                             #   … of the last learner decision (read by redteam.env for the decision's own-money reward)        # the plant's filing and revision draws — their own stream
         self.raise_rng = random.Random(a.seed * 1299709 + 13)         # the plant's refusal and delay draws — their own stream, the others' unmoved
         self.learner_mix_by_period: dict[int, list[int]] = {}   # period → [ratchet, undercut, withhold] over the learners' bid decisions (the action mix by period)
         self.wealth_in_of: dict[str, float] = {}             # each learner slot's wealth in (genesis, read at the first tick; an arrival's float) — the nominal surplus
@@ -558,6 +566,7 @@ class Stamping:
                   "state_rejections": 0, "troop_truth_redrawn": 0,
                   "tell_plant_read_plant": 0, "tell_plant_read_real": 0, "tell_real_read_plant": 0, "tell_real_read_real": 0, "tell_false_approvals": 0,
                   "plant_bids_lost": 0, "plant_lag_sum": 0, "plant_lag_n": 0, "learner_false_approvals": 0,
+                  "learner_claims": 0, "allowance_claimed": 0.0, "shared_hard_cases": 0, "shared_coin_reads": 0,   # the stressed world (November 11, 2026)
                   "plant_raises_refused": 0, "plant_raise_delay_sum": 0,       # the plants whose raise was drawn refused (after run 35) and their drawn delays
                   # 2.8.0: the plant at every seat — the instrument's filings, revisions and spends, the seats and failures by kind, the state's initial seats
                   "plant_appeals_filed": 0, "pa_posted": 0, "pa_seated": 0, "pa_seat_refused": 0, "pa_verdicts": 0, "pa_closed": 0, "pa_audited": 0, "pa_confirmed": 0, "pa_rejected": 0, "pa_third": 0, "pa_disputed": 0, "pa_state_audit": 0, "pa_state_would_seat": 0, "plant_lies_filed_appeal": 0, "plant_lies_filed_dispute": 0, "plant_lies_held": 0, "plant_lies_refused": 0, "lie_adj_appeal": 0, "lie_sided_appeal": 0, "lie_adj_dispute": 0, "lie_sided_dispute": 0, "bad_met_initial": 0, "bad_met_audit": 0, "bad_met_third": 0, "bad_met_appeal": 0, "bad_met_dispute": 0, "bad_met_resumed": 0, "bad_met_state": 0, "panel_ineligible_member_periods": 0, "member_periods": 0, "life_lie_filing_delay": 0, "life_lie_filing_n": 0, "plant_disputes_filed": 0, "plant_challenges": 0, "plant_revisions": 0, "plant_spent_by_instrument": 0,
@@ -758,10 +767,11 @@ class Stamping:
             self.learner_decisions += 1
             if self.learner_pop and self.a.learner_role == "reviewer":          # the reviewers in self-play: the action mix by period (care / approve blind / reject blind)
                 per = len(self.w.dial()["periods"])
-                self.learner_mix_by_period.setdefault(per, [0, 0, 0])
-                if 0 <= action < 3:
+                self.learner_mix_by_period.setdefault(per, [0, 0, 0, 0] if self.a.temptation > 0 else [0, 0, 0])
+                if 0 <= action < len(self.learner_mix_by_period[per]):
                     self.learner_mix_by_period[per][action] += 1
-            if action == 3:                                                     # the `hand` reference: the slot answers as its disposition by hand would (run 24's population on the same slots)
+            self.learner_last_benefit = 0.0
+            if action == HAND_ACTION:                                                     # the `hand` reference: the slot answers as its disposition by hand would (run 24's population on the same slots)
                 kind = self.learner_hand_kind.get(reviewer, CAREFUL)
         if kind == STAMPER:
             if self.a.stamper_mode == "reformer" and self.w.actor(reviewer).probation:
@@ -770,7 +780,23 @@ class Stamping:
                 if self.a.camouflage > 0 and self.rng.random() < self.a.camouflage:
                     return N, 0.0                # looks careful without looking (1.2.0 §8 red team)
                 return F, 0.0
-        if action is not None and action != 3:
+        if action is not None and action != HAND_ACTION:
+            if action == CLAIM_ACTION and self.a.temptation > 0:
+                # the stressed world's fourth action (the plan's step 3, November 11, 2026): claim the allowance and stamp — the careful's care cost
+                # claimed, bought and reimbursed exactly as a careful review's (the ledger sees a careful review; the cost of truth unmoved), the
+                # verdict F without inspecting, and the effort not spent kept as a private benefit outside the ledger: --temptation × the cost
+                # claimed, real at the claim's index, in the learner's lifetime and in this decision's own-money reward (never in any wallet)
+                want, paid, affordable = self._care_cost(reviewer)
+                role = r.role if r is not None else "initial"
+                self.c["learner_claims"] += 1
+                self.c["learner_claims_" + role] = self.c.get("learner_claims_" + role, 0) + 1
+                self.c["allowance_claimed"] = round(self.c["allowance_claimed"] + paid, 6)
+                benefit = paid * self.a.temptation * (self.p.P0 / self.w.market()["P_t"])
+                self.learner_private_real += benefit
+                self.learner_last_benefit = benefit
+                if not truth and not self.tasks[view.case_id].plant:
+                    self.c["learner_false_approvals"] += 1
+                return F, paid
             if self.learner_pair and r is not None and r.role == "initial" and self.tasks[view.case_id].pair_review:
                 self.c[("pair_cares", "pair_stamps", "pair_rejects")[action]] += 1      # Q4: the reviewer's verdict on the deliverer's case
                 if action == 1:
@@ -799,11 +825,9 @@ class Stamping:
                 return F, 0.0
             elif not view.responses_available:
                 self.c[f"tell_later_{'plant' if is_plant else 'real'}_cared"] += 1
-        right = self.rng.random() < self.a.accuracy
+        right = self._right(self.tasks.get(view.case_id) if view is not None else None, self.a.accuracy)
         v = F if (truth == right) else N
-        want = float(self.rng.randint(2, 3)) * self.a.care_cost   # the care cost: uniform {2, 3} credits, scaled (the calibration cell's knob)
-        affordable = (self.w.unlocked(reviewer) if self.floating else self.w.unlocked(reviewer) * self.w.money()["v"]) - 1e-6   # 2.0.0: credits
-        paid = want if affordable >= want else max(0.0, math.floor(affordable * 100) / 100)
+        want, paid, affordable = self._care_cost(reviewer)
         if view is not None and view.case_id in self.tasks:
             kind_c = "plant" if self.tasks[view.case_id].plant else "real"      # 2.8.0 §8.6: the care spent on plants beside the real cases'
             self.c[f"care_cost_{kind_c}"] += paid
@@ -812,6 +836,42 @@ class Stamping:
             return v, want
         self.c["underfunded_careful_reviews"] += 1
         return v, paid
+
+    def _care_cost(self, reviewer: str) -> tuple[float, float, float]:
+        """The careful review's cost: uniform {2, 3} credits, scaled (the calibration cell's knob) — and what the reviewer's unlocked credit can buy
+        of it, when bonds locked in earlier reviews have left it short (the engine refuses an unaffordable purchase whole). (want, paid, affordable)."""
+        want = float(self.rng.randint(2, 3)) * self.a.care_cost
+        affordable = (self.w.unlocked(reviewer) if self.floating else self.w.unlocked(reviewer) * self.w.money()["v"]) - 1e-6   # 2.0.0: credits
+        paid = want if affordable >= want else max(0.0, math.floor(affordable * 100) / 100)
+        return want, paid, affordable
+
+    def _right(self, task, accuracy: float, rho: Optional[float] = None, own: Optional[bool] = None) -> bool:
+        """A verdict's correctness: its own coin at `accuracy` — and under the stressed world's shared difficulty (the plan's step 5, November 11,
+        2026; a harness construction, no rule), with probability rho the case's shared coin instead. The case is hard with probability e = 1 − the
+        careful's accuracy, drawn once at its first read on the driver's own stream; a verdict reading the shared coin is wrong on a hard case — and,
+        where its own error rate e_v exceeds e (the ruling's 0.2), on an easy case with probability (e_v − e)/(1 − e); where e_v is under e, wrong on a
+        hard case with probability e_v/e only — so every verdict's marginal error rate is what it was and two verdicts on one case err together
+        beyond chance with probability about rho². The own coin is drawn first in every case, so at rho 0 the stream of every run of record is
+        untouched. rho None reads --shared-difficulty (the careful members' and the learner's care); the troops' and the ruling's are stated apart.
+        `own` is the own coin's result where the caller draws it in its own form (the troop's `≥ ε_T`), so the record's streams read as they did."""
+        right = (self.rng.random() < accuracy) if own is None else bool(own)
+        rho = self.a.shared_difficulty if rho is None else rho
+        if rho <= 0 or task is None:
+            return right
+        dr = self.diff_rng
+        if task.hard is None:
+            task.hard = dr.random() < self.e_shared
+            if task.hard:
+                self.c["shared_hard_cases"] += 1
+        if dr.random() >= rho:
+            return right
+        self.c["shared_coin_reads"] += 1
+        e, e_v = self.e_shared, 1.0 - accuracy
+        if e_v >= e:
+            wrong = bool(task.hard) or (e < 1.0 and dr.random() < (e_v - e) / (1.0 - e))
+        else:
+            wrong = bool(task.hard) and (e > 0.0 and dr.random() < e_v / e)
+        return not wrong
 
     def read_tells(self, view, r) -> bool:
         """Q2's hand-written tell-reader: does this assignment look like a plant? Three tells, any or all (`--tell-rule`):
@@ -878,7 +938,7 @@ class Stamping:
         for aid in self.actors:
             ac = self.w.actor(aid)
             if ac.on_duty and ac.open_review is None and ac.committed is None and aid != c.actor and aid != c.requester \
-                    and aid not in c.excluded and self.w.unlocked(aid) + 1e-9 >= c.G_V \
+                    and aid not in c.excluded and self.w.unlocked(aid) + 1e-9 >= c.G_V * (self.bond_mult if panel else 1.0) \
                     and (ac.panel_eligible if panel else ac.duty_eligible):
                 out.append(aid)
         return out
@@ -1263,7 +1323,7 @@ class Stamping:
                     self.tasks[nid].parent_rejected_blind = True
                     self.c["learner_child_rejected_good" if truth else "learner_child_rejected_bad"] += 1
                 else:
-                    v = F if (truth == (self.rng.random() < a.accuracy)) else N
+                    v = F if (truth == self._right(self.tasks.get(nid), a.accuracy)) else N
                     have = max(0.0, math.floor((w.unlocked(parent) - 1e-6) * 100) / 100)
                     pay = min(2.0, have)
                     if pay > 0:
@@ -1278,7 +1338,7 @@ class Stamping:
             elif self.kind[parent] == STAMPER:
                 v = F
             else:
-                v = F if (truth == (self.rng.random() < a.accuracy)) else N
+                v = F if (truth == self._right(self.tasks.get(nid), a.accuracy)) else N
                 have = max(0.0, math.floor((w.unlocked(parent) - 1e-6) * 100) / 100)
                 pay = min(2.0, have)
                 if pay > 0:
@@ -1656,7 +1716,7 @@ class Stamping:
         w = self.w
         real = self.p.P0 / w.market()["P_t"]
         return sum(((w.wealth(x) - min(w.wealth(x), w.loan_outstanding(x))) * real) if x in self.actors else self.depart_wealth_real.get(x, 0.0)
-                   for x in self.learner_chain)
+                   for x in self.learner_chain) + self.learner_private_real   # the stressed world: the allowance claimed without the care, a private benefit outside every wallet
 
     def cycler_step(self, t: int):
         """§8.7 red team: a suspended stamper with no live obligation departs and re-arrives at once under a fresh identity, with
@@ -1773,7 +1833,7 @@ class Stamping:
                 c = cases[cid]
                 if aid in c.excluded or aid == c.actor or aid == c.requester:
                     continue
-                if w.unlocked(aid) + 1e-9 < c.G_V:
+                if w.unlocked(aid) + 1e-9 < c.G_V * (1.0 if kind == "initial" else self.bond_mult):
                     return "unfunded"
                 if not ac.duty_eligible:
                     return "ineligible"
@@ -2214,7 +2274,7 @@ class Stamping:
                     if w.is_troop(r.reviewer):
                         # 1.4.0 §2.1: the troop's declared disposition — the truth with probability 1 − ε_T, no cost
                         truth = self.tasks[cid].fulfilled
-                        right = self.rng.random() >= a.eps_t
+                        right = self._right(self.tasks.get(cid), 1.0 - a.eps_t, rho=a.shared_difficulty_troops, own=self.rng.random() >= a.eps_t)   # the stressed world: the troops' shared coin, stated apart (the own coin as it was)
                         w.complete_review(rid, F if (truth == right) else N, 0.0)
                         self.c["troop_reviews"] += 1
                         if r.role == "audit":
@@ -2544,11 +2604,11 @@ class Stamping:
                         # the shortfall's cause (the reviewer's read 2, November 10): a free on-duty member kept off the panel tier by its record,
                         # or no member free at all — the state's share of the panel seats by cause
                         free_any = [aid for aid in self.actors if (lambda ac: ac.on_duty and ac.open_review is None and ac.committed is None)(w.actor(aid))
-                                    and aid != c.actor and aid != c.requester and aid not in c.excluded and w.unlocked(aid) + 1e-9 >= c.G_V]
+                                    and aid != c.actor and aid != c.requester and aid not in c.excluded and w.unlocked(aid) + 1e-9 >= c.G_V * self.bond_mult]
                         self.c["panel_short_tier_ticks" if free_any else "panel_short_free_ticks"] += 1
                 elif not task.plant and len(done) == 2 and done[0].verdict != done[1].verdict and not c.challenge.get("escalated"):
                     truth = F if task.fulfilled else N
-                    by_truth = self.rng.random() < a.ruling_accuracy
+                    by_truth = self._right(task, a.ruling_accuracy, rho=a.shared_difficulty_ruling)   # the stressed world: the ruling's shared coin, stated apart
                     outcome = truth if by_truth else (N if truth == F else F)
                     w.rule(cid, outcome)
                     self.c["rulings"] += 1
@@ -3094,6 +3154,10 @@ class Stamping:
                     "slot_cost": (round(self.c_d_of[self.tell_slot], 3) if self.tell_slot else ""),
                     "slot_suspensions": (len(self.susp_log.get(self.tell_slot, [])) if self.tell_slot else ""),
                     "learner_decisions": self.learner_decisions, "learner_false_approvals": self.c["learner_false_approvals"],
+                    "learner_claims": self.c["learner_claims"], "learner_claims_initial": self.c.get("learner_claims_initial", 0), "learner_claims_audit": self.c.get("learner_claims_audit", 0),
+                    "learner_claims_appeal": self.c.get("learner_claims_appeal", 0), "learner_claims_resumed": self.c.get("learner_claims_resumed", 0),
+                    "allowance_claimed": self.c["allowance_claimed"], "learner_private_real": round(self.learner_private_real, 3),   # the stressed world (step 3)
+                    "shared_hard_cases": self.c["shared_hard_cases"], "shared_coin_reads": self.c["shared_coin_reads"],              # … (step 5)
                     # Q3: the learned deliverer's line — its quality decisions, what became of them, the guarantees it forfeited, the effort it saved
                     "learner_role": (("pair" if self.learner_pair else self.a.learner_role) if self.learner_id else ""), "learner_work_decisions": self.c["learner_work_decisions"],
                     # Q6: the learned bidder — its decisions by kind, the awards its bids won and the bid over cost at them, the offers lost, the wealth held (real, a tick)
@@ -3327,6 +3391,11 @@ def build_parser():
     ap.add_argument("--pi-a0", type=float, default=0.02, help="π^A_0, planted approvals per real approval audited by a member — the floor (Appendix A 0.02); A1's pinned cells: --pi-a0 0.10 --pi-a-max 0.10")
     ap.add_argument("--pi-a-max", type=float, default=0.40, help="π^A_max (Appendix A 0.40); equal to --pi-a0 pins π^A, the dial's other multipliers live")
     ap.add_argument("--dial-start", default=None, help="a harness option, no rule (A1 addendum 4, November 10, 2026): the four multipliers the world starts with, 'm_t,m_A,m_La,m_Ld' (each in [1, its cap]; the rates follow by the rule) — the dials carried from a run before; unset, every dial starts at the floor")
+    ap.add_argument("--temptation", type=float, default=0.0, help="the stressed world (the plan's step 3; November 11, 2026; a harness construction, no rule): a fourth reviewing action for the learner — claim the allowance and stamp: the careful's care cost claimed, bought and reimbursed as a careful review's, the verdict F blind, and the effort not spent kept as a private benefit of this multiple of the cost claimed (real) in the learner's lifetime and the decision's own-money reward, outside every wallet; 0 = three actions, every run of record")
+    ap.add_argument("--shared-difficulty", type=float, default=0.0, help="the stressed world (step 5): correlated errors — with this probability a careful verdict (a member's, the learner's care, a parent's judgment) reads the case's shared coin (the case hard with probability 1 − --accuracy, drawn once on its own stream) instead of its own; the marginal error rate unchanged; 0 = independent errors, every run of record")
+    ap.add_argument("--shared-difficulty-troops", type=float, default=0.0, help="… the troops' verdicts (the deciding verdict's seats included) reading the shared coin with this probability at ε_T's marginal rate — stated apart")
+    ap.add_argument("--shared-difficulty-ruling", type=float, default=0.0, help="… the ruling at a split reading the shared coin with this probability at --ruling-accuracy's marginal rate — stated apart")
+    ap.add_argument("--bond-mult-later", type=float, default=1.0, help="Params.bond_mult_later (a harness option, no rule): the reviewer's bond at an audit or panel seat as a multiple of G_V (A1 r2 §4's sweep ×2, ×4); 1.0 every run of record")
     ap.add_argument("--p-start", type=float, default=1.0, help="a newcomer's audit odds (1.2.0 §2.4: 1.0; 1.1.0: 0.5)")
     ap.add_argument("--p-cap", type=float, default=1.0, help="the audit odds' cap on doubling (1.2.0 §2.4: 1.0; 1.1.0: 0.5)")
     ap.add_argument("--p-floor", type=float, default=Params.p_floor, help="the audit rate's floor (§8.3; Appendix A 0.5 from November 6, 2026 — the economy reviewer's defaults move after run 42's read; 0.2 before)")
@@ -3621,7 +3690,10 @@ def main(argv=None):
                                                "awards": "oldest request first (case-id order) — conformance, I26"},
                                 "dispositions": {"stamper_fraction": a.stampers,
                                                  "assignment": dict(sorted(run.kind.items())),
-                                                 "careful": {"accuracy": a.accuracy, "care_cost_scale": a.care_cost, "cost": "uniform {2, 3} credits, or what unlocked "
+                                                 "careful": {"accuracy": a.accuracy, "care_cost_scale": a.care_cost,
+                                                             "stressed_world": {"temptation": a.temptation, "shared_difficulty": a.shared_difficulty, "shared_difficulty_troops": a.shared_difficulty_troops,
+                                                                                "shared_difficulty_ruling": a.shared_difficulty_ruling, "bond_mult_later": a.bond_mult_later},   # November 11, 2026: harness constructions, no rule
+                                                             "cost": "uniform {2, 3} credits, or what unlocked "
                                                                                            "credit can buy (counted as underfunded)"},
                                                  "stamper": {"verdict": "F" if a.camouflage == 0 else f"F, N w.p. {a.camouflage} (camouflage)",
                                                              "cost": 0,

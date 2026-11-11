@@ -953,3 +953,27 @@ Arm 4 is the three together. I45–I48 (`sim/invariants.py`), `tests/test_a1.py`
 
 **The dials carried (the reviewer's addendum 4 to the brief, November 10, 2026; a harness option, no rule):** `Params.dial_start` = (m_t, m^A, m^La, m^Ld) at genesis, each in [1, its cap], the rates following by the rule (π = min(π_max, π_0 m)); None (the default, every run of record) starts every dial at the floor — a run that begins with a cold dial is the harness's assumption, not the rulebook's. The driver's `--dial-start m_t,m_A,m_La,m_Ld` (the manifest records it); `redteam.online --carry-dials mean --dial-start …` runs a chain whose rounds carry the dials — each round's runs start at the mean over the round before's runs of the four multipliers at their end, the round's evaluation at the mean of its own, the first round at `--dial-start` (the online log's `dials` block keeps every run's end). `test_a1`'s seventeenth test pins the start and the rates.
 
+**The stressed world (the plan's steps 3–5, November 11, 2026; harness constructions, no rule; the economy reviewer's addendum 5: "then the stressed
+world ... on the finalists: arm 0 with the planted approval's floor at 0.10, arm 2, arm 4"):** three knobs, each off in every run of record so nothing
+on record moves (checked: the entry cell at seed 21 and `run_q` with run 42's policy, the hand and the careful give the same fingerprint and the same
+rows from the tree before and after). (i) **The temptation** — `--temptation x` (0 off): a fourth reviewing action for the learner, *claim the
+allowance and stamp* (`CLAIM_ACTION` 3; the `hand` reference's code moved from 3 to `HAND_ACTION` 9, the same behaviour): the careful's care cost is
+claimed, bought and reimbursed exactly as a careful review's — the ledger sees a careful review, the cost of truth and every wallet unmoved — the
+verdict is F without inspecting, and the effort not spent is kept as a private benefit of x × the cost claimed (real at the claim's index), added to
+the learner's lifetime (`learner_lifetime_real`, `learner_private_real`) and to that decision's own-money reward (`redteam.env` records it on the
+decision, `redteam.attrib` adds it, `by_source["private_benefit"]`), never in any wallet; the driver's `learner_claims` (by role), `allowance_claimed`;
+`redteam.env` gives the reviewer four actions where the cell carries `--temptation > 0` (`ElefReviewerEnv.n_actions`), the policies `claimer`,
+`eps4`, `random4`; `run_q`'s `claim_share` and `claim_rate_<seat>_<kind>` (a claim counts among the blind verdicts; the measured-from-reviews reading
+cannot see it). (ii) **The shared difficulty** (correlated errors) — `--shared-difficulty ρ` (0 off): every case is hard with probability e = 1 −
+`--accuracy`, drawn once at its first read on the driver's own stream (`diff_rng`; `Task.hard`); a careful verdict — a member's, the learner's care, a
+parent's judgment — reads the case's shared coin with probability ρ instead of its own and is then wrong on a hard case, so its marginal error rate is
+what it was and two verdicts on one case err together beyond chance with probability about ρ²; `--shared-difficulty-troops` and
+`--shared-difficulty-ruling` the troops' (the deciding verdict's seats included) and the ruling's shares, stated apart, each at its own marginal rate
+(where e_v > e, wrong on an easy case with probability (e_v − e)/(1 − e); where e_v < e, wrong on a hard case with probability e_v/e) — `Stamping._right`;
+the row's `shared_hard_cases`, `shared_coin_reads`. The own coin is drawn first in every case, so at ρ 0 the streams of record are untouched. (iii)
+**The bond at the audit and panel seats** — `Params.bond_mult_later` (1.0; the driver's `--bond-mult-later`; A1 r2 §4's sweep ×2, ×4): `World.bond_for(c,
+role)` is G_V times the multiple at an audit or panel seat (`PANEL_ROLES`), the bond locked, funded (`_eligible`, `_free_eligible_reviewer`) and burned as
+the seat's; the first review's G_V; the driver's funding checks follow; the view's `bond_at(cid, role)`; `tests/test_a1.py` (18). The payoff table on
+the scripted ε population with the four actions per finalist × temptation {1, 2, 4} × bond {×1, ×2, ×4}, and ρ 0.5 apart:
+`results/redteam/stability/ablation-A1/stress/payoff-launch.sh`, read by `payoff_stress.py`; the learned chains at the frontier the table names.
+

@@ -129,7 +129,7 @@ def episode(env, policy, seed, rng):
     acts_work = []                                                # the pair: the work decisions apart from the review decisions
     acts_kind = {"delegate": [], "judge": [], "cancel": []}      # the parent: its three kinds apart
     blind_seats, blind_seat_stamps = 0, 0                         # the non-initial seats (2.7.0's "plant-blind" seats — audits and panels; under 2.8.0 a plant reaches them too)
-    by_seat = {f"seat_{s}_{k}_{m}": 0 for s in ("initial", "audit", "panel", "resumed") for k in ("plant", "real") for m in ("seen", "stamped", "rejected_blind")}   # 2.8.0: by seat kind; `stamped` counts a verdict given without inspecting of either sign (the correction of November 6, 2026 — the label), `rejected_blind` the reject-blind part of it
+    by_seat = {f"seat_{s}_{k}_{m}": 0 for s in ("initial", "audit", "panel", "resumed") for k in ("plant", "real") for m in ("seen", "stamped", "rejected_blind", "claimed")}   # 2.8.0: by seat kind; `stamped` counts a verdict given without inspecting of either sign (the correction of November 6, 2026 — the label), `rejected_blind` the reject-blind part of it
     diag = []                                                     # per review decision: (action, predicted r per action, planner cost per first action, realized r)
     review_idx, k_all = [], 0                                     # the review decisions' positions among all decisions (the attributed reward is per decision)
     while not done:
@@ -152,13 +152,13 @@ def episode(env, policy, seed, rng):
         else:
             seat = info.get("seat") or ("initial" if info.get("initial", True) else "audit")
             kk = "plant" if info.get("is_plant") else "real"
-            by_seat[f"seat_{seat}_{kk}_seen"] += 1; by_seat[f"seat_{seat}_{kk}_stamped"] += int(a in (1, 2)); by_seat[f"seat_{seat}_{kk}_rejected_blind"] += int(a == 2)
+            by_seat[f"seat_{seat}_{kk}_seen"] += 1; by_seat[f"seat_{seat}_{kk}_stamped"] += int(a in (1, 2, 3)); by_seat[f"seat_{seat}_{kk}_rejected_blind"] += int(a == 2); by_seat[f"seat_{seat}_{kk}_claimed"] += int(a == 3)   # the stressed world's fourth action: a blind approval with the allowance claimed
             if not info.get("initial", True):                     # a non-initial seat: read apart from the initial reviews' plant/real rates
-                blind_seats += 1; blind_seat_stamps += int(a in (1, 2))
+                blind_seats += 1; blind_seat_stamps += int(a in (1, 2, 3))
             elif info.get("is_plant"):
-                plants_seen += 1; plants_stamped += int(a in (1, 2))
+                plants_seen += 1; plants_stamped += int(a in (1, 2, 3))
             else:
-                real_seen += 1; real_stamped += int(a in (1, 2))
+                real_seen += 1; real_stamped += int(a in (1, 2, 3))
         obs, r, done, _, info = env.step(a)
         if not boundary:
             diag.append((a, pred["pred_r"] if pred else None, (pred["plan_cost"] or None) if pred else None, float(r), is_work))
@@ -221,6 +221,7 @@ def episode(env, policy, seed, rng):
             "learner_lifetime_real": row.get("learner_lifetime_real"), "learner_departed_now": row.get("learner_departed_now"),
             "care_share": float(np.mean([x == 0 for x in acts])) if acts else None, "approve_blind_share": float(np.mean([x == 1 for x in acts])) if acts else None,
             "reject_blind_share": float(np.mean([x == 2 for x in acts])) if acts else None,
+            "claim_share": float(np.mean([x == 3 for x in acts])) if acts else None,   # the stressed world: claim the allowance and stamp (0 in every three-action cell)
             "plants_seen": plants_seen, "plants_stamped": plants_stamped, "real_seen": real_seen, "real_stamped": real_stamped,
             "false_approvals_run": row.get("false_approvals"), "learner_false_approvals": row.get("learner_false_approvals"),
             "slot_departed": row.get("slot_departed"), "slot_rho": row.get("slot_rho"), "slot_plant_failures": row.get("learner_plant_failures"),
@@ -324,6 +325,14 @@ def write_seat_table(f, summary):
             "| policy | initial plant / real | audit plant / real | panel plant / real | resumed plant / real |\n|---|---|---|---|---|\n")
     for name, s in summary.items():
         f.write(f"| {name} | {r(s, 'initial', 'plant')} / {r(s, 'initial', 'real')} | {r(s, 'audit', 'plant')} / {r(s, 'audit', 'real')} | {r(s, 'panel', 'plant')} / {r(s, 'panel', 'real')} | {r(s, 'resumed', 'plant')} / {r(s, 'resumed', 'real')} |\n")
+    if any((s.get(f"claim_rate_{k}_{kk}") or 0) > 0 for s in summary.values() for k in kinds for kk in ("plant", "real")):
+        def rc(s, k, kk):
+            v = s.get(f"claim_rate_{k}_{kk}"); n = s.get(f"seats_{k}_{kk}", 0)
+            return "—" if v is None else f"{v:.3f} ({n})"
+        f.write("\nThe stressed world's fourth action by seat kind — the allowance claimed and the verdict F without inspecting (counted above among the blind verdicts; the ledger sees a careful review, so the measured reading below cannot see it):\n\n"
+                "| policy | initial plant / real | audit plant / real | panel plant / real | resumed plant / real |\n|---|---|---|---|---|\n")
+        for name, s in summary.items():
+            f.write(f"| {name} | {rc(s, 'initial', 'plant')} / {rc(s, 'initial', 'real')} | {rc(s, 'audit', 'plant')} / {rc(s, 'audit', 'real')} | {rc(s, 'panel', 'plant')} / {rc(s, 'panel', 'real')} | {rc(s, 'resumed', 'plant')} / {rc(s, 'resumed', 'real')} |\n")
     if not any(s.get(f"measured_seats_{k}_plant") or s.get(f"measured_seats_{k}_real") for s in summary.values() for k in kinds):
         return
     def rm(s, k, kk):
@@ -391,7 +400,7 @@ def main(argv=None):
     env.close()
     summary = {}
     for name, rows in results.items():
-        summary[name] = {k: mse([r[k] for r in rows]) for k in ("lifetime_real_wealth", "decisions", "care_share", "approve_blind_share", "reject_blind_share",
+        summary[name] = {k: mse([r[k] for r in rows]) for k in ("lifetime_real_wealth", "decisions", "care_share", "approve_blind_share", "reject_blind_share", "claim_share",
                                                                  "false_approvals_run", "learner_false_approvals", "suspensions_run", "slot_departed")}
         ps, pn, rs, rn = (sum(r[k] for r in rows) for k in ("plants_stamped", "plants_seen", "real_stamped", "real_seen"))
         summary[name]["plant_stamp_rate"] = ps / max(1, pn); summary[name]["real_stamp_rate"] = rs / max(1, rn)     # on the initial reviews (the ruling after run 26)
@@ -403,6 +412,7 @@ def main(argv=None):
                 seen = sum(r.get(f"seat_{s}_{kk}_seen", 0) for r in rows); st = sum(r.get(f"seat_{s}_{kk}_stamped", 0) for r in rows); rb = sum(r.get(f"seat_{s}_{kk}_rejected_blind", 0) for r in rows)
                 summary[name][f"stamp_rate_{s}_{kk}"] = (st / seen) if seen else None
                 summary[name][f"reject_blind_rate_{s}_{kk}"] = (rb / seen) if seen else None
+                cl = sum(r.get(f"seat_{s}_{kk}_claimed", 0) for r in rows); summary[name][f"claim_rate_{s}_{kk}"] = (cl / seen) if seen else None   # the stressed world
                 summary[name][f"seats_{s}_{kk}"] = seen
                 mseen = sum(r.get(f"measured_{s}_{kk}_seen", 0) for r in rows); ab = sum(r.get(f"measured_{s}_{kk}_approve_blind", 0) for r in rows); mrb = sum(r.get(f"measured_{s}_{kk}_reject_blind", 0) for r in rows)
                 summary[name][f"measured_blind_rate_{s}_{kk}"] = ((ab + mrb) / mseen) if mseen else None      # the reading from the engine's reviews (November 7, 2026)
@@ -565,7 +575,7 @@ def main(argv=None):
                 for name, s in summary.items():
                     mix = s.get("mix_by_period")
                     if mix:
-                        f.write(f"- **{name}**: " + "; ".join(f"p{i} {fmt(m[0])}/{fmt(m[1])}/{fmt(m[2])} ({d:.0f})" for i, (m, d) in enumerate(zip(mix, s["decisions_by_period"]))) + "\n")
+                        f.write(f"- **{name}**: " + "; ".join(f"p{i} {'/'.join(fmt(x) for x in m)} ({d:.0f})" for i, (m, d) in enumerate(zip(mix, s["decisions_by_period"]))) + "\n")
                 write_life_table(f, summary)
             print(json.dumps(summary, indent=1, default=float))
             return
@@ -622,7 +632,7 @@ def main(argv=None):
             for name, s in summary.items():
                 mix = s.get("mix_by_period")
                 if mix:
-                    f.write(f"- **{name}**: " + "; ".join(f"p{i} {fmt(m[0])}/{fmt(m[1])}/{fmt(m[2])} ({d:.0f})" for i, (m, d) in enumerate(zip(mix, s["decisions_by_period"]))) + "\n")
+                    f.write(f"- **{name}**: " + "; ".join(f"p{i} {'/'.join(fmt(x) for x in m)} ({d:.0f})" for i, (m, d) in enumerate(zip(mix, s["decisions_by_period"]))) + "\n")
             write_life_table(f, summary)
     print(json.dumps(summary, indent=1, default=float))
 

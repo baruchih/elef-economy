@@ -481,3 +481,34 @@ def test_the_dials_carried_in_start_the_four_multipliers_and_their_rates_and_not
             Params(dial_start=bad)
     w2.advance(30)
     check_all(w2)
+
+
+# ------------------------------------------------------------ the stressed world's harness option (November 11, 2026; no rule)
+def test_the_bond_at_an_audit_or_panel_seat_is_a_multiple_of_G_V_under_bond_mult_later_and_G_V_at_the_first_review():
+    """`Params.bond_mult_later` (1.0 in every run of record): the reviewer's bond at an audit or panel seat is that multiple of G_V — locked,
+    funded and burned as the seat's; the first review's bond stays G_V. A reviewer whose unlocked credit covers G_V but not the multiple is
+    refused the audit seat and admitted to a first review; the default leaves every lock at G_V."""
+    w = make_world(trusted_ruling=False, bond_mult_later=2.0)
+    q, r = real_approved(w)
+    c = w.cases[q]
+    assert w.reviews[r].bond == c.G_V and w.bond_for(c, "initial") == c.G_V and w.bond_for(c, "audit") == 2 * c.G_V == w.bond_for(c, "appeal")
+    w.roll_audit(q)
+    # D can fund G_V but not 2 G_V: refused the audit seat, admitted to a first review of another case
+    w.ledger.purchase("D", w.ledger.wallet("D").U - 1.5 * c.G_V, case=None, note="test: effort spent")   # D keeps 1.5 G_V unlocked
+    assert c.G_V <= w.ledger.wallet("D").U < 2 * c.G_V
+    with pytest.raises(RuleError):
+        w.assign_audit(q, "D")
+    ra = w.assign_audit(q, "E")
+    assert w.reviews[ra].bond == 2 * c.G_V and w.ledger.wallet("E").L >= 2 * c.G_V
+    q2 = w.post_root("H", 20); w.award(q2, "A", 20, 2); w.advance(w.t + 2); w.submit(q2)
+    r2 = w.assign_initial(q2, "D")
+    assert w.reviews[r2].bond == c.G_V
+    w.advance(w.t + 1)
+    w.complete_review(ra, N, 2.0)                                     # the audit disagrees: the third seat, then by the ruling; the overturned bond burns whole
+    check_all(w)
+    w0 = make_world(trusted_ruling=False)
+    q0, r0 = real_approved(w0); c0 = w0.cases[q0]; w0.roll_audit(q0)
+    ra0 = w0.assign_audit(q0, "D")
+    assert w0.reviews[ra0].bond == c0.G_V and w0.p.bond_mult_later == 1.0
+    with pytest.raises(ValueError):
+        Params(bond_mult_later=0.0)

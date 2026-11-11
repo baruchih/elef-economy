@@ -1583,14 +1583,20 @@ class World:
             raise RuleError(f"{reviewer} is excluded from case {c.id}")
         if a.open_review is not None or a.committed is not None:
             raise RuleError(f"{reviewer} already holds an active assignment (one at a time, §2.2)")
-        if self.ledger.wallet(reviewer).U + 1e-9 < c.G_V:
-            raise RuleError(f"{reviewer} cannot fund the bond {c.G_V} (§7.1)")
+        bond = self.bond_for(c, role)
+        if self.ledger.wallet(reviewer).U + 1e-9 < bond:
+            raise RuleError(f"{reviewer} cannot fund the bond {bond} (§7.1)")
         # 1.2.0 §2.2: eligibility is a property at assignment — duty eligibility for any review,
         # panel eligibility for a seat on an appeal, dispute or audit panel
         if not a.duty_eligible:
             raise RuleError(f"{reviewer} is not eligible for duty by its plant record (§7.1, 1.2.0)")
         if role in PANEL_ROLES and not a.panel_eligible:
             raise RuleError(f"{reviewer} may not sit on a challenge panel: plant record above θ_panel (§7.1, 1.2.0)")
+
+    def bond_for(self, c: Case, role: str) -> float:
+        """The reviewer's bond at a seat: G_V — times `Params.bond_mult_later` at an audit or panel seat (a harness option of the stressed
+        world, November 11, 2026; 1.0 in every run of record, so nothing on record moves). The bond locked, funded and burned is the seat's."""
+        return c.G_V * (self.p.bond_mult_later if role in PANEL_ROLES else 1.0)
 
     def _positions(self, c: Case) -> int:
         """Review positions on the current challenge path (§12). A withdrawn review vacates its
@@ -1607,8 +1613,9 @@ class World:
             self._plant_top_up(c, role)                 # 2.8.0 §2.2 (A): the pots brought to the seat's need before the seat is held
         self._n_review += 1
         rid = f"r{self._n_review}"
-        r = Review(rid, c.id, reviewer, role, self.t, self.t + self.p.T_review, bond=c.G_V)
-        self.ledger.lock(reviewer, c.G_V, key=f"bond:{rid}", case=c.id, note=f"bond ({role})")
+        bond = self.bond_for(c, role)
+        r = Review(rid, c.id, reviewer, role, self.t, self.t + self.p.T_review, bond=bond)
+        self.ledger.lock(reviewer, bond, key=f"bond:{rid}", case=c.id, note=f"bond ({role})")
         self.reviews[rid] = r
         self._live_reviews[rid] = r
         c.reviews.append(rid)
@@ -4439,7 +4446,7 @@ class World:
 
     def _free_eligible_reviewer(self, c: Case, role: str) -> bool:
         """Is any on-duty reviewer eligible for this seat free to take it? (1.4.0 §2.2's test for 'unfilled'.)"""
-        GV = c.G_V
+        GV = self.bond_for(c, role)
         for a in self.actors.values():
             if not a.on_duty or a.open_review is not None or a.committed is not None:
                 continue

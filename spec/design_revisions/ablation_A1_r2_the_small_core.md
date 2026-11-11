@@ -3,7 +3,7 @@
 **Status:** candidate configurations for evaluation, **not in force**. No version number, nothing consolidated, no rule moved. Built behind flags and labelled as release candidates are. Adoption of any arm is a design revision drafted after the runs.  
 **Date:** November 10, 2026 (r1 and r2) · **From:** the economy's reviewer · **Supersedes:** r1 of the same day.  
 **What r2 settles:** the implementer's review against the engine at `2417219ba` (notes §78): eight corrections accepted (D1–D3, A1.1, A1.2, A2.1, A2.2, A3.1, A4.1, with A4.2 and A5.1–A5.3 noted); the four items put to the reviewer ruled (D4, C1, A1.3, Q1); hypothesis 1 restated, because its second clause was wrong; two arms and two pinned cells added, on the arithmetic of §2.  
-**Addenda 1–5** (November 10–11: after the payoff table; after the scripted sweep and the panel check; B5 amended before its cells; the dial's clock; after the learned chains) are at the end. Nothing in §1–§9 is changed by them except §7.3, which gains two chains (B3, D3) and one evaluation (D2); addendum 5 sets the reads from here.  
+**Addenda 1–7** (November 10–12: after the payoff table; after the scripted sweep and the panel check; B5 amended before its cells; the dial's clock; after the learned chains; after E3 and the stressed world's first read; after Baruchi's rulings of November 11–12) are at the end. Nothing in §1–§9 is changed by them except §7.3, which gains two chains (B3, D3) and one evaluation (D2); addendum 6 sets the order from here, and addendum 7 amends its item 2.  
 **Rulebook in force:** 2.9.0 with the consolidated defaults.
 
 ## 1. The question
@@ -312,3 +312,107 @@ The planted approval's floor (π^A_0 = 0.02, the reviewer's default) sits under 
 5. **Not run:** the frozen 2,000-tick read on D3's policies. The direct is valid to tick 1,000 and the head alone extrapolates along its record; and where a frozen policy lets the dial fall is not where a population that keeps learning leaves it. The two pins bracket it.
 
 Then the stressed world of the implementer's steps 3–5 on the finalists: arm 0 with the planted approval's floor at 0.10, arm 2, arm 4.
+
+---
+
+## Addendum 6 to revision 2 — after E3 and the stressed world's first read
+
+*November 11, 2026, evening. Read from the notes themselves, §88–§103 at `11b17d000` — the file reached the reviewer today; everything before this was read from summaries. No rule, arm or flag is changed. Here: E3 against what was stated; the stressed world at a temptation of 1; what the two days' reads say of the member's audit seat; and the order from here, with expectations.*
+
+### F1. E3 against what was stated
+
+- **E3.1, the 0.20 pin:** met by the head alone (0.021 blind), at the line by the direct (0.054); the leak 8 / 6 per thousand bad deliveries; the overhead +2.3 a task over the 0.10 pin's (13.7 / 13.9). Not refuted. The blind verdict that remains moves to the panels and turns to a rejection.
+- **E3.2:** arm 2 is one basin from both starts; only the panels move, a point and a half.
+- **E3.3:** the tier part met — under arm 2 the members no longer lose the panel tier. **The state's share of the panel seats is refuted as stated**: it rises (0.48 / 0.45 against run 42's 0.39 / 0.43), by composition — the third seats go to the deciding verdict and the state's seats past w_R stay. The read itself: the customers' disputes do not hold on the direct's own care under arm 2 (two learned members win one in four; 0.77 / 0.68 overall), and do on the head alone's (0.98 / 1.00). The leak is the state's audit's whatever the panel does.
+- **E3.4 (C3.2 as amended):** met at both detections — two learned members win the customer's truthful dispute 0.97 at a quarter and 0.95 at a tenth. **Not foreseen:** the retrained population stamps the audit seat more (+0.154 at a quarter, +0.079 at a tenth), because a dispute discharges a planted approval before its audit and the seat meets fewer of them — §2 again. The standing false approvals fall at a quarter (15.4 → 10.8 / 9.9) and not at a tenth. With the liar chain's audit seat (blind 0.93 / 0.95 where every approval is disputed first, and paid 4,000 a run) it is one reading: **2.9.0's lever on the audit seat weakens as the customers look more.**
+- **The owed cells of 2.9.0** (notes §88), now read: π_t at its cap closes the audit seat to 0.21 / 0.18 at 23.4 / 22.7 a task; the half reads 0.34 / 0.24. Across every learned cell the seat's blind rate follows the truth-checked bad share at the seat — §2 on the learned populations.
+
+### F2. The stressed world at a temptation of 1 and the bond ×1 (notes §97, §99, §102)
+
+| | The pin (π^A 0.10) | Arm 2 | Arm 4 |
+|---|---|---|---|
+| Claimed at the first review | 0.29 / 0.25 | 0.27 / 0.24 | 0.25 / 0.22 |
+| Claimed at a member's audit seat | 0.94 / 0.99 | 0.99 / 1.00 (the state's own work only) | 0.99 / 1.00 (the same) |
+| Leak per thousand bad deliveries (unstressed) | 67 / 64 (11 / 8) | 22 / 22 (9 / 6) | 19 / 18 (10 / 6) |
+| System overhead a task (unstressed) | 16.4 / 17.0 (11.4 / 11.6) | 16.9 / 17.0 (9.9 / 9.7) | 16.5 / 16.2 (9.7 / 9.4) |
+
+- **Hypothesis 8 is met on the leak** — from parity to three times apart — **and not on the cost**: every finalist at 16–17 a task, the suspensions' churn and the thinned population.
+- A member's audit seat is claimed nearly whole wherever a member holds one. The first review is claimed one time in four in every finalist, where the table reads a coin. The panels hold best.
+- No finalist holds the careful's leak. Every learned population ends poorer than the careful's with the private benefit counted.
+- Read with its limits: the learners credit one decision at a time; the construction is the harness's and is off in every run of record.
+
+### F3. What the two days' reads say of the member's audit seat
+
+In every world read, the member's audit of a member's work is the seat that fails: half-stamped at the dial's floor; held only by stings that cost 2 to 4 a task and more; stamped more where customers dispute; stamped nineteen in twenty where every approval is disputed; claimed whole under a temptation of 1, at every bond read. The orchestrator's audit holds the leak at 6–9 per thousand bad deliveries at the lowest overhead unstressed, from both starts, and at a third of the pin's under the temptation.
+
+**The reviewer's recommendation, for Baruchi's decision and against a standing design position: the audit of a member's work is the orchestrator's.** Its price as measured: the orchestrator on 45 in 100 of the review seats where it sat 18; the members' surplus a fifth to a quarter lower; about three slots in twenty-three fewer alive. Nothing is drafted until he rules.
+
+### F4. The order from here — the reviewer's call
+
+1. **Trap or equilibrium** (frozen policies, no training; first). On each finalist at a temptation of 1: the stressed policy of record on half the slots and the careful on the other half, in one world. Read by half: the slots' real lifetime with the private benefit counted, the suspensions, the seats held. **Expected:** the careful half ends ahead of the claiming half by more than 1,500 real a slot in every finalist — a claim is worth 2–3 real and a suspension a tenth of a run. If so, the claim's basin is the short-sighted learner's, a member that counted its own suspensions would not enter it, and the learner's horizon (the implementer's step 7) is read before any stake is drafted on the learned chains. **Refuted** if the claiming half is level or ahead: then the claim pays the member that makes it and only the stake answers it.
+2. **The stake at every member seat** — G_V ×2 and ×4, the first review's bond with it (the later seats' multiple at 1) — at a temptation of 1 and 2. The payoff table first, on the three finalists. **Expected:** the first review's claim edge falls 0.3–0.5 real a multiple; at a temptation of 1 it is under −1 at ×4 in every finalist; at 2 it stays open at ×4. Then one learned chain each on arms 4 and 2 at a temptation of 1 and the multiple the table says closes the first review by more than 1 real. **Expected there:** the first review claimed under 0.10, the leak within one and a half times the unstressed, the suspensions under 10 a run. Read beside, because the stake is paid by the honest too: the careful population's surplus and false penalties, the members' idle-for-bond time, the underfunded reviews, the slots alive.
+3. **The joint-verdict read at ρ 0.5** on the scripted populations, beside the others; it trains nothing.
+4. **Not run:** the dial under the temptation (a claimed seat reads F̂^A near 0.8 and sends the dial to the cap, where the seat is at best a coin at more than twice the overhead); further learned chains on the pin (its audit seat pays the claim at every bond read); learned chains at a temptation of 2 until the table names a stake that closes it; 2.9.0 §8.7's m^A-at-1 cell, closed in addendum 4.
+
+**Two readings asked:** the orchestrator's own bad work standing a run under the temptation — §5 left the member's audit of the orchestrator's own deliveries unpriced, and it is now claimed whole while the orchestrator delivers 4 to 7 in 100 of the awards; and the private benefit a slot, by policy.
+
+---
+
+## Addendum 7 to revision 2 — after Baruchi's rulings of November 11–12
+
+*November 12, 2026. No note is read here. This addendum follows the owner's rulings on the staged loop: the life-cycle map of the real loop, revision 9, and "The economy's answer to the life-cycle map, revision 9", third edition, section 12. No rule, arm or flag of record is changed, and nothing is drafted: the rulebook stays 2.9.0 and frozen, and no 3.0.0 is written before the loop's first experiment on inspection plans reports. Here: the rulings that bear on the simulation; cells added to F4.2's table; one learned chain; what stands; and the limits.*
+
+### G1. The rulings that bear on the simulation
+
+- **F3's recommendation is not adopted.** The orchestrator stays minimal. Its inspectors are the last word on a difference, an appeal, a dispute and a ruling on cause — arm 1's deciding verdict — and not the routine audit of members' work. Arms 2 and 4 stay on record as what the orchestrator's audit holds and costs.
+- **The audit of a member's approval is a premium member's seat**: earned by record, tested by planted approvals at a rate above the line of §2, better paid, and carrying a stake that is felt at once. Its nearest cell in this instrument is arm 0 with π^A pinned: gated by θ_panel, at a weight of 1.5.
+- **Money and marks move on trusted truth only.** A difference between two members is a signal. Here that is arm 1's rule, on record.
+- **A reviewer is paid a fixed fee for each recorded act, and its own cost never enters.** It then carries the cost of its care itself, so skipping saves exactly that cost. **The stressed world at a temptation of 1 is therefore the base case for the staged loop. The world of record — care reimbursed, nothing saved by skipping — is the special case.** No cell of record is relabelled; the stressed cells are read with this in mind.
+- **No number that moves money comes from the side it pays.** In this instrument the stressed world's fourth action is that hole: an allowance paid on the reviewer's own claim.
+- **Reviewing stays a duty of every member that takes work**, as 1.2.0, 1.3.0 and 2.7.0 have it. One addition for the staged loop, not built here: repeated no-shows bar a member from new awards, as a failed plant record does.
+- **The way of working:** the simulation with the implementer and the loop's own experiments run in parallel, and the two are merged from time to time.
+
+### G2. Cells added to F4.2's payoff table — the premium seat's stake
+
+On the scripted ε population of §99, arm 0 with π^A pinned, the member-held audit seat. §99 read its claim edge at π^A 0.10: +1.94 at ×1, +1.38 at ×2 and +0.81 at ×4 at a temptation of 1; +4.48, +4.52 and +3.35 at 2. Added:
+
+| Dimension | Values |
+|---|---|
+| The bond at the audit and panel seats | ×6, ×8 |
+| π^A, pinned | 0.10, 0.20 |
+| The audit seat's role weight | 1.5 (of record), 3 |
+| The temptation | 1, 2 |
+
+Sixteen cells; and beside them π^A 0.20 at ×1 and ×4 with the weight at 1.5, for the slope. The first review's bond as §99 had it. If the weight is not exposed as an option, it is a harness option, off in every run of record; say so before running.
+
+**Read, in each cell:** the two edges against inspecting at the audit seat and at the panels, as §99; the truth-checked bad share at the seat; and, because the honest pay the stake too, the careful population's false penalties by seat, its surplus, its idle-for-bond time, the underfunded reviews, the slots alive, and the orchestrator's share of the audit seats.
+
+**Expected**, from §99's own slope (the stamp's edge at the seat is about 0.7 real plus 0.3 real a multiple at a truth-checked bad share of 0.11, and both parts follow that share):
+
+- a temptation of 1, π^A 0.10: the claim's edge +0.1 ± 0.4 at ×6 and −0.6 ± 0.4 at ×8;
+- a temptation of 1, π^A 0.20: about +1.2 at ×1, −0.5 at ×4, −1.6 at ×6 and −2.7 at ×8, each ± 0.5;
+- a temptation of 2: open at π^A 0.10 at every bond (above +1.5); at π^A 0.20 about +1.4 at ×6 and on the line at ×8;
+- the weight at 3 lowers the edge by about 0.2 at π^A 0.10 and 0.3 at 0.20, small beside the bond's part;
+- the careful population's false penalties at the audit seat unchanged in count and larger by the multiple.
+
+**Refuted** if the edge at π^A 0.10 is still above +0.5 at ×8, or already under −1 at ×6; or if doubling π^A does not about double the bond's part.
+
+### G3. One learned chain, after the table
+
+On arm 0 with π^A pinned, at a temptation of 1, at the cheapest added cell where the table reads the audit seat's claim edge under −1, with the first review's bond at the multiple F4.2's table names. The recipe of §102: the careful start, ten rounds, the finals on seeds 21–40 with the careful, the stamper, the claimer and the hand on the same slots. **It takes the place of arm 2's chain in F4.2. Arm 4's stays as stated, as the reference.** If arm 2's chain is already running or read, it stays on record and this one is added. F4.4's "no further learned chains on the pin" is lifted for this chain alone.
+
+**Expected:** the member audit seat claimed under 0.10, from 0.94–0.99; the first review claimed under 0.10; the leak within one and a half times the unstressed pin's 11 / 8; the suspensions under 10 a run; the system's overhead under the stressed pin's 16.4 / 17.0 and above the unstressed 11.4 / 11.6.
+
+**Refuted** if the audit seat is still claimed above 0.3 at a cell the table read closed by more than 1 real. Then the table does not carry to a learning population at this seat, as the first review's coin did not (§102), and the size of a stake is not to be read from tables.
+
+Read beside it: what the stake costs the honest, as in G2; how many members hold the audit seat, and the orchestrator's share of it.
+
+### G4. What stands
+
+F4.1, trap or equilibrium, first and as stated; it now also says whether a seat worth keeping is felt at all by these learners. F4.2's table and arm 4's chain. F4.3. The two readings asked. Every collection's note names its script and commit.
+
+### G5. Limits, stated before the cells
+
+- The premium idea has two ingredients this instrument does not hold: choosing the better members, and a seat worth keeping. Every learner shares one policy and credits one decision at a time. Those two are the loop's to test, in its experiment on second opinions, and here they are the implementer's steps 6 and 7, which this addendum does not order.
+- The cells read a stake. They do not read a premium population.
+- A harness construction, off in every run of record.

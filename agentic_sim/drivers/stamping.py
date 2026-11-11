@@ -264,7 +264,7 @@ class Stamping:
             a.duty_cap = "twothirds" if rev7 else "half"
         if a.tie_break is None:
             a.tie_break = "draw" if rev12 else "id"                      # 2.6.0 §2.3: the tie after κ by a seeded draw; `id` the control
-        p = Params(Res0=a.res0, X=a.on_duty, G_V=a.gv, p_start=a.p_start, p_cap=a.p_cap, p_floor=a.p_floor, p_halve_every=a.p_halve_every, band=a.band, G_frac_nested=a.child_g_frac, bond_mult_later=a.bond_mult_later,
+        p = Params(Res0=a.res0, X=a.on_duty, G_V=a.gv, p_start=a.p_start, p_cap=a.p_cap, p_floor=a.p_floor, p_halve_every=a.p_halve_every, band=a.band, G_frac_nested=a.child_g_frac, bond_mult_later=a.bond_mult_later, w_audit=a.w_audit,
                    record_dir=a.record_dir, f_fee=a.fee, phi_E_root=a.phi_e, phi_F_root=a.phi_f,
                    pi0=a.pi0, pi_max=a.pi_max, dial=(a.dial == "on"), beta_P=a.beta_p, Omega0=a.omega0,
                    membership=rev3, duty_fund=(rev3 and a.fund == "on"), net_plant_capital=rev3, m_max=a.m_max,
@@ -460,6 +460,8 @@ class Stamping:
         self.bond_mult = a.bond_mult_later                           # the stressed world: the bond at an audit or panel seat as a multiple of G_V (the driver's funding checks follow the engine's)
         self.e_shared = 1.0 - a.accuracy                            #   a case is hard with the careful's error rate
         self.learner_private_real = 0.0                             # the stressed world's fourth action (step 3): the private benefit of the allowance claimed without the care, real, summed
+        self.learner_private_real_of: dict[str, float] = {}        #   … by slot (addendum 7's F4.1, November 12, 2026: the lifetime read by half of a mixed world)
+        self.learner_claims_of: dict[str, int] = {}                #   … the claims by slot
         self.learner_last_benefit = 0.0                             #   … of the last learner decision (read by redteam.env for the decision's own-money reward)        # the plant's filing and revision draws — their own stream
         self.raise_rng = random.Random(a.seed * 1299709 + 13)         # the plant's refusal and delay draws — their own stream, the others' unmoved
         self.learner_mix_by_period: dict[int, list[int]] = {}   # period → [ratchet, undercut, withhold] over the learners' bid decisions (the action mix by period)
@@ -793,6 +795,8 @@ class Stamping:
                 self.c["allowance_claimed"] = round(self.c["allowance_claimed"] + paid, 6)
                 benefit = paid * self.a.temptation * (self.p.P0 / self.w.market()["P_t"])
                 self.learner_private_real += benefit
+                self.learner_private_real_of[reviewer] = self.learner_private_real_of.get(reviewer, 0.0) + benefit
+                self.learner_claims_of[reviewer] = self.learner_claims_of.get(reviewer, 0) + 1
                 self.learner_last_benefit = benefit
                 if not truth and not self.tasks[view.case_id].plant:
                     self.c["learner_false_approvals"] += 1
@@ -1717,6 +1721,20 @@ class Stamping:
         real = self.p.P0 / w.market()["P_t"]
         return sum(((w.wealth(x) - min(w.wealth(x), w.loan_outstanding(x))) * real) if x in self.actors else self.depart_wealth_real.get(x, 0.0)
                    for x in self.learner_chain) + self.learner_private_real   # the stressed world: the allowance claimed without the care, a private benefit outside every wallet
+
+    def learner_slots_read(self) -> dict:
+        """Addendum 7's F4.1 (November 12, 2026): every learner slot's own reading — its real lifetime as `learner_lifetime_real` counts it (live: the wallet net of
+        its loan at the index; departed: what it took out), its private benefit (the allowance claimed without the care), its claims, its suspensions, whether it is
+        alive — so a mixed world (one policy on half the slots, another on the other half) is read by half. A reading; nothing moves."""
+        w = self.w
+        real = self.p.P0 / w.market()["P_t"]
+        out = {}
+        for x in self.learner_chain:
+            alive = x in self.actors
+            wealth = ((w.wealth(x) - min(w.wealth(x), w.loan_outstanding(x))) * real) if alive else self.depart_wealth_real.get(x, 0.0)
+            out[x] = {"alive": int(alive), "wealth_real": round(wealth, 3), "private_real": round(self.learner_private_real_of.get(x, 0.0), 3),
+                      "claims": self.learner_claims_of.get(x, 0), "suspensions": len(self.susp_log.get(x, [])), "cost": round(self.c_d_of.get(x, 0.0), 3)}
+        return out
 
     def cycler_step(self, t: int):
         """§8.7 red team: a suspended stamper with no live obligation departs and re-arrives at once under a fresh identity, with
@@ -3236,6 +3254,7 @@ class Stamping:
                     "learner_leaves_refused": self.learner_leaves_refused, "learner_boundary_decisions": self.learner_boundary_decisions,
                     "learner_float_minted": round(self.learner_float_minted, 3), "learner_float_minted_real": round(self.learner_float_minted_real, 3),
                     "learner_lifetime_real": (round(self.learner_lifetime_real(), 3) if self.learner_chain else ""),
+                    "learner_slots_json": (json.dumps(self.learner_slots_read()) if self.learner_chain else ""),   # addendum 7's F4.1: every slot's own reading
                     # 2.7.0: the bank's names line and the departures' net
                     "loan_on": int(bool(bank27.get("loan_on"))), "names_lent": round(bank27.get("names_lent", 0.0), 3), "names_lent_n": bank27.get("names_lent_n", 0),
                     "names_repaid": round(bank27.get("names_repaid", 0.0), 3), "names_recovered": round(bank27.get("names_recovered", 0.0), 3),
@@ -3395,6 +3414,7 @@ def build_parser():
     ap.add_argument("--shared-difficulty", type=float, default=0.0, help="the stressed world (step 5): correlated errors — with this probability a careful verdict (a member's, the learner's care, a parent's judgment) reads the case's shared coin (the case hard with probability 1 − --accuracy, drawn once on its own stream) instead of its own; the marginal error rate unchanged; 0 = independent errors, every run of record")
     ap.add_argument("--shared-difficulty-troops", type=float, default=0.0, help="… the troops' verdicts (the deciding verdict's seats included) reading the shared coin with this probability at ε_T's marginal rate — stated apart")
     ap.add_argument("--shared-difficulty-ruling", type=float, default=0.0, help="… the ruling at a split reading the shared coin with this probability at --ruling-accuracy's marginal rate — stated apart")
+    ap.add_argument("--w-audit", type=float, default=1.5, help="Params.w_audit, the audit seat's role weight (Appendix A 1.5: the audit fee 1.5 f; the deciding verdict's seats carry it too under arms 1 and 4) — exposed November 12, 2026 for addendum 7's G2 cells (the weight at 3); a harness option on a parameter of record, 1.5 in every run of record")
     ap.add_argument("--bond-mult-later", type=float, default=1.0, help="Params.bond_mult_later (a harness option, no rule): the reviewer's bond at an audit or panel seat as a multiple of G_V (A1 r2 §4's sweep ×2, ×4); 1.0 every run of record")
     ap.add_argument("--p-start", type=float, default=1.0, help="a newcomer's audit odds (1.2.0 §2.4: 1.0; 1.1.0: 0.5)")
     ap.add_argument("--p-cap", type=float, default=1.0, help="the audit odds' cap on doubling (1.2.0 §2.4: 1.0; 1.1.0: 0.5)")

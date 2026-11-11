@@ -19,6 +19,23 @@ from redteam.obs import IDX
 from redteam.train import load_model, seeds_of
 from redteam.plan import LearnedPolicy, GreedyPolicy, boundary_read_for
 from redteam.direct import load_direct, DirectPolicy
+import hashlib
+
+
+class MixPolicy:
+    """Addendum 7's F4.1 (November 12, 2026), trap or equilibrium: one world, the stressed policy of record on half the slots and the careful on the
+    other half. The half is drawn once per slot by a stable hash of the seed and the slot's name (arrivals join by the same draw), so the two halves
+    are the same names in every finalist at a seed. The episode loop tells the policy the deciding identity before each decision; its readings are
+    tallied by half in `episode` (`half_claim_*` the policy's half, `half_care_*` the careful's). The careful half answers 0 everywhere (a stay at a boundary)."""
+    def __init__(self, inner, name):
+        self.inner, self.name, self.identity, self.seed = inner, name, None, None
+    def set_identity(self, identity, seed):
+        self.identity, self.seed = identity, seed
+    def half_of(self, identity, seed=None):
+        h = hashlib.md5(f"{self.seed if seed is None else seed}:{identity}".encode()).digest()[0]
+        return "claim" if h < 128 else "care"
+    def __call__(self, obs, rng):
+        return self.inner(obs, rng) if self.half_of(self.identity) == "claim" else 0
 from redteam.model import device
 from drivers.stamping import LEARNER
 from sim.invariants import public_id
@@ -132,7 +149,10 @@ def episode(env, policy, seed, rng):
     by_seat = {f"seat_{s}_{k}_{m}": 0 for s in ("initial", "audit", "panel", "resumed") for k in ("plant", "real") for m in ("seen", "stamped", "rejected_blind", "claimed")}   # 2.8.0: by seat kind; `stamped` counts a verdict given without inspecting of either sign (the correction of November 6, 2026 — the label), `rejected_blind` the reject-blind part of it
     diag = []                                                     # per review decision: (action, predicted r per action, planner cost per first action, realized r)
     review_idx, k_all = [], 0                                     # the review decisions' positions among all decisions (the attributed reward is per decision)
+    half_keys = {}                                                # F4.1: the tallies by half of a mixed world (MixPolicy)
     while not done:
+        if hasattr(policy, "set_identity"):
+            policy.set_identity(info.get("identity"), seed)
         a = policy(obs, rng)
         boundary = bool(info.get("boundary", False))
         pred = policy.diag_now(obs) if (not boundary and hasattr(policy, "diag_now")) else None
@@ -152,7 +172,12 @@ def episode(env, policy, seed, rng):
         else:
             seat = info.get("seat") or ("initial" if info.get("initial", True) else "audit")
             kk = "plant" if info.get("is_plant") else "real"
-            by_seat[f"seat_{seat}_{kk}_seen"] += 1; by_seat[f"seat_{seat}_{kk}_stamped"] += int(a in (1, 2, 3)); by_seat[f"seat_{seat}_{kk}_rejected_blind"] += int(a == 2); by_seat[f"seat_{seat}_{kk}_claimed"] += int(a == 3)   # the stressed world's fourth action: a blind approval with the allowance claimed
+            by_seat[f"seat_{seat}_{kk}_seen"] += 1; by_seat[f"seat_{seat}_{kk}_stamped"] += int(a in (1, 2, 3)); by_seat[f"seat_{seat}_{kk}_rejected_blind"] += int(a == 2); by_seat[f"seat_{seat}_{kk}_claimed"] += int(a == 3)
+            if hasattr(policy, "half_of"):                   # F4.1: the seats held and the verdicts by half
+                hh = policy.half_of(info.get("identity"), seed)
+                for k in (f"half_{hh}_seats_{seat}", f"half_{hh}_decisions"): half_keys[k] = half_keys.get(k, 0) + 1
+                half_keys[f"half_{hh}_claimed_{seat}"] = half_keys.get(f"half_{hh}_claimed_{seat}", 0) + int(a == 3)
+                half_keys[f"half_{hh}_blind_{seat}"] = half_keys.get(f"half_{hh}_blind_{seat}", 0) + int(a in (1, 2, 3))   # the stressed world's fourth action: a blind approval with the allowance claimed
             if not info.get("initial", True):                     # a non-initial seat: read apart from the initial reviews' plant/real rates
                 blind_seats += 1; blind_seat_stamps += int(a in (1, 2, 3))
             elif info.get("is_plant"):
@@ -171,6 +196,19 @@ def episode(env, policy, seed, rng):
         diag = [d[:4] + (None, d[4]) for d in diag]
     diag_work = [d[:5] for d in diag if d[5]]; diag = [d[:5] for d in diag if not d[5]]
     row = info.get("row", {})
+    if hasattr(policy, "half_of") and row.get("learner_slots_json"):   # F4.1: the slots' own readings summed by half (the driver's learner_slots_read)
+        slots = json.loads(row["learner_slots_json"])
+        for hh in ("claim", "care"):
+            mine = {x: v for x, v in slots.items() if policy.half_of(x, seed) == hh}
+            n = len(mine)
+            half_keys[f"half_{hh}_slots"] = n; half_keys[f"half_{hh}_alive"] = sum(v["alive"] for v in mine.values())
+            half_keys[f"half_{hh}_wealth_real"] = sum(v["wealth_real"] for v in mine.values()); half_keys[f"half_{hh}_private_real"] = sum(v["private_real"] for v in mine.values())
+            half_keys[f"half_{hh}_lifetime_real"] = half_keys[f"half_{hh}_wealth_real"] + half_keys[f"half_{hh}_private_real"]
+            half_keys[f"half_{hh}_lifetime_per_slot"] = (half_keys[f"half_{hh}_lifetime_real"] / n) if n else None
+            half_keys[f"half_{hh}_wealth_per_slot"] = (half_keys[f"half_{hh}_wealth_real"] / n) if n else None
+            half_keys[f"half_{hh}_suspensions"] = sum(v["suspensions"] for v in mine.values()); half_keys[f"half_{hh}_claims"] = sum(v["claims"] for v in mine.values())
+            half_keys[f"half_{hh}_cost_mean"] = (sum(v["cost"] for v in mine.values()) / n) if n else None
+        half_keys["half_d_lifetime_per_slot"] = ((half_keys.get("half_care_lifetime_per_slot") or 0) - (half_keys.get("half_claim_lifetime_per_slot") or 0))
     measured = measured_seat_actions(env) if env.role == "reviewer" else {}   # the blind verdicts read from the engine's reviews (November 7, 2026)
     work = {k: row.get(k) for k in ("learner_role", "learner_work_decisions", "learner_bad_deliveries", "learner_good_deliveries", "learner_bad_approved", "learner_bad_caught",
                                    "learner_good_vested", "learner_good_final_n", "learner_forfeited", "learner_bad_paid", "learner_effort_saved",
@@ -210,7 +248,7 @@ def episode(env, policy, seed, rng):
         work["pred_vs_realized_work"] = pred_vs_realized(diag_work, 2)
     reads = list(getattr(policy, "boundary_reads", []))[n_reads0:]
     return {"seed": seed, "decisions": len(acts), "lifetime_real_wealth": info.get("lifetime_real_wealth"), **trace_readings(trace), **work,
-            "blind_seats": blind_seats, "blind_seat_stamps": blind_seat_stamps, **by_seat, **measured,
+            "blind_seats": blind_seats, "blind_seat_stamps": blind_seat_stamps, **by_seat, **measured, **half_keys,
             "boundary_stay_read_mean": float(np.mean(reads)) if reads else None, "boundary_stay_negative": int(sum(1 for x in reads if x < 0)) if reads else (0 if getattr(policy, "boundary_read", None) == "one-step" else None),
             "leaves_effected": sum(1 for d in getattr(env, "_decisions", []) if d.get("case") is None and d.get("chosen") == 1 and d.get("action") == 1),   # version 4: the admitted leaves at boundaries (leaves_chosen is the choice)
             "pred_vs_realized": pred_vs_realized(diag, K), "attributed_sum": float(np.sum(attr)) if attr is not None else None,
@@ -365,16 +403,19 @@ def main(argv=None):
         m.to(device())
     env = ElefReviewerEnv(cell, ticks=a.ticks, hide=hide, obs_dim=ck.get("config", {}).get("obs_dim"), role=a.role, attrib=a.attrib)
     pols = {}
-    for name in a.policies.split(","):
+    def make(name):
         if name == "learned":
-            pols[name] = LearnedPolicy(m, horizon=a.horizon, samples=a.samples, iters=a.iters, boundary_read=br)
-        elif name == "greedy":
-            pols[name] = GreedyPolicy(m, boundary_read=br)
-        elif name == "direct":
+            return LearnedPolicy(m, horizon=a.horizon, samples=a.samples, iters=a.iters, boundary_read=br)
+        if name == "greedy":
+            return GreedyPolicy(m, boundary_read=br)
+        if name == "direct":
             dm, _ = load_direct(a.direct_model); dm.to(device())
-            pols[name] = DirectPolicy(dm, boundary_read=br)
-        else:
-            pols[name] = policy_of(name, a.role)
+            return DirectPolicy(dm, boundary_read=br)
+        if name.startswith("mix:"):                              # F4.1: `mix:<policy>` — that policy on half the slots, the careful on the other half
+            return MixPolicy(make(name[4:]), name)
+        return policy_of(name, a.role)
+    for name in a.policies.split(","):
+        pols[name] = make(name)
     os.makedirs(a.out, exist_ok=True)
     results = {k: [] for k in pols}
     t0 = time.time()
@@ -420,6 +461,8 @@ def main(argv=None):
                 summary[name][f"measured_seats_{s}_{kk}"] = mseen
                 summary[name][f"measured_minus_actions_{s}_{kk}"] = (ab + mrb) - st
         summary[name]["underfunded_careful_reviews"] = mse([r.get("underfunded_careful_reviews") for r in rows])
+        for k in sorted({k for r in rows for k in r if k.startswith("half_")}):   # F4.1: the mixed world's readings by half, mean ± SE over seeds
+            summary[name][k] = mse([r.get(k) for r in rows])
         if a.role == "parent":                                      # Q5's line: the learned parent
             for k in ("delegate_decisions", "judge_decisions", "cancel_decisions", "delegate_share", "judge_care_share", "judge_stamp_share", "judge_reject_share", "cancel_share") + PARENT_KEYS:
                 summary[name][k] = mse([r.get(k) if r.get(k) not in ("", None) else None for r in rows])

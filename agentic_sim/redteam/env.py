@@ -31,7 +31,7 @@ except ImportError:  # the project's own Python has no gymnasium; the environmen
     gym = None
 
 from drivers import stamping
-from drivers.stamping import Stamping
+from drivers.stamping import Stamping, HAND_ACTION
 from sim import check_all
 from .obs import build_obs, build_obs_work, build_obs_parent, build_obs_bid, build_obs_req, OBS_DIM, IDX, IDX_PARENT
 from .attrib import attribute
@@ -54,7 +54,7 @@ class ElefReviewerEnv(gym.Env if gym else object):
         # wallet it touches — the population's corrected construction, the single learner's unchanged to the decimal; `pooled` is run 32's
         # construction (an event to the latest decision on its case whatever slot's wallet it touched — the shared-purse cell, runs 34–41's)
         self.attrib = attrib
-        self.n_actions = 2 if role == "deliverer" else 3           # the child's three: well / badly / miss; the parent's judge has three, its other kinds two
+        self.n_actions = 2 if role == "deliverer" else (4 if (role == "reviewer" and _temptation_of(cell_args) > 0) else 3)   # the stressed world: a fourth reviewing action (claim the allowance and stamp) where the cell carries --temptation > 0; the child's three: well / badly / miss; the parent's judge has three, its other kinds two
         self.cell_args, self.ticks, self.hide, self.final_audit = list(cell_args), int(ticks), tuple(hide), final_audit
         self.work_side = bool(work_side) if work_side is not None else (role != "reviewer")    # the learner's own work attributed (Q3 on)
         self.obs_dim = int(obs_dim) if obs_dim else (OBS_DIM + 1 if role == "pair" else OBS_DIM)   # a model trained before a field was added reads the vector trimmed; the pair's 46th field flags a work decision
@@ -77,7 +77,7 @@ class ElefReviewerEnv(gym.Env if gym else object):
         real = self._real()
         # 2.7.0: a live name reads net of its arrival loan outstanding — what it would carry out; a departed one what it did
         return sum(((run.w.wealth(x) - min(run.w.wealth(x), run.w.loan_outstanding(x))) * real) if x in run.actors else run.depart_wealth_real.get(x, 0.0)
-                   for x in run.learner_chain)
+                   for x in run.learner_chain) + float(getattr(run, "learner_private_real", 0.0) or 0.0)   # the stressed world: the private benefit of the allowance claimed without the care
 
     def _hook(self, run, reviewer, view, r):
         if self._abort:
@@ -259,7 +259,8 @@ class ElefReviewerEnv(gym.Env if gym else object):
             effected = 0                                           # the parent's third action at a two-way decision is read as the first (self-execute / wait)
         info = dict(info, action_chosen=int(action), action_effected=effected)
         self._decisions.append({"identity": pd.get("identity"), "case": pd.get("case"), "is_plant": bool(pd.get("is_plant", False)),
-                                "fulfilled": bool(pd.get("fulfilled", True)), "action": effected, "chosen": int(action), "realized": float(reward)})
+                                "fulfilled": bool(pd.get("fulfilled", True)), "action": effected, "chosen": int(action), "realized": float(reward),
+                                "private": float(getattr(self.run, "learner_last_benefit", 0.0) or 0.0)})   # the stressed world: this decision's private benefit (the allowance claimed without the care), outside the ledger
         if self.role in ("bidder", "requester"):                   # Q6: the root this tick's bid decision won is credited to it (the driver names it after the award pass); Q7: the case the posting decision posted
             if pd.get("kind") in ("bid", "post"):
                 self._bid_idx_by_t[(pd.get("t"), pd.get("identity"))] = len(self._decisions) - 1
@@ -303,6 +304,17 @@ class ElefReviewerEnv(gym.Env if gym else object):
 # at a period-boundary decision (re-arrival allowed) the named dispositions stay, the random ones draw
 _IB = IDX["decision_boundary"]
 def _boundary(obs): return len(obs) > _IB and obs[_IB] > 0.5
+def _temptation_of(cell_args):
+    """The stressed world's fourth reviewing action (claim the allowance and stamp) is in the action space when the cell carries --temptation > 0."""
+    args = [str(x) for x in cell_args]
+    for i, x in enumerate(args):
+        v = args[i + 1] if (x == "--temptation" and i + 1 < len(args)) else (x.split("=", 1)[1] if x.startswith("--temptation=") else None)
+        if v is not None:
+            try:
+                return float(v)
+            except ValueError:
+                return 0.0
+    return 0.0
 def policy_careful(obs, rng): return 0
 def policy_stamper(obs, rng): return 0 if _boundary(obs) else 1
 def policy_eps(obs, rng, eps=0.2): return int(rng.integers(2)) if _boundary(obs) else (int(rng.integers(3)) if rng.random() < eps else 0)   # version 3: at a boundary, leave and stay equally
@@ -310,14 +322,19 @@ def policy_random(obs, rng): return int(rng.integers(3))
 def policy_harvester(obs, rng): return 1                       # the cycler written by hand: stamp every review, leave at every boundary (the float each return)
 def policy_leaver(obs, rng): return 1 if _boundary(obs) else 0  # the float alone: careful at every review, leave at every boundary
 def policy_eps_stamper(obs, rng, eps=0.2): return int(rng.integers(2)) if _boundary(obs) else (int(rng.integers(3)) if rng.random() < eps else 1)   # the basin test's stamper-weighted set: ε around the stamper
-def policy_hand(obs, rng): return 0 if _boundary(obs) else 3       # the reviewers in self-play: each slot answers as its disposition by hand would (the driver's learner_hand_kind) — a reference, never collected
+def policy_hand(obs, rng): return 0 if _boundary(obs) else HAND_ACTION   # the reviewers in self-play: each slot answers as its disposition by hand would (the driver's learner_hand_kind) — a reference, never collected
 _I_RA, _I_QF, _I_RS = IDX["rv_responses_available"], IDX["rv_q_fulfillment"], IDX["rv_resumed"]
 def policy_auditstamper(obs, rng):
     # 2.8.0 §8.7: a careful reviewer that stamps the audit seat alone — a pending F's audit (the question fulfillment, not an initial review,
     # not a resumed one), read from the ReviewView's fields as the env's `seat` is; care everywhere else, stay at every boundary
     if _boundary(obs): return 0
     return 1 if (obs[_I_RA] < 0.5 and obs[_I_QF] > 0.5 and obs[_I_RS] < 0.5) else 0
-POLICIES = {"careful": policy_careful, "stamper": policy_stamper, "eps": policy_eps, "random": policy_random,
+# the stressed world (November 11, 2026; --temptation > 0, four actions): the claimer — claim the allowance and stamp at every review, stay at every boundary;
+# ε and random over the four actions (the offline set's and the payoff table's draws)
+def policy_claimer(obs, rng): return 0 if _boundary(obs) else 3
+def policy_eps4(obs, rng, eps=0.2): return int(rng.integers(2)) if _boundary(obs) else (int(rng.integers(4)) if rng.random() < eps else 0)
+def policy_random4(obs, rng): return int(rng.integers(2)) if _boundary(obs) else int(rng.integers(4))
+POLICIES = {"claimer": policy_claimer, "eps4": policy_eps4, "random4": policy_random4, "careful": policy_careful, "stamper": policy_stamper, "eps": policy_eps, "random": policy_random,
             "harvester": policy_harvester, "leaver": policy_leaver, "eps-stamper": policy_eps_stamper, "hand": policy_hand,
             "auditstamper": policy_auditstamper}
 # Q3's, for the deliverer (two actions: 0 deliver well, 1 deliver badly; at a boundary 0 stay, 1 leave for good): careful delivers well always;

@@ -488,6 +488,10 @@ class Public:
     def unlocked(self, wid: str) -> float:
         return self._w.ledger.wallet(wid).U
 
+    def bond_at(self, cid: str, role: str) -> float:
+        """The reviewer's bond at a seat of this case: G_V, times Params.bond_mult_later at an audit or panel seat (the stressed world's harness option; 1.0 on record)."""
+        return self._w.bond_for(self._case_ro(self._eng(cid)), role)
+
     def wealth(self, wid: str) -> float:
         return self._w.ledger.wallet(wid).W
 

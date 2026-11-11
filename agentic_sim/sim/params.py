@@ -225,6 +225,7 @@ class Params:
     # (π = min(π_max, π_0 m)); None starts every dial at the floor as every run of record did. A run that begins with a cold dial is the
     # harness's assumption, not the rulebook's: with this set, each run of a round can start its dials where the round before ended.
     dial_start: tuple | None = None
+    bond_mult_later: float = 1.0   # a harness option, no rule (the stressed world, November 11, 2026; A1 r2 §4's default sweep ×2, ×4): the reviewer's bond at an audit or panel seat as a multiple of G_V; 1.0 every run of record
     lie_delay_default: int = 0  # the planted lie's filing delay where the real window of the kind is empty
 
     # Ablation brief A1, revision 2 (November 10, 2026; notes §79): the small core's arms behind flags — candidate configurations for
@@ -249,6 +250,8 @@ class Params:
                 if not (1.0 - 1e-9 <= v <= cap + 1e-9):
                     raise ValueError(f"Params: dial_start's {name} {v} is outside [1, {cap}]")
             self.dial_start = ds
+        if not (self.bond_mult_later > 0):
+            raise ValueError(f"Params: bond_mult_later {self.bond_mult_later} must be positive")
         # A1: the arms are built on arm 1; the state's audit turns the planted approval off
         if (self.sampled_confirmation > 0 or self.lenient_false_alarm or self.state_audit or self.state_bench) and not self.trusted_ruling:
             raise ValueError("Params: A1's arms 1b, 1c, 2, 3 and 4 are built on the trusted ruling (trusted_ruling=True)")

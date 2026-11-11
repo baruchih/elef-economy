@@ -203,6 +203,15 @@ def attribute(run, marks, decisions, work_side=False, shared=False, lineages=Non
             boundary_by_source[s] += d * r1
         attributed[i] += d * r1
         by_source[s] += d * r1
+    # the stressed world (November 11, 2026): a decision's private benefit — the allowance claimed without the care — is its own, outside every wallet
+    private = 0.0
+    for i, d in enumerate(decisions):
+        b = float(d.get("private", 0.0) or 0.0)
+        if b:
+            attributed[i] += b
+            private += b
+    if private:
+        by_source["private_benefit"] += private
     # Q7's requester: a task received (a settled delivery whose truth is fulfilled) is worth `task_value` (real) to the decision that posted it — the
     # measure's v·F side; the credits spent are the case's events above
     task_real = 0.0

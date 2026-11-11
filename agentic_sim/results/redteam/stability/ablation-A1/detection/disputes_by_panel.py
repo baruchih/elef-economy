@@ -14,8 +14,12 @@ rate, dmp, out = sys.argv[1], sys.argv[2], sys.argv[3]
 seeds = [int(x) for x in (sys.argv[4] if len(sys.argv) > 4 else "21-40").replace("-", ",").split(",")]
 seeds = list(range(seeds[0], seeds[-1] + 1)) if len(seeds) == 2 else seeds
 cell = ["--entry-pool", "20", "--stampers", "0.6", "--learner-pop", "all", "--learner-role", "reviewer", "--learner-exit", "rule", "--dispute-policy", "truthful", "--dispute-rate", rate] + (sys.argv[5].split() if len(sys.argv) > 5 else [])
-br = boundary_read_for(cell, "auto"); dm, _ = load_direct(dmp); dm.to(device())
-pols = {"direct": DirectPolicy(dm, boundary_read=br), "careful": policy_of("careful", "reviewer")}
+br = boundary_read_for(cell, "auto")
+if dmp == "none":   # addendum 6's F4.3 (November 12, 2026): the joint-verdict read on the scripted populations alone — the careful and the hand (60/40 by disposition)
+    pols = {"careful": policy_of("careful", "reviewer"), "hand": policy_of("hand", "reviewer")}
+else:
+    dm, _ = load_direct(dmp); dm.to(device())
+    pols = {"direct": DirectPolicy(dm, boundary_read=br), "careful": policy_of("careful", "reviewer")}
 MK = ["two members", "one member, one of the state's", "two of the state's"]
 res = {}; JOINT = {}; SEATF = {}
 for name, pol in pols.items():

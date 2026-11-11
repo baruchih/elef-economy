@@ -3,7 +3,7 @@
 **Status:** candidate configurations for evaluation, **not in force**. No version number, nothing consolidated, no rule moved. Built behind flags and labelled as release candidates are. Adoption of any arm is a design revision drafted after the runs.  
 **Date:** November 10, 2026 (r1 and r2) · **From:** the economy's reviewer · **Supersedes:** r1 of the same day.  
 **What r2 settles:** the implementer's review against the engine at `2417219ba` (notes §78): eight corrections accepted (D1–D3, A1.1, A1.2, A2.1, A2.2, A3.1, A4.1, with A4.2 and A5.1–A5.3 noted); the four items put to the reviewer ruled (D4, C1, A1.3, Q1); hypothesis 1 restated, because its second clause was wrong; two arms and two pinned cells added, on the arithmetic of §2.  
-**Addenda 1–4** (same day: after the payoff table; after the scripted sweep and the panel check; B5 amended before its cells; the dial's clock) are at the end. Nothing in §1–§9 is changed by them except §7.3, which gains two chains (B3, D3) and one evaluation (D2).  
+**Addenda 1–5** (November 10–11: after the payoff table; after the scripted sweep and the panel check; B5 amended before its cells; the dial's clock; after the learned chains) are at the end. Nothing in §1–§9 is changed by them except §7.3, which gains two chains (B3, D3) and one evaluation (D2); addendum 5 sets the reads from here.  
 **Rulebook in force:** 2.9.0 with the consolidated defaults.
 
 ## 1. The question
@@ -283,3 +283,32 @@ If this holds, 2.9.0 as written closes the audit seat by its own dial, the final
 ### D4. Order of the learned chains
 
 Arm 0 pinned at 0.10; arm 0 with the dials carried; arm 4; arm 1c; arm 2. The frozen long evaluation whenever the machine has a gap; it trains nothing.
+
+---
+
+## Addendum 5 to revision 2 — after the learned chains
+
+*November 11, 2026. Read at `4cd513fc4`, `171fec881` and `d4a2a4344` and the summaries of notes §91–§95; the figures are in the run record, "Ablation A1 — the learned chains". No rule, arm or flag is changed. Here: the reads against what was stated; what they say of 2.9.0's own lever; and the reads from here, with their expectations.*
+
+### E1. Against what was stated
+
+- **Hypothesis 2** met by the head alone (0.080), at the threshold by the direct (0.151); the leak 11 / 8 per thousand bad deliveries against arm 0's 31 / 19; one basin from both starts. The policies of record carry no exploration, so 0.080 is one audit in twelve answered blind and not a closed seat.
+- **Hypothesis 3** refuted as written (0.348 / 0.290; the leak 23 / 14); no blind rejections. **The order of A5.1 holds**, and §2 stands on it.
+- **Hypothesis 5** met on the leak (8.8 / 6.2), the overhead 9.9 / 9.7, the panels the members' and holding at run 42's rate; the orchestrator on 45 in 100 of the review seats.
+- **Hypothesis 7** met by the head alone, missed by the direct (10 against the careful's 5), the excess two thirds the roll's floor and a third ε_T; the lowest overhead (9.7 / 9.4); one basin. The review's refuter is not met.
+- **D3** (the dials carried): the audit seat closed (0.020 / 0.006 at π^A 0.16–0.28) and the leak the lowest of any cell (6) — met. **Its cost missed by a wide margin**: 20.9 / 19.5 a task, about twice the pin's, where the reviewer stated the pin's or less. The dials did not settle in the band stated: the rounds' exploration held them near the cap (π_t 0.30, m^A 13–17). Under the policies of record the dial falls a tenth at nearly every close, toward its own target — a seat answered blind about one time in twenty.
+- **D2, read down.** The head alone's closed seat in the long run is its policy turning to inspecting along its own record, past the range it was fit on, and not the dial. It is not evidence of the dial; D3 is. The price read there stands: 25.0 a task at m^A 8.3.
+
+### E2. What the reads say of 2.9.0's own lever
+
+The planted approval's floor (π^A_0 = 0.02, the reviewer's default) sits under the line of §2. From a floor under the line the lever either reads its floor (the cold start on record) or, carried, overshoots to twice the price. Held at 0.10 it cuts the leak by two thirds at 11.4 / 11.6 a task. **A floor above the line is a default and not a rule, and the cell that measures it is the pin's, already on record.** Not moved now; it is the tests road's candidate for the ruling after the runs.
+
+### E3. The reads from here
+
+1. **The 0.20 pin's chain**, owed under hypothesis 2. With the 0.10 pin it brackets where a dial whose floor is 0.10 would move — one audit in twenty answered blind lies between the two — and prices it. **Expected:** the audit seat under 0.05 blind, the leak 6–9 per thousand bad deliveries, the system's overhead about 2 a task over the 0.10 pin's. Refuted if the seat stays above 0.10 blind at 0.20.
+2. **Arm 2's stamper start**: the basin test, owed for what holds.
+3. **Arm 2's policies, frozen, at a detection of 0.1 and 0.25**: the customers' truthful disputes won by the panel's make-up, and the orchestrator's share of the panel seats, beside arm 0's 0.72 / 0.70 and 39 in 100. Under arm 2 no planted approval fails a member at the audit seat, so the tier no longer moves members off the panel. **Expected:** the orchestrator's share of the panel seats falls toward the careful's 27 in 100. Whether the customers' disputes then hold on the members' own care is the read; no direction is claimed.
+4. **The retrained dispute cells** of C5 (0.25, then 0.1, from run 42's final policy).
+5. **Not run:** the frozen 2,000-tick read on D3's policies. The direct is valid to tick 1,000 and the head alone extrapolates along its record; and where a frozen policy lets the dial fall is not where a population that keeps learning leaves it. The two pins bracket it.
+
+Then the stressed world of the implementer's steps 3–5 on the finalists: arm 0 with the planted approval's floor at 0.10, arm 2, arm 4.

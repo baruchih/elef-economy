@@ -1,7 +1,8 @@
 """The reviewer's reads 1 and 2 of November 10: the customers' truthful disputes won by the panel's make-up — two members, one of each, two of
 the state's — and the state's share of the panel seats by its cause (members off the panel tier by their record, or none free within w_R).
 Run 42's final policy (the direct's round-10 model) in a detection cell, seeds 21–40, read from the engine's cases at the end (fa_channels'
-pattern); the careful beside as the hand reference. Usage: disputes_by_panel.py <rate> <direct-model> OUT.md [seeds]"""
+pattern); the careful beside as the hand reference. Usage: disputes_by_panel.py <rate> <direct-model> OUT.md [seeds] [extra cell args, e.g. "--arm 2"]
+(the fifth argument, November 11, addendum 5 E3.3: arm 2's policy frozen in the same two detection cells)"""
 import sys, numpy as np
 sys.path.insert(0, ".")
 from redteam.env import ElefReviewerEnv, policy_of
@@ -12,7 +13,7 @@ from sim.invariants import public_id
 rate, dmp, out = sys.argv[1], sys.argv[2], sys.argv[3]
 seeds = [int(x) for x in (sys.argv[4] if len(sys.argv) > 4 else "21-40").replace("-", ",").split(",")]
 seeds = list(range(seeds[0], seeds[-1] + 1)) if len(seeds) == 2 else seeds
-cell = ["--entry-pool", "20", "--stampers", "0.6", "--learner-pop", "all", "--learner-role", "reviewer", "--learner-exit", "rule", "--dispute-policy", "truthful", "--dispute-rate", rate]
+cell = ["--entry-pool", "20", "--stampers", "0.6", "--learner-pop", "all", "--learner-role", "reviewer", "--learner-exit", "rule", "--dispute-policy", "truthful", "--dispute-rate", rate] + (sys.argv[5].split() if len(sys.argv) > 5 else [])
 br = boundary_read_for(cell, "auto"); dm, _ = load_direct(dmp); dm.to(device())
 pols = {"direct": DirectPolicy(dm, boundary_read=br), "careful": policy_of("careful", "reviewer")}
 MK = ["two members", "one member, one of the state's", "two of the state's"]
@@ -47,7 +48,7 @@ for name, pol in pols.items():
         print(f"seed {seed} {name}: " + ", ".join(f"{k} {cnt[k][1]}/{cnt[k][0]}" for k in MK) + f"; short tier {cc.get('panel_short_tier_ticks',0)} free {cc.get('panel_short_free_ticks',0)}", flush=True)
     res[name] = (per, counters)
 def ms(v): v = np.asarray(v, float); return f"{v.mean():.2f} ± {v.std(ddof=1)/np.sqrt(len(v)):.2f}"
-L = [f"# The customers' truthful disputes by the panel's make-up, and the state's panel seats by cause — detection {rate}, run 42's final policy ({dmp}) and the careful, seeds {seeds[0]}–{seeds[-1]}\n",
+L = [f"# The customers' truthful disputes by the panel's make-up, and the state's panel seats by cause — detection {rate}, the direct's policy {dmp} and the careful, cell {' '.join(cell)}, seeds {seeds[0]}–{seeds[-1]}\n",
      "| policy | make-up | disputes a run | won a run | **won share (pooled)** |", "|---|---|---|---|---|"]
 for name, (per, counters) in res.items():
     for k in MK:

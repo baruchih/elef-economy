@@ -556,7 +556,7 @@ class Stamping:
                   "awards_refused_members_only_ticks": 0, "probation_false_approvals": 0,
                   # 1.4.0: troops
                   "audit_obligations": 0, "audits_held": 0, "audits_overturning": 0, "troop_reviews": 0, "troop_audits": 0, "troop_deliveries": 0,
-                  "troop_delivered_vested": 0, "troop_delivered_final_n": 0, "troop_false_approvals": 0,
+                  "troop_delivered_vested": 0, "troop_delivered_final_n": 0, "troop_false_approvals": 0, "troop_bad_delivered": 0, "troop_bad_standing": 0,
                   # 1.6.0: panels held by troops; the red team's withdrawals
                   "troop_panel_seats": 0, "withdrawn_unawarded": 0,
                   # 2.0.0: the demand side and the effort burned
@@ -2275,6 +2275,8 @@ class Stamping:
                 w.submit(cid)
                 if w.is_troop(c.actor):
                     self.c["troop_deliveries"] += 1
+                    if not self.tasks[cid].fulfilled:
+                        self.c["troop_bad_delivered"] += 1   # addendum 7's reading: the orchestrator's own bad work delivered (standing = troop_false_approvals)
                     self.c["troop_price_sum"] += c.B
                     self.c["troop_price_n"] += 1
         # reviewers complete reviews assigned at an earlier tick
@@ -2853,6 +2855,8 @@ class Stamping:
                         self.c["vested_real_roots"] += 1
                     if w.is_troop(c.actor):
                         self.c["troop_delivered_vested"] += 1
+                        if not task.fulfilled:
+                            self.c["troop_bad_standing"] += 1   # addendum 7's reading: the orchestrator's own bad work standing (vested, truth unfulfilled)
                     if not task.fulfilled:
                         self.c["false_approvals"] += 1
                         if task.probation_false_approval:
@@ -3219,6 +3223,10 @@ class Stamping:
                     "under_floor_price_mean": round(self.c["under_floor_price_sum"] / self.c["under_floor_awarded"], 4) if self.c["under_floor_awarded"] else "",
                     "under_floor_fulfilled": self.c["under_floor_fulfilled"], "under_floor_final_n": self.c["under_floor_final_n"], "under_floor_vested": self.c["under_floor_vested"],
                     "state_share": round(self.c["troop_deliveries"] / max(1, self.c["awarded"] + self.c["troop_deliveries"]), 4),
+                    "troop_deliveries": self.c["troop_deliveries"], "troop_delivered_vested": self.c["troop_delivered_vested"],   # addendum 7's reading (November 12, 2026): the orchestrator's own work —
+                    "troop_bad_delivered": self.c["troop_bad_delivered"], "troop_bad_standing": self.c["troop_bad_standing"],   # delivered, vested, bad, bad and standing
+                    "troop_false_approvals": self.c["troop_false_approvals"],   # (the standing false approvals whose first review a troop sat — the state's reviewers', not its work)
+
                     "requester_wallet_real": round(sum(w.wealth(r) for r in reqs) / max(1, len(reqs)) * real, 3),
                     "state_price_over_market": round(mk["state_price"] - mk["B_bar"], 4) if mk.get("state_price") is not None else "",
                     "req_surplus_real": (round(self.req_lifetime_real(), 3) if (self.learner_id and self.a.learner_role == "requester") else ""),

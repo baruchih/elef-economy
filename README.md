@@ -21,14 +21,14 @@ The findings are evaluations under fixed rules, and the question that drove the 
 a reviewer population learning in self-play against its own audits still approves blind at the audit seat about
 half the time (the audit seat's remaining half-stamp), with 2.9.0's per-seat dial still moving. The runs, their
 manifests and the notes written for the economy's reviewer are under `agentic_sim/results/`
-(`results/studies/2.7.0-notes-for-reviewer.md` is the running record, §1–§95). Nothing here should be read as a
+(`results/studies/2.7.0-notes-for-reviewer.md` is the running record, §1–§103). Nothing here should be read as a
 settled result; the website states what is settled and what is not, sentence by sentence against the record.
 
 ## Running the engine
 
 ```
 cd agentic_sim
-python3 run_tests.py        # 391 passed, 0 failed, 32 expected failures
+python3 run_tests.py        # 392 passed, 0 failed, 32 expected failures
 python3 -S run_tests.py     # the same with no site-packages
 python3 run_tests.py --record   # the same with every world in record mode (the storage layer's conformance check)
 ```

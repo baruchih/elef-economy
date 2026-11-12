@@ -666,7 +666,11 @@ class Stamping:
 
     def _life_close(self, c, task):
         """2.8.0: a root's stages after its first verdict, tallied at its closure by case kind and into the period of its first seat."""
-        if task.t_seated is None:
+        if task.t_seated is None or task.planted_approval:
+            # a planted approval's initial seat is the orchestrator's own (2.9.0 §2.2 A): it has no member's first seat, no life period and its
+            # stages are the pa_* readings' — filed here it joined the plants' audit, filing and state-seat stages under the first period's row
+            # with no seated count, and a plant seated by a member after it in that period found the row without its counters (the stressed
+            # 0.20 pin's chain, November 12, 2026: the reader's fault, nothing in the engine)
             return
         k = "plant" if task.plant else "real"
         pb = self.life_by_period.setdefault(task.life_period if task.life_period is not None else 0, {}).setdefault(k, {})

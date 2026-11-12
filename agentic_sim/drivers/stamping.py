@@ -631,6 +631,11 @@ class Stamping:
         self.pfa_other = 0
         self.susp_log: dict[str, list[int]] = {}         # actor -> ticks at which a suspension began
         self._susp_seen: dict[str, int | None] = {}
+        # addendum 9's readings (November 12, 2026; the reviewer's I3.1 and I4.2): a name's arrival and departure ticks and its arrival loan at departure
+        # (outstanding before, repaid from income, recovered from the wallet, defaulted) — read by learner_slots_read; nothing moves
+        self.depart_tick: dict[str, int] = {}
+        self.depart_loan: dict[str, tuple] = {}
+        self.arrive_tick_of: dict[str, int] = {}
         # 1.5.0 §8.6 red team: careful members that offer for nothing and live on fees and uplift
         careful_ids = [aid for aid in ids if self.kind[aid] == CAREFUL]
         n_dec = round(len(careful_ids) * a.decline_awards)
@@ -1079,6 +1084,20 @@ class Stamping:
                 self.c["arrivals"] += 1
                 arrived += 1
 
+    def _before_depart(self, aid: str) -> tuple:
+        """Addendum 9's readings: a name's loan outstanding, wealth, repayments and arrival tick just before it departs (nothing moves)."""
+        w = self.w
+        ac = w.actor(aid)
+        return (w.loan_outstanding(aid), w.wealth(aid), w.loan_repaid(aid), getattr(ac, "arrived_at", None) or 0)
+
+    def _after_depart(self, aid: str, t: int, out: float, pre: tuple):
+        """Addendum 9's readings: the departure's tick and the loan's end — recovered = the wealth less what left (2.7.0: min(W_U, L) is recovered first), defaulted = the rest of L."""
+        L, W, repaid, arrived = pre
+        recovered = max(0.0, W - out)
+        self.depart_tick[aid] = t
+        self.depart_loan[aid] = (L, repaid, recovered, max(0.0, L - recovered))
+        self.arrive_tick_of[aid] = arrived
+
     def exit_step(self, t: int):
         """At each period boundary: a member whose real earnings over the last period fell below the reservation for --exit-patience
         periods and that holds no live obligation departs; its wallet leaves M."""
@@ -1119,12 +1138,14 @@ class Stamping:
             else:
                 self.below_reservation[aid] = 0
             if self.below_reservation[aid] >= a.exit_patience:
+                pre = self._before_depart(aid)
                 try:
                     out = w.depart(aid)                   # 2.7.0: the wallet out, net of the loan recovered — the brief's lifetime measure reads it
                 except RuleError:
                     continue                             # an obligation is live; it departs after
                 self.depart_wealth_real[aid] = out * real
                 self.depart_wealth_nominal[aid] = out
+                self._after_depart(aid, t, out, pre)
                 self.c["departed_net"] += out
                 self.actors.remove(aid)
                 self.departed.append(aid)
@@ -1166,12 +1187,14 @@ class Stamping:
             return
         if self.acc_moves and self._last_boundary_t == t and self.acc_mover_departed_t is None:
             before = w.bank()["names_defaulted"]
+            pre = self._before_depart(mover)
             try:
                 out = w.depart(mover)                     # the exit after a move; refused with a live obligation — it tries at the next boundary
             except RuleError:
                 return
             self.acc_mover_out, self.acc_mover_default, self.acc_mover_departed_t = out, w.bank()["names_defaulted"] - before, t
             self.depart_wealth_real[mover] = out * self.p.P0 / w.market()["P_t"]
+            self._after_depart(mover, t, out, pre)
             self.c["departed_net"] += out
             self.actors.remove(mover)
             self.departed.append(mover)
@@ -1676,6 +1699,7 @@ class Stamping:
             return
         w = self.w
         real = self.p.P0 / w.market()["P_t"]
+        pre = self._before_depart(aid)
         try:
             out = w.depart(aid)                           # 2.7.0: the wallet out, net of the loan recovered
         except RuleError:
@@ -1684,6 +1708,7 @@ class Stamping:
         self.learner_leaves_chosen += 1
         self.depart_wealth_real[aid] = out * real
         self.depart_wealth_nominal[aid] = out
+        self._after_depart(aid, t, out, pre)
         self.c["departed_net"] += out
         self.actors.remove(aid)
         self.departed.append(aid)
@@ -1738,6 +1763,22 @@ class Stamping:
             wealth = ((w.wealth(x) - min(w.wealth(x), w.loan_outstanding(x))) * real) if alive else self.depart_wealth_real.get(x, 0.0)
             out[x] = {"alive": int(alive), "wealth_real": round(wealth, 3), "private_real": round(self.learner_private_real_of.get(x, 0.0), 3),
                       "claims": self.learner_claims_of.get(x, 0), "suspensions": len(self.susp_log.get(x, [])), "cost": round(self.c_d_of.get(x, 0.0), 3)}
+            # addendum 9 (November 12, 2026; the reviewer's I3.1 and I4.2): the ticks in place, the wallet's sources from the public record (the Tally), the loan
+            if alive:
+                t_in = getattr(w.actor(x), "arrived_at", None) or 0; t_out = None
+                loan = (w.loan_outstanding(x), w.loan_repaid(x), 0.0, 0.0)
+            else:
+                t_in = self.arrive_tick_of.get(x, 0); t_out = self.depart_tick.get(x)
+                loan = self.depart_loan.get(x, (0.0, 0.0, 0.0, 0.0))
+            ty = self.tally.get(x)
+            out[x].update({"t_in": t_in, "t_out": t_out, "ticks": (t_out if t_out is not None else self.w.t) - t_in,
+                           "loan_outstanding": round(loan[0], 3), "loan_repaid": round(loan[1], 3), "loan_recovered": round(loan[2], 3), "loan_defaulted": round(loan[3], 3),
+                           "wealth_now_nominal": round(w.wealth(x), 3) if alive else round(self.depart_wealth_nominal.get(x, 0.0), 3),
+                           "delivery": round(ty.delivery, 3) if ty else 0.0, "fee_fixed": round(ty.fee_fixed, 3) if ty else 0.0, "fee_uplift": round(ty.fee_uplift, 3) if ty else 0.0,
+                           "fee_emission": round(ty.fees - ty.fee_fixed - ty.fee_uplift, 3) if ty else 0.0, "reimbursed": round(ty.reimbursed, 3) if ty else 0.0,
+                           "costs": round(ty.costs, 3) if ty else 0.0, "bonds_forfeited": round(ty.bonds_forfeited, 3) if ty else 0.0,
+                           "guarantees_forfeited": round(ty.guarantees_forfeited, 3) if ty else 0.0, "awards": ty.awards if ty else 0, "reviews": ty.reviews if ty else 0,
+                           "audits_done": getattr(ty, "audits_done", 0) if ty else 0})
         return out
 
     def cycler_step(self, t: int):

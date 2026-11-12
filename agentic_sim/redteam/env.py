@@ -332,9 +332,13 @@ def policy_auditstamper(obs, rng):
 # the stressed world (November 11, 2026; --temptation > 0, four actions): the claimer — claim the allowance and stamp at every review, stay at every boundary;
 # ε and random over the four actions (the offline set's and the payoff table's draws)
 def policy_claimer(obs, rng): return 0 if _boundary(obs) else 3
+# addendum 9's name that returns (November 12, 2026; the reviewer's I4.2): claim at every review seat, leave at the boundary once suspended (the re-arrival
+# cell's return under a fresh name follows the leave), stay otherwise — written by hand, never collected
+_I_SUSP = IDX["own_suspended"]
+def policy_claimreturner(obs, rng): return (1 if obs[_I_SUSP] > 0.5 else 0) if _boundary(obs) else 3
 def policy_eps4(obs, rng, eps=0.2): return int(rng.integers(2)) if _boundary(obs) else (int(rng.integers(4)) if rng.random() < eps else 0)
 def policy_random4(obs, rng): return int(rng.integers(2)) if _boundary(obs) else int(rng.integers(4))
-POLICIES = {"claimer": policy_claimer, "eps4": policy_eps4, "random4": policy_random4, "careful": policy_careful, "stamper": policy_stamper, "eps": policy_eps, "random": policy_random,
+POLICIES = {"claimer": policy_claimer, "claimreturner": policy_claimreturner, "eps4": policy_eps4, "random4": policy_random4, "careful": policy_careful, "stamper": policy_stamper, "eps": policy_eps, "random": policy_random,
             "harvester": policy_harvester, "leaver": policy_leaver, "eps-stamper": policy_eps_stamper, "hand": policy_hand,
             "auditstamper": policy_auditstamper}
 # Q3's, for the deliverer (two actions: 0 deliver well, 1 deliver badly; at a boundary 0 stay, 1 leave for good): careful delivers well always;

@@ -34,11 +34,27 @@ class MixPolicy:
         self.inner, self.name, self.identity, self.seed, self.share = inner, name, None, None, float(share)
     def set_identity(self, identity, seed):
         self.identity, self.seed = identity, seed
+    def set_info(self, info):                                   # addendum 9: the decision's seat kind, forwarded to a dose policy inside the mix
+        if hasattr(self.inner, "set_info"): self.inner.set_info(info)
     def half_of(self, identity, seed=None):
         h = int.from_bytes(hashlib.md5(f"{self.seed if seed is None else seed}:{identity}".encode()).digest()[:2], "big")
         return "claim" if h < self.share * 65536 else "care"
     def __call__(self, obs, rng):
         return self.inner(obs, rng) if self.half_of(self.identity) == "claim" else 0
+class DosePolicy:
+    """Addendum 9's dose (November 12, 2026; the reviewer's I4.1): a scripted policy — careful, and at each review decision a claim (the stressed world's
+    fourth action) with probability q, drawn from the episode's rng; `dose<q>` at every review seat, `dose<q>audit` at the member's audit seat only and
+    `dose<q>first` at the first review only, the seat kind read from the env's info (`seat`: initial | audit | panel | resumed, from the view alone — the
+    seat table's source). A reader-side wrapper, as the share was: nothing in the engine or the driver; a stay at every boundary."""
+    def __init__(self, q, seats=None):
+        self.q, self.seats, self.seat = float(q), seats, None
+    def set_info(self, info):
+        self.seat = info.get("seat") or ("initial" if info.get("initial", True) else "audit")
+    def __call__(self, obs, rng):
+        if obs[IDX["decision_boundary"]] > 0.5: return 0
+        if self.seats == "audit" and self.seat != "audit": return 0
+        if self.seats == "first" and self.seat != "initial": return 0
+        return 3 if rng.random() < self.q else 0
 from redteam.model import device
 from drivers.stamping import LEARNER
 from sim.invariants import public_id
@@ -158,6 +174,8 @@ def episode(env, policy, seed, rng):
     while not done:
         if hasattr(policy, "set_identity"):
             policy.set_identity(info.get("identity"), seed)
+        if hasattr(policy, "set_info"):
+            policy.set_info(info)                                 # addendum 9: the seat kind for a dose policy
         a = policy(obs, rng)
         boundary = bool(info.get("boundary", False))
         pred = policy.diag_now(obs) if (not boundary and hasattr(policy, "diag_now")) else None
@@ -253,6 +271,8 @@ def episode(env, policy, seed, rng):
         work["bad_share"] = float(np.mean([x == 1 for x in acts_work])) if acts_work else None
         work["pred_vs_realized_work"] = pred_vs_realized(diag_work, 2)
     reads = list(getattr(policy, "boundary_reads", []))[n_reads0:]
+    if env.role == "reviewer" and row.get("learner_slots_json"):   # addendum 9 (November 12, 2026): every slot's (or identity's) own reading kept in the record — the groups' ticks in place, the wallets' sources, the loans
+        work["learner_slots_json"] = row["learner_slots_json"]
     return {"seed": seed, "decisions": len(acts), "lifetime_real_wealth": info.get("lifetime_real_wealth"), **trace_readings(trace), **work,
             "blind_seats": blind_seats, "blind_seat_stamps": blind_seat_stamps, **by_seat, **measured, **half_keys,
             "boundary_stay_read_mean": float(np.mean(reads)) if reads else None, "boundary_stay_negative": int(sum(1 for x in reads if x < 0)) if reads else (0 if getattr(policy, "boundary_read", None) == "one-step" else None),
@@ -420,6 +440,9 @@ def main(argv=None):
         if name.startswith("mix:"):                              # F4.1: `mix:<policy>` — that policy on half the slots, the careful on the other half; `mix:<policy>:<share>` on that share (addendum 8's entry test)
             parts = name[4:].split(":")
             return MixPolicy(make(parts[0]), name, share=float(parts[1]) if len(parts) > 1 else 0.5)
+        if name.startswith("dose"):                              # addendum 9's dose: `dose<q>`, `dose<q>audit`, `dose<q>first`
+            rest = name[4:]; seats = "audit" if rest.endswith("audit") else ("first" if rest.endswith("first") else None)
+            return DosePolicy(rest[:-5] if seats == "audit" else (rest[:-5] if seats == "first" else rest), seats)
         return policy_of(name, a.role)
     for name in a.policies.split(","):
         pols[name] = make(name)

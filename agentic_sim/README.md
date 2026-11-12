@@ -977,3 +977,20 @@ the seat's; the first review's G_V; the driver's funding checks follow; the view
 the scripted ε population with the four actions per finalist × temptation {1, 2, 4} × bond {×1, ×2, ×4}, and ρ 0.5 apart:
 `results/redteam/stability/ablation-A1/stress/payoff-launch.sh`, read by `payoff_stress.py`; the learned chains at the frontier the table names.
 
+**Addendum 7's readers (November 12, 2026; notes §104–§108; harness readers and options, no rule):** `--w-audit` (`Params.w_audit`, the audit seat's role
+weight — Appendix A's 1.5, the audit fee 1.5 f, carried by the deciding verdict's seats under arms 1 and 4; exposed for G2's weight-at-3 cells, 1.5 in every
+run of record); `run_q`'s `mix:<policy>` policy (F4.1, §105: the loaded policy on half the slots and the careful on the other half, each slot's half drawn
+once by a stable hash of the seed and the slot's name — arrivals included, so the halves are the same names in every finalist at a seed; the exit the
+population's rule; the readings by half `half_claim_*` / `half_care_*` — the slots, the slots alive, the real lifetime per slot with the private benefit
+counted, the suspensions, the claims, the seats held and the blind verdicts by seat kind, the half's mean cost) with the driver's `learner_slots_json`
+(every slot's own wealth, private benefit, claims, suspensions, cost and standing at the end; `learner_slots_read`); `stress/payoff2-launch.sh` (G2's and
+F4.2's cells, read with §99's thirty by `payoff_stress.py`) and `stress/honest7-launch.sh` (the honest populations in the added cells, ten seeds a cell);
+`detection/joint-rho-launch.sh` (§87's joint reader run without a model on the careful and the hand at ρ 0.5); the learned chains
+`stress/learned/pa20-t1-b6-gv20/` (G3; `launch.sh`, `resume.sh`, `refinal.sh`) and `stress/learned/arm4-t1-b1-gv10/` (F4.2's arm 4 at G_V 10). Two
+reader corrections landed on the way, no engine change, no fingerprint moved: `run_q`'s `pred_vs_realized` reads the attributed mean over the decisions
+that carry one and records an episode that ended in the driver's error with its `error` (7394be48b; before, one such episode took the whole evaluation
+down); the driver's `_life_close` skips a planted approval (30f280474) — its seating had set `t_seated` with no life period, so its state seats joined the
+plant kind's state-seat stage under the first period's row whatever the period (a hundredth or less on the stage tables of record where the planted approvals are few, up to four
+hundredths at π^A 0.20; the audit, filing and panel stages were never reached by it), and a plant seated by a member after it in that period found the row without its counters and the
+episode ended in the driver's error.
+

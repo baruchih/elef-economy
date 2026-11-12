@@ -1,6 +1,6 @@
 # Handoff — where the economic loop stands, October 18, 2026
 
-> **Kept as history.** This is the handoff written on October 18, 2026, when rulebook 1.1.0 was in force, and extended section by section through the 2.x work that followed (the later sections are dated). The rulebook in force is **2.9.0** (`spec/agentic_economics_loop_spec_v2_9_0.md`); its appendices are the current change log, `README.md` the current status, and `agentic_sim/results/studies/2.7.0-notes-for-reviewer.md` the running record of the runs (§103, November 11, 2026: the small core's arms read through the reviewer's addendum 5 and the stressed world's first read; the reviewer's call on the stressed world's order from there).
+> **Kept as history.** This is the handoff written on October 18, 2026, when rulebook 1.1.0 was in force, and extended section by section through the 2.x work that followed (the later sections are dated). The rulebook in force is **2.9.0** (`spec/agentic_economics_loop_spec_v2_9_0.md`); its appendices are the current change log, `README.md` the current status, and `agentic_sim/results/studies/2.7.0-notes-for-reviewer.md` the running record of the runs (§108, November 12, 2026: the reviewer's addendum 7 read — the stressed policy on half the slots, the premium stake's payoff cells and its learned chain, the doubled first-review bond's chain, the joint-verdict read at ρ 0.5; the next cell the reviewer's).
 
 ## In one paragraph
 

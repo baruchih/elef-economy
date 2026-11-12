@@ -2666,8 +2666,13 @@ class Stamping:
         w.advance(t)
         self.harvest()
         for aid in self.actors:                           # 1.5.0 §2.3: when each suspension began
-            s0 = w.actor(aid).susp_started
-            if s0 is not None and s0 != self._susp_seen.get(aid):
+            ac = w.actor(aid)
+            s0 = ac.susp_started
+            if s0 is not None and s0 != self._susp_seen.get(aid) and s0 != getattr(ac, "arrived_at", None):
+                # an arrival is a probationer whose `susp_started` is its arrival tick (2.3.0's `arrive`): not a suspension — logged as one it
+                # counted every arrival-born slot once in the per-slot suspensions (addendum 7's halves, §105) and classed an arrival-born
+                # auditor's upheld approval as "readmitted" (1.5.0's route reading) since 2.3.0; a reader's fault, found by addendum 8's entry
+                # test (November 13, 2026); nothing in the engine
                 self._susp_seen[aid] = s0
                 self.susp_log.setdefault(aid, []).append(s0)
 

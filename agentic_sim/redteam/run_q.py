@@ -27,7 +27,7 @@ class MixPolicy:
     other half. The half is drawn once per slot by a stable hash of the seed and the slot's name (arrivals join by the same draw), so the two halves
     are the same names in every finalist at a seed. The episode loop tells the policy the deciding identity before each decision; its readings are
     tallied by half in `episode` (`half_claim_*` the policy's half, `half_care_*` the careful's). The careful half answers 0 everywhere (a stay at a boundary).
-    Addendum 8's entry test (November 13, 2026): `mix:<policy>:<share>` puts the policy on that share of the slots — a reader-side option, the draw the
+    Addendum 8's entry test (November 12, 2026): `mix:<policy>:<share>` puts the policy on that share of the slots — a reader-side option, the draw the
     same hash read against the share (the first two bytes against share × 65536; at 0.5 the halves of record to the name, since the first byte < 128
     is the same test); the groups keep the `half_claim_*` / `half_care_*` keys, `half_share` records the share."""
     def __init__(self, inner, name, share=0.5):
@@ -55,6 +55,8 @@ class DosePolicy:
         if self.seats == "audit" and self.seat != "audit": return 0
         if self.seats == "first" and self.seat != "initial": return 0
         return 3 if rng.random() < self.q else 0
+WORLD_KEYS = ("false_approvals", "suspensions", "bad_deliveries", "leak_bad", "leak_paid", "sys_overhead_per_vested", "cust_overhead_per_vested", "cost_of_truth", "P_t",
+              "arrivals", "departures", "names_lent", "names_lent_n", "names_repaid", "names_recovered", "names_defaulted", "names_outstanding", "idle_for_bond_ticks")   # addendum 9
 from redteam.model import device
 from drivers.stamping import LEARNER
 from sim.invariants import public_id
@@ -273,6 +275,9 @@ def episode(env, policy, seed, rng):
     reads = list(getattr(policy, "boundary_reads", []))[n_reads0:]
     if env.role == "reviewer" and row.get("learner_slots_json"):   # addendum 9 (November 12, 2026): every slot's (or identity's) own reading kept in the record — the groups' ticks in place, the wallets' sources, the loans
         work["learner_slots_json"] = row["learner_slots_json"]
+    if env.role == "reviewer":                                     # addendum 9: the world's readings kept for a single learner slot too (the loop's leak, overhead and the bank's names line beside an operator)
+        for k in WORLD_KEYS:
+            work.setdefault(k, row.get(k))
     return {"seed": seed, "decisions": len(acts), "lifetime_real_wealth": info.get("lifetime_real_wealth"), **trace_readings(trace), **work,
             "blind_seats": blind_seats, "blind_seat_stamps": blind_seat_stamps, **by_seat, **measured, **half_keys,
             "boundary_stay_read_mean": float(np.mean(reads)) if reads else None, "boundary_stay_negative": int(sum(1 for x in reads if x < 0)) if reads else (0 if getattr(policy, "boundary_read", None) == "one-step" else None),

@@ -2713,7 +2713,7 @@ class Stamping:
                 # an arrival is a probationer whose `susp_started` is its arrival tick (2.3.0's `arrive`): not a suspension — logged as one it
                 # counted every arrival-born slot once in the per-slot suspensions (addendum 7's halves, §105) and classed an arrival-born
                 # auditor's upheld approval as "readmitted" (1.5.0's route reading) since 2.3.0; a reader's fault, found by addendum 8's entry
-                # test (November 13, 2026); nothing in the engine
+                # test (November 12, 2026); nothing in the engine
                 self._susp_seen[aid] = s0
                 self.susp_log.setdefault(aid, []).append(s0)
 

@@ -281,7 +281,7 @@ def pred_vs_realized(diag, K=3):
         pr = [d[1][k] for d in diag if d[1] is not None]
         pc = [d[2][k] for d in diag if d[2] is not None and len(d[2]) > k]
         out[str(k)] = {"n": len(taken), "realized_mean": float(np.mean([d[3] for d in taken])) if taken else None,
-                       "attributed_mean": float(np.mean([d[4] for d in taken])) if taken and all(len(d) > 4 for d in taken) else None,
+                       "attributed_mean": float(np.mean([d[4] for d in taken if d[4] is not None])) if any(len(d) > 4 and d[4] is not None for d in taken) else None,   # None where the episode ended in the driver's error (no attribution)
                        "pred_r_mean": float(np.mean(pr)) if pr else None, "pred_r_taken_mean": float(np.mean([d[1][k] for d in taken if d[1] is not None])) if taken and pr else None,
                        "plan_cost_mean": float(np.mean(pc)) if pc else None}
     return out

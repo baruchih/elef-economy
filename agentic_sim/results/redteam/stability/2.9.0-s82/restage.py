@@ -9,11 +9,12 @@ import glob, json, os, sys
 PY = "/opt/homebrew/Caskroom/miniconda/base/envs/elef-redteam/bin/python"
 root = os.path.abspath("results/redteam/stability")
 SUF = "-at-30f280474"
+SUFS = (SUF, "-at-4df18f1bc")        # the halves and the entry test were re-read at 4df18f1bc (the suspension log), which carries the stage's correction too
 def affected():
     out = []
     for f in sorted(glob.glob(root + "/**/eval.json", recursive=True)):
         d = os.path.dirname(f); rel = os.path.relpath(d, root)
-        if rel.endswith(SUF) or "-at-7394be48b" in rel: continue
+        if any(rel.endswith(x) for x in SUFS) or "-at-7394be48b" in rel: continue
         md = os.path.join(d, "eval.md")
         if not os.path.exists(md) or "| state seats |" not in open(md).read(): continue
         j = json.load(open(f)); cell = " ".join(j.get("cell", []))
@@ -44,7 +45,7 @@ if __name__ == "__main__":
     else:
         for rel, j, old in rows:
             if old: continue
-            if os.path.exists(os.path.join(root, rel + SUF, "eval.json")): continue
+            if any(os.path.exists(os.path.join(root, rel + x, "eval.json")) for x in SUFS): continue
             for k in ("model", "direct_model"):
                 if j.get(k) and not os.path.exists(j[k]): print("# missing", k, rel, file=sys.stderr)
             print(cmd(rel, j))

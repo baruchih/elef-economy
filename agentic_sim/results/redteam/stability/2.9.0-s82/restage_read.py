@@ -7,7 +7,7 @@ state seats are at most its third seat and a panel of two) over the plants seate
 checked against the record: `other keys moved` counts the summary figures that differ by more than 1e-9.
 Usage: restage_read.py OUT.md"""
 import json, os, sys, glob, numpy as np
-sys.path.insert(0, os.path.dirname(__file__)); from restage import affected, root, SUF
+sys.path.insert(0, os.path.dirname(__file__)); from restage import affected, root, SUF, SUFS
 def val(x):
     if isinstance(x, dict): x = x.get("mean", x.get("m"))
     if isinstance(x, (list, tuple)): x = x[0] if x else None          # the summary's [mean, se]
@@ -24,8 +24,9 @@ L.append("\n## 2. The evaluations' stage tables (`eval.md`, `eval.json`)\n\n| ev
 n_run = n_old = n_moved = 0
 for rel, j, old in affected():
     d = os.path.join(root, rel); ja = None
-    pa = os.path.join(d + SUF, "eval.json")
-    if os.path.exists(pa): ja = json.load(open(pa))
+    for x in SUFS:
+        pa = os.path.join(d + x, "eval.json")
+        if os.path.exists(pa): ja = json.load(open(pa)); break
     for pol, s in j["summary"].items():
         b = val(s.get("life_plant_state_seats"))
         if ja is not None and pol in ja["summary"]:

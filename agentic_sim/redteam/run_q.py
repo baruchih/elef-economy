@@ -26,14 +26,17 @@ class MixPolicy:
     """Addendum 7's F4.1 (November 12, 2026), trap or equilibrium: one world, the stressed policy of record on half the slots and the careful on the
     other half. The half is drawn once per slot by a stable hash of the seed and the slot's name (arrivals join by the same draw), so the two halves
     are the same names in every finalist at a seed. The episode loop tells the policy the deciding identity before each decision; its readings are
-    tallied by half in `episode` (`half_claim_*` the policy's half, `half_care_*` the careful's). The careful half answers 0 everywhere (a stay at a boundary)."""
-    def __init__(self, inner, name):
-        self.inner, self.name, self.identity, self.seed = inner, name, None, None
+    tallied by half in `episode` (`half_claim_*` the policy's half, `half_care_*` the careful's). The careful half answers 0 everywhere (a stay at a boundary).
+    Addendum 8's entry test (November 13, 2026): `mix:<policy>:<share>` puts the policy on that share of the slots — a reader-side option, the draw the
+    same hash read against the share (the first two bytes against share × 65536; at 0.5 the halves of record to the name, since the first byte < 128
+    is the same test); the groups keep the `half_claim_*` / `half_care_*` keys, `half_share` records the share."""
+    def __init__(self, inner, name, share=0.5):
+        self.inner, self.name, self.identity, self.seed, self.share = inner, name, None, None, float(share)
     def set_identity(self, identity, seed):
         self.identity, self.seed = identity, seed
     def half_of(self, identity, seed=None):
-        h = hashlib.md5(f"{self.seed if seed is None else seed}:{identity}".encode()).digest()[0]
-        return "claim" if h < 128 else "care"
+        h = int.from_bytes(hashlib.md5(f"{self.seed if seed is None else seed}:{identity}".encode()).digest()[:2], "big")
+        return "claim" if h < self.share * 65536 else "care"
     def __call__(self, obs, rng):
         return self.inner(obs, rng) if self.half_of(self.identity) == "claim" else 0
 from redteam.model import device
@@ -211,6 +214,7 @@ def episode(env, policy, seed, rng):
             half_keys[f"half_{hh}_suspensions"] = sum(v["suspensions"] for v in mine.values()); half_keys[f"half_{hh}_claims"] = sum(v["claims"] for v in mine.values())
             half_keys[f"half_{hh}_cost_mean"] = (sum(v["cost"] for v in mine.values()) / n) if n else None
         half_keys["half_d_lifetime_per_slot"] = ((half_keys.get("half_care_lifetime_per_slot") or 0) - (half_keys.get("half_claim_lifetime_per_slot") or 0))
+        half_keys["half_share"] = policy.share                    # addendum 8: the claiming group's share of the slots (0.5 the halves of F4.1)
     measured = measured_seat_actions(env) if env.role == "reviewer" else {}   # the blind verdicts read from the engine's reviews (November 7, 2026)
     work = {k: row.get(k) for k in ("learner_role", "learner_work_decisions", "learner_bad_deliveries", "learner_good_deliveries", "learner_bad_approved", "learner_bad_caught",
                                    "learner_good_vested", "learner_good_final_n", "learner_forfeited", "learner_bad_paid", "learner_effort_saved",
@@ -413,8 +417,9 @@ def main(argv=None):
         if name == "direct":
             dm, _ = load_direct(a.direct_model); dm.to(device())
             return DirectPolicy(dm, boundary_read=br)
-        if name.startswith("mix:"):                              # F4.1: `mix:<policy>` — that policy on half the slots, the careful on the other half
-            return MixPolicy(make(name[4:]), name)
+        if name.startswith("mix:"):                              # F4.1: `mix:<policy>` — that policy on half the slots, the careful on the other half; `mix:<policy>:<share>` on that share (addendum 8's entry test)
+            parts = name[4:].split(":")
+            return MixPolicy(make(parts[0]), name, share=float(parts[1]) if len(parts) > 1 else 0.5)
         return policy_of(name, a.role)
     for name in a.policies.split(","):
         pols[name] = make(name)

@@ -14,8 +14,8 @@ def ms(v):
     return (float(v.mean()), float(v.std(ddof=1) / np.sqrt(len(v))) if len(v) > 1 else float("nan"), len(v))
 cells = sorted(d for d in os.listdir(root) if os.path.isdir(os.path.join(root, d)) and glob.glob(os.path.join(root, d, "*-seed*.npz")))
 def key(c):
-    m = re.match(r"(pa10|pa20|arm2|arm4)-t([\d.]+)-b([\d.]+)(?:-w([\d.]+))?(?:-gv([\d.]+))?(?:-rho([\d.]+))?$", c)   # addendum 7: -w<weight>, -gv<G_V> (G2, F4.2)
-    return ({"pa10": 0, "pa20": 1, "arm2": 2, "arm4": 3}[m.group(1)], float(m.group(6) or 0), float(m.group(5) or 0), float(m.group(4) or 0), float(m.group(2)), float(m.group(3))) if m else (9, 0, 0, 0, 0, 0)
+    m = re.match(r"(pa10|pa20|pa30|arm2|arm4)-t([\d.]+)-b([\d.]+)(?:-w([\d.]+))?(?:-gv([\d.]+))?(?:-rho([\d.]+))?$", c)   # addendum 7: -w<weight>, -gv<G_V> (G2, F4.2); addendum 8: pa30
+    return ({"pa10": 0, "pa20": 1, "pa30": 2, "arm2": 3, "arm4": 4}[m.group(1)], float(m.group(6) or 0), float(m.group(5) or 0), float(m.group(4) or 0), float(m.group(2)), float(m.group(3))) if m else (9, 0, 0, 0, 0, 0)
 cells.sort(key=key)
 L = [f"# The stressed world's payoff table: own money by action and seat on the scripted ε population, per cell\n",
      "Each cell: the mean attributed own-money reward of a decision (credits, real) ± the SE across seeds, and the decisions behind it; `truth-checked bad` the share of the seat's cases "

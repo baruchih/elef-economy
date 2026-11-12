@@ -3,7 +3,7 @@
 **Status:** candidate configurations for evaluation, **not in force**. No version number, nothing consolidated, no rule moved. Built behind flags and labelled as release candidates are. Adoption of any arm is a design revision drafted after the runs.  
 **Date:** November 10, 2026 (r1 and r2) · **From:** the economy's reviewer · **Supersedes:** r1 of the same day.  
 **What r2 settles:** the implementer's review against the engine at `2417219ba` (notes §78): eight corrections accepted (D1–D3, A1.1, A1.2, A2.1, A2.2, A3.1, A4.1, with A4.2 and A5.1–A5.3 noted); the four items put to the reviewer ruled (D4, C1, A1.3, Q1); hypothesis 1 restated, because its second clause was wrong; two arms and two pinned cells added, on the arithmetic of §2.  
-**Addenda 1–7** (November 10–12: after the payoff table; after the scripted sweep and the panel check; B5 amended before its cells; the dial's clock; after the learned chains; after E3 and the stressed world's first read; after Baruchi's rulings of November 11–12) are at the end. Nothing in §1–§9 is changed by them except §7.3, which gains two chains (B3, D3) and one evaluation (D2); addendum 6 sets the order from here, and addendum 7 amends its item 2.  
+**Addenda 1–8** (November 10–12: after the payoff table; after the scripted sweep and the panel check; B5 amended before its cells; the dial's clock; after the learned chains; after E3 and the stressed world's first read; after Baruchi's rulings of November 11–12) are at the end. Nothing in §1–§9 is changed by them except §7.3, which gains two chains (B3, D3) and one evaluation (D2); addendum 6 sets the order from here, addendum 7 amends its item 2, and addendum 8 sets the next two reads.  
 **Rulebook in force:** 2.9.0 with the consolidated defaults.
 
 ## 1. The question
@@ -416,3 +416,67 @@ F4.1, trap or equilibrium, first and as stated; it now also says whether a seat 
 - The premium idea has two ingredients this instrument does not hold: choosing the better members, and a seat worth keeping. Every learner shares one policy and credits one decision at a time. Those two are the loop's to test, in its experiment on second opinions, and here they are the implementer's steps 6 and 7, which this addendum does not order.
 - The cells read a stake. They do not read a premium population.
 - A harness construction, off in every run of record.
+
+---
+
+## Addendum 8 to revision 2 — after the trap, the stake's table and the two chains
+
+*November 12, 2026. Read: notes §104–§108 at `2dbf303b0`, in full. The record of them is "Ablation A1 — the stake reads: the trap, the stake's table, the premium seat's chain". No rule, arm or flag of record is changed, and nothing is drafted. Here: the rulings on the notes; the reviewer's misses; two reads without training; and what is not ordered.*
+
+### H1. Rulings on the notes
+
+- **§104** is accepted. `--w-audit` is a harness option on a parameter of record, 1.5 in every run of record.
+- **F4.1 is not refuted.** The careful half ends ahead of the claiming half in every finalist on both learners, by 434–737 real a slot. Its stated consequence stands: the learner's horizon is read before any stake is drafted on learned chains. Nothing is being drafted.
+- **G2 is not refuted**, and its sizes at π^A 0.20, at a temptation of 2 and for the weight were understated by the reviewer's arithmetic.
+- **F4.2:** met at a temptation of 1; refuted at 2, where the first review closes at ×4 in every finalist.
+- **G3 is not refuted by the letter and is not a success.** The audit seat is claimed 0.25 / 0.13 where under 0.10 was stated, and the leak is 34 / 23 where within one and a half times the unstressed pin's was stated. A seat the table read closed by 2.5 real is still claimed one time in four to one in eight by a learning population: the size of a stake is not read from the table alone.
+- **Arm 4 at G_V ×2:** met on the first review, at the line, and on the leak; missed on the suspensions (12.5 / 18.4 against under 10).
+- **The two reader corrections** are accepted as stated. Asked, by the provenance rule: every place on record — the notes and the published record — that quotes the plant kind's state-seat stage of a 2.9.0 stage table, with the figure before and after.
+
+### H2. The reviewer's misses, stated
+
+- **F4.1's size.** More than 1,500 real a slot was stated, and it was impossible: a slot's whole lifetime in the mixed world is 960–1,240. The reviewer took the gap between two worlds for the gap inside one.
+- **G2 and F4.2, the sizes.** The bond's part at π^A 0.20 is 0.80 real a multiple where about 0.5 was stated; the weight's doubling is worth 0.25 to 1.4 where 0.2 to 0.3 was stated; the first review's slope is three times the 0.3–0.5 stated.
+- **G3's bound named the wrong pin**: the 0.10 pin's figures for a chain at 0.20. The notes read it against both, and it missed against both.
+- **The direction of the errors.** The reviewer's arithmetic understated how hard a stake bites in the table, and the table overstates what a stake does to a learning population.
+
+### H3. Two reads, both without training
+
+**1. The entry test.** F4.1's construction, with the claiming slots at 1 in 10, 1 in 4 and 3 in 4 of the population (F4.1 read 1 in 2). On the pin and on arm 4, both learners, seeds 21–40, the policies of record §102's, the cell theirs: a temptation of 1, the bond ×1. If the wrapper draws only halves, the share is a reader-side option; say so before running.
+
+Read by group as in §105, and beside it: the careful group's suspensions a slot and its lifetime against the all-careful population's in the same cell, which is what the honest pay for the company; the member audit seats held by each group, a slot; the dials at the end; the leak and the overhead.
+
+**Expected:**
+- the careful ahead at every share, and at 1 in 10 by at least 200 real a slot;
+- the careful group's suspensions falling with the claimers' share: under 0.3 a slot at 1 in 10, from 0.6 at 1 in 2;
+- the leak at 1 in 10 within one and a half times the unstressed (the pin's 11 / 8, arm 4's 10 / 6), and at 3 in 4 above half the all-claiming world's (above 33 under the pin, above 9 under arm 4);
+- at every share a claiming slot holding less than a tenth of the member audit seats that a careful slot holds.
+
+**Refuted** if the claiming slots end level or ahead at 1 in 10. Then a careful population can be entered by a few claimers, and the claim is an equilibrium at the margin, whatever the even split showed.
+
+**2. The missing cells of the stake's table.** On §106's instrument, arm 0 with π^A pinned, the member's audit seat, at a temptation of 1 and 2:
+
+| π^A | The bond at the audit and panel seats | The weight |
+|---|---|---|
+| 0.20 | ×2 | 1.5 and 3 |
+| 0.20 | ×4 | 3 |
+| 0.30 | ×1, ×2, ×4 | 1.5 and 3 |
+
+Eighteen cells. The first review's bond as §99 had it. The honest side for each stake as in §106's addendum, ten seeds.
+
+**Expected**, from §106's slopes:
+- the truth-checked bad share at the seat about 0.25 at π^A 0.30, and the bond's part there at least 1.2 real a multiple;
+- a temptation of 1, π^A 0.30, the weight of record: the claim's edge +0.7 ± 0.4 at ×1, under −0.3 at ×2 and under −3 at ×4;
+- π^A 0.20 at ×4 with the weight at 3: under −1.2;
+- at a temptation of 2, π^A 0.30 closes by more than 1 at ×4;
+- the honest side: π^A 0.30 beside 0.20 at the same bond costs the careful population under 3 in 100 of its surplus, and the system about 1.5 a task more in overhead.
+
+**Refuted** if the bond's part at π^A 0.30 is under the 0.80 read at 0.20. Then more frequent planted approvals stop adding to the stake's bite, and the test rate is not the cheap lever it looks.
+
+**The purpose of both:** which mix of the three levers — the fee at the seat, the rate of planted approvals, the bond — closes the member's seat at the least cost to the honest; and whether a careful population holds against a few claimers with no stake at all.
+
+### H4. Not ordered
+
+- **No learned chain** until both reads are in.
+- **A learner with a horizon.** It is a build, and it is Baruchi's decision. Asked now, so that he can decide: what it would take in this instrument — what changes in a decision's credit, what stays the driver's convention, how long to build, and how long to run on the pin and on arm 4 at a temptation of 1. F4.1 says what it should find. Whether it finds it is the question.
+- **The dial under the temptation**, as before.

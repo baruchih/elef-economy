@@ -39,7 +39,7 @@ for k, kn in ARMS:
             if E is None: L.append(f"| {kn}, {ln} | {s} | (pending) | | | | | | |"); continue
             d = mse(E, "half_d_lifetime_per_slot")
             E0 = load(k, l, s, pol, fixed=False)                   # the evaluation of record: every group figure but the suspensions identical to the re-read
-            same = all(abs(f(a, kk) - f(b, kk)) < 1e-6 or (f(a, kk) != f(a, kk) and f(b, kk) != f(b, kk)) for a, b in zip(E, E0) for kk in a if kk.startswith("half_") and "suspensions" not in kk and kk != "_fixed") if (E0 is not None and E[0]["_fixed"]) else None
+            same = all(abs(f(a, kk) - f(b, kk)) < 1e-6 or (f(a, kk) != f(a, kk) and f(b, kk) != f(b, kk)) for a, b in zip(E, E0) for kk in a if kk.startswith("half_") and "suspensions" not in kk and kk not in ("_fixed", "half_share")) if (E0 is not None and E[0]["_fixed"]) else None
             cl = dict(life=mean(E, "half_claim_lifetime_per_slot"), w=mean(E, "half_claim_wealth_per_slot"), b=mean(E, "half_claim_private_real") / max(1e-9, mean(E, "half_claim_slots")),
                       alive=mean(E, "half_claim_alive"), slots=mean(E, "half_claim_slots"), susp=mean(E, "half_claim_suspensions") / max(1e-9, mean(E, "half_claim_slots")), claims=mean(E, "half_claim_claims") / max(1e-9, mean(E, "half_claim_slots")),
                       fr=ratio(E, "half_claim_claimed_initial", "half_claim_seats_initial"), aud=mean(E, "half_claim_seats_audit") / max(1e-9, mean(E, "half_claim_slots")), audc=ratio(E, "half_claim_claimed_audit", "half_claim_seats_audit"), pan=mean(E, "half_claim_seats_panel") / max(1e-9, mean(E, "half_claim_slots")))

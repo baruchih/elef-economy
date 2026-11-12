@@ -2,6 +2,12 @@
 
 *November 12, 2026. The economy's reviewer (Claude), for Baruchi, the implementer and the record. Read from the implementer's notes §104–§108 at `2dbf303b0`, in full. These are the reads ordered in brief A1's addenda 6 (F4) and 7 (G2, G3). All of them are in the stressed world: harness options, off in every run of record. No rule is changed and nothing is drafted. Two learners, written direct / head alone. "Claim" is the stressed world's fourth action: take the allowance for a check and approve without looking.*
 
+> **Errata, November 12 (from notes §109; the record is "Ablation A1 — the entry test, and the stake's table completed").**
+> 1. **Section 1, the suspensions a slot, and the sentence drawn from them.** The driver's log had counted every arrival as a suspension. The claiming half reads 0.78 / 0.93, 0.70 / 0.74, 0.72 / 0.71 (pin, arm 2, arm 4), not 1.19–1.43. The careful half reads 0.11–0.13, not 0.59–0.63: it is suspended as an all-careful population is. The bullet "The honest pay for the company they keep" is **withdrawn**. The engine's own counts, and every other figure here, stand.
+> 2. **Section 2, "twice the tests, 2.6 times the bite".** That is the bond's part over ×1 to ×8. Over ×1 to ×4 it is 1.8 times.
+> 3. **Section 9.** The plant kind's state-seat stage moved by up to five and a half hundredths, not four; and where disputes are on, the plant kind's filed share and panel wait moved too.
+> 4. **Section 8, the second limit, is answered:** a few claimers do not prosper in a careful population.
+
 ## In plain words
 
 1. **Skipping is a trap.** With skippers and careful members in one world, half and half, the careful end ahead in every setup. The skippers keep 40 to 55 in 100 of what the careful earn, and three in four lose their place. What takes the good seats from them is their record, not the seat's price.
@@ -24,9 +30,11 @@ One world a seed. Each slot is drawn once into the claiming half (the stressed p
 | Arm 4, direct | **+434 ± 46** | 527; 5.2 of 19.7; 1.22 | 961; 12.0 of 19.8; 0.60 | 8; 15.2 |
 | Arm 4, head alone | **+479 ± 45** | 492; 5.0 of 19.6; 1.20 | 971; 12.6 of 19.8; 0.60 | 6; 14.0 |
 
+*The suspensions a slot in this table are the uncorrected log's (erratum 1 at the head of this record).*
+
 - **The gap is the wallet's, not the benefit's.** The private benefit of skipping is 35–78 real a slot: 5 to 10 in 100 of a lifetime. The wallet is 426–479 against 961–1,241.
 - **The record sorts them.** Under the pin the claiming half holds 45 / 71 member audit seats a run and the careful half 1,642 / 1,490. What the claiming half does hold it claims (the audit seat 0.88–1.00, the first review 0.26–0.39). So the seat's price is not what stops it; losing the seat is.
-- **The honest pay for the company they keep.** The careful half is suspended 0.6 times a slot, five times the all-careful population's rate: the dial, raised by the other half's blind approvals, plants more, and the careful's own honest errors at the plants fill their window.
+- ~~**The honest pay for the company they keep.** The careful half is suspended 0.6 times a slot, five times the all-careful population's rate: the dial, raised by the other half's blind approvals, plants more, and the careful's own honest errors at the plants fill their window.~~ **Withdrawn, November 12** (erratum 1 above): the 0.6 counted arrivals as suspensions. The careful half is suspended 0.11–0.13 times a slot, as an all-careful population is.
 - **The mixed world leaks a quarter to a half of what the all-claiming world leaks**, at a higher overhead under the pin (19.2 against 16.4–17.0): the churn of suspensions is the price.
 
 **The two readings asked.** The private benefit a slot, by policy, exact: 73 / 66 under the pin, 53 / 45 under arm 2, 45 / 39 under arm 4. The orchestrator's own bad work standing a run: 0.30 / 0.35 under the pin, 3.05 / 2.45 under arm 2, 2.10 / 1.90 under arm 4, and none pending at the end.

@@ -3,7 +3,7 @@
 **Status:** candidate configurations for evaluation, **not in force**. No version number, nothing consolidated, no rule moved. Built behind flags and labelled as release candidates are. Adoption of any arm is a design revision drafted after the runs.  
 **Date:** November 10, 2026 (r1 and r2) · **From:** the economy's reviewer · **Supersedes:** r1 of the same day.  
 **What r2 settles:** the implementer's review against the engine at `2417219ba` (notes §78): eight corrections accepted (D1–D3, A1.1, A1.2, A2.1, A2.2, A3.1, A4.1, with A4.2 and A5.1–A5.3 noted); the four items put to the reviewer ruled (D4, C1, A1.3, Q1); hypothesis 1 restated, because its second clause was wrong; two arms and two pinned cells added, on the arithmetic of §2.  
-**Addenda 1–8** (November 10–12: after the payoff table; after the scripted sweep and the panel check; B5 amended before its cells; the dial's clock; after the learned chains; after E3 and the stressed world's first read; after Baruchi's rulings of November 11–12) are at the end. Nothing in §1–§9 is changed by them except §7.3, which gains two chains (B3, D3) and one evaluation (D2); addendum 6 sets the order from here, addendum 7 amends its item 2, and addendum 8 sets the next two reads.  
+**Addenda 1–9** (November 10–12: after the payoff table; after the scripted sweep and the panel check; B5 amended before its cells; the dial's clock; after the learned chains; after E3 and the stressed world's first read; after Baruchi's rulings of November 11–12; after the stake reads; after the entry test) are at the end. Nothing in §1–§9 is changed by them except §7.3, which gains two chains (B3, D3) and one evaluation (D2); addendum 6 sets the order from here, addendum 7 amends its item 2, addendum 8 sets two reads, and addendum 9 rules on them and sets the next two.  
 **Rulebook in force:** 2.9.0 with the consolidated defaults.
 
 ## 1. The question
@@ -479,4 +479,99 @@ Eighteen cells. The first review's bond as §99 had it. The honest side for each
 
 - **No learned chain** until both reads are in.
 - **A learner with a horizon.** It is a build, and it is Baruchi's decision. Asked now, so that he can decide: what it would take in this instrument — what changes in a decision's credit, what stays the driver's convention, how long to build, and how long to run on the pin and on arm 4 at a temptation of 1. F4.1 says what it should find. Whether it finds it is the question.
+- **The dial under the temptation**, as before.
+
+---
+
+## Addendum 9 to revision 2 — after the entry test and the completed table
+
+*November 12, 2026. Read: notes §109 and its addendum, in full; the note is dated November 13 by its author. The record of them is "Ablation A1 — the entry test, and the stake's table completed". No rule, arm or flag of record is changed, and nothing is drafted. Here: the rulings; the reviewer's misses; readings asked from worlds on record; two reads without training; the learner with a horizon, which waits for Baruchi; and what is not ordered.*
+
+### I1. Rulings on the notes
+
+- **§109 is accepted as read.** The share is a reader-side option, stated at `121a6c4da`, and at one half it gives F4.1's halves to the name. Nine honest cells in place of eighteen are accepted: a careful population never claims, so the temptation changes nothing for it.
+- **H3.1, the entry test, is not refuted.** The careful are ahead in all sixteen worlds, and at 1 in 10 by 353 to 459 real a slot where at least 200 was stated. Of the four expectations the reviewer counts three met, one of them at the line in one world (arm 4, head alone: a leak of 9 where above 9 was stated), and one void: the careful group's suspensions "from 0.6" rested on a figure that §109 withdraws.
+- **H3.2, the missing cells, is not refuted.** The bond's part at π^A 0.30 is 0.93 real a multiple over ×1 to ×4: above the 0.80 that refutes, under the 1.2 stated. The misses are in I2.
+- **"Not an equilibrium at the margin"** is accepted for the conduct read, §102's frozen policy. A smaller dose of skipping and a name that returns are not read (I4).
+- **Two sentences are not accepted as written.**
+  - *That the bond's slope steepens with the multiple at both rates.* At 0.30 it reads 0.43 ± 0.21 and then 1.18 ± 0.19. At 0.20 it reads 0.91, 0.54, 0.90, 0.89, each ± 0.2 to 0.3 with the cells taken as independent: no steepening.
+  - *That the tests pay the careful.* The surplus is nominal. Between π^A 0.20 and 0.30 the price level is 6 to 9 in 100 higher, and the real lifetime is level within its error at all three bonds (+900 ± 1,190; −767 ± 1,026; +517 ± 1,083). The step from 0.10 to 0.20, on record, paid nothing. The ruling: the tests cost the careful nothing in real terms, and that they pay them is not shown. For the fee's doubling the rows suggest about 5 in 100 in real terms at ×1 and ×2; the paired figure is asked in I3.
+- **The suspension log's correction** (`4df18f1bc`) is accepted with its list. §105's sentence on the careful half is withdrawn, and the reviewer's records that carried it are corrected: the stake reads' section 1, this brief's H3.1, and "everything we know". The older records that quote false approvals for each suspension (runs 34 and 36, and specification 2.8.0's first finding) are listed in the record with the figure before and after, and are not rewritten.
+- **The provenance listing** is accepted. §108's "up to four hundredths" is five and a half; and the filed share and the panel wait moved too, where disputes are on. None of the reviewer's records quotes a figure the listing moved, other than that sentence.
+
+### I2. The reviewer's misses, stated
+
+- **The bond's part at 0.30:** at least 1.2 stated, 0.93 read. Two errors of arithmetic. The 0.80 at 0.20 was the slope over ×1 to ×8, and the cells ordered run from ×1 to ×4, where 0.20 reads 0.67. And the share of approvals at the seat that a truth check finds bad rises 1.3 times from 0.20 to 0.30, where the reviewer took the rate's 1.5. With both right the expectation was about 0.9.
+- **So three cells were stated closed by more than they are:** ×2 at 0.30 (+0.13 where under −0.3), ×4 at 0.30 (−2.24 where under −3), and ×4 at a temptation of 2 (on the line where closed by more than 1).
+- **The system's cost of the higher rate:** 1.5 a task stated, 2.1 to 2.4 read.
+- **An expectation built on a wrong figure.** The reviewer recorded §105's 0.6 suspensions a slot, drew a sentence from it, and built H3.1's second expectation on it. The figure was a reader's fault.
+- **"Twice the tests, 2.6 times the bite"** in the stake reads' record was the ×1 to ×8 figure given alone. Over ×1 to ×4 it is 1.8 times.
+- **The direction.** In addendum 7 the reviewer's arithmetic understated the bond's bite, and in addendum 8 it overstated it. The stated ranges were too narrow both times.
+
+### I3. Asked from the worlds on record — no run
+
+1. **The entry test's worlds, by group:** the ticks a slot is in place; the lifetime for each tick in place; and where a claiming slot's wallet comes from (awards, review fees, the rest).
+2. **The standard error** of the careful group's suspensions a slot at each share, beside the all-careful population's. At 3 in 4, three of the four worlds read 0.15 to 0.17 against 0.12.
+3. **How the group's lifetime, wallet and benefit are averaged.** At 1 in 10 and 1 in 4 the lifetime is not the sum shown beside it: 418 against 355 + 68; 479 against 399 + 78; 395 against 346 + 47; 423 against 366 + 51.
+4. **Whether the private benefit is off the ledger, and unread by the frozen policies.** If both, the same worlds read any temptation by scaling the benefit. The reviewer's arithmetic on that footing: at 1 in 10 a claiming slot gives up 410 to 520 of wallet for 51 to 78 of benefit, so the conduct of record draws level with the careful at a temptation of about 7 to 8, and of 10 to 15 at the larger shares. Please confirm or correct.
+5. **The honest side in real terms, paired by seed:** the real lifetime for the fee's doubling at each stake; the surplus deflated by each cell's price level, for the step from 0.20 to 0.30 and for the fee; and both again for the step from 0.10 to 0.20 at ×1, from §106's cells.
+6. **Which clock dates the notes.** §109 is dated November 13 and reached the reviewer on November 12 at 21:54, Israel time.
+
+### I4. Two reads, both without training
+
+**1. The dose.** The entry test read one conduct: a policy that claims the member's audit seat nearly always and the first review two to six times in ten. Not read: a member that is careful and skips now and then, which is what a member that counts its future would try first. A scripted policy: careful, and at each review decision a claim with probability q. If this is a reader-side wrapper, as the share was, say so before running.
+
+- The dosing slots 1 in 4 and the rest careful; the pin and arm 4; a temptation of 1, the bond ×1; seeds 21–40.
+- Doses of 0.1, 0.3 and 1 at every review seat. On the pin, two more at 0.3: at the member's audit seat only, and at the first review only. Eight worlds.
+- The two worlds at 0.1 on forty seeds, 21–60, if seeds 41–60 are free of any other use. Say if they are not.
+- Read as the entry test, and beside it: the claims a slot, and the lifetime lost for each claim (the careful slot's lifetime less the dosing slot's, over its claims), with its error.
+
+**Expected:**
+- the dosing slots behind at every dose: by at least 350 real a slot at 1, and by at least 150 at 0.3;
+- at 0.1 behind, by 30 to 250. The read cannot tell less than about 100 from nothing, so at this dose the mechanism is read beside it: suspensions a slot at least one and a half times the careful's, and fewer member audit seats a slot than a careful slot holds;
+- the lifetime lost for each claim at least 5 real at 0.3 and at 1, against the table's edge of +1.94 for a claim at the audit seat.
+
+**Refuted** if the dosing slots at 0.3 are level or ahead. Then a member that counts its future does better with some skipping than with none, and the tests and the stake have work to do that the record does not do.
+
+**2. The name that returns.** What the entry test shows a skipper losing is its place. Run 23 found the way round a lost place: leave, and come back under a fresh name. 2.7.0's loan closed it for a stamper in the world of record (run 25: the harvester 1,137 behind the careful, carrying out nothing). In the stressed world a skipper's gain is the effort it saves, which no loan takes back. Not read.
+
+- The conduct, scripted: a name that claims at every review seat it is given, leaves when it is suspended, and returns at once under a fresh name.
+- The cell: 1 slot in 10 run by such operators, as in the entry test, if the return can be put on the mixed world's claiming slots without a build; one operator in a careful population, as in Q1's re-arrival cell, if not. Say which before running, and what a returning name starts with: the loan, its probation, its first seats.
+- On the pin and on arm 4; a temptation of 1, the bond ×1; seeds 21–40. If the benefit is off the ledger (I3, item 4), a temptation of 2 is read from the same worlds.
+- Read for the operator over the run: the names used; the wallets carried out, summed; the private benefit, summed; the bank's loans to it and what it left unpaid; the seats and the plants its names took. Beside it the careful slot in the same world. And for the loop: the leak, the overhead and the bank's loss with such operators against without.
+
+**Expected:**
+- at a temptation of 1 the operator behind the careful by at least 300 real over the run; its names carry out about nothing; its benefit under 40 real a name; 5 to 15 names a run;
+- at a temptation of 2 still behind. The reviewer cannot size it.
+
+**Refuted** if the operator is level or ahead at a temptation of 1. Then the record holds a name and not an operator, and what a new name costs is the stake that matters. That price is admission, which the orchestrator sets.
+
+**If either can be answered from worlds on record**, say how, and the reviewer will rule on whether the arithmetic stands in for the run.
+
+**The purpose of both:** whether careful is the best life against the two things a member that counts its future would try first — a little skipping, and a fresh start. They are also the known answers that a learner with a horizon would be tested against (I5).
+
+### I5. A learner with a horizon — for Baruchi's decision; nothing is ordered
+
+§109 answers H4. A decision's target would become its slot's own return: its later decisions' rewards and the slot's own work-side money in between, to a horizon or to the slot's exit. Both changes are in the instrument. Nothing in the engine, the rules, the observation or the driver's conventions moves. At a horizon of 1 every chain of record is reproduced to the decimal. About two working days to build; about six hours of wall time for one horizon on the pin and arm 4 with both learners.
+
+**The reviewer recommends building it**, for three reasons. Every learned chain so far skips, and the entry test says the skippers lose: with the learner of record the two cannot be told apart from a weak rule. A stake sized on such chains is sized for an agent that cannot see its future, and the honest pay for it. And a learner that sees its future is also a stronger adversary: it can look for the long game — a record built and then spent — which the learner of record cannot.
+
+**If Baruchi decides yes**, three things before any chain is read:
+
+1. The implementer's regression test: a horizon of 1 reproduces a chain of record to the decimal on a stored collection.
+2. A known answer. On the offline collection, where actions are drawn at random, the fitted difference in return between a claim and an inspection at the member's audit seat, and at the first review, is set beside I4.1's lifetime lost for each claim: the same sign, and within a factor of three. A learner that cannot see what the scripted read shows is not an instrument for this question.
+3. The return's spread, and the number of decisions behind each action at each seat, reported with the fit.
+
+The first cells are the implementer's: the pin and arm 4 at a temptation of 1 and the bond ×1, both learners, the slot's remaining life at γ 0.98; a horizon of 32 only if the first moves the audit seat.
+
+**Expected**, stated now and before any build:
+- under the pin, the member's audit seat claimed under 0.10, from 0.94 / 0.99, and the first review under 0.10, from 0.29 / 0.25; the leak within one and a half times the unstressed 11 / 8;
+- under arm 4, the first review claimed under 0.10, from 0.25 / 0.22, and the leak within one and a half times the unstressed 10 / 6;
+- the population's real lifetime within 10 in 100 of the careful population's in the same cell.
+
+**Refuted** if, with the three tests passed, the member's audit seat is still claimed above 0.5. Then a learner that sees its own future still skips, the careful's lead in the entry test is not something a member can learn its way to, and the stake and the tests carry the weight after all.
+
+### I6. Not ordered
+
+- **No learned chain on the learner of record**, and no further cell of the stake's table.
 - **The dial under the temptation**, as before.

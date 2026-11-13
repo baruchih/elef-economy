@@ -3,7 +3,7 @@
 **Status:** candidate configurations for evaluation, **not in force**. No version number, nothing consolidated, no rule moved. Built behind flags and labelled as release candidates are. Adoption of any arm is a design revision drafted after the runs.  
 **Date:** November 10, 2026 (r1 and r2) · **From:** the economy's reviewer · **Supersedes:** r1 of the same day.  
 **What r2 settles:** the implementer's review against the engine at `2417219ba` (notes §78): eight corrections accepted (D1–D3, A1.1, A1.2, A2.1, A2.2, A3.1, A4.1, with A4.2 and A5.1–A5.3 noted); the four items put to the reviewer ruled (D4, C1, A1.3, Q1); hypothesis 1 restated, because its second clause was wrong; two arms and two pinned cells added, on the arithmetic of §2.  
-**Addenda 1–11** (November 10–13: after the payoff table; after the scripted sweep and the panel check; B5 amended before its cells; the dial's clock; after the learned chains; after E3 and the stressed world's first read; after Baruchi's rulings of November 11–12; after the stake reads; after the entry test; after the dose and the name that returns; the operator behind an ID) are at the end. Nothing in §1–§9 is changed by them except §7.3, which gains two chains (B3, D3) and one evaluation (D2); addendum 6 sets the order from here, addendum 7 amends its item 2, addendum 8 sets two reads, addendum 9 rules on them and sets the next two, addendum 10 rules on those, sets one more, and carries Baruchi's ruling of November 13 to build the learner with a horizon, and addendum 11 names a limit of the reads on record, from the loop's session, and asks one reading with no run.  
+**Addenda 1–12** (November 10–13: after the payoff table; after the scripted sweep and the panel check; B5 amended before its cells; the dial's clock; after the learned chains; after E3 and the stressed world's first read; after Baruchi's rulings of November 11–12; after the stake reads; after the entry test; after the dose and the name that returns; the operator behind an ID; Baruchi's rulings on the operator) are at the end. Nothing in §1–§9 is changed by them except §7.3, which gains two chains (B3, D3) and one evaluation (D2); addendum 6 sets the order from here, addendum 7 amends its item 2, addendum 8 sets two reads, addendum 9 rules on them and sets the next two, addendum 10 rules on those, sets one more, and carries Baruchi's ruling of November 13 to build the learner with a horizon, addendum 11 names a limit of the reads on record, from the loop's session, and asks one reading with no run, and addendum 12 carries Baruchi's rulings of November 13 on the operator, corrects one sentence of addendum 11 and asks two more readings with no run.  
 **Rulebook in force:** 2.9.0 with the consolidated defaults.
 
 ## 1. The question
@@ -688,3 +688,34 @@ The dose read the member's audit seat at tests of 1 in 10, the bond of record an
 
 - **No operator in the simulation**: no two names under one hand, no suspension that reaches both, no name held in reserve. It is among the implementer's later steps. Whether it is read at all waits for Baruchi's ruling on how many IDs an operator may hold: with one ID for each operator, the reads on record carry as they are.
 - **Asked, in one sentence with the next notes:** what the smallest such construction would take.
+
+## Addendum 12 to revision 2 — Baruchi's rulings on the operator
+
+*November 13, 2026. From the loop's reply to the answer's eleventh edition, relayed by Baruchi the same day. No run and no build is ordered. No rule, arm or flag of record is changed, and nothing is drafted. Here: the rulings; what they change in addendum 11; two readings asked from worlds on record; and what stands.*
+
+### L1. The rulings (Baruchi, November 13, as the loop's reply gives them)
+
+1. One ID for each operator.
+2. The check at admission is minimal for now: a basic identifier, an e-mail address or the like. That is at the level of the simulation, because ELEF is not going to the world with it yet.
+3. The place, a suspension and a debt are not read at the operator. They stay with the operator's actor: an operator may run several actors, and the one that fails is suspended. Later versions may reach the operator's level.
+
+In these words the simulation's name is an actor. What addendum 11 called an ID is an actor too.
+
+### L2. What changes in addendum 11
+
+- **K5's condition is overtaken.** It said that with one ID for each operator the reads on record carry as they are. One ID for each operator is ruled, and it does not give that: an operator may run several actors under its ID, and each holds its own place. The reads on record carry for an operator with one actor. The reviewer's sentence took the ID for what holds a place.
+- **The second actor is left open by decision, and it is the case to plan for.** K3's reading is its first number, and stands as asked.
+- **Which reads on record apply to it.** Those of agents that weigh one decision at a time: the stake's table (§106, §109) and the learned chains under the stakes (§108). What addenda 8 to 10 called the learner's short sight is, for an operator with a second actor, the right way to weigh a skip. The scripted reads of addenda 9 and 10 describe an operator with one actor.
+- **J4's refutation** pointed to a rule that makes a failure at the audit seat cost the member's place. For an operator with a second actor that would not hold either. If world 5 is level, what is left for that seat is money held at the seat.
+
+### L3. Asked from the worlds on record — no run
+
+1. **Claims for each suspension.** For the dosing slots of §110's dose worlds and the claiming slots of the entry test at 1 in 10: the claims a slot makes for each suspension, and the benefit it saves between two suspensions, with their errors. The reviewer's arithmetic on §110's table, for the dose at every seat and at the first review: 22 to 36 claims, and so 55 to 90 real at a temptation of 1.
+2. **What an admission costs and pays.** For a careful arrival in the stressed world, from its arrival to its admission: the reviews, the ticks, the care bought, and the fees and allowances received. **Expected, stated before the reading:** 40 to 150 reviews; 100 to 400 real of care; and the care covered by what is received, so that an admission costs its operator time and no money. If that is so, a second actor admitted beside the first costs its operator nothing.
+
+**Why they are asked.** With a suspension stopped at the actor, what is left against a second actor is the deposit at the seat, and work that is not paid. These two figures say how much unpaid work an admission would have to be for a suspension to cost more than the skipping between two suspensions saved. Nothing is to be built for it.
+
+### L4. What stands
+
+- **J3, J4, J5 and K3**, as ordered and asked. J5 reads one actor's future, which is the level the rulings read.
+- **Not ordered:** an operator with a second actor in the simulation. The one sentence asked in K5 stands, and now names it: what the smallest construction would take — two names under one hand, the second admitted, taking the work when the first is suspended.

@@ -634,6 +634,7 @@ class Stamping:
         # standing ("good") or suspended or on probation ("down") — tallied once a tick from the actor's standing; a reading, nothing moves
         self.slot_standing: dict[str, dict[str, float]] = {}
         self._slot_last: dict[str, tuple[float, float]] = {}
+        self.slot_admission: dict[str, dict[str, float]] = {}   # addendum 12's L3.2: an arrival-born slot's Tally at its admission (what the admission cost and paid)
         self._susp_seen: dict[str, int | None] = {}
         # addendum 9's readings (November 12, 2026; the reviewer's I3.1 and I4.2): a name's arrival and departure ticks and its arrival loan at departure
         # (outstanding before, repaid from income, recovered from the wallet, defaulted) — read by learner_slots_read; nothing moves
@@ -1768,7 +1769,8 @@ class Stamping:
             out[x] = {"alive": int(alive), "wealth_real": round(wealth, 3), "private_real": round(self.learner_private_real_of.get(x, 0.0), 3),
                       "claims": self.learner_claims_of.get(x, 0), "suspensions": len(self.susp_log.get(x, [])), "cost": round(self.c_d_of.get(x, 0.0), 3),
                       "susp_ticks": [int(t) for t in self.susp_log.get(x, [])],   # addendum 10's J3.3 (November 13, 2026): the ticks at which its suspensions began
-                      **{k: (round(v, 3) if isinstance(v, float) else v) for k, v in self.slot_standing.get(x, {}).items()}}   # addendum 11's K3: by standing
+                      **{k: (round(v, 3) if isinstance(v, float) else v) for k, v in self.slot_standing.get(x, {}).items()},   # addendum 11's K3: by standing
+                      **self.slot_admission.get(x, {})}   # addendum 12's L3.2: the Tally at admission
             # addendum 9 (November 12, 2026; the reviewer's I3.1 and I4.2): the ticks in place, the wallet's sources from the public record (the Tally), the loan
             if alive:
                 t_in = getattr(w.actor(x), "arrived_at", None) or 0; t_out = None
@@ -2085,6 +2087,12 @@ class Stamping:
                 continue
             ac = w.actor(x)
             st = "good" if ac.is_member else "down"
+            if ac.arrived_at is not None and ac.admitted_at is not None and x not in self.slot_admission:   # addendum 12's L3.2: the snapshot at admission (read the tick after)
+                ty = self.tally.get(x)
+                self.slot_admission[x] = {"adm_t": int(ac.admitted_at), "adm_ticks": int(ac.admitted_at - ac.arrived_at), "adm_real": round(real, 6),
+                                          "adm_reviews": ty.reviews if ty else 0, "adm_costs": round(ty.costs, 3) if ty else 0.0, "adm_reimbursed": round(ty.reimbursed, 3) if ty else 0.0,
+                                          "adm_fee_fixed": round(ty.fee_fixed, 3) if ty else 0.0, "adm_fee_uplift": round(ty.fee_uplift, 3) if ty else 0.0, "adm_fees": round(ty.fees, 3) if ty else 0.0,
+                                          "adm_bonds_forfeited": round(ty.bonds_forfeited, 3) if ty else 0.0, "adm_wealth_nominal": round(w.wealth(x), 3)}
             wealth = w.wealth(x) - min(w.wealth(x), w.loan_outstanding(x))
             ben = self.learner_private_real_of.get(x, 0.0)
             last = self._slot_last.get(x)

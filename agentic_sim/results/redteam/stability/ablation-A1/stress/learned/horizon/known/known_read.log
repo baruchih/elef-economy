@@ -1,0 +1,129 @@
+return targets: horizon mc, gamma 0.98; export present in 20 of 20 episodes
+epoch 1: loss 0.7334
+epoch 5: loss 0.4874
+epoch 10: loss 0.4155
+epoch 15: loss 0.3676
+epoch 20: loss 0.3370
+epoch 25: loss 0.3175
+epoch 30: loss 0.3040
+epoch 35: loss 0.2970
+epoch 40: loss 0.2944
+saved results/redteam/stability/ablation-A1/stress/learned/horizon/known/first/direct-mc.pt: 20 episodes, 97246 decisions, 43.3s; by action {0: {'n': 94046, 'realized_mean': 211.984619140625, 'predicted_mean': 210.99185180664062}, 1: {'n': 0, 'realized_mean': None, 'predicted_mean': 2.922861337661743}, 2: {'n': 0, 'realized_mean': None, 'predicted_mean': 2.515489101409912}, 3: {'n': 3200, 'realized_mean': 155.28948974609375, 'predicted_mean': 167.00267028808594}}
+return targets: horizon mc, gamma 0.98; export present in 20 of 20 episodes
+epoch 1: loss 73.5782 pred 0.6000 sigreg 103.7054 reward 0.9901 value 66.7931 reward_b 0.0068 value_b 0.0030
+epoch 5: loss 28.4015 pred 0.8684 sigreg 23.2803 reward 0.9633 value 25.4056 reward_b 0.0000 value_b 0.0001
+epoch 10: loss 25.3324 pred 0.4505 sigreg 16.9343 reward 0.9547 value 23.0803 reward_b 0.0000 value_b 0.0000
+epoch 15: loss 23.7338 pred 0.2517 sigreg 13.1816 reward 0.9500 value 21.8729 reward_b 0.0000 value_b 0.0000
+epoch 20: loss 22.4618 pred 0.1925 sigreg 11.1017 reward 0.9446 value 20.7696 reward_b 0.0000 value_b 0.0000
+epoch 25: loss 21.4657 pred 0.1632 sigreg 10.0565 reward 0.9404 value 19.8592 reward_b 0.0000 value_b 0.0000
+epoch 30: loss 20.7092 pred 0.1481 sigreg 9.7345 reward 0.9355 value 19.1388 reward_b 0.0000 value_b 0.0000
+epoch 35: loss 20.2832 pred 0.1413 sigreg 9.4799 reward 0.9335 value 18.7343 reward_b 0.0000 value_b 0.0000
+epoch 40: loss 20.1081 pred 0.1401 sigreg 9.4774 reward 0.9320 value 18.5621 reward_b 0.0000 value_b 0.0000
+saved results/redteam/stability/ablation-A1/stress/learned/horizon/known/first/wm-mc.pt: 20 episodes, 21470 windows, 151.2s
+return targets: horizon mc, gamma 0.98; export present in 20 of 20 episodes
+epoch 1: loss 0.7049
+epoch 5: loss 0.4887
+epoch 10: loss 0.4162
+epoch 15: loss 0.3726
+epoch 20: loss 0.3413
+epoch 25: loss 0.3212
+epoch 30: loss 0.3081
+epoch 35: loss 0.3007
+epoch 40: loss 0.2981
+saved results/redteam/stability/ablation-A1/stress/learned/horizon/known/audit/direct-mc.pt: 20 episodes, 91644 decisions, 40.5s; by action {0: {'n': 90439, 'realized_mean': 190.2498016357422, 'predicted_mean': 190.2642364501953}, 1: {'n': 0, 'realized_mean': None, 'predicted_mean': -18.940448760986328}, 2: {'n': 0, 'realized_mean': None, 'predicted_mean': -4.817729473114014}, 3: {'n': 1205, 'realized_mean': 206.84771728515625, 'predicted_mean': 177.20436096191406}}
+return targets: horizon mc, gamma 0.98; export present in 20 of 20 episodes
+epoch 1: loss 61.3573 pred 0.6292 sigreg 92.3097 reward 0.9936 value 55.1075 reward_b 0.0080 value_b 0.0035
+epoch 5: loss 26.8029 pred 0.6120 sigreg 18.9798 reward 0.9565 value 24.2853 reward_b 0.0001 value_b 0.0001
+epoch 10: loss 23.6263 pred 0.2922 sigreg 13.1057 reward 0.9405 value 21.7383 reward_b 0.0000 value_b 0.0001
+epoch 15: loss 22.0153 pred 0.2045 sigreg 11.5025 reward 0.9331 value 20.3026 reward_b 0.0000 value_b 0.0000
+epoch 20: loss 20.8645 pred 0.1733 sigreg 10.4099 reward 0.9281 value 19.2425 reward_b 0.0000 value_b 0.0000
+epoch 25: loss 20.0553 pred 0.1630 sigreg 9.9723 reward 0.9238 value 18.4698 reward_b 0.0000 value_b 0.0000
+epoch 30: loss 19.4440 pred 0.1561 sigreg 9.6550 reward 0.9162 value 17.8888 reward_b 0.0000 value_b 0.0000
+epoch 35: loss 19.1227 pred 0.1530 sigreg 9.6138 reward 0.9158 value 17.5732 reward_b 0.0000 value_b 0.0000
+epoch 40: loss 18.9557 pred 0.1527 sigreg 9.5701 reward 0.9113 value 17.4132 reward_b 0.0000 value_b 0.0000
+saved results/redteam/stability/ablation-A1/stress/learned/horizon/known/audit/wm-mc.pt: 20 episodes, 20057 windows, 105.5s
+# The known-answer test and the return's spread (I5's second and third tests) — the direct policy and the world model at a horizon to the slot's exit, γ 0.98
+
+## The first review dosed at 0.3 on 1 slot in 4 (the pin; 20 episodes, 97246 decisions)
+
+**(i) The return's spread, with the decisions behind each action at each seat** (the return to the slot's exit at γ 0.98, real; pooled over the 20 episodes):
+
+| slots | seat | action | n | mean | SD | SE |
+|---|---|---|---|---|---|---|
+| all | audit | inspect | 30071 | 224.6 | 133.4 | 0.8 |
+| all | initial | inspect | 55678 | 204.4 | 161.4 | 0.7 |
+| all | initial | claim | 3200 | 155.3 | 151.1 | 2.7 |
+| all | panel | inspect | 8297 | 217.5 | 128.9 | 1.4 |
+| dosing | audit | inspect | 1989 | 245.9 | 147.0 | 3.3 |
+| dosing | initial | inspect | 7603 | 161.3 | 151.9 | 1.7 |
+| dosing | initial | claim | 3200 | 155.3 | 151.1 | 2.7 |
+| dosing | panel | inspect | 516 | 227.7 | 146.2 | 6.4 |
+
+**The data's own answer at the initial seat on the dosing slots** (a claim there the policy's coin): the return after a claim less after an inspection, per episode, **-5.5 ± 2.3** real over 20 episodes.
+
+**(ii) The direct policy** fit at the horizon (40 epochs; `direct-mc.pt`), read on every initial-seat observation: the fitted return of a claim less an inspection, per seed, **-38.5 ± 4.6** real. the direct: fitted -38.5 ± 4.6 against the known -23.1 ± 3.5 — the sign the same, within a factor of three → **passed**.
+
+**(iii) The world model** fit the same way (`wm-mc.pt`), read by the head alone as reward + γ V(next) on the initial-seat observations (up to 400 a seed): a claim less an inspection **-4.8 ± 0.4** real (the reward head's one decision alone +0.7 ± 0.1). the world model: fitted -4.8 ± 0.4 against the known -23.1 ± 3.5 — the sign the same, OUTSIDE a factor of three → **FAILED**.
+
+## The member's audit seat dosed at 0.3 on 1 slot in 4 (the pin; 20 episodes, 91644 decisions)
+
+**(i) The return's spread, with the decisions behind each action at each seat** (the return to the slot's exit at γ 0.98, real; pooled over the 20 episodes):
+
+| slots | seat | action | n | mean | SD | SE |
+|---|---|---|---|---|---|---|
+| all | audit | inspect | 25975 | 199.0 | 130.6 | 0.8 |
+| all | audit | claim | 1205 | 206.8 | 158.4 | 4.6 |
+| all | initial | inspect | 57670 | 186.0 | 166.7 | 0.7 |
+| all | panel | inspect | 6794 | 193.1 | 125.7 | 1.5 |
+| dosing | audit | inspect | 2712 | 201.1 | 140.3 | 2.7 |
+| dosing | audit | claim | 1205 | 206.8 | 158.4 | 4.6 |
+| dosing | initial | inspect | 10107 | 186.4 | 171.2 | 1.7 |
+| dosing | panel | inspect | 988 | 183.4 | 129.0 | 4.1 |
+
+**The data's own answer at the audit seat on the dosing slots** (a claim there the policy's coin): the return after a claim less after an inspection, per episode, **+2.6 ± 4.5** real over 20 episodes.
+
+**(ii) The direct policy** fit at the horizon (40 epochs; `direct-mc.pt`), read on every audit-seat observation: the fitted return of a claim less an inspection, per seed, **+2.7 ± 3.0** real. the direct: the known answer (-4.0 ± 4.8, 60 seeds) cannot be told from nothing — not tested here.
+
+**(iii) The world model** fit the same way (`wm-mc.pt`), read by the head alone as reward + γ V(next) on the audit-seat observations (up to 400 a seed): a claim less an inspection **-2.2 ± 0.3** real (the reward head's one decision alone +3.3 ± 0.2). the world model: the known answer (-4.0 ± 4.8, 60 seeds) cannot be told from nothing — not tested here.
+
+## The member's audit seat dosed at 1.0 on 1 slot in 4 (the pin; 20 episodes, 89559 decisions)
+
+**(i) The return's spread, with the decisions behind each action at each seat** (the return to the slot's exit at γ 0.98, real; pooled over the 20 episodes):
+
+| slots | seat | action | n | mean | SD | SE |
+|---|---|---|---|---|---|---|
+| all | audit | inspect | 24259 | 210.7 | 131.2 | 0.8 |
+| all | audit | claim | 1579 | 171.7 | 170.3 | 4.3 |
+| all | initial | inspect | 57270 | 186.9 | 165.8 | 0.7 |
+| all | panel | inspect | 6451 | 199.5 | 133.1 | 1.7 |
+| dosing | audit | claim | 1579 | 171.7 | 170.3 | 4.3 |
+| dosing | initial | inspect | 10627 | 176.2 | 168.0 | 1.6 |
+| dosing | panel | inspect | 422 | 164.2 | 150.5 | 7.3 |
+
+**The data's own answer at the audit seat on the dosing slots** (a claim there the policy's coin): the return after a claim less after an inspection, per episode, **+nan ± nan** real over 0 episodes.
+
+**(ii) The direct policy** fit at the horizon (40 epochs; `direct-mc.pt`), read on every audit-seat observation: the fitted return of a claim less an inspection, per seed, **+7.1 ± 8.1** real. the direct: fitted +7.1 ± 8.1 against the known -15.0 ± 2.9 — the sign OPPOSITE, OUTSIDE a factor of three → **FAILED**.
+
+**(iii) The world model** fit the same way (`wm-mc.pt`), read by the head alone as reward + γ V(next) on the audit-seat observations (up to 400 a seed): a claim less an inspection **-4.0 ± 0.7** real (the reward head's one decision alone +4.6 ± 0.2). the world model: fitted -4.0 ± 0.7 against the known -15.0 ± 2.9 — the sign the same, OUTSIDE a factor of three → **FAILED**.
+
+## The member's audit seat dosed at 0.3 on 1 slot in 4 (J4's world 5 cell: π^A 0.30, the fee doubled; 20 episodes, 99427 decisions)
+
+**(i) The return's spread, with the decisions behind each action at each seat** (the return to the slot's exit at γ 0.98, real; pooled over the 20 episodes):
+
+| slots | seat | action | n | mean | SD | SE |
+|---|---|---|---|---|---|---|
+| all | audit | inspect | 30750 | 233.1 | 128.0 | 0.7 |
+| all | audit | claim | 939 | 203.1 | 140.7 | 4.6 |
+| all | initial | inspect | 56761 | 188.0 | 171.0 | 0.7 |
+| all | panel | inspect | 10977 | 220.8 | 123.3 | 1.2 |
+| dosing | audit | inspect | 2229 | 205.8 | 129.7 | 2.7 |
+| dosing | audit | claim | 939 | 203.1 | 140.7 | 4.6 |
+| dosing | initial | inspect | 10239 | 173.7 | 157.2 | 1.6 |
+| dosing | panel | inspect | 996 | 195.8 | 121.7 | 3.9 |
+
+**The data's own answer at the audit seat on the dosing slots** (a claim there the policy's coin): the return after a claim less after an inspection, per episode, **-5.2 ± 4.5** real over 20 episodes.
+
+**(ii) The direct policy** fit at the horizon (40 epochs; `direct-mc.pt`), read on every audit-seat observation: the fitted return of a claim less an inspection, per seed, **-22.6 ± 5.2** real. the direct: fitted -22.6 ± 5.2 against the known -45.1 ± 7.7 — the sign the same, within a factor of three → **passed**.
+
+**(iii) The world model** fit the same way (`wm-mc.pt`), read by the head alone as reward + γ V(next) on the audit-seat observations (up to 400 a seed): a claim less an inspection **-3.8 ± 0.5** real (the reward head's one decision alone +1.1 ± 0.2). the world model: fitted -3.8 ± 0.5 against the known -45.1 ± 7.7 — the sign the same, OUTSIDE a factor of three → **FAILED**.
+

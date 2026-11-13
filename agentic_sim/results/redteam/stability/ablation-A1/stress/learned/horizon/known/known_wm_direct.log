@@ -1,0 +1,32 @@
+return targets: horizon mc, gamma 0.98; export present in 20 of 20 episodes
+epoch 1: loss 4.3461 pred 0.6695 sigreg 39.5390 reward 0.8064 value 0.8857 reward_b 0.0051 value_b 0.0024
+epoch 5: loss 1.8476 pred 0.3482 sigreg 6.7101 reward 0.5812 value 0.5824 reward_b 0.0001 value_b 0.0001
+epoch 10: loss 1.5742 pred 0.2945 sigreg 4.9768 reward 0.5157 value 0.5150 reward_b 0.0001 value_b 0.0001
+epoch 15: loss 1.4261 pred 0.2695 sigreg 4.1970 reward 0.4732 value 0.4735 reward_b 0.0000 value_b 0.0000
+epoch 20: loss 1.3230 pred 0.2506 sigreg 3.8013 reward 0.4406 value 0.4417 reward_b 0.0000 value_b 0.0000
+epoch 25: loss 1.2463 pred 0.2415 sigreg 3.4750 reward 0.4133 value 0.4177 reward_b 0.0000 value_b 0.0000
+epoch 30: loss 1.1973 pred 0.2375 sigreg 3.3234 reward 0.3940 value 0.3996 reward_b 0.0000 value_b 0.0000
+epoch 35: loss 1.1739 pred 0.2356 sigreg 3.3004 reward 0.3832 value 0.3899 reward_b 0.0000 value_b 0.0000
+epoch 40: loss 1.1613 pred 0.2344 sigreg 3.2510 reward 0.3786 value 0.3857 reward_b 0.0000 value_b 0.0000
+saved results/redteam/stability/ablation-A1/stress/learned/horizon/known/first/wm-mc-direct.pt: 20 episodes, 21470 windows, 102.3s
+return targets: horizon mc, gamma 0.98; export present in 20 of 20 episodes
+epoch 1: loss 4.4263 pred 0.7505 sigreg 41.1814 reward 0.7698 value 0.8377 reward_b 0.0067 value_b 0.0026
+epoch 5: loss 1.8541 pred 0.3651 sigreg 6.7170 reward 0.5776 value 0.5753 reward_b 0.0001 value_b 0.0001
+epoch 10: loss 1.6082 pred 0.3101 sigreg 5.2963 reward 0.5181 value 0.5150 reward_b 0.0001 value_b 0.0001
+epoch 15: loss 1.4578 pred 0.2772 sigreg 4.5847 reward 0.4767 value 0.4745 reward_b 0.0000 value_b 0.0000
+epoch 20: loss 1.3384 pred 0.2491 sigreg 4.0475 reward 0.4433 value 0.4435 reward_b 0.0000 value_b 0.0000
+epoch 25: loss 1.2615 pred 0.2358 sigreg 3.7687 reward 0.4170 value 0.4202 reward_b 0.0000 value_b 0.0000
+epoch 30: loss 1.2137 pred 0.2281 sigreg 3.5942 reward 0.4010 value 0.4048 reward_b 0.0000 value_b 0.0000
+epoch 35: loss 1.1895 pred 0.2245 sigreg 3.5460 reward 0.3913 value 0.3965 reward_b 0.0000 value_b 0.0000
+epoch 40: loss 1.1779 pred 0.2240 sigreg 3.5046 reward 0.3865 value 0.3922 reward_b 0.0000 value_b 0.0000
+saved results/redteam/stability/ablation-A1/stress/learned/horizon/known/audit/wm-mc-direct.pt: 20 episodes, 20057 windows, 104.5s
+# The world model under the return-head read (`--return-read direct`): the known-answer test at each dosed seat
+
+**first (initial seat, 20 episodes):** the return head's read, a claim less an inspection, per seed **-28.5 ± 1.7** real — against the known -23.1 ± 3.5 (20 seeds): the sign the same, within a factor of three → **passed**.
+
+**audit (audit seat, 20 episodes):** the return head's read, a claim less an inspection, per seed **+8.9 ± 1.6** real — the known answer (-4.0 ± 4.8, 60 seeds) cannot be told from nothing — not tested.
+
+**audit1 (audit seat, 20 episodes):** the return head's read, a claim less an inspection, per seed **-21.4 ± 2.5** real — against the known -15.0 ± 2.9 (60 seeds): the sign the same, within a factor of three → **passed**.
+
+**audit-w5 (audit seat, 20 episodes):** the return head's read, a claim less an inspection, per seed **-22.7 ± 2.2** real — against the known -45.1 ± 7.7 (60 seeds): the sign the same, within a factor of three → **passed**.
+

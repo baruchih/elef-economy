@@ -65,7 +65,9 @@ def main(argv=None):
     summary = []
     t0 = time.time()
     for name in (a.policies or default_policies(a.role)).split(","):
-        pol = scripted_of(name, lambda inner: policy_of(inner, a.role)) or policy_of(name, a.role)   # `mix:<policy>[:<share>]` and `dose<q>[audit|first]` collect too (November 13, 2026)
+        def make(n):                                      # `mix:<policy>[:<share>]` and `dose<q>[audit|first]` collect too (November 13, 2026): the wrapper's inner name resolves the same way
+            return scripted_of(n, make) or policy_of(n, a.role)
+        pol = make(name)
         for seed in range(lo, hi + 1):
             rng = np.random.default_rng(seed * 1000 + hash(name) % 997)
             O, A, R, P, F, T, info = rollout(env, pol, seed, rng)

@@ -3,7 +3,7 @@
 **Status:** candidate configurations for evaluation, **not in force**. No version number, nothing consolidated, no rule moved. Built behind flags and labelled as release candidates are. Adoption of any arm is a design revision drafted after the runs.  
 **Date:** November 10, 2026 (r1 and r2) · **From:** the economy's reviewer · **Supersedes:** r1 of the same day.  
 **What r2 settles:** the implementer's review against the engine at `2417219ba` (notes §78): eight corrections accepted (D1–D3, A1.1, A1.2, A2.1, A2.2, A3.1, A4.1, with A4.2 and A5.1–A5.3 noted); the four items put to the reviewer ruled (D4, C1, A1.3, Q1); hypothesis 1 restated, because its second clause was wrong; two arms and two pinned cells added, on the arithmetic of §2.  
-**Addenda 1–9** (November 10–12: after the payoff table; after the scripted sweep and the panel check; B5 amended before its cells; the dial's clock; after the learned chains; after E3 and the stressed world's first read; after Baruchi's rulings of November 11–12; after the stake reads; after the entry test) are at the end. Nothing in §1–§9 is changed by them except §7.3, which gains two chains (B3, D3) and one evaluation (D2); addendum 6 sets the order from here, addendum 7 amends its item 2, addendum 8 sets two reads, and addendum 9 rules on them and sets the next two.  
+**Addenda 1–11** (November 10–13: after the payoff table; after the scripted sweep and the panel check; B5 amended before its cells; the dial's clock; after the learned chains; after E3 and the stressed world's first read; after Baruchi's rulings of November 11–12; after the stake reads; after the entry test; after the dose and the name that returns; the operator behind an ID) are at the end. Nothing in §1–§9 is changed by them except §7.3, which gains two chains (B3, D3) and one evaluation (D2); addendum 6 sets the order from here, addendum 7 amends its item 2, addendum 8 sets two reads, addendum 9 rules on them and sets the next two, addendum 10 rules on those, sets one more, and carries Baruchi's ruling of November 13 to build the learner with a horizon, and addendum 11 names a limit of the reads on record, from the loop's session, and asks one reading with no run.  
 **Rulebook in force:** 2.9.0 with the consolidated defaults.
 
 ## 1. The question
@@ -575,3 +575,116 @@ The first cells are the implementer's: the pin and arm 4 at a temptation of 1 an
 
 - **No learned chain on the learner of record**, and no further cell of the stake's table.
 - **The dial under the temptation**, as before.
+
+---
+
+## Addendum 10 to revision 2 — after the dose and the name that returns
+
+*November 13, 2026. Read: notes §110, in full, at `f9c0dbb3e`. The record of them is "Ablation A1 — the dose, and the name that returns". No rule, arm or flag of record is changed, and nothing is drafted. Here: the rulings; the reviewer's misses; four readings asked from worlds on record; one read without training; the learner with a horizon, which Baruchi ruled on the same day and which is ordered in J5; and what is not ordered.*
+
+### J1. Rulings on the notes
+
+- **§110 is accepted as read**: the six readings of I3; the two constructions, each stated before its runs; the extension of the driver's per-slot readings, with the sixteen worlds run again whole and every group figure identical; the corrections to §109's two sentences and to its date; and the mixed population beside the careful one in the returning name's cell, which was not asked and is welcome.
+- **I4.1, the dose, is not refuted at every seat and at the first review**: behind by 825 / 672 at a dose of 1, by 422 / 307 at 0.3, by 154 ± 38 / 88 ± 35 at 0.1, and by 393 ± 41 at 0.3 at the first review alone.
+- **I4.1 is refuted at the member's audit seat, by the letter of its condition.** The condition read "the dosing slots at 0.3 are level or ahead" and named no seat. At the member's audit seat alone they are level within the error: +56 ± 48 a slot. The implementer notes that the condition was meant for the dose at every seat. It was not written so, and the ruling follows what was written. The consequence stated with it holds at that seat in its second half: the tests and the stake have work to do there that the record does not do.
+- **I4.2, the name that returns, is not refuted**: behind the careful by 449 to 530 real in a careful population and by 839 to 1,028 in the mixed one. Its returning names are never admitted and carry out 28 to 124 real in all.
+- **The fee's doubling:** a suggestion at about 5 in 100 of the careful's real lifetime, in three cells of one sign, each 1.3 to 2.3 standard errors. Not shown. The ruling of addendum 9 stands for the tests and now covers the fee: neither costs the careful anything in real terms, and that either pays them is not shown.
+- **§110's sentence that the 0.30 slope's two segments differ "inside their errors"** is left as the implementer wrote it. By the reviewer's arithmetic they differ by 0.75 ± 0.28, the cells taken as independent. Nothing rests on it.
+
+### J2. The reviewer's misses, stated
+
+- **A condition written without its seat.** The dose's refutation condition should have said which worlds it covered. Read by its letter it is met in one of them.
+- **A sentence too wide.** The last record said that for an agent that counts its own future the record does the work "at the margin too". That is read at the first review. At the member's audit seat an occasional skip is level within the error.
+- **"Seven to eight times."** The reviewer's arithmetic on the entry test stands for a skipper that leaves when it is suspended, as the population's exit rule has it. For a lone skipper that stays or returns among careful members, the same arithmetic on §110's figures gives 2.5 to 3.5 (J3, item 1). The reviewer gave the first figure as what a skipper gives up, without asking what it rested on.
+- **The names and the benefit among the careful.** 5 to 15 names a run stated and 2.5 to 3.2 read; under 40 real a name stated and 53 to 58 read. The reviewer took the figures of Q1's mixed population for a careful one, where the dial is low and a skipper lasts longer.
+- **A temptation of 2.** "Still behind" is read in three worlds and is not shown in the fourth.
+- **An expectation withdrawn before any build.** Addendum 9, I5, stated that a learner with a horizon would leave the member's audit seat claimed under 0.10 under the pin. The known answer at that seat is level (J5).
+
+### J3. Asked from the worlds on record — no run
+
+1. **The temptation at which a lone skipper draws level, in the returning name's cell, with its error.** The reviewer's arithmetic, one plus the gap at a temptation of 1 over the benefit: 3.1 and 3.5 under the pin and 2.5 and 2.7 under arm 4 in the careful population, for the one that returns and the one that never leaves; 5.9 and 7.8, and 4.7 and 7.7, in the mixed population. Please confirm or correct, as for the entry test.
+2. **The population's exit rule, in a sentence or two:** when a slot leaves, what it is taken to earn after it leaves, and whether a slot's lifetime counts anything for those ticks. In the entry test a claiming slot is in place six tenths as long as a careful one, and that is most of its loss.
+3. **Whether a skipper is ahead until it is first caught.** For the returning operator's first name, and for the claimer that never leaves: the tick of the first suspension; its wallet and its benefit by that tick; and the careful slot's wallet at the same tick on the same seed. If the driver keeps no wallet by tick, say what it would take.
+4. **The dosing slots' benefit a slot** in each of the eight dose worlds, so that the same arithmetic reads each dose.
+
+### J4. One read without training: the member's audit seat under the stakes
+
+The dose read the member's audit seat at tests of 1 in 10, the bond of record and the fee of record, and found an occasional skip about level. The stake's table says what closes that seat for one decision. This read asks what closes it for a life.
+
+- All on arm 0 with π^A held; the dosing slots 1 in 4, with the dose at the member's audit seat alone, and the rest careful; a temptation of 1; the first review's bond as in §110's dose worlds; the all-careful population beside each world on the same seeds, as in §110.
+- Seeds 21–80 if 61–80 are free of any other use. Say before running if they are not, or if sixty seeds on six worlds is more than a day of the machine; then 21–60.
+- Six worlds:
+  1. π^A 0.10, the later seats' bond ×1, the fee of record, a dose of 0.3. This is §110's world on more seeds.
+  2. The same with a dose of 1 at the audit seat alone.
+  3. π^A 0.10, ×1, the fee doubled, a dose of 0.3.
+  4. π^A 0.30, ×1, the fee of record, a dose of 0.3.
+  5. π^A 0.30, ×1, the fee doubled, a dose of 0.3. This is the table's one cell closed with no added stake.
+  6. π^A 0.20, ×4, the fee of record, a dose of 0.3.
+- Read as the dose, and beside it for each world: the audit seats a slot of both groups; the dosing slots' benefit; the lifetime lost for each claim with its error. And from the all-careful populations beside, paired by seed: the careful's real lifetime in world 3 against 1 and in world 5 against 4, which is the fee's doubling on sixty seeds.
+
+**Expected.** The sizes rest on one figure of §110, that an audit seat is worth about 4 ± 3 real to the member that holds it, so they are stated wide:
+- world 1: behind, by 10 to 110 real a slot;
+- world 2: behind, by 40 to 200;
+- world 3: behind by at least 50;
+- world 4: behind by at least 40;
+- world 5: behind by at least 100, and by more than in worlds 3, 4 and 6;
+- world 6: behind by at least 40;
+- the careful's real lifetime with the fee doubled 2 to 8 in 100 above the fee of record, at both rates.
+
+**Refuted** if the dosing slots in world 5 are level: within two standard errors of nothing. Then the fee and the tests do not make an occasional skip at that seat a loss over a life, and what holds the seat has to reach the member's place and not only its seat. That would be a rule and an arm, and it is not ordered.
+
+**The purpose:** which of the three levers closes the weak seat for a member that counts its future, at what cost to the honest. It also gives the learner with a horizon a known answer at the audit seat that can be told from nothing.
+
+### J5. A learner with a horizon — ruled: build it
+
+**Baruchi ruled on November 13: build the learner with a horizon.** It is ordered as §109 describes it under H4. The attribution exports the slot's work-side money by name and tick, and the two learners build a decision's target as the slot's own return. Nothing in the engine, the rules, the observation or the driver's conventions changes, and a horizon of 1 reproduces every chain of record to the decimal. The scripted reads now say what it should find, and they change one expectation of I5.
+
+- **Before any chain is read**, the three tests of I5. The second is read at the first review, where the known answer is clear: a lifetime lost of 23.1 ± 3.5 real for each claim at a dose of 0.3, and 13 to 33 across the doses. The fitted difference in return between a claim and an inspection there has the same sign and lies within a factor of three. At the member's audit seat the known answer under the pin is 8.0 ± 7.3, which fixes no sign. That seat is tested when J4 gives an answer that can be told from nothing.
+- **The first cells** are the implementer's: the pin and arm 4 at a temptation of 1 and the bond ×1, both learners, the slot's remaining life at γ 0.98. A second horizon, of 32, only if the first moves the claiming at the first review.
+- **The order of work.** J3 and J4 do not wait for the build, and the build does not wait for them. Only the second test's reading at the audit seat waits for J4.
+- **Expected, restated before any build.** At the first review: claimed under 0.10 under the pin and under arm 4, as stated. At the member's audit seat under the pin, with tests at 1 in 10 and the stakes of record: the "under 0.10" of I5 is withdrawn. The reviewer expects the seat still claimed, anywhere from 0.1 to 0.9, and under 0.10 only in a cell where J4 reads a clear loss. The leak: within one and a half times the unstressed under arm 4, as stated, and within twice the unstressed under the pin, where the audit seat may stay claimed. The population's real lifetime as stated.
+- **Refuted**, restated: if, with the three tests passed, the first review is still claimed above 0.2 under the pin or under arm 4. Then a learner that sees its own future still skips where skipping loses 23 real a time, and the instrument or the reading of the scripted worlds is at fault.
+- **Reported with the first chains:** the build's commit; the result of each of the three tests; and anything the learner does that no scripted read tried — when it skips, at which seat, at what standing, and how late in a slot's life.
+
+### J6. Not ordered
+
+- **No learned chain on the learner of record.**
+- **No rule or arm that makes a failure at the member's audit seat cost the member's place.** It is what J4's refutation would point to, and it is Baruchi's to order.
+- **The dial under the temptation**, as before. §110 adds a reason to return to it one day: a careful population leaves the dial low, and a lone skipper among the careful is tested least.
+
+## Addendum 11 to revision 2 — the operator behind an ID
+
+*November 13, 2026. Not from the implementer's notes: from two notes of the session that keeps the life-cycle map, relayed by Baruchi. No run and no build is ordered. No rule, arm or flag of record is changed, and nothing is drafted. Here: what came from the loop; what it does to the reads on record; one reading asked from worlds on record; what stands as ordered; and what is not ordered.*
+
+### K1. What came from the loop
+
+- **Baruchi's position of November 13**, as the loop's note gives it: a member is an ID, and behind every ID sits an identified operator. Inside the loop nothing shows that two IDs are one hand. At admission ELEF knows the operator. How many IDs one operator may hold is open with Baruchi.
+- **The simulation has one name for one actor.** The rulebook has no operator: a name that leaves is archived and never consulted for a later arrival (2.3.0), and a name is priced at zero inside the loop (2.7.0).
+
+### K2. What it does to the reads on record
+
+- **A limit that was stated on one side only.** The entry test's record names "a name and not an operator" among its limits, and addendum 9 read the name that returns after a suspension. Neither named the ID that is opened before one. An operator that holds a second admitted ID is not out of work while the first is suspended, and that ID passed admission honestly. The limit stands over §105, §109 and §110: the half-and-half world, the entry test, and the dose at every seat and at the first review. The reviewer's miss: the limit was written and only half of it was read.
+- **Why it matters.** §110's reading of the entry test: a claiming slot earns three quarters to nine tenths of a careful slot's rate while it is in place, and is in place six tenths as long, so most of its loss is the time it is not there. 1.3.0 says the same of the gate: what bites is the award it cannot win.
+- **Not touched:** the dose at the member's audit seat, and J4, where a failure already costs the seat and nothing else; and the name that returns, which admission held with nothing consulted.
+
+### K3. Asked from the worlds on record — no run
+
+**A skipper that loses no time.** For the claiming slots of the entry test at 1 in 10 (four worlds) and the dosing slots of §110's eight dose worlds, and for the careful group beside each:
+
+1. The ticks, the real income and the benefit in each of three states: a member in good standing; suspended or on probation; gone.
+2. From those: what a claiming or dosing slot would end with had it earned at its own good-standing rate, benefit included, for as many ticks as a careful slot spends in good standing; and its gap to the careful slot, with the error over seeds.
+3. If the driver does not keep a slot's standing by tick: the figures that §110 gave as ranges, world by world — the ticks in place and the income for each tick in place, for both groups — and a sentence on what the split would take.
+
+**The reviewer's arithmetic,** on §110's group figures for the entry test at 1 in 10: the careful slot's wallet times 0.75 to 0.9, and the claiming slot's benefit over the share of the careful's time that it is in place, about 0.6. That gives a lifetime between about 120 real behind the careful and 70 ahead, where the record reads 353 to 459 behind. So such a skipper draws level at a temptation of about 1 to 2, against 2.5 to 3.5 for the lone skipper that stays or returns (J3, item 1) and 6.6 to 8.3 for the one that leaves. §106's table agrees for one decision: the first review's claim edge at the bond of record is +0.06, 0.00 and −0.01 real at a temptation of 1. The arithmetic leans against the skipper on one side, because time in place includes time suspended. It leans for it on another, because a second ID has to be admitted and kept. Please confirm or correct.
+
+**Expected, stated before the reading.** In each of the entry test's four worlds at 1 in 10: between 150 real behind the careful and 80 ahead, at a temptation of 1. In the dose worlds at 0.1: under the pin still behind, by 20 to 130, because the dosing slot holds half the member audit seats while it is in place; under arm 4 within 60 either way. **Refuted** if the entry test's skipper is still more than 250 behind in all four worlds. Then something other than the time out of its place carries its loss, and the reviewer has misread §110's sentence.
+
+### K4. What stands as ordered
+
+- **J3 and J4, unchanged.**
+- **J5, unchanged.** The learner with a horizon reads the future of one name. That is the member the scripted reads describe, and the build answers whether a learner finds what they found. For an operator with a spare ID there is less future to lose in any one name. The learner of record, which credits one decision at a time, is the nearer model of it, and its chains are on record.
+
+### K5. Not ordered
+
+- **No operator in the simulation**: no two names under one hand, no suspension that reaches both, no name held in reserve. It is among the implementer's later steps. Whether it is read at all waits for Baruchi's ruling on how many IDs an operator may hold: with one ID for each operator, the reads on record carry as they are.
+- **Asked, in one sentence with the next notes:** what the smallest such construction would take.

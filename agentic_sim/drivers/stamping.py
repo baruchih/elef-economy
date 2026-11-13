@@ -630,6 +630,10 @@ class Stamping:
         self.pfa_overturned = 0
         self.pfa_other = 0
         self.susp_log: dict[str, list[int]] = {}         # actor -> ticks at which a suspension began
+        # addendum 11's K3 (November 13, 2026): a learner slot's ticks, wallet change (real, at each tick's index) and private benefit by standing — a member in good
+        # standing ("good") or suspended or on probation ("down") — tallied once a tick from the actor's standing; a reading, nothing moves
+        self.slot_standing: dict[str, dict[str, float]] = {}
+        self._slot_last: dict[str, tuple[float, float]] = {}
         self._susp_seen: dict[str, int | None] = {}
         # addendum 9's readings (November 12, 2026; the reviewer's I3.1 and I4.2): a name's arrival and departure ticks and its arrival loan at departure
         # (outstanding before, repaid from income, recovered from the wallet, defaulted) — read by learner_slots_read; nothing moves
@@ -1763,7 +1767,8 @@ class Stamping:
             wealth = ((w.wealth(x) - min(w.wealth(x), w.loan_outstanding(x))) * real) if alive else self.depart_wealth_real.get(x, 0.0)
             out[x] = {"alive": int(alive), "wealth_real": round(wealth, 3), "private_real": round(self.learner_private_real_of.get(x, 0.0), 3),
                       "claims": self.learner_claims_of.get(x, 0), "suspensions": len(self.susp_log.get(x, [])), "cost": round(self.c_d_of.get(x, 0.0), 3),
-                      "susp_ticks": [int(t) for t in self.susp_log.get(x, [])]}   # addendum 10's J3.3 (November 13, 2026): the ticks at which its suspensions began
+                      "susp_ticks": [int(t) for t in self.susp_log.get(x, [])],   # addendum 10's J3.3 (November 13, 2026): the ticks at which its suspensions began
+                      **{k: (round(v, 3) if isinstance(v, float) else v) for k, v in self.slot_standing.get(x, {}).items()}}   # addendum 11's K3: by standing
             # addendum 9 (November 12, 2026; the reviewer's I3.1 and I4.2): the ticks in place, the wallet's sources from the public record (the Tally), the loan
             if alive:
                 t_in = getattr(w.actor(x), "arrived_at", None) or 0; t_out = None
@@ -2068,11 +2073,34 @@ class Stamping:
             if not truth:
                 self.c["plants_bad"] += 1
 
+    def _slot_standing_step(self):
+        """Addendum 11's K3: for each live learner slot, this tick's standing and what the tick brought — the wallet's change (net of the loan outstanding, real at the
+        index now) and the private benefit's — tallied by standing."""
+        w = self.w
+        if not self.learner_chain:
+            return
+        real = self.p.P0 / w.market()["P_t"]
+        for x in self.learner_chain:
+            if x not in self.actors:
+                continue
+            ac = w.actor(x)
+            st = "good" if ac.is_member else "down"
+            wealth = w.wealth(x) - min(w.wealth(x), w.loan_outstanding(x))
+            ben = self.learner_private_real_of.get(x, 0.0)
+            last = self._slot_last.get(x)
+            d = self.slot_standing.setdefault(x, {"ticks_good": 0, "ticks_down": 0, "income_good": 0.0, "income_down": 0.0, "benefit_good": 0.0, "benefit_down": 0.0})
+            d[f"ticks_{st}"] += 1
+            if last is not None:
+                d[f"income_{st}"] += (wealth - last[0]) * real
+                d[f"benefit_{st}"] += ben - last[1]
+            self._slot_last[x] = (wealth, ben)
+
     def tick(self, t: int):
         a, w = self.a, self.w
         for x in self.learner_chain:
             if x not in self.wealth_in_of and x in self.actors:
                 self.wealth_in_of[x] = w.wealth(x)              # the slots' wealth in at the first tick (the nominal surplus's base)
+        self._slot_standing_step()                                # addendum 11's K3: the slot's standing this tick, read before the tick moves anything
         if self.req_w0 is None and self.learner_id and a.learner_role == "requester":
             self.req_w0 = w.wealth(self.learner_id)          # Q7: the requester's genesis wallet, before any posting (a reading beside the spend)
         self.move_dispositions(t)

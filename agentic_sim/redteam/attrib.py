@@ -25,6 +25,14 @@ every event goes to a decision *of the name whose wallet it touches*: the latest
 lineage boundary decision (the unclaimed rule, unchanged), and a transfer between two learner names is two legs — a debit to the one, a
 credit to the other — where the pooled rule dropped it. For one learner the two rules are the same function to the decimal (the tests).
 
+**The learner with a horizon (Baruchi's ruling of November 13, 2026; brief A1 addendum 10, J5; notes §109 H4):** beside the attributed reward
+the attribution exports, per decision, what the return along the slot's own sequence needs and the one-decision rule drops — `unclaimed[i]`, the
+events no decision claims (the slot's work side: its delivery prices, effort, guarantees, emission, uplift — under the population's exit rule there
+is no boundary decision to take them, so they went to `pre_boundary_real` whole) that landed between decision i of a name and that name's next
+decision, real at the window's index; `charge[i]`, the suspension charge on decision i (≤ 0, the counterfactual above), and `charge_t[i]`, the tick of
+the suspension it stands for (−1 none) — so that a target built over a horizon can drop the counterfactual where the horizon reaches the suspension
+itself and read the income forgone as it happens. The attributed reward itself is unchanged to the decimal; the summary's existing keys too.
+
 `classify(e, names)` is shared with `redteam.timing`, whose decomposition of the realized reward is the examination this ruling answers."""
 from __future__ import annotations
 
@@ -118,6 +126,16 @@ def attribute(run, marks, decisions, work_side=False, shared=False, lineages=Non
     bounds = [m[1] for m in marks]
     attributed = np.zeros(n, dtype=np.float64)
     by_source = defaultdict(float)
+    unclaimed = np.zeros(n, dtype=np.float64)                                # the horizon's export: the name's unclaimed events by window after each of its decisions
+    charge = np.zeros(n, dtype=np.float64)                                   # … the suspension charge on the decision, and the suspension's tick
+    charge_t = np.full(n, -1, dtype=np.int64)
+    by_name_pos = defaultdict(list)                                          # name → [(ledger position at the decision, i)] in order
+    for i, d in enumerate(decisions):
+        by_name_pos[d["identity"]].append((marks[i][1], i))
+    def latest_of_name(name, pos):                                           # the name's latest decision at or before the ledger position, else None
+        L = by_name_pos.get(name, [])
+        k = int(np.searchsorted([q for q, _ in L], pos, side="right")) - 1
+        return L[k][1] if k >= 0 else None
     assert not (own_name and (shared or tree)), "own-name credit is the population's construction; the pair and the parent keep theirs"
     # the decision a case's events belong to: the latest decision on that case at or before the event's tick (own-name: of the event's name)
     by_case = defaultdict(list)
@@ -197,6 +215,9 @@ def attribute(run, marks, decisions, work_side=False, shared=False, lineages=Non
             k = int(np.searchsorted(bpos, pos, side="right")) - 1
             if k < 0:
                 pre_boundary += d * r1                               # before the first boundary decision: nothing to claim it
+                i_u = latest_of_name(name, pos)                      # the horizon's export: to the window after the name's latest decision (none before its first)
+                if i_u is not None:
+                    unclaimed[i_u] += d * r1
                 continue
             i = bidx[k]
             boundary_real += d * r1
@@ -244,12 +265,14 @@ def attribute(run, marks, decisions, work_side=False, shared=False, lineages=Non
             targets = failures or plant_dec[-1:] or [max(0, j - 1)]
             for i in targets:
                 attributed[i] -= forgone / len(targets)
+                charge[i] -= forgone / len(targets); charge_t[i] = max(int(charge_t[i]), int(s0))
             charges.append({"identity": x, "t": int(s0), "per_tick_real": per_tick * real, "forgone_real": forgone, "charged_to": len(targets)})
             by_source["suspension"] -= forgone
             prev_s0 = s0
     return attributed, {"by_source": dict(by_source), "boundary_by_source": dict(boundary_by_source), "boundary_real": boundary_real,
                         "boundary_decisions": len(boundary_idx), "pre_boundary_real": pre_boundary, "suspension_charges": charges, "work_side": work_side,
-                        "shared": shared, "shared_double_counted": shared_double, "tree": tree, "tree_double_counted": tree_double, "own_name": own_name}
+                        "shared": shared, "shared_double_counted": shared_double, "tree": tree, "tree_double_counted": tree_double, "own_name": own_name,
+                        "unclaimed": unclaimed, "charge": charge, "charge_t": charge_t, "unclaimed_real": float(unclaimed.sum())}   # the horizon's export (November 13, 2026)
 
 
 def _plant_failed(run, cid):

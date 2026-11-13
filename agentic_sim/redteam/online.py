@@ -40,6 +40,8 @@ def main(argv=None):
                          "mean over the round before's runs of the four multipliers at their end (m_t, m_A, m_La, m_Ld; each bounded by its cap by construction), "
                          "the rates following by the rule, and the round's evaluation at the mean of that round's ends; the first round at --dial-start")
     ap.add_argument("--dial-start", default=None, help="with --carry-dials: the first round's start, 'm_t,m_A,m_La,m_Ld' (where the policy of record's final runs ended)")
+    ap.add_argument("--return-horizon", default="1", help="the learner with a horizon (November 13, 2026; J5): the trainers' target horizon in the slot's own decisions — 1 the chains of record (the decision's own attributed reward), an integer H, or `mc` to the slot's exit")
+    ap.add_argument("--return-gamma", type=float, default=0.98, help="the discount per decision of the return target (and of the world model's value head under a horizon other than 1)")
     ap.add_argument("cell", nargs=argparse.REMAINDER)
     a = ap.parse_args(argv)
     direct = a.learner == "direct"
@@ -53,7 +55,8 @@ def main(argv=None):
     br = boundary_read_for(cell, a.boundary_read)
     hide = tuple(x for x in a.hide.split(",") if x)
     os.makedirs(a.models, exist_ok=True); os.makedirs(a.evals, exist_ok=True)
-    train_args = ["--seeds", a.train_seeds, "--epochs", str(a.epochs), "--horizon", str(a.horizon), "--value", a.value, "--gamma", str(a.gamma), "--heads", a.heads, "--kind-actions", a.kind_actions, "--stride", str(a.stride)]
+    train_args = ["--seeds", a.train_seeds, "--epochs", str(a.epochs), "--horizon", str(a.horizon), "--value", a.value, "--gamma", str(a.gamma), "--heads", a.heads, "--kind-actions", a.kind_actions, "--stride", str(a.stride),
+                  "--return-horizon", a.return_horizon, "--return-gamma", str(a.return_gamma)]
     model_path = a.start or os.path.join(a.models, f"{stem}-0.pt")
     if not a.start:
         fit(a.data, model_path)
@@ -83,7 +86,8 @@ def main(argv=None):
             O, A, R, P, F, Tk, info = rollout(env, explore, seed, rng)
             np.savez_compressed(os.path.join(a.data, f"online{k}-seed{seed}.npz"), obs=O, action=A, chosen=info["action_chosen"], reward=R, is_plant=P, fulfilled=F, t=Tk,
                                 realized=info.get("realized_rewards", R), lifetime=info.get("lifetime_real_wealth", float("nan")), seed=seed, policy=f"online{k}",
-                                role=a.role, n_actions=env.n_actions, slot=info["slot"])
+                                role=a.role, n_actions=env.n_actions, slot=info["slot"], seat=info["seat"],
+                                unclaimed=info["unclaimed"], charge=info["charge"], charge_t=info["charge_t"])   # the horizon's export (November 13, 2026)
             lifetimes.append(info.get("lifetime_real_wealth", float("nan")))
             row = info.get("row") or {}
             if carry and all(k_ in row for k_ in ("m", "m_A", "m_La", "m_Ld")):
@@ -91,7 +95,7 @@ def main(argv=None):
         model_path = os.path.join(a.models, f"{stem}-{k}.pt")
         fit(a.data, model_path)
         rec = {"round": k, "train_lifetime_mean": float(np.nanmean(lifetimes)), "seconds": round(time.time() - t0, 1), "explore": a.explore, "value": a.value, "heads": a.heads, "kind_actions": a.kind_actions, "role": a.role, "plan": a.plan,
-               "boundary_read": br, "attrib": a.attrib}
+               "boundary_read": br, "attrib": a.attrib, "return_horizon": a.return_horizon, "return_gamma": a.return_gamma}
         if carry:
             E = np.array(ends) if ends else np.zeros((0, 4))
             rec["dials"] = {"start": dials, "ends_mean": (E.mean(0).tolist() if len(E) else None), "ends_min": (E.min(0).tolist() if len(E) else None),

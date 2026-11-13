@@ -75,6 +75,27 @@ def reward_now(model, obs):
     return [float(x) for x in r.cpu().numpy()]
 
 
+def value_read(model, obs):
+    """The learner with a horizon (November 13, 2026): for each action, the reward head's one-decision read plus γ times the value head at the predicted
+    next latent — the H-step return the heads were fit to; the review side's heads (a population cell has no boundary decision)."""
+    dev = next(model.parameters()).device
+    with torch.no_grad():
+        o = torch.tensor(obs, dtype=torch.float32, device=dev).view(1, 1, -1)
+        z = model.encode(o)
+        out = []
+        for k in range(model.n_actions):
+            a = model.act_now(torch.nn.functional.one_hot(torch.tensor([[k]]), model.n_actions).float().to(dev), o)
+            r = model.reward(z, a)[0, 0] * model.reward_scale
+            z1 = model.predict(z, a)[:, -1:]
+            v = model.value(z1)[0, 0] * model.reward_scale
+            out.append(float((r + model.gamma * v).cpu()))
+    return out
+
+
+def horizon_read(model):
+    return int(getattr(model, "return_horizon", 1)) != 1 and getattr(model, "value_mode", "off") != "off"
+
+
 class LearnedPolicy:
     """The planner as a policy for the environment and the collector: one decision at a time. `diag_now` (after a decision) gives the
     wealth head's predicted change per action and the planner's cost per first action — the ladder's pred-against-realized reading."""
@@ -105,7 +126,10 @@ class GreedyPolicy:
     def __call__(self, obs, rng=None):
         if self.boundary_read == "one-step" and at_boundary(self.m, obs):
             return boundary_one_step(self.m, obs, self.boundary_reads)
-        return int(np.argmax(reward_now(self.m, obs)))
+        return int(np.argmax(self._read(obs)))
+
+    def _read(self, obs):                      # the learner with a horizon: reward + γ V(next) where the model was fit to a return; the head alone otherwise
+        return value_read(self.m, obs) if horizon_read(self.m) else reward_now(self.m, obs)
 
     def diag_now(self, obs):
-        return {"pred_r": reward_now(self.m, obs), "plan_cost": None}
+        return {"pred_r": self._read(obs), "plan_cost": None}

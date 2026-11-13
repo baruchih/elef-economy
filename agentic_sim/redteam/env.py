@@ -290,6 +290,7 @@ class ElefReviewerEnv(gym.Env if gym else object):
                                              own_name=own,
                                              task_value=(self.run.a.task_value if self.role == "requester" else 0.0),
                                              task_cases=(list(self.run.req_received_cases) if self.role == "requester" else ()))   # Q7: a task received is worth v to the posting that made it
+                info["unclaimed"], info["charge"], info["charge_t"] = summ.pop("unclaimed"), summ.pop("charge"), summ.pop("charge_t")   # the horizon's export (November 13, 2026), per decision
                 info["attributed"], info["attribution"] = [float(x) for x in attributed], summ
             info["realized"] = [d["realized"] for d in self._decisions]
             return self._last_obs, float(reward), True, False, info

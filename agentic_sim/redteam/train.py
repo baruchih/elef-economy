@@ -8,7 +8,7 @@ import torch
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 from redteam.model import WorldModel, device
-from redteam.data import load_episodes, windows, obs_stats, n_actions_of
+from redteam.data import load_episodes, windows, obs_stats, n_actions_of, parse_horizon
 from redteam.obs import OBS_DIM
 
 
@@ -31,17 +31,25 @@ def main(argv=None):
     ap.add_argument("--heads", choices=["one", "two"], default="two", help="version 4: `two` — a review-side head and a boundary head on the latent; `one` is version 3's single head")
     ap.add_argument("--kind-actions", choices=["on", "off"], default="off", help="the kind-conditioned action (the ruling after run 29; Q5's parent): the action one-hot over kind × action")
     ap.add_argument("--stride", type=int, default=1, help="the windows' stride along an episode (the learned population's data is N slots wide; a stride keeps it in memory)")
+    ap.add_argument("--return-horizon", default="1", help="the learner with a horizon (November 13, 2026; J5): the reward head's label is the decision's own reward plus its slot's unclaimed work side and the value head's target the slot's (H − 1)-step return (`mc` to its exit), so the head alone reads reward + γ V(next) as the H-step return; 1 the chains of record")
+    ap.add_argument("--return-gamma", type=float, default=0.98, help="the discount per decision under a return horizon other than 1 (it replaces --gamma for the value head and the rollout's sum then)")
     a = ap.parse_args(argv)
     torch.manual_seed(a.torch_seed); np.random.seed(a.torch_seed)
+    rh = parse_horizon(a.return_horizon)
+    if rh != 1:
+        a.gamma = a.return_gamma                                     # one discount under the horizon: the return's
+        assert a.value == "mc", "the learner with a horizon reads the value head: --value mc"
     eps = load_episodes(a.data, seeds_of(a.seeds), a.policies.split(",") if a.policies else None, label=a.label)
     K = n_actions_of(eps)                                            # 3 for the reviewer, 2 for Q3's deliverer
-    O, A, R, G, D = windows(eps, a.horizon, n_actions=K, gamma=a.gamma, stride=a.stride)
+    O, A, R, G, D = windows(eps, a.horizon, n_actions=K, gamma=a.gamma, stride=a.stride, return_horizon=rh, return_gamma=a.return_gamma)
+    if rh != 1:
+        print(f"return targets: horizon {a.return_horizon}, gamma {a.return_gamma}; export present in {sum(e.get('has_export', False) for e in eps)} of {len(eps)} episodes", flush=True)
     mean, std = obs_stats(eps)
     dev = device()
     obs_dim = int(O.shape[-1])                                       # the data's width (44 before the boundary field, 45 after)
     heads = a.heads if obs_dim > 44 else "one"                      # data without the boundary field has one kind of decision
     kind_actions = a.kind_actions == "on"
-    m = WorldModel(obs_dim, K, d=a.d, horizon=a.horizon, value_mode=a.value, gamma=a.gamma, side_heads=heads, kind_actions=kind_actions).to(dev)
+    m = WorldModel(obs_dim, K, d=a.d, horizon=a.horizon, value_mode=a.value, gamma=a.gamma, side_heads=heads, kind_actions=kind_actions, return_horizon=(0 if rh is None else rh)).to(dev)
     m.obs_mean.copy_(mean.to(dev)); m.obs_std.copy_(std.to(dev))
     if heads == "two":                                               # each head in its own units: the review side's and the boundary side's scale
         b = (O[:, :-1, 44] > 0.5).float()
@@ -73,8 +81,9 @@ def main(argv=None):
                   + (f" reward_b {rec.get('reward_b', 0):.4f} value_b {rec.get('value_b', 0):.4f}" if heads == "two" else ""), flush=True)
     os.makedirs(os.path.dirname(a.out) or ".", exist_ok=True)
     torch.save({"state": m.state_dict(), "config": {"obs_dim": obs_dim, "n_actions": K, "d": a.d, "horizon": a.horizon, "value_mode": a.value, "gamma": a.gamma, "side_heads": heads,
-                                                   "kind_actions": kind_actions},
+                                                   "kind_actions": kind_actions, "return_horizon": (0 if rh is None else rh)},
                 "train": {"data": a.data, "label": a.label, "seeds": a.seeds, "policies": a.policies, "episodes": len(eps), "windows": int(n), "epochs": a.epochs, "role": eps[0].get("role", "reviewer"),
+                          "return_horizon": a.return_horizon, "return_gamma": a.return_gamma,
                           "lam": a.lam, "lr": a.lr, "batch": a.batch, "value": a.value, "gamma": a.gamma, "heads": heads, "kind_actions": kind_actions,
                           "reward_scale": float(m.reward_scale), "reward_scale_b": float(m.reward_scale_b), "seconds": round(time.time() - t0, 1), "log": log}}, a.out)
     print(f"saved {a.out}: {len(eps)} episodes, {n} windows, {round(time.time()-t0,1)}s")

@@ -9,6 +9,16 @@ import numpy as np
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 from redteam.env import ElefReviewerEnv, policy_of, default_policies
+from redteam.scripted import scripted_of
+
+
+def horizon_arrays(info, n):
+    """The horizon's per-decision export from the environment's terminal info (November 13, 2026): the unclaimed work side by window, the suspension charge
+    and its tick — zeros and −1 where the episode carried none (an error, or a record before the export)."""
+    def arr(k, fill, dt):
+        v = info.get(k)
+        return np.asarray(v, dtype=dt) if v is not None and len(v) == n else np.full(n, fill, dtype=dt)
+    return {"unclaimed": arr("unclaimed", 0.0, np.float32), "charge": arr("charge", 0.0, np.float32), "charge_t": arr("charge_t", -1, np.int64)}
 
 
 def rollout(env, policy, seed, rng):
@@ -17,6 +27,10 @@ def rollout(env, policy, seed, rng):
     done = info.get("terminal", False)
     SEAT = []                                            # A1 (November 10, 2026): the seat of each decision, for the payoff table by seat
     while not done:
+        if hasattr(policy, "set_identity"):                  # the mixed world's wrapper and the dose (redteam.scripted): the deciding identity and the seat
+            policy.set_identity(info.get("identity"), seed)
+        if hasattr(policy, "set_info"):
+            policy.set_info(info)
         a = policy(obs, rng)
         O.append(obs); C.append(a); P.append(info.get("is_plant", False)); F.append(info.get("fulfilled", True)); T.append(info.get("t", 0)); ID.append(str(info.get("identity"))); SEAT.append(str(info.get("seat") or "boundary"))
         obs, r, done, _, info = env.step(a)
@@ -27,7 +41,8 @@ def rollout(env, policy, seed, rng):
     attr = info.get("attributed")
     R_use = np.array(attr, dtype=np.float32) if attr is not None and len(attr) == len(R) else R_real
     names = sorted(set(ID))
-    info = dict(info, realized_rewards=R_real, action_chosen=np.array(C, dtype=np.int64), slot=np.array([names.index(x) for x in ID], dtype=np.int64), seat=np.array(SEAT, dtype="U10"))   # the population: the slot of each decision
+    info = dict(info, realized_rewards=R_real, action_chosen=np.array(C, dtype=np.int64), slot=np.array([names.index(x) for x in ID], dtype=np.int64), seat=np.array(SEAT, dtype="U10"),   # the population: the slot of each decision
+                **horizon_arrays(info, len(R)))              # the horizon's export (November 13, 2026)
     return (np.array(O, dtype=np.float32).reshape(-1, obs.shape[-1]), np.array(A, dtype=np.int64), R_use,
             np.array(P, dtype=bool), np.array(F, dtype=bool), np.array(T, dtype=np.int64), info)
 
@@ -50,13 +65,14 @@ def main(argv=None):
     summary = []
     t0 = time.time()
     for name in (a.policies or default_policies(a.role)).split(","):
-        pol = policy_of(name, a.role)
+        pol = scripted_of(name, lambda inner: policy_of(inner, a.role)) or policy_of(name, a.role)   # `mix:<policy>[:<share>]` and `dose<q>[audit|first]` collect too (November 13, 2026)
         for seed in range(lo, hi + 1):
             rng = np.random.default_rng(seed * 1000 + hash(name) % 997)
             O, A, R, P, F, T, info = rollout(env, pol, seed, rng)
             np.savez_compressed(os.path.join(a.out, f"{name}-seed{seed}.npz"), obs=O, action=A, chosen=info["action_chosen"], reward=R, is_plant=P, fulfilled=F, t=T,
                                 realized=info.get("realized_rewards", R), lifetime=info.get("lifetime_real_wealth", float("nan")), seed=seed, policy=name,
-                                role=a.role, n_actions=env.n_actions, slot=info["slot"], seat=info["seat"])
+                                role=a.role, n_actions=env.n_actions, slot=info["slot"], seat=info["seat"],
+                                unclaimed=info["unclaimed"], charge=info["charge"], charge_t=info["charge_t"])   # the horizon's export
             summary.append({"policy": name, "seed": seed, "decisions": int(len(A)), "lifetime_real_wealth": info.get("lifetime_real_wealth"),
                             "plants": int(P.sum()), "error": info.get("error")})
             print(f"{name} seed {seed}: {len(A)} decisions, lifetime {info.get('lifetime_real_wealth', float('nan')):.1f}, plants {int(P.sum())}" + (f" ERROR {info['error']}" if info.get("error") else ""), flush=True)

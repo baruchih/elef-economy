@@ -12,7 +12,7 @@ import torch
 from torch import nn
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
-from redteam.data import load_episodes, obs_stats, n_actions_of
+from redteam.data import load_episodes, obs_stats, n_actions_of, parse_horizon, targets_in_episode_order
 from redteam.model import device
 from redteam.train import seeds_of
 from redteam.obs import IDX
@@ -44,12 +44,19 @@ def main(argv=None):
     ap.add_argument("--epochs", type=int, default=40); ap.add_argument("--batch", type=int, default=256); ap.add_argument("--lr", type=float, default=1e-3)
     ap.add_argument("--d", type=int, default=128); ap.add_argument("--torch-seed", type=int, default=0)
     ap.add_argument("--label", default="reward", help="the npz key read as the training reward (`pooled` in a relabelled set: the construction the chain trained on)")
+    ap.add_argument("--return-horizon", default="1", help="the learner with a horizon (November 13, 2026; J5): the target is the slot's own return over H of its decisions (`mc` to its exit) — 1 the chains of record")
+    ap.add_argument("--return-gamma", type=float, default=0.98, help="the discount per decision of the return target")
     a, _ = ap.parse_known_args(argv)           # the online loop passes the world model's --horizon/--value/--gamma too; a direct policy has none
     torch.manual_seed(a.torch_seed); np.random.seed(a.torch_seed)
     eps = load_episodes(a.data, seeds_of(a.seeds), a.policies.split(",") if a.policies else None, label=a.label)
+    rh = parse_horizon(a.return_horizon)
     X = torch.tensor(np.concatenate([e["obs"] for e in eps]), dtype=torch.float32)
     A = torch.tensor(np.concatenate([e["action"] for e in eps]), dtype=torch.long)
-    R = torch.tensor(np.concatenate([e["reward"] for e in eps]), dtype=torch.float32)
+    if rh == 1:
+        R = torch.tensor(np.concatenate([e["reward"] for e in eps]), dtype=torch.float32)
+    else:                                      # the return target along each slot's own sequence, in the episode's decision order
+        R = torch.tensor(np.concatenate([targets_in_episode_order(e, rh, a.return_gamma)[1] for e in eps]).astype(np.float32), dtype=torch.float32)
+        print(f"return targets: horizon {a.return_horizon}, gamma {a.return_gamma}; export present in {sum(e.get('has_export', False) for e in eps)} of {len(eps)} episodes", flush=True)
     mean, std = obs_stats(eps)
     dev = device()
     K = n_actions_of(eps)
@@ -78,6 +85,7 @@ def main(argv=None):
     os.makedirs(os.path.dirname(a.out) or ".", exist_ok=True)
     torch.save({"state": m.state_dict(), "config": {"obs_dim": int(X.shape[-1]), "n_actions": K, "d": a.d},
                 "train": {"data": a.data, "label": a.label, "seeds": a.seeds, "policies": a.policies, "episodes": len(eps), "decisions": int(n), "epochs": a.epochs,
+                          "return_horizon": a.return_horizon, "return_gamma": a.return_gamma,
                           "lr": a.lr, "batch": a.batch, "seconds": round(time.time() - t0, 1), "by_action": by_action, "log": log}}, a.out)
     print(f"saved {a.out}: {len(eps)} episodes, {n} decisions, {round(time.time()-t0,1)}s; by action {by_action}")
 

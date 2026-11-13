@@ -16,6 +16,12 @@ boundary's, each head learning zero on the other kind's positions. The planner's
 over the review-side head alone — the boundary's lump (the period's work) is not today's review to move; at a boundary it is the boundary head's.
 `side_heads="one"` is version 3's single head (the checkpoints before version 4 load as it).
 
+The learner with a horizon (Baruchi's ruling of November 13, 2026; brief A1 addendum 10, J5; the model's side as notes §109 H4 described it): under a
+return horizon other than 1 (`return_horizon` H, or 0 for the slot's remaining life) the reward head's label is the decision's own attributed reward plus its
+slot's unclaimed work side in the window after it, and the value head's target the slot's (H − 1)-step return along its own sequence — the same quantity the
+direct policy fits as its H-step return — so the head alone reads reward(z, a) + γ V(predict(z, a)) at a review decision (`redteam.plan.value_read`) and the
+CEM's cost is unchanged in form. The models of record carry `return_horizon` 1 and read as before.
+
 The kind-conditioned action (the ruling after run 29, October 24, 2026; a construction correction of the encoding, the model's side only): for a
 learner whose decisions come in kinds that share the action indices — Q5's parent, where action 2 is *reject* at a judgment and *self-execute*
 at a delegation (the two-way kinds map 2 to 0) — the action the predictor and the heads read is the one-hot over kind × action (four kinds:
@@ -34,9 +40,10 @@ from .lewm.module import Embedder, ARPredictor, SIGReg, MLP
 class WorldModel(nn.Module):
     def __init__(self, obs_dim: int, n_actions: int = 3, d: int = 64, horizon: int = 8, depth: int = 2, heads: int = 4, dropout: float = 0.1,
                  sigreg_proj: int = 256, value_mode: str = "off", gamma: float = 0.95, side_heads: str = "one", boundary_idx: int = 44,
-                 kind_actions: bool = False, kind_idx: int = 31, n_kinds: int = 4):
+                 kind_actions: bool = False, kind_idx: int = 31, n_kinds: int = 4, return_horizon: int = 1):
         super().__init__()
         self.obs_dim, self.n_actions, self.d, self.horizon = obs_dim, n_actions, d, horizon
+        self.return_horizon = int(return_horizon)                              # the learner with a horizon (November 13, 2026): 1 the models of record; H, or 0 for the slot's remaining life — the head alone then reads reward + γ V(next)
         self.value_mode, self.gamma = value_mode, float(gamma)
         self.kind_actions, self.kind_idx, self.n_kinds = bool(kind_actions), int(kind_idx), int(n_kinds)   # the kind-conditioned action (the parent)
         self.side_heads, self.boundary_idx = side_heads, int(boundary_idx)  # version 4: "two" — the review-side head and the boundary head

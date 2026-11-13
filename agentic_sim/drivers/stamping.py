@@ -1762,7 +1762,8 @@ class Stamping:
             alive = x in self.actors
             wealth = ((w.wealth(x) - min(w.wealth(x), w.loan_outstanding(x))) * real) if alive else self.depart_wealth_real.get(x, 0.0)
             out[x] = {"alive": int(alive), "wealth_real": round(wealth, 3), "private_real": round(self.learner_private_real_of.get(x, 0.0), 3),
-                      "claims": self.learner_claims_of.get(x, 0), "suspensions": len(self.susp_log.get(x, [])), "cost": round(self.c_d_of.get(x, 0.0), 3)}
+                      "claims": self.learner_claims_of.get(x, 0), "suspensions": len(self.susp_log.get(x, [])), "cost": round(self.c_d_of.get(x, 0.0), 3),
+                      "susp_ticks": [int(t) for t in self.susp_log.get(x, [])]}   # addendum 10's J3.3 (November 13, 2026): the ticks at which its suspensions began
             # addendum 9 (November 12, 2026; the reviewer's I3.1 and I4.2): the ticks in place, the wallet's sources from the public record (the Tally), the loan
             if alive:
                 t_in = getattr(w.actor(x), "arrived_at", None) or 0; t_out = None

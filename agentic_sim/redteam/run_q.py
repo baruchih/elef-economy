@@ -22,39 +22,7 @@ from redteam.direct import load_direct, DirectPolicy
 import hashlib
 
 
-class MixPolicy:
-    """Addendum 7's F4.1 (November 12, 2026), trap or equilibrium: one world, the stressed policy of record on half the slots and the careful on the
-    other half. The half is drawn once per slot by a stable hash of the seed and the slot's name (arrivals join by the same draw), so the two halves
-    are the same names in every finalist at a seed. The episode loop tells the policy the deciding identity before each decision; its readings are
-    tallied by half in `episode` (`half_claim_*` the policy's half, `half_care_*` the careful's). The careful half answers 0 everywhere (a stay at a boundary).
-    Addendum 8's entry test (November 12, 2026): `mix:<policy>:<share>` puts the policy on that share of the slots — a reader-side option, the draw the
-    same hash read against the share (the first two bytes against share × 65536; at 0.5 the halves of record to the name, since the first byte < 128
-    is the same test); the groups keep the `half_claim_*` / `half_care_*` keys, `half_share` records the share."""
-    def __init__(self, inner, name, share=0.5):
-        self.inner, self.name, self.identity, self.seed, self.share = inner, name, None, None, float(share)
-    def set_identity(self, identity, seed):
-        self.identity, self.seed = identity, seed
-    def set_info(self, info):                                   # addendum 9: the decision's seat kind, forwarded to a dose policy inside the mix
-        if hasattr(self.inner, "set_info"): self.inner.set_info(info)
-    def half_of(self, identity, seed=None):
-        h = int.from_bytes(hashlib.md5(f"{self.seed if seed is None else seed}:{identity}".encode()).digest()[:2], "big")
-        return "claim" if h < self.share * 65536 else "care"
-    def __call__(self, obs, rng):
-        return self.inner(obs, rng) if self.half_of(self.identity) == "claim" else 0
-class DosePolicy:
-    """Addendum 9's dose (November 12, 2026; the reviewer's I4.1): a scripted policy — careful, and at each review decision a claim (the stressed world's
-    fourth action) with probability q, drawn from the episode's rng; `dose<q>` at every review seat, `dose<q>audit` at the member's audit seat only and
-    `dose<q>first` at the first review only, the seat kind read from the env's info (`seat`: initial | audit | panel | resumed, from the view alone — the
-    seat table's source). A reader-side wrapper, as the share was: nothing in the engine or the driver; a stay at every boundary."""
-    def __init__(self, q, seats=None):
-        self.q, self.seats, self.seat = float(q), seats, None
-    def set_info(self, info):
-        self.seat = info.get("seat") or ("initial" if info.get("initial", True) else "audit")
-    def __call__(self, obs, rng):
-        if obs[IDX["decision_boundary"]] > 0.5: return 0
-        if self.seats == "audit" and self.seat != "audit": return 0
-        if self.seats == "first" and self.seat != "initial": return 0
-        return 3 if rng.random() < self.q else 0
+from redteam.scripted import MixPolicy, DosePolicy, scripted_of   # the mixed world and the dose, shared with the collector since November 13, 2026
 WORLD_KEYS = ("false_approvals", "suspensions", "bad_deliveries", "leak_bad", "leak_paid", "sys_overhead_per_vested", "cust_overhead_per_vested", "cost_of_truth", "P_t",
               "arrivals", "departures", "names_lent", "names_lent_n", "names_repaid", "names_recovered", "names_defaulted", "names_outstanding", "idle_for_bond_ticks")   # addendum 9
 from redteam.model import device
@@ -278,6 +246,17 @@ def episode(env, policy, seed, rng):
     if env.role == "reviewer":                                     # addendum 9: the world's readings kept for a single learner slot too (the loop's leak, overhead and the bank's names line beside an operator)
         for k in WORLD_KEYS:
             work.setdefault(k, row.get(k))
+    if getattr(env, "trace_wealth", False):                        # addendum 10's J3.3 (November 13, 2026): the learner's lifetime by tick — at each decision's observation, (t, the lifetime real wealth as
+        tr, last = [], None                                        # the measure reads it then, the private benefit summed to then), one entry a tick; a reading from the environment's marks, nothing in the driver
+        pc = 0.0
+        for m, d in zip(env._marks, env._decisions + [None]):
+            if last is None or m[0] != last:
+                tr.append([int(m[0]), round(float(m[5]), 3), round(pc, 3)]); last = m[0]
+            else:
+                tr[-1] = [int(m[0]), round(float(m[5]), 3), round(pc, 3)]
+            if d is not None:
+                pc += float(d.get("private", 0.0) or 0.0)
+        work["learner_trace_json"] = json.dumps(tr)
     return {"seed": seed, "decisions": len(acts), "lifetime_real_wealth": info.get("lifetime_real_wealth"), **trace_readings(trace), **work,
             "blind_seats": blind_seats, "blind_seat_stamps": blind_seat_stamps, **by_seat, **measured, **half_keys,
             "boundary_stay_read_mean": float(np.mean(reads)) if reads else None, "boundary_stay_negative": int(sum(1 for x in reads if x < 0)) if reads else (0 if getattr(policy, "boundary_read", None) == "one-step" else None),
@@ -424,6 +403,7 @@ def main(argv=None):
     ap.add_argument("--role", choices=["reviewer", "deliverer", "pair", "child", "parent", "bidder", "requester"], default="reviewer", help="Q3: the learned deliverer (policies learned,greedy,direct,careful,zero,eps,random,leaver); Q4: the pair (careful,collude,eps,random,leaver)")
     ap.add_argument("--boundary-read", choices=["auto", "one-step", "learned"], default="auto", help="the ruling after run 30: at a boundary the stay head's one-step read against zero (a leave is worth zero by rule without re-arrival); `auto` is learned under `--learner-rearrive on`, one-step otherwise")
     ap.add_argument("--attrib", choices=["own", "pooled"], default="own", help="the attribution's name rule (November 6, 2026): own-name credit, or run 32's pooled construction (the shared-purse cell); the evaluation's lifetime is unaffected")
+    ap.add_argument("--trace", choices=["on", "off"], default="off", help="addendum 10's J3.3 (November 13, 2026): keep the learner's lifetime by tick in the episode row (`learner_trace_json`: [t, lifetime real, private benefit to then] at each decision's observation)")
     ap.add_argument("cell", nargs=argparse.REMAINDER)
     a = ap.parse_args(argv)
     cell = [x for x in a.cell if x != "--"]
@@ -433,6 +413,7 @@ def main(argv=None):
     if m is not None:
         m.to(device())
     env = ElefReviewerEnv(cell, ticks=a.ticks, hide=hide, obs_dim=ck.get("config", {}).get("obs_dim"), role=a.role, attrib=a.attrib)
+    env.trace_wealth = a.trace == "on"
     pols = {}
     def make(name):
         if name == "learned":
@@ -442,12 +423,9 @@ def main(argv=None):
         if name == "direct":
             dm, _ = load_direct(a.direct_model); dm.to(device())
             return DirectPolicy(dm, boundary_read=br)
-        if name.startswith("mix:"):                              # F4.1: `mix:<policy>` — that policy on half the slots, the careful on the other half; `mix:<policy>:<share>` on that share (addendum 8's entry test)
-            parts = name[4:].split(":")
-            return MixPolicy(make(parts[0]), name, share=float(parts[1]) if len(parts) > 1 else 0.5)
-        if name.startswith("dose"):                              # addendum 9's dose: `dose<q>`, `dose<q>audit`, `dose<q>first`
-            rest = name[4:]; seats = "audit" if rest.endswith("audit") else ("first" if rest.endswith("first") else None)
-            return DosePolicy(rest[:-5] if seats == "audit" else (rest[:-5] if seats == "first" else rest), seats)
+        sc = scripted_of(name, make)                             # F4.1's `mix:<policy>[:<share>]` and addendum 9's `dose<q>[audit|first]` (redteam.scripted)
+        if sc is not None:
+            return sc
         return policy_of(name, a.role)
     for name in a.policies.split(","):
         pols[name] = make(name)

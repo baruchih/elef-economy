@@ -19,7 +19,7 @@ L = ["# The learner with a horizon — the first chains (the pin and arm 4, a te
 res = {}
 for k, kn in (("pa10", "the pin"), ("arm4", "arm 4")):
     for lrn, pol in (("direct", "direct"), ("wm", "greedy")):
-        for chain, path in (("horizon (mc, γ 0.98)", f"{A}/stress/learned/horizon/{k}-t1-b1-mc/{lrn}/eval/final/eval.json"), ("one decision (record)", f"{A}/stress/learned/{k}-t1-b1/{lrn}/eval/final/eval.json"), ("unstressed (record)", f"{A}/learned/{k}/{lrn}/eval/final/eval.json")):
+        for chain, path in (("horizon (mc, γ 0.98)", f"{A}/stress/learned/horizon/{k}-t1-b1-mc/{'wm-ret' if lrn == 'wm' else lrn}/eval/final/eval.json"), ("one decision (record)", f"{A}/stress/learned/{k}-t1-b1/{lrn}/eval/final/eval.json"), ("unstressed (record)", f"{A}/learned/{k}/{lrn}/eval/final/eval.json")):
             if not os.path.exists(path): L.append(f"| {kn} | {lrn} | {chain} | (pending) | | | | | | | | |"); continue
             j = json.load(open(path)); S = j["summary"][pol]; E = j["episodes"][pol]; C = {int(e["seed"]): e for e in j["episodes"]["careful"]}
             fr, _ = pooled(S, "initial"); au, na = pooled(S, "audit"); pa, _ = pooled(S, "panel")

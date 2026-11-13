@@ -1,0 +1,21 @@
+Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "/Users/baruchi-admin/projects/elef-economy/agentic_sim/redteam/run_q.py", line 697, in <module>
+    main()
+  File "/Users/baruchi-admin/projects/elef-economy/agentic_sim/redteam/run_q.py", line 412, in main
+    m, ck = (load_model(a.model) if a.model else (None, {}))
+             ^^^^^^^^^^^^^^^^^^^
+  File "/Users/baruchi-admin/projects/elef-economy/agentic_sim/redteam/train.py", line 94, in load_model
+    ck = torch.load(path, map_location="cpu")
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/homebrew/Caskroom/miniconda/base/envs/elef-redteam/lib/python3.11/site-packages/torch/serialization.py", line 1565, in load
+    with _open_file_like(f, "rb") as opened_file:
+         ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/homebrew/Caskroom/miniconda/base/envs/elef-redteam/lib/python3.11/site-packages/torch/serialization.py", line 795, in _open_file_like
+    return _open_file(name_or_buffer, mode)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/homebrew/Caskroom/miniconda/base/envs/elef-redteam/lib/python3.11/site-packages/torch/serialization.py", line 776, in __init__
+    super().__init__(open(name, mode))  # noqa: SIM115
+                     ^^^^^^^^^^^^^^^^
+FileNotFoundError: [Errno 2] No such file or directory: '/Users/baruchi-admin/projects/elef-economy/agentic_sim/results/redteam/stability/ablation-A1/stress/learned/horizon/pa10-t1-b1-mc/wm/models/wm-online-10.pt'

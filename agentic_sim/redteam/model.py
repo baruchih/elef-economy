@@ -40,9 +40,10 @@ from .lewm.module import Embedder, ARPredictor, SIGReg, MLP
 class WorldModel(nn.Module):
     def __init__(self, obs_dim: int, n_actions: int = 3, d: int = 64, horizon: int = 8, depth: int = 2, heads: int = 4, dropout: float = 0.1,
                  sigreg_proj: int = 256, value_mode: str = "off", gamma: float = 0.95, side_heads: str = "one", boundary_idx: int = 44,
-                 kind_actions: bool = False, kind_idx: int = 31, n_kinds: int = 4, return_horizon: int = 1):
+                 kind_actions: bool = False, kind_idx: int = 31, n_kinds: int = 4, return_horizon: int = 1, return_read: str = "value"):
         super().__init__()
         self.obs_dim, self.n_actions, self.d, self.horizon = obs_dim, n_actions, d, horizon
+        self.return_read = str(return_read)                                     # under a horizon: `value` reads reward + γ V(next); `direct` the reward head fit to the return itself
         self.return_horizon = int(return_horizon)                              # the learner with a horizon (November 13, 2026): 1 the models of record; H, or 0 for the slot's remaining life — the head alone then reads reward + γ V(next)
         self.value_mode, self.gamma = value_mode, float(gamma)
         self.kind_actions, self.kind_idx, self.n_kinds = bool(kind_actions), int(kind_idx), int(n_kinds)   # the kind-conditioned action (the parent)

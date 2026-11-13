@@ -132,7 +132,7 @@ def by_slot(eps):
     return out
 
 
-def windows(eps, horizon, n_actions=3, gamma=0.95, stride=1, return_horizon=1, return_gamma=0.98):
+def windows(eps, horizon, n_actions=3, gamma=0.95, stride=1, return_horizon=1, return_gamma=0.98, return_read="value"):
     """Every window of horizon+1 observations with the horizon actions and rewards between them (stride 1); beside them the discounted
     return-to-go at each of the horizon+1 positions — by side since version 4, (…, 2) = [review, boundary]; a one-head model sums them —
     and the episode's-end flag (1 at the last observation, which has no successor — the terminal value's targets). An episode shorter than
@@ -142,8 +142,8 @@ def windows(eps, horizon, n_actions=3, gamma=0.95, stride=1, return_horizon=1, r
     for e in by_slot(eps):
         T = len(e["action"])
         if return_horizon != 1:
-            rho, _, val = horizon_targets(e, return_horizon, return_gamma)
-            e = {**e, "reward": rho.astype(np.float32)}
+            rho, ret, val = horizon_targets(e, return_horizon, return_gamma)
+            e = {**e, "reward": (ret if return_read == "direct" else rho).astype(np.float32)}   # `direct`: the reward head fit to the H-step return itself (the known-answer test's second read, November 13, 2026)
             b = (e["obs"][:T, 44] > 0.5).astype(np.float64) if e["obs"].shape[-1] > 44 else np.zeros(T)
             side_b = np.append(b, 0.0)                                                   # the value target by side: the review side's where the decision is a review
             g = np.stack([val * (1 - side_b), val * side_b], axis=-1).astype(np.float32)   # (T+1, 2)

@@ -42,6 +42,7 @@ def main(argv=None):
     ap.add_argument("--dial-start", default=None, help="with --carry-dials: the first round's start, 'm_t,m_A,m_La,m_Ld' (where the policy of record's final runs ended)")
     ap.add_argument("--return-horizon", default="1", help="the learner with a horizon (November 13, 2026; J5): the trainers' target horizon in the slot's own decisions — 1 the chains of record (the decision's own attributed reward), an integer H, or `mc` to the slot's exit")
     ap.add_argument("--return-gamma", type=float, default=0.98, help="the discount per decision of the return target (and of the world model's value head under a horizon other than 1)")
+    ap.add_argument("--return-read", choices=["value", "direct"], default="value", help="the world model's read under a horizon (the trainer's): `value` reward + γ V(next); `direct` the reward head fit to the return itself")
     ap.add_argument("cell", nargs=argparse.REMAINDER)
     a = ap.parse_args(argv)
     direct = a.learner == "direct"
@@ -56,7 +57,7 @@ def main(argv=None):
     hide = tuple(x for x in a.hide.split(",") if x)
     os.makedirs(a.models, exist_ok=True); os.makedirs(a.evals, exist_ok=True)
     train_args = ["--seeds", a.train_seeds, "--epochs", str(a.epochs), "--horizon", str(a.horizon), "--value", a.value, "--gamma", str(a.gamma), "--heads", a.heads, "--kind-actions", a.kind_actions, "--stride", str(a.stride),
-                  "--return-horizon", a.return_horizon, "--return-gamma", str(a.return_gamma)]
+                  "--return-horizon", a.return_horizon, "--return-gamma", str(a.return_gamma), "--return-read", a.return_read]
     model_path = a.start or os.path.join(a.models, f"{stem}-0.pt")
     if not a.start:
         fit(a.data, model_path)
@@ -95,7 +96,7 @@ def main(argv=None):
         model_path = os.path.join(a.models, f"{stem}-{k}.pt")
         fit(a.data, model_path)
         rec = {"round": k, "train_lifetime_mean": float(np.nanmean(lifetimes)), "seconds": round(time.time() - t0, 1), "explore": a.explore, "value": a.value, "heads": a.heads, "kind_actions": a.kind_actions, "role": a.role, "plan": a.plan,
-               "boundary_read": br, "attrib": a.attrib, "return_horizon": a.return_horizon, "return_gamma": a.return_gamma}
+               "boundary_read": br, "attrib": a.attrib, "return_horizon": a.return_horizon, "return_gamma": a.return_gamma, "return_read": a.return_read}
         if carry:
             E = np.array(ends) if ends else np.zeros((0, 4))
             rec["dials"] = {"start": dials, "ends_mean": (E.mean(0).tolist() if len(E) else None), "ends_min": (E.min(0).tolist() if len(E) else None),

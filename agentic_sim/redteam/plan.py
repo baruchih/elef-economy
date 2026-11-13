@@ -93,7 +93,8 @@ def value_read(model, obs):
 
 
 def horizon_read(model):
-    return int(getattr(model, "return_horizon", 1)) != 1 and getattr(model, "value_mode", "off") != "off"
+    """True where the head alone reads reward + γ V(next): a model fit to a return under the `value` read. Under the `direct` read the reward head is the return itself and is read alone."""
+    return int(getattr(model, "return_horizon", 1)) != 1 and getattr(model, "value_mode", "off") != "off" and getattr(model, "return_read", "value") == "value"
 
 
 class LearnedPolicy:

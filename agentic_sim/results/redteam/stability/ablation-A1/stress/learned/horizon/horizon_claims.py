@@ -2,7 +2,7 @@
 out on the evaluation seeds (21–40) without exploration, every decision kept with its seat, its slot's standing from the observation (a member in good standing;
 on probation or undetermined — the odds pinned; the own-standing fields), the slot's record (bad plants met, suspensions) and the decision's position in the slot's
 life (the tick over the slot's ticks in place) — and the claims tallied by seat, by standing, by the slot's suspensions so far, by the life's quarter, and by the
-standing false approvals' odds band. Usage: horizon_claims.py OUT.md  (from agentic_sim/ in the elef-redteam env)"""
+standing false approvals' odds band; since addendum 13 (November 16, 2026) the first review's claim by quarter of the run's tick, the slots in place from tick 0 and the arrivals apart (M3.5), and the decisions kept in claims-<cell>-<learner>.npz. Usage: horizon_claims.py OUT.md  (from agentic_sim/ in the elef-redteam env)"""
 import json, os, sys, numpy as np, torch
 sys.path.insert(0, os.getcwd())
 from redteam.env import ElefReviewerEnv
@@ -37,9 +37,12 @@ for k in ("pa10", "arm4"):
             S = json.loads(info["row"]["learner_slots_json"])
             for row in buf:
                 v = S.get(row[1]); t_in = (v["t_in"] if v else 0); t_out = (v["t_out"] if v and v["t_out"] is not None else 1000)
-                rec.append(row + (((row[2] - t_in) / max(1, t_out - t_in)),))
+                rec.append(row + (((row[2] - t_in) / max(1, t_out - t_in)), t_in))
         env.close()
-        R = np.array([r[4:] for r in rec], dtype=float); seats = np.array([r[3] for r in rec]); act = R[:, 0]; F = {f: R[:, 1 + i] for i, f in enumerate(FIELDS)}; life = R[:, -1]
+        R = np.array([r[4:] for r in rec], dtype=float); seats = np.array([r[3] for r in rec]); act = R[:, 0]; F = {f: R[:, 1 + i] for i, f in enumerate(FIELDS)}; life = R[:, -2]; t_in = R[:, -1]
+        ticks = np.array([r[2] for r in rec], dtype=float)
+        np.savez_compressed(f"{H}/claims-{k}-{sub}.npz", seed=np.array([r[0] for r in rec]), identity=np.array([r[1] for r in rec]), t=ticks, seat=seats, action=act, life=life, t_in=t_in,
+                            fields=np.array(FIELDS), values=R[:, 1:1 + len(FIELDS)])   # the rollouts' decisions kept (addendum 13's M3.5; November 16, 2026)
         claim = act == 3; n = len(act)
         L.append(f"## {k}, {lrn} — {n} decisions on 20 seeds, claims {claim.mean():.3f}\n")
         L.append("| by | class | decisions | claim rate | care | approve blind | reject blind |"); L.append("|---|---|---|---|---|---|---|")
@@ -61,5 +64,7 @@ for k in ("pa10", "arm4"):
         for q in range(4): row("quarter of the slot's life", f"{q + 1}", (life >= q / 4) & (life < (q + 1) / 4 + (1e-9 if q == 3 else 0)))
         for s in ("initial", "audit"):
             for q in range(4): row(f"quarter at the {s} seat", f"{q + 1}", (seats == s) & (life >= q / 4) & (life < (q + 1) / 4 + (1e-9 if q == 3 else 0)))
+        for grp, gm in (("slots in place from tick 0", t_in == 0), ("arrivals", t_in > 0)):      # addendum 13's M3.5: the first review's claim by quarter of the run's tick, the genesis slots and the arrivals apart
+            for q in range(4): row(f"quarter of the run at the initial seat, {grp}", f"{q + 1}", (seats == "initial") & gm & (ticks >= 250 * q) & (ticks < 250 * (q + 1) + (1 if q == 3 else 0)))
         L.append("")
 open(sys.argv[1], "w").write("\n".join(L) + "\n"); print("\n".join(L))

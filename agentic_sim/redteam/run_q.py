@@ -171,6 +171,9 @@ def episode(env, policy, seed, rng):
                 for k in (f"half_{hh}_seats_{seat}", f"half_{hh}_decisions"): half_keys[k] = half_keys.get(k, 0) + 1
                 half_keys[f"half_{hh}_claimed_{seat}"] = half_keys.get(f"half_{hh}_claimed_{seat}", 0) + int(a == 3)
                 half_keys[f"half_{hh}_blind_{seat}"] = half_keys.get(f"half_{hh}_blind_{seat}", 0) + int(a in (1, 2, 3))   # the stressed world's fourth action: a blind approval with the allowance claimed
+                st = "probation" if obs[IDX["own_probationer"]] > 0.5 else "member"   # addendum 13's M4 (November 16, 2026): the seats and the claims by the slot's standing — a reading, nothing drawn
+                half_keys[f"half_{hh}_seats_{seat}_{st}"] = half_keys.get(f"half_{hh}_seats_{seat}_{st}", 0) + 1
+                half_keys[f"half_{hh}_claimed_{seat}_{st}"] = half_keys.get(f"half_{hh}_claimed_{seat}_{st}", 0) + int(a == 3)
             if not info.get("initial", True):                     # a non-initial seat: read apart from the initial reviews' plant/real rates
                 blind_seats += 1; blind_seat_stamps += int(a in (1, 2, 3))
             elif info.get("is_plant"):

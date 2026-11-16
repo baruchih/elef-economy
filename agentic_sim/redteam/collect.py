@@ -4,7 +4,7 @@ ruling after the ladder, the realized change beside it as realized (T,) — is_p
 real wealth. Usage: python -m redteam.collect --out results/redteam/Q2/offline
 [--seeds 1-20] [--policies careful,stamper,eps,random,leaver] [--rules 2.6.0] -- <cell args>"""
 from __future__ import annotations
-import argparse, json, os, sys, time
+import argparse, hashlib, json, os, sys, time
 import numpy as np
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
@@ -47,6 +47,14 @@ def rollout(env, policy, seed, rng):
             np.array(P, dtype=bool), np.array(F, dtype=bool), np.array(T, dtype=np.int64), info)
 
 
+def policy_salt(name):
+    """The collector's coin (addendum 13's M6; November 16, 2026): a scripted policy's stream is seeded by the seed and a fixed salt of the policy's name —
+    md5 of the name, reduced mod 997 — in place of Python's string hash, which is salted per process (PYTHONHASHSEED), so that a collection's draws
+    are the same in every process. Every collection before this commit (the offline sets of every learned chain and the known-answer sets; `redteam.online`'s
+    rounds and `run_q`'s evaluations seed by the seed alone) was seeded by the process's hash and is reproducible only within the process that made it."""
+    return int.from_bytes(hashlib.md5(name.encode()).digest()[:4], "big") % 997
+
+
 def main(argv=None):
     ap = argparse.ArgumentParser()
     ap.add_argument("--out", required=True)
@@ -69,7 +77,7 @@ def main(argv=None):
             return scripted_of(n, make) or policy_of(n, a.role)
         pol = make(name)
         for seed in range(lo, hi + 1):
-            rng = np.random.default_rng(seed * 1000 + hash(name) % 997)
+            rng = np.random.default_rng(seed * 1000 + policy_salt(name))   # a fixed salt of the policy's name (addendum 13's M6, November 16, 2026): the stream is the same in every process
             O, A, R, P, F, T, info = rollout(env, pol, seed, rng)
             np.savez_compressed(os.path.join(a.out, f"{name}-seed{seed}.npz"), obs=O, action=A, chosen=info["action_chosen"], reward=R, is_plant=P, fulfilled=F, t=T,
                                 realized=info.get("realized_rewards", R), lifetime=info.get("lifetime_real_wealth", float("nan")), seed=seed, policy=name,

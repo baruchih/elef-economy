@@ -467,6 +467,7 @@ class Stamping:
         # panel seats are lost, and after they return (P3.3) — readings from the public record, nothing drawn
         self.learner_claims_st_of: dict[str, dict[str, int]] = {}
         self.learner_claims_after_fail_of: dict[str, int] = {}
+        self.learner_claims_pre_susp_of: dict[str, int] = {}          # addendum 17's read 14 (November 16, 2026): the claims before the slot's first suspension
         self.fee_by_role: dict[str, dict[str, float]] = {}
         self.bond_by_role: dict[str, dict[str, float]] = {}
         self.pfail_ticks: dict[str, list[int]] = {}
@@ -828,6 +829,8 @@ class Stamping:
                     _k = "member_held" if _ac.panel_eligible else "member_lost"; _d[_k] = _d.get(_k, 0) + 1
                 if reviewer in self.tally and self.tally[reviewer].plant_failures > 0:
                     self.learner_claims_after_fail_of[reviewer] = self.learner_claims_after_fail_of.get(reviewer, 0) + 1
+                if not self.susp_log.get(reviewer):   # addendum 17's read 14: a claim made before the slot's first suspension (for a conduct that claims only after a failure, the claims between the failure and the suspension)
+                    self.learner_claims_pre_susp_of[reviewer] = self.learner_claims_pre_susp_of.get(reviewer, 0) + 1
                 self.learner_last_benefit = benefit
                 if not truth and not self.tasks[view.case_id].plant:
                     self.c["learner_false_approvals"] += 1
@@ -1806,7 +1809,7 @@ class Stamping:
                            "audits_done": getattr(ty, "audits_done", 0) if ty else 0,
                            # addendum 15 (November 16, 2026): the claims by standing and after the first failure, the fees and bonds by the seat's role, the three phases
                            "claims_member": self.learner_claims_st_of.get(x, {}).get("member", 0), "claims_probation": self.learner_claims_st_of.get(x, {}).get("probation", 0),
-                           "claims_down": self.learner_claims_st_of.get(x, {}).get("down", 0), "claims_after_fail": self.learner_claims_after_fail_of.get(x, 0),
+                           "claims_down": self.learner_claims_st_of.get(x, {}).get("down", 0), "claims_after_fail": self.learner_claims_after_fail_of.get(x, 0), "claims_pre_susp": self.learner_claims_pre_susp_of.get(x, 0),
                            "claims_member_held": self.learner_claims_st_of.get(x, {}).get("member_held", 0), "claims_member_lost": self.learner_claims_st_of.get(x, {}).get("member_lost", 0),   # addendum 16's item 6
                            **{f"fee_{k}": round(self.fee_by_role.get(x, {}).get(k, 0.0), 3) for k in ("initial", "audit", "panel", "other")},
                            **{f"bond_{k}": round(self.bond_by_role.get(x, {}).get(k, 0.0), 3) for k in ("initial", "audit", "panel", "other")},

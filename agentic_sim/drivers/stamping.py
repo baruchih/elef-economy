@@ -823,6 +823,8 @@ class Stamping:
                 self.learner_claims_of[reviewer] = self.learner_claims_of.get(reviewer, 0) + 1
                 _ac = self.w.actor(reviewer); _st = "probation" if _ac.probation else ("member" if _ac.is_member else "down")   # addendum 15: by standing, and after a failure
                 _d = self.learner_claims_st_of.setdefault(reviewer, {}); _d[_st] = _d.get(_st, 0) + 1
+                if _st == "member":   # addendum 16's item 6 (November 16, 2026): a member's claim split by whether its earned seats were held at the claim
+                    _k = "member_held" if _ac.panel_eligible else "member_lost"; _d[_k] = _d.get(_k, 0) + 1
                 if reviewer in self.tally and self.tally[reviewer].plant_failures > 0:
                     self.learner_claims_after_fail_of[reviewer] = self.learner_claims_after_fail_of.get(reviewer, 0) + 1
                 self.learner_last_benefit = benefit
@@ -1804,6 +1806,7 @@ class Stamping:
                            # addendum 15 (November 16, 2026): the claims by standing and after the first failure, the fees and bonds by the seat's role, the three phases
                            "claims_member": self.learner_claims_st_of.get(x, {}).get("member", 0), "claims_probation": self.learner_claims_st_of.get(x, {}).get("probation", 0),
                            "claims_down": self.learner_claims_st_of.get(x, {}).get("down", 0), "claims_after_fail": self.learner_claims_after_fail_of.get(x, 0),
+                           "claims_member_held": self.learner_claims_st_of.get(x, {}).get("member_held", 0), "claims_member_lost": self.learner_claims_st_of.get(x, {}).get("member_lost", 0),   # addendum 16's item 6
                            **{f"fee_{k}": round(self.fee_by_role.get(x, {}).get(k, 0.0), 3) for k in ("initial", "audit", "panel", "other")},
                            **{f"bond_{k}": round(self.bond_by_role.get(x, {}).get(k, 0.0), 3) for k in ("initial", "audit", "panel", "other")},
                            "pfail_ticks": [int(t) for t in self.pfail_ticks.get(x, [])],
@@ -2125,14 +2128,23 @@ class Stamping:
             # addendum 15's P3.3: the slot's life in three phases — before its first wrong planted verdict, from it until its panel seats return (a member and
             # panel-eligible again), and after; the ticks and the income (real) in each
             ph = self.slot_phase.setdefault(x, {"pf_phase": "before", "pf_first_t": None, "pf_back_t": None, "pf_ticks_before": 0, "pf_ticks_lost": 0, "pf_ticks_after": 0,
-                                               "pf_income_before": 0.0, "pf_income_lost": 0.0, "pf_income_after": 0.0})
+                                               "pf_income_before": 0.0, "pf_income_lost": 0.0, "pf_income_after": 0.0,
+                                               # addendum 16's item 6 (November 16, 2026): each phase's ticks and income in good standing and its private benefit, so the
+                                               # three lifetimes can be cut at the first failure's tick
+                                               "pf_good_ticks_before": 0, "pf_good_ticks_lost": 0, "pf_good_ticks_after": 0, "pf_good_income_before": 0.0, "pf_good_income_lost": 0.0,
+                                               "pf_good_income_after": 0.0, "pf_benefit_before": 0.0, "pf_benefit_lost": 0.0, "pf_benefit_after": 0.0})
             if ph["pf_phase"] == "before" and self.pfail_ticks.get(x):
                 ph["pf_phase"] = "lost"; ph["pf_first_t"] = int(self.pfail_ticks[x][0])
             if ph["pf_phase"] == "lost" and ac.is_member and ac.panel_eligible:
                 ph["pf_phase"] = "after"; ph["pf_back_t"] = int(w.t)
             ph[f"pf_ticks_{ph['pf_phase']}"] += 1
+            if st == "good":
+                ph[f"pf_good_ticks_{ph['pf_phase']}"] += 1
             if last is not None:
                 ph[f"pf_income_{ph['pf_phase']}"] += (wealth - last[0]) * real
+                ph[f"pf_benefit_{ph['pf_phase']}"] += ben - last[1]
+                if st == "good":
+                    ph[f"pf_good_income_{ph['pf_phase']}"] += (wealth - last[0]) * real
             self._slot_last[x] = (wealth, ben)
 
     def tick(self, t: int):

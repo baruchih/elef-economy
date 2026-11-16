@@ -586,6 +586,7 @@ class Stamping:
                   "life_lie_filing_pos": 0.0, "life_lie_filing_pos_n": 0,
                   **{f"plant_seats_{k}": 0 for k in ("initial", "audit", "third", "appeal", "dispute", "resumed", "state")},
                   **{f"plant_seat_failures_{k}": 0 for k in ("initial", "audit", "third", "appeal", "dispute", "resumed", "state")},
+                  **{f"plant_fail_{t}_{k}": 0 for t in ("bad", "good") for k in ("initial", "audit", "third", "appeal", "dispute", "resumed")},   # addendum 17's V3.3: the members' failures by seat and the case's kind
                   **{f"life_{k}_{st}": 0 for k in ("real", "plant") for st in ("audit_n", "audit_wait", "filing_n", "filing_delay", "panel_n", "panel_wait", "state_seats")},
                   # the plant's life by stage beside a real root's (the ruling after run 34; a conformance diagnostic on the instrument): at the root's first initial
                   # review seat — posted → awarded, awarded → submitted, submitted → seated (the review's t_assign), the raises, the floor (a plant) or the
@@ -2898,6 +2899,7 @@ class Stamping:
                                 self.tally[rv.reviewer].plant_failures += 1
                                 self.pfail_ticks.setdefault(rv.reviewer, []).append(int(w.t))   # addendum 15's P3.3
                                 self.c[f"plant_seat_failures_{kind}"] += 1
+                                self.c[f"plant_fail_bad_{kind}"] += 1                        # a planted approval is bad work by construction
                         self.c["plant_seats_state"] += len(c.plant_state_seats)
                         self._life_close(c, task)
                     if c.plant_outcome in ("planted", "state"):
@@ -2915,11 +2917,13 @@ class Stamping:
                             rv = w.review(rid)
                             self.tally[rv.reviewer].plant_reviews += 1
                             self.c[f"plant_seats_{kind}"] += 1
+                            _bad = (c.plant_revised if (c.plant_revised is not None and kind == "resumed") else c.plant) is False
                             if outcome == "failure":
                                 self.tally[rv.reviewer].plant_failures += 1
                                 self.pfail_ticks.setdefault(rv.reviewer, []).append(int(w.t))   # addendum 15's P3.3
                                 self.c[f"plant_seat_failures_{kind}"] += 1
-                            if (c.plant_revised if (c.plant_revised is not None and kind == "resumed") else c.plant) is False:
+                                self.c[f"plant_fail_{'bad' if _bad else 'good'}_{kind}"] += 1   # addendum 17's V3.3: bad work approved / good work rejected, by seat
+                            if _bad:
                                 self.c[f"bad_met_{kind}"] += 1              # 2.9.0 §5: the bad plants the members meet by seat kind (the count the record sees)
                             if c.challenge is not None and c.challenge.get("lie") and kind in ("appeal", "dispute"):
                                 self.c[f"lie_adj_{kind}"] += 1
@@ -3293,6 +3297,7 @@ class Stamping:
                     # instrument's filings for the plant actor and the plant requester
                     **{f"plant_adj_{k}": (v["stood"] + v["failure"]) for k, v in dl.get("plant_seat_adjudications", {}).items()},
                     **{f"plant_fail_{k}": v["failure"] for k, v in dl.get("plant_seat_adjudications", {}).items()},
+                    **{k: self.c[k] for k in self.c if k.startswith(("plant_fail_bad_", "plant_fail_good_"))},   # addendum 17's V3.3 (a reading)
                     "plant_seats_at_state": dl.get("plant_seats_at_state", 0), "plants_revised": dl.get("plants_revised", 0),
                     # 2.9.0 §5: the planted wrong steps — the planted approvals' life, the planted lies, the dial per seat, the discharges, the
                     # bad plants met by seat kind, the panel-ineligible members per period, the cost of truth by kind

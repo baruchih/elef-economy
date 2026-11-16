@@ -103,7 +103,10 @@ class ElefReviewerEnv(gym.Env if gym else object):
                                       "seat": None if boundary else ("initial" if view.responses_available else ("panel" if view.question != "fulfillment" else ("resumed" if view.resumed else "audit"))),
                                       "is_plant": False if boundary else bool(run.tasks[view.case_id].plant), "fulfilled": True if boundary else bool(run.tasks[view.case_id].fulfilled),
                                       # Q1's readings (the evaluation's trace, never the policy's input): the applied odds and standing at the decision
-                                      "p_eff": float(run.w.p_effective(reviewer)), "member": bool(ac.is_member), "suspended": ac.suspended_until is not None}))
+                                      "p_eff": float(run.w.p_effective(reviewer)), "member": bool(ac.is_member), "suspended": ac.suspended_until is not None,
+                                      # addendum 17's conduct G (November 16, 2026): whether the slot's earned seats are held at the decision — the engine's `panel_eligible` on its own
+                                      # record, the flag the tally of b1fa10d2c reads at a claim; not in the 45 fields (the within-window failure count is not among them), a reading
+                                      "panel_eligible": bool(ac.panel_eligible)}))
         a = self._q_act.get()
         if a is None:
             raise _Abort()

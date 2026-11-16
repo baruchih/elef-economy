@@ -287,6 +287,7 @@ def episode(env, policy, seed, rng):
             "plants_seen": plants_seen, "plants_stamped": plants_stamped, "real_seen": real_seen, "real_stamped": real_stamped,
             "false_approvals_run": row.get("false_approvals"), "learner_false_approvals": row.get("learner_false_approvals"),
             "slot_departed": row.get("slot_departed"), "slot_rho": row.get("slot_rho"), "slot_plant_failures": row.get("learner_plant_failures"),
+            **{k: row.get(k) for k in row if k.startswith(("plant_adj_", "plant_fail_"))},   # addendum 17's V3.3 (November 16, 2026): the seats on plants by kind and the failures among them, by the case's kind
             "suspensions_run": row.get("suspensions"), "idle_for_bond_ticks": row.get("idle_for_bond_ticks"), "idle_for_bond_names": row.get("idle_for_bond_names"),
             "error": info.get("error")}
 

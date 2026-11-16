@@ -49,22 +49,29 @@ class ConductPolicy(DosePolicy):
     and after a suspension) and, as a member, a dose of q at every seat it holds; `doseF<q>` — "after a failure": careful while no wrong planted verdict is on
     its record and, from the first one on, conduct M at q. The standing from `own_member` / `own_probationer` (the engine's `is_member` and `probation`, what
     the rules act on) and the record from `own_plant_failures` (the driver's tally of its wrong planted verdicts, read at the harvest after the adjudication).
-    The coin is drawn only where the conduct applies. A reader-side wrapper, as the dose is."""
+    The coin is drawn only where the conduct applies. A reader-side wrapper, as the dose is.
+    Addendum 17's V4 (November 16, 2026): `doseG<q>` — "while the earned seats are lost": careful until its first wrong planted verdict, as F; from then on
+    a dose of q as a member at the decisions where its earned seats are lost, careful where they are held, on probation and after a suspension. Whether the
+    seats are held is the engine's `panel_eligible` on the slot's own record, read through the env's info (`panel_eligible`, the road the Q1 readings take) —
+    the 45 fields carry the window's length and the cumulative failures, not the failures within the window, so the flag is not theirs to compute."""
     def __init__(self, q, mode):
-        super().__init__(q); self.mode = mode
+        super().__init__(q); self.mode = mode; self.held = True
+    def set_info(self, info):
+        super().set_info(info); self.held = bool(info.get("panel_eligible", True))
     def __call__(self, obs, rng):
         if obs[IDX["decision_boundary"]] > 0.5: return 0
         if not (obs[IDX["own_member"]] > 0.5 and obs[IDX["own_probationer"]] < 0.5): return 0
-        if self.mode == "F" and obs[IDX["own_plant_failures"]] < 0.05: return 0
+        if self.mode in ("F", "G") and obs[IDX["own_plant_failures"]] < 0.05: return 0
+        if self.mode == "G" and self.held: return 0
         return 3 if rng.random() < self.q else 0
 
 
 def scripted_of(name, make):
-    """`mix:<policy>[:<share>]`, `dose<q>[audit|first]` and the conducts `doseM<q>` / `doseF<q>` built around `make(name)` (the caller's factory for the inner policy); None for any other name."""
+    """`mix:<policy>[:<share>]`, `dose<q>[audit|first]` and the conducts `doseM<q>` / `doseF<q>` / `doseG<q>` built around `make(name)` (the caller's factory for the inner policy); None for any other name."""
     if name.startswith("mix:"):
         parts = name[4:].split(":")
         return MixPolicy(make(parts[0]), name, share=float(parts[1]) if len(parts) > 1 else 0.5)
-    if name.startswith("doseM") or name.startswith("doseF"):
+    if name.startswith("doseM") or name.startswith("doseF") or name.startswith("doseG"):
         return ConductPolicy(name[5:], name[4])
     if name.startswith("dose"):
         rest = name[4:]; seats = "audit" if rest.endswith("audit") else ("first" if rest.endswith("first") else None)

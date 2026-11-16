@@ -141,6 +141,7 @@ def episode(env, policy, seed, rng):
     diag = []                                                     # per review decision: (action, predicted r per action, planner cost per first action, realized r)
     review_idx, k_all = [], 0                                     # the review decisions' positions among all decisions (the attributed reward is per decision)
     half_keys = {}                                                # F4.1: the tallies by half of a mixed world (MixPolicy)
+    half_dec = {}                                                 # addendum 14's N3.1 (November 16, 2026): (group, seat, action) of each review decision by its position among all decisions, for the bonds lost by action kind
     while not done:
         if hasattr(policy, "set_identity"):
             policy.set_identity(info.get("identity"), seed)
@@ -174,6 +175,10 @@ def episode(env, policy, seed, rng):
                 st = "probation" if obs[IDX["own_probationer"]] > 0.5 else "member"   # addendum 13's M4 (November 16, 2026): the seats and the claims by the slot's standing — a reading, nothing drawn
                 half_keys[f"half_{hh}_seats_{seat}_{st}"] = half_keys.get(f"half_{hh}_seats_{seat}_{st}", 0) + 1
                 half_keys[f"half_{hh}_claimed_{seat}_{st}"] = half_keys.get(f"half_{hh}_claimed_{seat}_{st}", 0) + int(a == 3)
+                half_keys[f"half_{hh}_act{a}_{seat}"] = half_keys.get(f"half_{hh}_act{a}_{seat}", 0) + 1                      # addendum 14's N3.1: the verdicts by action (0 inspected, 1 approved blind, 2 rejected blind, 3 claimed) …
+                pf = int(bool(info.get("is_plant")) and ((a in (1, 3) and not info.get("fulfilled", True)) or (a == 2 and info.get("fulfilled", True))))   # … the planted cases failed by a blind verdict (a bad plant approved, a good one rejected) …
+                half_keys[f"half_{hh}_pfail{a}_{seat}"] = half_keys.get(f"half_{hh}_pfail{a}_{seat}", 0) + pf
+                half_dec[k_all] = (hh, seat, a)                                                                                  # … and the bonds lost, summed after the episode from the attribution's per-decision export
             if not info.get("initial", True):                     # a non-initial seat: read apart from the initial reviews' plant/real rates
                 blind_seats += 1; blind_seat_stamps += int(a in (1, 2, 3))
             elif info.get("is_plant"):
@@ -186,6 +191,10 @@ def episode(env, policy, seed, rng):
             review_idx.append(k_all)
         k_all += 1
     attr = info.get("attributed")
+    bl = info.get("bond_lost")
+    if bl is not None and len(bl) == k_all and half_dec:                 # addendum 14's N3.1: the bond lost by group, seat and action (real, as a loss ≥ 0)
+        for idx, (hh, seat, a) in half_dec.items():
+            half_keys[f"half_{hh}_bondlost{a}_{seat}"] = half_keys.get(f"half_{hh}_bondlost{a}_{seat}", 0.0) - float(bl[idx])
     if attr is not None and len(attr) == k_all:
         diag = [d[:4] + (float(attr[k]), d[4]) for d, k in zip(diag, review_idx)]
     else:

@@ -129,6 +129,7 @@ def attribute(run, marks, decisions, work_side=False, shared=False, lineages=Non
     unclaimed = np.zeros(n, dtype=np.float64)                                # the horizon's export: the name's unclaimed events by window after each of its decisions
     charge = np.zeros(n, dtype=np.float64)                                   # … the suspension charge on the decision, and the suspension's tick
     charge_t = np.full(n, -1, dtype=np.int64)
+    bond_lost = np.zeros(n, dtype=np.float64)                               # addendum 14's N3.1 (November 16, 2026): the bond lost on the decision (≤ 0, real), a reading beside `attributed`
     by_name_pos = defaultdict(list)                                          # name → [(ledger position at the decision, i)] in order
     for i, d in enumerate(decisions):
         by_name_pos[d["identity"]].append((marks[i][1], i))
@@ -224,6 +225,8 @@ def attribute(run, marks, decisions, work_side=False, shared=False, lineages=Non
             boundary_by_source[s] += d * r1
         attributed[i] += d * r1
         by_source[s] += d * r1
+        if s == "bond_lost":
+            bond_lost[i] += d * r1
     # the stressed world (November 11, 2026): a decision's private benefit — the allowance claimed without the care — is its own, outside every wallet
     private = 0.0
     for i, d in enumerate(decisions):
@@ -272,7 +275,7 @@ def attribute(run, marks, decisions, work_side=False, shared=False, lineages=Non
     return attributed, {"by_source": dict(by_source), "boundary_by_source": dict(boundary_by_source), "boundary_real": boundary_real,
                         "boundary_decisions": len(boundary_idx), "pre_boundary_real": pre_boundary, "suspension_charges": charges, "work_side": work_side,
                         "shared": shared, "shared_double_counted": shared_double, "tree": tree, "tree_double_counted": tree_double, "own_name": own_name,
-                        "unclaimed": unclaimed, "charge": charge, "charge_t": charge_t, "unclaimed_real": float(unclaimed.sum())}   # the horizon's export (November 13, 2026)
+                        "unclaimed": unclaimed, "charge": charge, "charge_t": charge_t, "unclaimed_real": float(unclaimed.sum()), "bond_lost": bond_lost}   # the horizon's export (November 13, 2026)
 
 
 def _plant_failed(run, cid):

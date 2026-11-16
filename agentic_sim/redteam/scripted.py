@@ -44,11 +44,28 @@ class DosePolicy:
         return 3 if rng.random() < self.q else 0
 
 
+class ConductPolicy(DosePolicy):
+    """Addendum 15's P4 (November 16, 2026): two conducts on the slot's own observation. `doseM<q>` — "once admitted": careful on probation (at its admission
+    and after a suspension) and, as a member, a dose of q at every seat it holds; `doseF<q>` — "after a failure": careful while no wrong planted verdict is on
+    its record and, from the first one on, conduct M at q. The standing from `own_member` / `own_probationer` (the engine's `is_member` and `probation`, what
+    the rules act on) and the record from `own_plant_failures` (the driver's tally of its wrong planted verdicts, read at the harvest after the adjudication).
+    The coin is drawn only where the conduct applies. A reader-side wrapper, as the dose is."""
+    def __init__(self, q, mode):
+        super().__init__(q); self.mode = mode
+    def __call__(self, obs, rng):
+        if obs[IDX["decision_boundary"]] > 0.5: return 0
+        if not (obs[IDX["own_member"]] > 0.5 and obs[IDX["own_probationer"]] < 0.5): return 0
+        if self.mode == "F" and obs[IDX["own_plant_failures"]] < 0.05: return 0
+        return 3 if rng.random() < self.q else 0
+
+
 def scripted_of(name, make):
-    """`mix:<policy>[:<share>]` and `dose<q>[audit|first]` built around `make(name)` (the caller's factory for the inner policy); None for any other name."""
+    """`mix:<policy>[:<share>]`, `dose<q>[audit|first]` and the conducts `doseM<q>` / `doseF<q>` built around `make(name)` (the caller's factory for the inner policy); None for any other name."""
     if name.startswith("mix:"):
         parts = name[4:].split(":")
         return MixPolicy(make(parts[0]), name, share=float(parts[1]) if len(parts) > 1 else 0.5)
+    if name.startswith("doseM") or name.startswith("doseF"):
+        return ConductPolicy(name[5:], name[4])
     if name.startswith("dose"):
         rest = name[4:]; seats = "audit" if rest.endswith("audit") else ("first" if rest.endswith("first") else None)
         return DosePolicy(rest[:-5] if seats in ("audit", "first") else rest, seats)

@@ -462,6 +462,15 @@ class Stamping:
         self.learner_private_real = 0.0                             # the stressed world's fourth action (step 3): the private benefit of the allowance claimed without the care, real, summed
         self.learner_private_real_of: dict[str, float] = {}        #   … by slot (addendum 7's F4.1, November 12, 2026: the lifetime read by half of a mixed world)
         self.learner_claims_of: dict[str, int] = {}                #   … the claims by slot
+        # addendum 15 (November 16, 2026; notes §114): per slot, the claims by the slot's standing at the claim and after its first wrong planted verdict (P3.1, P4);
+        # the review fees and the bonds forfeited by the seat's role (P3.2); the wrong planted verdicts' ticks and the slot's income before the first, while the
+        # panel seats are lost, and after they return (P3.3) — readings from the public record, nothing drawn
+        self.learner_claims_st_of: dict[str, dict[str, int]] = {}
+        self.learner_claims_after_fail_of: dict[str, int] = {}
+        self.fee_by_role: dict[str, dict[str, float]] = {}
+        self.bond_by_role: dict[str, dict[str, float]] = {}
+        self.pfail_ticks: dict[str, list[int]] = {}
+        self.slot_phase: dict[str, dict] = {}
         self.learner_last_benefit = 0.0                             #   … of the last learner decision (read by redteam.env for the decision's own-money reward)        # the plant's filing and revision draws — their own stream
         self.raise_rng = random.Random(a.seed * 1299709 + 13)         # the plant's refusal and delay draws — their own stream, the others' unmoved
         self.learner_mix_by_period: dict[int, list[int]] = {}   # period → [ratchet, undercut, withhold] over the learners' bid decisions (the action mix by period)
@@ -633,6 +642,7 @@ class Stamping:
         # addendum 11's K3 (November 13, 2026): a learner slot's ticks, wallet change (real, at each tick's index) and private benefit by standing — a member in good
         # standing ("good") or suspended or on probation ("down") — tallied once a tick from the actor's standing; a reading, nothing moves
         self.slot_standing: dict[str, dict[str, float]] = {}
+        self.seats_by_kind: dict[str, int] = {}                     # addendum 15's P3.4: at a vested real root's closure
         self._slot_last: dict[str, tuple[float, float]] = {}
         self.slot_admission: dict[str, dict[str, float]] = {}   # addendum 12's L3.2: an arrival-born slot's Tally at its admission (what the admission cost and paid)
         self._susp_seen: dict[str, int | None] = {}
@@ -811,6 +821,10 @@ class Stamping:
                 self.learner_private_real += benefit
                 self.learner_private_real_of[reviewer] = self.learner_private_real_of.get(reviewer, 0.0) + benefit
                 self.learner_claims_of[reviewer] = self.learner_claims_of.get(reviewer, 0) + 1
+                _ac = self.w.actor(reviewer); _st = "probation" if _ac.probation else ("member" if _ac.is_member else "down")   # addendum 15: by standing, and after a failure
+                _d = self.learner_claims_st_of.setdefault(reviewer, {}); _d[_st] = _d.get(_st, 0) + 1
+                if reviewer in self.tally and self.tally[reviewer].plant_failures > 0:
+                    self.learner_claims_after_fail_of[reviewer] = self.learner_claims_after_fail_of.get(reviewer, 0) + 1
                 self.learner_last_benefit = benefit
                 if not truth and not self.tasks[view.case_id].plant:
                     self.c["learner_false_approvals"] += 1
@@ -1786,7 +1800,14 @@ class Stamping:
                            "fee_emission": round(ty.fees - ty.fee_fixed - ty.fee_uplift, 3) if ty else 0.0, "reimbursed": round(ty.reimbursed, 3) if ty else 0.0,
                            "costs": round(ty.costs, 3) if ty else 0.0, "bonds_forfeited": round(ty.bonds_forfeited, 3) if ty else 0.0,
                            "guarantees_forfeited": round(ty.guarantees_forfeited, 3) if ty else 0.0, "awards": ty.awards if ty else 0, "reviews": ty.reviews if ty else 0,
-                           "audits_done": getattr(ty, "audits_done", 0) if ty else 0})
+                           "audits_done": getattr(ty, "audits_done", 0) if ty else 0,
+                           # addendum 15 (November 16, 2026): the claims by standing and after the first failure, the fees and bonds by the seat's role, the three phases
+                           "claims_member": self.learner_claims_st_of.get(x, {}).get("member", 0), "claims_probation": self.learner_claims_st_of.get(x, {}).get("probation", 0),
+                           "claims_down": self.learner_claims_st_of.get(x, {}).get("down", 0), "claims_after_fail": self.learner_claims_after_fail_of.get(x, 0),
+                           **{f"fee_{k}": round(self.fee_by_role.get(x, {}).get(k, 0.0), 3) for k in ("initial", "audit", "panel", "other")},
+                           **{f"bond_{k}": round(self.bond_by_role.get(x, {}).get(k, 0.0), 3) for k in ("initial", "audit", "panel", "other")},
+                           "pfail_ticks": [int(t) for t in self.pfail_ticks.get(x, [])],
+                           **{k: (round(v, 3) if isinstance(v, float) else v) for k, v in self.slot_phase.get(x, {}).items()}})
         return out
 
     def cycler_step(self, t: int):
@@ -2101,6 +2122,17 @@ class Stamping:
             if last is not None:
                 d[f"income_{st}"] += (wealth - last[0]) * real
                 d[f"benefit_{st}"] += ben - last[1]
+            # addendum 15's P3.3: the slot's life in three phases — before its first wrong planted verdict, from it until its panel seats return (a member and
+            # panel-eligible again), and after; the ticks and the income (real) in each
+            ph = self.slot_phase.setdefault(x, {"pf_phase": "before", "pf_first_t": None, "pf_back_t": None, "pf_ticks_before": 0, "pf_ticks_lost": 0, "pf_ticks_after": 0,
+                                               "pf_income_before": 0.0, "pf_income_lost": 0.0, "pf_income_after": 0.0})
+            if ph["pf_phase"] == "before" and self.pfail_ticks.get(x):
+                ph["pf_phase"] = "lost"; ph["pf_first_t"] = int(self.pfail_ticks[x][0])
+            if ph["pf_phase"] == "lost" and ac.is_member and ac.panel_eligible:
+                ph["pf_phase"] = "after"; ph["pf_back_t"] = int(w.t)
+            ph[f"pf_ticks_{ph['pf_phase']}"] += 1
+            if last is not None:
+                ph[f"pf_income_{ph['pf_phase']}"] += (wealth - last[0]) * real
             self._slot_last[x] = (wealth, ben)
 
     def tick(self, t: int):
@@ -2755,6 +2787,27 @@ class Stamping:
                 self.susp_log.setdefault(aid, []).append(s0)
 
     # -- bookkeeping from the public record ---------------------------------------
+    @property
+    def learner_chain_set(self):
+        s = getattr(self, "_learner_chain_set", None)
+        if s is None or len(s) != len(self.learner_chain):
+            s = self._learner_chain_set = set(self.learner_chain)
+        return s
+
+    def _role_of(self, cid, name):
+        """Addendum 15's P3.2: the role of `name`'s latest review on the case (initial | audit | panel — every panel seat's role is `appeal` — | other)."""
+        if cid is None:
+            return "other"
+        try:
+            c = self.w.case(cid)
+            for rid in reversed(list(c.reviews)):
+                r = self.w.review(rid)
+                if r.reviewer == name:
+                    return "panel" if r.role == "appeal" else (r.role if r.role in ("initial", "audit") else "other")
+        except Exception:
+            pass
+        return "other"
+
     def harvest(self):
         w = self.w
         events = w.events_since(self.n_events)
@@ -2769,6 +2822,8 @@ class Stamping:
                 elif e.kind == "feepot_out" and e.note.endswith("review fee"):
                     ty.fees += e.amount
                     ty.fee_fixed += e.amount
+                    if e.dst in self.learner_chain_set:                 # addendum 15's P3.2: the fee by the seat's role
+                        _r = self.fee_by_role.setdefault(e.dst, {}); _k = self._role_of(e.case, e.dst); _r[_k] = _r.get(_k, 0.0) + e.amount
                 elif e.kind == "fee_out" and e.note == "emission share":
                     ty.fees += e.amount
                 elif e.kind == "transfer" and e.note == "duty uplift":
@@ -2783,6 +2838,8 @@ class Stamping:
                 elif e.kind in ("forfeit_to", "burn_bond"):
                     if e.note.startswith("bond:"):
                         ty.bonds_forfeited += e.amount
+                        if e.src in self.learner_chain_set:             # addendum 15's P3.2: the bond by the seat's role
+                            _r = self.bond_by_role.setdefault(e.src, {}); _k = self._role_of(e.case, e.src); _r[_k] = _r.get(_k, 0.0) + e.amount
                     elif e.note.startswith("G:"):
                         ty.guarantees_forfeited += e.amount
         self.n_events = w.n_events()
@@ -2827,6 +2884,7 @@ class Stamping:
                             self.c[f"bad_met_{kind}"] += 1
                             if outcome == "failure":
                                 self.tally[rv.reviewer].plant_failures += 1
+                                self.pfail_ticks.setdefault(rv.reviewer, []).append(int(w.t))   # addendum 15's P3.3
                                 self.c[f"plant_seat_failures_{kind}"] += 1
                         self.c["plant_seats_state"] += len(c.plant_state_seats)
                         self._life_close(c, task)
@@ -2847,6 +2905,7 @@ class Stamping:
                             self.c[f"plant_seats_{kind}"] += 1
                             if outcome == "failure":
                                 self.tally[rv.reviewer].plant_failures += 1
+                                self.pfail_ticks.setdefault(rv.reviewer, []).append(int(w.t))   # addendum 15's P3.3
                                 self.c[f"plant_seat_failures_{kind}"] += 1
                             if (c.plant_revised if (c.plant_revised is not None and kind == "resumed") else c.plant) is False:
                                 self.c[f"bad_met_{kind}"] += 1              # 2.9.0 §5: the bad plants the members meet by seat kind (the count the record sees)
@@ -2860,6 +2919,7 @@ class Stamping:
                         self.tally[r.reviewer].plant_reviews += 1
                         if c.plant_outcome == "failure":
                             self.tally[r.reviewer].plant_failures += 1
+                            self.pfail_ticks.setdefault(r.reviewer, []).append(int(w.t))   # addendum 15's P3.3
                             self.c["plants_failed"] += 1
                             self.c["bad_plants_approved" if task.fulfilled is False else "good_plants_rejected"] += 1
                         else:
@@ -2936,6 +2996,15 @@ class Stamping:
                         self.c["learner_forfeited"] = round(self.c["learner_forfeited"] + (c.G_award if c.G_award is not None else c.G), 6)
                 if c.state == "VESTED":
                     self.c["vested"] += 1
+                    if not task.plant and c.is_root:                      # addendum 15's P3.4: the deciding verdicts by reason and the challenge's kind, and the panel seats by holder and kind
+                        _ch = c.challenge; _ck = (_ch["kind"] if _ch else "none"); _dec = getattr(c, "deciding", None)
+                        if _dec:
+                            self.seats_by_kind[f"dec_{_dec['reason']}_{_ck}"] = self.seats_by_kind.get(f"dec_{_dec['reason']}_{_ck}", 0) + 1
+                            self.seats_by_kind[f"decseats_{_dec['reason']}_{_ck}"] = self.seats_by_kind.get(f"decseats_{_dec['reason']}_{_ck}", 0) + len(_dec.get("seats", []))
+                        if _ch:
+                            for _rid in _ch.get("reviews", []):
+                                _hold = "troop" if w.is_troop(w.review(_rid).reviewer) else "member"
+                                self.seats_by_kind[f"panelseat_{_hold}_{_ck}"] = self.seats_by_kind.get(f"panelseat_{_hold}_{_ck}", 0) + 1
                     if not task.plant and c.is_root and c.t_submit is not None:
                         self.vest_ticks.append(w.t - c.t_submit)             # A1 §6: submission → vesting
                         self.c["vested_price_sum"] = round(self.c["vested_price_sum"] + (c.B or 0.0), 6)
@@ -3265,6 +3334,7 @@ class Stamping:
                     "slot_cost": (round(self.c_d_of[self.tell_slot], 3) if self.tell_slot else ""),
                     "slot_suspensions": (len(self.susp_log.get(self.tell_slot, [])) if self.tell_slot else ""),
                     "learner_decisions": self.learner_decisions, "learner_false_approvals": self.c["learner_false_approvals"],
+                    "seats_by_kind_json": json.dumps(self.seats_by_kind, sort_keys=True),   # addendum 15's P3.4
                     "learner_claims": self.c["learner_claims"], "learner_claims_initial": self.c.get("learner_claims_initial", 0), "learner_claims_audit": self.c.get("learner_claims_audit", 0),
                     "learner_claims_appeal": self.c.get("learner_claims_appeal", 0), "learner_claims_resumed": self.c.get("learner_claims_resumed", 0),
                     "allowance_claimed": self.c["allowance_claimed"], "learner_private_real": round(self.learner_private_real, 3),   # the stressed world (step 3)

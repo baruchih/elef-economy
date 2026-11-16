@@ -216,7 +216,7 @@ def episode(env, policy, seed, rng):
         half_keys["half_d_lifetime_per_slot"] = ((half_keys.get("half_care_lifetime_per_slot") or 0) - (half_keys.get("half_claim_lifetime_per_slot") or 0))
         half_keys["half_share"] = policy.share                    # addendum 8: the claiming group's share of the slots (0.5 the halves of F4.1)
     measured = measured_seat_actions(env) if env.role == "reviewer" else {}   # the blind verdicts read from the engine's reviews (November 7, 2026)
-    work = {k: row.get(k) for k in ("learner_role", "learner_work_decisions", "learner_bad_deliveries", "learner_good_deliveries", "learner_bad_approved", "learner_bad_caught",
+    work = {k: row.get(k) for k in ("seats_by_kind_json", "learner_role", "learner_work_decisions", "learner_bad_deliveries", "learner_good_deliveries", "learner_bad_approved", "learner_bad_caught",
                                    "learner_good_vested", "learner_good_final_n", "learner_forfeited", "learner_bad_paid", "learner_effort_saved",
                                    "slot_delivery_income", "slot_guarantees_forfeited", "slot_effort_burned", "slot_awards", "final_n_rate",
                                    "learner_nested_awards", "learner_misses", "learner_miss_lapsed")} if env.role != "reviewer" else {}
@@ -255,6 +255,8 @@ def episode(env, policy, seed, rng):
     reads = list(getattr(policy, "boundary_reads", []))[n_reads0:]
     if env.role == "reviewer" and row.get("learner_slots_json"):   # addendum 9 (November 12, 2026): every slot's (or identity's) own reading kept in the record — the groups' ticks in place, the wallets' sources, the loans
         work["learner_slots_json"] = row["learner_slots_json"]
+        if row.get("seats_by_kind_json"):
+            work["seats_by_kind_json"] = row["seats_by_kind_json"]   # addendum 15's P3.4 (November 16, 2026): the deciding verdicts by reason and kind and the panel seats by holder and kind, at a vested real root's closure
     if env.role == "reviewer":                                     # addendum 9: the world's readings kept for a single learner slot too (the loop's leak, overhead and the bank's names line beside an operator)
         for k in WORLD_KEYS:
             work.setdefault(k, row.get(k))

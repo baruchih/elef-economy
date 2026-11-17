@@ -472,6 +472,12 @@ class Stamping:
         self.bond_by_role: dict[str, dict[str, float]] = {}
         self.pfail_ticks: dict[str, list[int]] = {}
         self.slot_phase: dict[str, dict] = {}
+        # addenda 18–19 (November 17, 2026; notes §117): a slot's reviews by standing and by the engine's seat kind, the planted cases among them by kind, the
+        # real-task reviews as a member before its first wrong planted verdict and before its first suspension, the care spent and the cost claimed (real at the
+        # tick's index), its wrong first approvals of real bad work and how many were paid or overturned — readings from the record, nothing drawn
+        self.slot_reviews: dict[str, dict] = {}
+        self.fa_init_pending: dict[str, set] = {}
+        self._last_claim = False
         self.learner_last_benefit = 0.0                             #   … of the last learner decision (read by redteam.env for the decision's own-money reward)        # the plant's filing and revision draws — their own stream
         self.raise_rng = random.Random(a.seed * 1299709 + 13)         # the plant's refusal and delay draws — their own stream, the others' unmoved
         self.learner_mix_by_period: dict[int, list[int]] = {}   # period → [ratchet, undercut, withhold] over the learners' bid decisions (the action mix by period)
@@ -787,6 +793,7 @@ class Stamping:
         an unaffordable purchase whole). Accuracy is a parameter of the disposition, not of the
         money spent; the shortfall is counted as `underfunded_careful_reviews`."""
         kind = self.kind[reviewer]
+        self._last_claim = False
         if kind == LEARNER and self.learner_role_of.get(reviewer) in ("deliverer", "child", "parent", "bidder"):
             kind = self.learner_review_kind          # Q3: the learned deliverer reviews as the population's actor at its slot does
         action = None
@@ -832,6 +839,7 @@ class Stamping:
                 if not self.susp_log.get(reviewer):   # addendum 17's read 14: a claim made before the slot's first suspension (for a conduct that claims only after a failure, the claims between the failure and the suspension)
                     self.learner_claims_pre_susp_of[reviewer] = self.learner_claims_pre_susp_of.get(reviewer, 0) + 1
                 self.learner_last_benefit = benefit
+                self._last_claim = True
                 if not truth and not self.tasks[view.case_id].plant:
                     self.c["learner_false_approvals"] += 1
                 return F, paid
@@ -1814,7 +1822,8 @@ class Stamping:
                            **{f"fee_{k}": round(self.fee_by_role.get(x, {}).get(k, 0.0), 3) for k in ("initial", "audit", "panel", "other")},
                            **{f"bond_{k}": round(self.bond_by_role.get(x, {}).get(k, 0.0), 3) for k in ("initial", "audit", "panel", "other")},
                            "pfail_ticks": [int(t) for t in self.pfail_ticks.get(x, [])],
-                           **{k: (round(v, 3) if isinstance(v, float) else v) for k, v in self.slot_phase.get(x, {}).items()}})
+                           **{k: (round(v, 3) if isinstance(v, float) else v) for k, v in self.slot_phase.get(x, {}).items()},
+                           **{k: (round(v, 3) if isinstance(v, float) else v) for k, v in self.slot_reviews.get(x, {}).items()}})   # addenda 18–19 (notes §117)
         return out
 
     def cycler_step(self, t: int):
@@ -2468,6 +2477,8 @@ class Stamping:
                         self.c["state_rejections"] += 1
                     w.complete_review(rid, v, cost)
                     self.tally[r.reviewer].reviews += 1
+                    if r.reviewer in self.learner_chain_set:
+                        self._slot_review_tally(r, c, cid, v, cost)         # addenda 18–19: the per-slot reviews by standing and seat (a reading)
                     if on_probation:
                         self.tally[r.reviewer].probation_reviews += 1
                         if v == F:
@@ -2810,6 +2821,40 @@ class Stamping:
             s = self._learner_chain_set = set(self.learner_chain)
         return s
 
+    def _slot_review_tally(self, r, c, cid, v, cost):
+        """Addenda 18–19 (November 17, 2026; notes §117): a learner slot's review just given — counted by its standing (member | probation | down) and, as a
+        member, by the engine's seat kind (initial, resumed, audit, third, appeal, dispute; `_plant_seat_kind`'s rule on the review's role and the challenge's
+        kind) with the planted cases among them by kind; the real-task reviews as a member before the slot's first wrong planted verdict (the driver's clock —
+        the plant's closure, `pfail_ticks`, as every read since §114 has it) and before its first suspension (`susp_log`, the tick's end); the care spent on
+        its careful reviews and the cost claimed, each real at the tick's index (the claimed part is `private_real` over the temptation); its wrong approvals
+        of real bad work as a first reviewer, paid or overturned read from the events when the case settles. Readings from the record; nothing drawn."""
+        x = r.reviewer; w = self.w; ac = w.actor(x); task = self.tasks[cid]
+        st = "probation" if ac.probation else ("member" if ac.is_member else "down")
+        if r.role == "initial":
+            seat = "resumed" if getattr(r, "resumed", False) else "initial"
+        elif r.role == "audit":
+            seat = "audit"
+        elif r.role == "appeal":
+            k = (c.challenge or {}).get("kind", "appeal"); seat = "third" if k == "audit" else k
+        else:
+            seat = "other"
+        d = self.slot_reviews.setdefault(x, {})
+        def inc(k, n=1): d[k] = d.get(k, 0) + n
+        real = self.p.P0 / w.market()["P_t"]
+        inc(f"rv_{st}")
+        inc(f"claimed_{st}" if self._last_claim else f"care_{st}", float(cost) * real)
+        if st == "member":
+            inc(f"rvm_{seat}")
+            if task.plant:
+                inc(f"rvm_plant_{'bad' if not task.fulfilled else 'good'}_{seat}")
+            else:
+                if not self.pfail_ticks.get(x): inc("rvm_real_pre_fail")
+                if not self.susp_log.get(x): inc("rvm_real_pre_susp")
+            if not self.pfail_ticks.get(x): inc("rvm_pre_fail")
+            if not self.susp_log.get(x): inc("rvm_pre_susp")
+        if r.role == "initial" and v == F and not task.plant and not task.fulfilled:
+            inc("fa_init"); self.fa_init_pending.setdefault(x, set()).add(cid)
+
     def _role_of(self, cid, name):
         """Addendum 15's P3.2: the role of `name`'s latest review on the case (initial | audit | panel — every panel seat's role is `appeal` — | other)."""
         if cid is None:
@@ -2840,6 +2885,8 @@ class Stamping:
                     ty.fee_fixed += e.amount
                     if e.dst in self.learner_chain_set:                 # addendum 15's P3.2: the fee by the seat's role
                         _r = self.fee_by_role.setdefault(e.dst, {}); _k = self._role_of(e.case, e.dst); _r[_k] = _r.get(_k, 0.0) + e.amount
+                        if _k == "initial" and e.case in self.fa_init_pending.get(e.dst, ()):   # addenda 18–19: a wrong first approval of real bad work paid
+                            self.fa_init_pending[e.dst].discard(e.case); _d = self.slot_reviews.setdefault(e.dst, {}); _d["fa_init_paid"] = _d.get("fa_init_paid", 0) + 1
                 elif e.kind == "fee_out" and e.note == "emission share":
                     ty.fees += e.amount
                 elif e.kind == "transfer" and e.note == "duty uplift":
@@ -2856,6 +2903,8 @@ class Stamping:
                         ty.bonds_forfeited += e.amount
                         if e.src in self.learner_chain_set:             # addendum 15's P3.2: the bond by the seat's role
                             _r = self.bond_by_role.setdefault(e.src, {}); _k = self._role_of(e.case, e.src); _r[_k] = _r.get(_k, 0.0) + e.amount
+                            if _k == "initial" and e.case in self.fa_init_pending.get(e.src, ()):   # addenda 18–19: … overturned (the bond forfeited)
+                                self.fa_init_pending[e.src].discard(e.case); _d = self.slot_reviews.setdefault(e.src, {}); _d["fa_init_overturned"] = _d.get("fa_init_overturned", 0) + 1
                     elif e.note.startswith("G:"):
                         ty.guarantees_forfeited += e.amount
         self.n_events = w.n_events()

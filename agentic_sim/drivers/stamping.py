@@ -477,6 +477,7 @@ class Stamping:
         # tick's index), its wrong first approvals of real bad work and how many were paid or overturned — readings from the record, nothing drawn
         self.slot_reviews: dict[str, dict] = {}
         self.fa_init_pending: dict[str, set] = {}
+        self.slot_claim_cases: set = set()                            # addendum 24's AD4.1: (slot, case) where the first review was a claim
         self._last_claim = False
         # addendum 20 (November 17, 2026; notes §118): Z4's readings from the record — each review's standing and seat kept by its id (`slot_review_meta`) and by
         # (slot, case) (`slot_case_meta`, the latest review winning, as `_role_of` reads), so the review's flows that land later (the fee, the emission share, the
@@ -560,6 +561,9 @@ class Stamping:
                   "audits_rolled": 0, "audits_assigned": 0, "audit_unassignable_ticks": 0, "audits_lapsed": 0,
                   "challenges": 0, "rulings": 0, "rulings_wrong": 0, "reviews_unassignable_ticks": 0,
                   "appeals_filed": 0, "appeals_unfunded": 0, "appeals_won": 0, "appeals_lost": 0,
+                  # addendum 24 (November 17, 2026; AD4.4): the appeals an actor wanted and could not fund — the court fee and the actor's unlocked balance at the time (real), and the
+                  # rejections of good work among them; AD4.2: the state's first-review seats, counted apart from its audit and panel seats
+                  "appeals_unfunded_fee": 0.0, "appeals_unfunded_wallet": 0.0, "false_rejections_unfunded": 0, "troop_initial_seats": 0,
                   "false_rejections_total": 0, "false_rejections_appealed": 0, "false_rejections_overturned": 0,
                   "true_rejections_appealed": 0, "true_rejections_overturned": 0,
                   "duty_short_of_bond_ticks": 0,   # Σ over ticks of on-duty actors that cannot fund G^V (q6 solvency)
@@ -664,6 +668,7 @@ class Stamping:
         # standing ("good") or suspended or on probation ("down") — tallied once a tick from the actor's standing; a reading, nothing moves
         self.slot_standing: dict[str, dict[str, float]] = {}
         self.seats_by_kind: dict[str, int] = {}                     # addendum 15's P3.4: at a vested real root's closure
+        self.bad_met_first: dict[str, int] = {}                     # addendum 24's AD4.1: the bad deliveries by their first reviewer's kind, and a wrong first approval's fate
         self._slot_last: dict[str, tuple[float, float]] = {}
         self.slot_admission: dict[str, dict[str, float]] = {}   # addendum 12's L3.2: an arrival-born slot's Tally at its admission (what the admission cost and paid)
         self._susp_seen: dict[str, int | None] = {}
@@ -2157,6 +2162,11 @@ class Stamping:
             last = self._slot_last.get(x)
             d = self.slot_standing.setdefault(x, {"ticks_good": 0, "ticks_down": 0, "income_good": 0.0, "income_down": 0.0, "benefit_good": 0.0, "benefit_down": 0.0})
             d[f"ticks_{st}"] += 1
+            if pst == "member":   # addendum 24 (November 17, 2026): the ticks as a member, and those without the earned seats (not panel-eligible on its own record)
+                d["ticks_member"] = d.get("ticks_member", 0) + 1
+                if not ac.panel_eligible:
+                    d["ticks_member_noseat"] = d.get("ticks_member_noseat", 0) + 1
+                    if self.slot_reviews.get(x, {}).get("pb_met", 0) < self.p.n_min: d["ticks_member_noseat_undet"] = d.get("ticks_member_noseat_undet", 0) + 1   # an undetermined record, not a failed one
             if last is not None:
                 d[f"income_{st}"] += (wealth - last[0]) * real
                 d[f"benefit_{st}"] += ben - last[1]
@@ -2458,6 +2468,8 @@ class Stamping:
                         right = self._right(self.tasks.get(cid), 1.0 - a.eps_t, rho=a.shared_difficulty_troops, own=self.rng.random() >= a.eps_t)   # the stressed world: the troops' shared coin, stated apart (the own coin as it was)
                         w.complete_review(rid, F if (truth == right) else N, 0.0)
                         self.c["troop_reviews"] += 1
+                        if r.role == "initial":
+                            self.c["troop_initial_seats"] += 1   # addendum 24's AD4.2: the state at the first review
                         if r.role == "audit":
                             self.c["troop_audits"] += 1
                         if r.role in ("audit", "appeal"):
@@ -2536,6 +2548,9 @@ class Stamping:
                 self.c["lowball_appeals"] += 1
             if want and w.unlocked(c.actor) + 1e-9 < c.D:
                 self.c["appeals_unfunded"] += 1
+                _real = self.p.P0 / w.market()["P_t"]   # addendum 24's AD4.4: the fee and the holding at the time, real
+                self.c["appeals_unfunded_fee"] = round(self.c["appeals_unfunded_fee"] + c.D * _real, 6); self.c["appeals_unfunded_wallet"] = round(self.c["appeals_unfunded_wallet"] + w.unlocked(c.actor) * _real, 6)
+                if task.fulfilled: self.c["false_rejections_unfunded"] += 1
                 want = False
             if c.is_root and task.fulfilled:
                 # 2.8.0: the real actors' appeal window (a false rejection filed or not; the delay from the verdict) — what the plant actor draws
@@ -2866,11 +2881,14 @@ class Stamping:
         if rid is not None:                                           # addendum 20: the review's standing and seat, for the flows that land later and the wrong planted verdicts
             self.slot_review_meta[rid] = (x, st, seat); self.slot_case_meta[(x, cid)] = (st, seat)
         inc(f"rv_{st}")
+        if task.plant and not task.fulfilled: inc("pb_met")   # addendum 24: the planted bad cases the slot has met at any seat (its record determined at n_min)
         inc(f"claimed_{st}" if self._last_claim else f"care_{st}", float(cost) * real)
         inc(f"{'claimed' if self._last_claim else 'care'}_{st}_{seat}", float(cost) * real); inc(f"rvs_{st}_{seat}")   # addendum 20: the care, and the reviews, by standing and seat
         if seat == "initial":                                         # addendum 20's Z4.2: the first reviews by standing and the work's kind (the resumed seat apart)
             inc(f"rvi_{st}_{'plant' if task.plant else 'real'}_{'good' if task.fulfilled else 'bad'}")
-            if v == F and not task.plant and not task.fulfilled: inc(f"fai_{st}")
+            if v == F and not task.plant and not task.fulfilled:
+                inc(f"fai_{st}"); inc(f"fai_{st}_{'claim' if self._last_claim else 'care'}")   # addendum 24's AD4.1: a claim's or a careful error's
+                if self._last_claim: self.slot_claim_cases.add((x, cid))
         if st == "member":
             inc(f"rvm_{seat}")
             if task.plant:
@@ -3184,6 +3202,9 @@ class Stamping:
                             self.c["troop_bad_final_n"] += 1   # addendum 7's reading: the orchestrator's own bad work caught (final N)
                     if task.fulfilled:
                         self.c["false_rejections"] += 1
+                        if not task.plant and not w.is_troop(c.actor) and c.is_root:   # addendum 24's AD4.4: why a rejection of good work stands — the engine's reason, appealed or not
+                            _fr = next((e_[1] for e_ in reversed(list(c.log)) if isinstance(e_[1], str) and e_[1].startswith("final N: ")), "final N: ?")[9:]
+                            _k = f"frn_{'appealed' if task.appealed else 'not_appealed'}_{_fr.replace(' ', '_').replace(':', '')}"; self.bad_met_first[_k] = self.bad_met_first.get(_k, 0) + 1
                     if task.appealed:
                         self.c["appeals_lost"] += 1
                     if task.disputed:
@@ -3197,6 +3218,21 @@ class Stamping:
                     # A1 §6: the leak's second denominator and the false penalties by seat — a member's delivery, its truth the task's
                     if not task.fulfilled:
                         self.c["bad_deliveries"] += 1
+                        # addendum 24's AD4.1 (November 17, 2026): who met the bad delivery at its first review (a member, a probationer, the state), and what became of a
+                        # wrong first approval — a claim's or a careful error's: paid at vesting (never audited; audited and confirmed by a member's or the state's audit seat;
+                        # the audit differed and the deciding verdict or a ruling confirmed; a dispute panel confirmed) or overturned (caught at a member's audit, the state's
+                        # audit or a dispute panel, by the deciding verdict, the audit's own word, the panel or a ruling) — a reading at the closure, nothing drawn differently
+                        _ir = next((x for x in revs_c if x.role == "initial" and not getattr(x, "resumed", False)), None)
+                        if _ir is not None:
+                            _who = "state" if w.is_troop(_ir.reviewer) else self.slot_case_meta.get((_ir.reviewer, cid), ("member", "initial"))[0]
+                            _bm = self.bad_met_first; _bm[f"first_{_who}"] = _bm.get(f"first_{_who}", 0) + 1
+                            if _ir.verdict == F:
+                                _cl = "claim" if (_ir.reviewer, cid) in self.slot_claim_cases else "care"
+                                _aud = [x for x in revs_c if x.role == "audit" and x.status != "withdrawn"]; _ch = c.challenge or {}
+                                _at = (("audit_state" if w.is_troop(_aud[0].reviewer) else "audit_member") + ("_differed" if _aud[0].verdict != F else "_confirmed")) if _aud else ("panel" if _ch.get("kind") == "dispute" else "none")
+                                _by = {"deciding verdict": "deciding", "appeal reviewers": "panel", "orchestrator": "ruling"}.get(_ch.get("by"), "audit" if _aud else "none")
+                                _k = f"fa_{_who}_{_cl}_" + (f"overturned_{_at}_by_{_by}" if _ir.status == "overturned" else f"paid_{_at}")
+                                _bm[_k] = _bm.get(_k, 0) + 1; _bm[f"fa_{_who}_{_cl}"] = _bm.get(f"fa_{_who}_{_cl}", 0) + 1
                     truth_v = F if task.fulfilled else N
                     ch_by = (c.challenge or {}).get("by")
                     for x in revs_c:
@@ -3477,6 +3513,7 @@ class Stamping:
                     "slot_suspensions": (len(self.susp_log.get(self.tell_slot, [])) if self.tell_slot else ""),
                     "learner_decisions": self.learner_decisions, "learner_false_approvals": self.c["learner_false_approvals"],
                     "seats_by_kind_json": json.dumps(self.seats_by_kind, sort_keys=True),   # addendum 15's P3.4
+                    "bad_met_first_json": json.dumps(self.bad_met_first, sort_keys=True),   # addendum 24's AD4.1
                     "learner_claims": self.c["learner_claims"], "learner_claims_initial": self.c.get("learner_claims_initial", 0), "learner_claims_audit": self.c.get("learner_claims_audit", 0),
                     "learner_claims_appeal": self.c.get("learner_claims_appeal", 0), "learner_claims_resumed": self.c.get("learner_claims_resumed", 0),
                     "allowance_claimed": self.c["allowance_claimed"], "learner_private_real": round(self.learner_private_real, 3),   # the stressed world (step 3)

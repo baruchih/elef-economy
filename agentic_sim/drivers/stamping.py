@@ -278,7 +278,7 @@ class Stamping:
                    plant_market=rev12, trailing_periods=a.trailing_periods, plant_submit_fixed=a.plant_submit,
                    plant_reserve_life=(0 if a.plant_reserve == "period" else 15),
                    troop_account=(rev7 and a.accounts == "on"), omega_rate=a.omega_rate, r_s=a.r_s, T_susp=a.t_susp,
-                   theta_panel=a.theta_panel, n_P=a.record_window,
+                   theta_panel=a.theta_panel, theta_duty=a.theta_duty, n_P=a.record_window,
                    floating=rev8, P0=20.0, issuance=(a.issuance if rev8 else 0.0), N_T=(a.n_t if rev8 else 0),
                    troop_cost_at_price=(rev8 and a.c_d_t_mode in ("cost", "at_cost")), lam=a.lam, bbar_counts_troops=(rev8 and a.bbar_troops == "on"),
                    bank=rev9, c_d_t_mode=("at_cost" if a.c_d_t_mode == "cost" else a.c_d_t_mode), b_t_prior=a.b_t_prior,
@@ -3754,6 +3754,7 @@ def build_parser():
     ap.add_argument("--r-s", type=float, default=0.0, help="r_s, the rebate a tick late (0 = ω₀B, the 1.6.0 default; 1.7.0 §2.4 pins 1 for the ω₀ sweep)")
     ap.add_argument("--t-susp", type=int, default=100, help="T_susp, the suspension length before probation (1.3.0 Appendix A: 100; run 9's addendum sweeps 0, 50, 100)")
     ap.add_argument("--theta-panel", type=float, default=0.20, help="θ_panel, the panel tier's bad-plant approval threshold (1.6.0 §8 sweeps 0.15)")
+    ap.add_argument("--theta-duty", type=float, default=0.50, help="Params.theta_duty, the suspension's threshold on the trailing plant record (1.2.0 Appendix A: 0.50; the record read from n_min bad plants on, a_hat = (wrong + 1)/(n + 2)) — exposed November 17, 2026 for addendum 22's cells (0.34: a second wrong planted verdict suspends while the window holds no more than six; 0.20: the earned seats' own threshold, a first wrong verdict suspends while it holds no more than seven); a harness option on a parameter of record, 0.50 in every run of record. The engine reads it at duty eligibility (every assignment and the rotation), at the count E_t of the members eligible for duty (the members' cap and the seats' sizing), at an arrival's admission, at the readmission after a suspension and at the suspension itself")
     ap.add_argument("--record-window", type=int, default=20, help="n_P, the plant record's trailing window (1.6.0 §8 sweeps 12)")
     ap.add_argument("--withdraw-after", type=int, default=0,
                     help="1.6.0 §8 red team: H withdraws an unawarded request older than this many ticks (0: never)")

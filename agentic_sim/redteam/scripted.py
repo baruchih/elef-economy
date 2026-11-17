@@ -19,6 +19,7 @@ class MixPolicy:
         self.inner, self.name, self.identity, self.seed, self.share = inner, name, None, None, float(share)
     def set_identity(self, identity, seed):
         self.identity, self.seed = identity, seed
+        if hasattr(self.inner, "set_identity"): self.inner.set_identity(identity, seed)   # addendum 22's AB7: a conduct keyed by the case needs the seed's salt
     def set_info(self, info):                                   # addendum 9: the decision's seat kind, forwarded to a dose policy inside the mix
         if hasattr(self.inner, "set_info"): self.inner.set_info(info)
     def half_of(self, identity, seed=None):
@@ -53,26 +54,38 @@ class ConductPolicy(DosePolicy):
     Addendum 17's V4 (November 16, 2026): `doseG<q>` — "while the earned seats are lost": careful until its first wrong planted verdict, as F; from then on
     a dose of q as a member at the decisions where its earned seats are lost, careful where they are held, on probation and after a suspension. Whether the
     seats are held is the engine's `panel_eligible` on the slot's own record, read through the env's info (`panel_eligible`, the road the Q1 readings take) —
-    the 45 fields carry the window's length and the cumulative failures, not the failures within the window, so the flag is not theirs to compute."""
+    the 45 fields carry the window's length and the cumulative failures, not the failures within the window, so the flag is not theirs to compute.
+    Addendum 22's AB7 (November 17, 2026): `caseM<q>` — conduct M with its claims set by the case: as a member the slot claims at a review if the case's hash
+    falls under the dose (the first two bytes of the md5 of the seed and the case's public identifier, read against q × 65536 as the mix's share is — the seed's
+    salt so that the cases claimed on differ between seeds; the public identifier is the same at every seat of a case, so every slot that meets the case as a
+    member claims on it, at the first review, the audit seat and the panels alike, a planted case included), and is careful at the other cases with the
+    careful's own error drawn as now; on probation it is careful, as conduct M is. No coin of the episode's rng is drawn for the claim."""
     def __init__(self, q, mode):
-        super().__init__(q); self.mode = mode; self.held = True
+        super().__init__(q); self.mode = mode; self.held = True; self.case = None; self.seed = None
+    def set_identity(self, identity, seed):
+        self.seed = seed
     def set_info(self, info):
-        super().set_info(info); self.held = bool(info.get("panel_eligible", True))
+        super().set_info(info); self.held = bool(info.get("panel_eligible", True)); self.case = info.get("case")
     def __call__(self, obs, rng):
         if obs[IDX["decision_boundary"]] > 0.5: return 0
         if not (obs[IDX["own_member"]] > 0.5 and obs[IDX["own_probationer"]] < 0.5): return 0
+        if self.mode == "C":
+            h = int.from_bytes(hashlib.md5(f"{self.seed}:{self.case}".encode()).digest()[:2], "big")
+            return 3 if h < self.q * 65536 else 0
         if self.mode in ("F", "G") and obs[IDX["own_plant_failures"]] < 0.05: return 0
         if self.mode == "G" and self.held: return 0
         return 3 if rng.random() < self.q else 0
 
 
 def scripted_of(name, make):
-    """`mix:<policy>[:<share>]`, `dose<q>[audit|first]` and the conducts `doseM<q>` / `doseF<q>` / `doseG<q>` built around `make(name)` (the caller's factory for the inner policy); None for any other name."""
+    """`mix:<policy>[:<share>]`, `dose<q>[audit|first]` and the conducts `doseM<q>` / `doseF<q>` / `doseG<q>` / `caseM<q>` built around `make(name)` (the caller's factory for the inner policy); None for any other name."""
     if name.startswith("mix:"):
         parts = name[4:].split(":")
         return MixPolicy(make(parts[0]), name, share=float(parts[1]) if len(parts) > 1 else 0.5)
     if name.startswith("doseM") or name.startswith("doseF") or name.startswith("doseG"):
         return ConductPolicy(name[5:], name[4])
+    if name.startswith("caseM"):
+        return ConductPolicy(name[5:], "C")                     # addendum 22's AB7: the claims set by the case
     if name.startswith("dose"):
         rest = name[4:]; seats = "audit" if rest.endswith("audit") else ("first" if rest.endswith("first") else None)
         return DosePolicy(rest[:-5] if seats in ("audit", "first") else rest, seats)

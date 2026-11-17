@@ -488,6 +488,7 @@ class Stamping:
         # by the standing and seat of the review (`pw_<standing>_<seat>`); a slot's spells on probation (an arrival's, or the way back from a suspension: the ticks
         # and the reviews each took, and how it ended). Readings; nothing drawn.
         self.slot_review_meta: dict[str, tuple] = {}
+        self.slot_review_pb: dict[str, int] = {}                        # addendum 26's AE3.3: pb_met at each review
         self.slot_case_meta: dict[tuple, tuple] = {}
         self.slot_st_now: dict[str, str] = {}
         self.slot_spells: dict[str, list] = {}
@@ -2882,6 +2883,7 @@ class Stamping:
             self.slot_review_meta[rid] = (x, st, seat); self.slot_case_meta[(x, cid)] = (st, seat)
         inc(f"rv_{st}")
         if task.plant and not task.fulfilled: inc("pb_met")   # addendum 24: the planted bad cases the slot has met at any seat (its record determined at n_min)
+        if rid is not None: self.slot_review_pb[rid] = d.get("pb_met", 0)   # addendum 26's AE3.3: the planted bad cases met up to and including this review
         inc(f"claimed_{st}" if self._last_claim else f"care_{st}", float(cost) * real)
         inc(f"{'claimed' if self._last_claim else 'care'}_{st}_{seat}", float(cost) * real); inc(f"rvs_{st}_{seat}")   # addendum 20: the care, and the reviews, by standing and seat
         if seat == "initial":                                         # addendum 20's Z4.2: the first reviews by standing and the work's kind (the resumed seat apart)
@@ -3039,6 +3041,10 @@ class Stamping:
                                 self.pfail_ticks.setdefault(rv.reviewer, []).append(int(w.t))   # addendum 15's P3.3
                                 _m = self.slot_review_meta.get(rid)                                   # addendum 20: by the review's standing and seat
                                 if _m: _d = self.slot_reviews.setdefault(_m[0], {}); _d[f"pw_{_m[1]}_{_m[2]}"] = _d.get(f"pw_{_m[1]}_{_m[2]}", 0) + 1
+                                if _m and _m[1] == "member":   # addendum 26's AE3.3: the slot's first wrong planted verdict as a member — the planted bad cases its window held at that verdict (this one included), the seat, and whether it holds the earned seats when the driver learns of it at the reveal
+                                    _n = self.slot_review_pb.get(rid, 0)
+                                    if "pf_first_member_n" not in _d or _n < _d["pf_first_member_n"]:
+                                        _d["pf_first_member_n"] = _n; _d["pf_first_member_seat"] = _m[2]; _d["pf_first_member_t"] = int(w.t); _d["pf_first_member_elig"] = (int(w.actor(_m[0]).panel_eligible) if _m[0] in self.actors else -1)
                                 self.c[f"plant_seat_failures_{kind}"] += 1
                                 self.c[f"plant_fail_bad_{kind}"] += 1                        # a planted approval is bad work by construction
                         self.c["plant_seats_state"] += len(c.plant_state_seats)
@@ -3064,6 +3070,10 @@ class Stamping:
                                 self.pfail_ticks.setdefault(rv.reviewer, []).append(int(w.t))   # addendum 15's P3.3
                                 _m = self.slot_review_meta.get(rid)                                   # addendum 20: by the review's standing and seat
                                 if _m: _d = self.slot_reviews.setdefault(_m[0], {}); _d[f"pw_{_m[1]}_{_m[2]}"] = _d.get(f"pw_{_m[1]}_{_m[2]}", 0) + 1
+                                if _m and _m[1] == "member":   # addendum 26's AE3.3: the slot's first wrong planted verdict as a member — the planted bad cases its window held at that verdict (this one included), the seat, and whether it holds the earned seats when the driver learns of it at the reveal
+                                    _n = self.slot_review_pb.get(rid, 0)
+                                    if "pf_first_member_n" not in _d or _n < _d["pf_first_member_n"]:
+                                        _d["pf_first_member_n"] = _n; _d["pf_first_member_seat"] = _m[2]; _d["pf_first_member_t"] = int(w.t); _d["pf_first_member_elig"] = (int(w.actor(_m[0]).panel_eligible) if _m[0] in self.actors else -1)
                                 self.c[f"plant_seat_failures_{kind}"] += 1
                                 self.c[f"plant_fail_{'bad' if _bad else 'good'}_{kind}"] += 1   # addendum 17's V3.3: bad work approved / good work rejected, by seat
                             if _bad:
@@ -3204,7 +3214,9 @@ class Stamping:
                         self.c["false_rejections"] += 1
                         if not task.plant and not w.is_troop(c.actor) and c.is_root:   # addendum 24's AD4.4: why a rejection of good work stands — the engine's reason, appealed or not
                             _fr = next((e_[1] for e_ in reversed(list(c.log)) if isinstance(e_[1], str) and e_[1].startswith("final N: ")), "final N: ?")[9:]
-                            _k = f"frn_{'appealed' if task.appealed else 'not_appealed'}_{_fr.replace(' ', '_').replace(':', '')}"; self.bad_met_first[_k] = self.bad_met_first.get(_k, 0) + 1
+                            _aud_ = [w.review(r_) for r_ in c.reviews if w.review(r_).role == "audit" and w.review(r_).status != "withdrawn"]   # addendum 26's AF4.1: the audit road by whose audit differed
+                            _hold = ("_" + ("state" if w.is_troop(_aud_[0].reviewer) else "member")) if ("audit upheld" in _fr and _aud_) else ""
+                            _k = f"frn_{'appealed' if task.appealed else 'not_appealed'}_{_fr.replace(' ', '_').replace(':', '')}{_hold}"; self.bad_met_first[_k] = self.bad_met_first.get(_k, 0) + 1
                     if task.appealed:
                         self.c["appeals_lost"] += 1
                     if task.disputed:

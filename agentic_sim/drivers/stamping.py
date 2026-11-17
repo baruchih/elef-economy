@@ -478,6 +478,19 @@ class Stamping:
         self.slot_reviews: dict[str, dict] = {}
         self.fa_init_pending: dict[str, set] = {}
         self._last_claim = False
+        # addendum 20 (November 17, 2026; notes §118): Z4's readings from the record — each review's standing and seat kept by its id (`slot_review_meta`) and by
+        # (slot, case) (`slot_case_meta`, the latest review winning, as `_role_of` reads), so the review's flows that land later (the fee, the emission share, the
+        # uplift, the reimbursement, the bond, a court fee) are tallied by the standing and seat of the review they belong to (`rf_<standing>_<seat>_<class>`, real at
+        # the event's tick); every event on a slot's wallet tallied by the slot's standing at the tick (K3's convention) and the event's class (`ev_<standing>_<class>`),
+        # so the income in good standing splits into what its reviews bring and the rest; the care by standing and seat; the first reviews by standing and the work's
+        # kind (`rvi_<standing>_<real|plant>_<bad|good>`) with the wrong first approvals of real bad work by standing (`fai_<standing>`); the wrong planted verdicts
+        # by the standing and seat of the review (`pw_<standing>_<seat>`); a slot's spells on probation (an arrival's, or the way back from a suspension: the ticks
+        # and the reviews each took, and how it ended). Readings; nothing drawn.
+        self.slot_review_meta: dict[str, tuple] = {}
+        self.slot_case_meta: dict[tuple, tuple] = {}
+        self.slot_st_now: dict[str, str] = {}
+        self.slot_spells: dict[str, list] = {}
+        self._slot_prob: dict[str, dict] = {}
         self.learner_last_benefit = 0.0                             #   … of the last learner decision (read by redteam.env for the decision's own-money reward)        # the plant's filing and revision draws — their own stream
         self.raise_rng = random.Random(a.seed * 1299709 + 13)         # the plant's refusal and delay draws — their own stream, the others' unmoved
         self.learner_mix_by_period: dict[int, list[int]] = {}   # period → [ratchet, undercut, withhold] over the learners' bid decisions (the action mix by period)
@@ -1824,6 +1837,8 @@ class Stamping:
                            "pfail_ticks": [int(t) for t in self.pfail_ticks.get(x, [])],
                            **{k: (round(v, 3) if isinstance(v, float) else v) for k, v in self.slot_phase.get(x, {}).items()},
                            **{k: (round(v, 3) if isinstance(v, float) else v) for k, v in self.slot_reviews.get(x, {}).items()}})   # addenda 18–19 (notes §117)
+            sp = self._slot_prob.get(x); t_end = (t_out if t_out is not None else self.w.t)   # addendum 20: the probation spells, an open one closed at the exit or the run's end
+            out[x]["spells"] = self.slot_spells.get(x, []) + ([{**sp, "t1": int(t_end), "ticks": int(t_end) - sp["t0"], "reviews": (ty.reviews if ty else 0) - sp["r0"], "end": "departed" if not alive else "open"}] if sp else [])
         return out
 
     def cycler_step(self, t: int):
@@ -2124,6 +2139,13 @@ class Stamping:
                 continue
             ac = w.actor(x)
             st = "good" if ac.is_member else "down"
+            pst = "probation" if ac.probation else ("member" if ac.is_member else "down"); self.slot_st_now[x] = pst   # addendum 20: the standing this tick, for the events' tally
+            sp = self._slot_prob.get(x); _ty = self.tally.get(x)                                                   # addendum 20: the probation spells
+            if pst == "probation" and sp is None:
+                self._slot_prob[x] = {"kind": "arrival" if (ac.arrived_at is not None and ac.admitted_at is None) else "return", "t0": int(w.t), "r0": _ty.reviews if _ty else 0}
+            elif pst != "probation" and sp is not None:
+                self.slot_spells.setdefault(x, []).append({**sp, "t1": int(w.t), "ticks": int(w.t) - sp["t0"], "reviews": (_ty.reviews if _ty else 0) - sp["r0"], "end": "member" if pst == "member" else "suspended"})
+                self._slot_prob.pop(x)
             if ac.arrived_at is not None and ac.admitted_at is not None and x not in self.slot_admission:   # addendum 12's L3.2: the snapshot at admission (read the tick after)
                 ty = self.tally.get(x)
                 self.slot_admission[x] = {"adm_t": int(ac.admitted_at), "adm_ticks": int(ac.admitted_at - ac.arrived_at), "adm_real": round(real, 6),
@@ -2476,7 +2498,7 @@ class Stamping:
                         v = N                            # 2.1.0 §8.9 red team: rejects the state's work (reads the case's actor — declared)
                         self.c["state_rejections"] += 1
                     if r.reviewer in self.learner_chain_set:
-                        self._slot_review_tally(r, c, cid, v, cost)         # addenda 18–19: the per-slot reviews by standing and seat (a reading; the standing read before the verdict's own consequence)
+                        self._slot_review_tally(r, c, cid, v, cost, rid)    # addenda 18–19: the per-slot reviews by standing and seat (a reading; the standing read before the verdict's own consequence)
                     w.complete_review(rid, v, cost)
                     self.tally[r.reviewer].reviews += 1
                     if on_probation:
@@ -2821,7 +2843,7 @@ class Stamping:
             s = self._learner_chain_set = set(self.learner_chain)
         return s
 
-    def _slot_review_tally(self, r, c, cid, v, cost):
+    def _slot_review_tally(self, r, c, cid, v, cost, rid=None):
         """Addenda 18–19 (November 17, 2026; notes §117): a learner slot's review just given — counted by its standing (member | probation | down) and, as a
         member, by the engine's seat kind (initial, resumed, audit, third, appeal, dispute; `_plant_seat_kind`'s rule on the review's role and the challenge's
         kind) with the planted cases among them by kind; the real-task reviews as a member before the slot's first wrong planted verdict (the driver's clock —
@@ -2841,8 +2863,14 @@ class Stamping:
         d = self.slot_reviews.setdefault(x, {})
         def inc(k, n=1): d[k] = d.get(k, 0) + n
         real = self.p.P0 / w.market()["P_t"]
+        if rid is not None:                                           # addendum 20: the review's standing and seat, for the flows that land later and the wrong planted verdicts
+            self.slot_review_meta[rid] = (x, st, seat); self.slot_case_meta[(x, cid)] = (st, seat)
         inc(f"rv_{st}")
         inc(f"claimed_{st}" if self._last_claim else f"care_{st}", float(cost) * real)
+        inc(f"{'claimed' if self._last_claim else 'care'}_{st}_{seat}", float(cost) * real); inc(f"rvs_{st}_{seat}")   # addendum 20: the care, and the reviews, by standing and seat
+        if seat == "initial":                                         # addendum 20's Z4.2: the first reviews by standing and the work's kind (the resumed seat apart)
+            inc(f"rvi_{st}_{'plant' if task.plant else 'real'}_{'good' if task.fulfilled else 'bad'}")
+            if v == F and not task.plant and not task.fulfilled: inc(f"fai_{st}")
         if st == "member":
             inc(f"rvm_{seat}")
             if task.plant:
@@ -2854,6 +2882,43 @@ class Stamping:
             if not self.susp_log.get(x): inc("rvm_pre_susp")
         if r.role == "initial" and v == F and not task.plant and not task.fulfilled:
             inc("fa_init"); self.fa_init_pending.setdefault(x, set()).add(cid)
+
+    def _slot_event_tally(self, x, sign, e, real):
+        """Addendum 20 (November 17, 2026): one event on a learner slot's wallet — an inflow (sign +1, the slot the event's destination) or an outflow (−1, its source) —
+        tallied real at the tick by the slot's standing this tick (`slot_st_now`, read at the tick's start as K3 reads it) and the event's class: delivery (the price
+        vesting from escrow), fee (the review fee from the pot), emission (the emission share), uplift (the duty fund's), reimb (the care reimbursed — the allowance's,
+        the deferred, Ω's advance or claim), courtfee (paid or returned), float (the bank's arrival float), guarantee_in (a child's forfeit to its parent); effort (the
+        execution's purchase), care (a review's purchase, the claim's included), bond (a bond forfeited), guarantee (a guarantee forfeited), loan (the arrival loan's
+        repayments and recovery), pots (a requester's pay-in — none for a slot), departure; other_in / other_out the rest, so the sum is the wallet's own change at
+        the index less the revaluation of what it held. The review-side classes are tallied a second time by the standing and seat of the review they belong to
+        (`slot_case_meta`, the slot's latest review on the case). A reading; nothing moves."""
+        st = self.slot_st_now.get(x, "member"); amt = float(e.amount) * real * sign; k = e.kind; note = e.note or ""
+        d = self.slot_reviews.setdefault(x, {})
+        def inc(key, n): d[key] = d.get(key, 0.0) + n
+        if sign > 0:
+            if k == "feepot_out" and note.endswith("review fee"): cls = "fee"
+            elif k == "fee_out" and note == "emission share": cls = "emission"
+            elif k == "transfer" and note == "duty uplift": cls = "uplift"
+            elif "court fee" in note: cls = "courtfee"
+            elif k == "escrow_out": cls = "delivery"
+            elif k.startswith("mint") or k in ("issuance", "arrival"): cls = "float"
+            elif k == "forfeit_to" and note.startswith("G:"): cls = "guarantee_in"
+            elif k in ("fee_out", "deposit_out", "feepot_out") or (k == "transfer" and e.src == "OMEGA"): cls = "reimb"
+            else: cls = "other_in"
+        else:
+            if k == "purchase" and note == "execution": cls = "effort"
+            elif k == "purchase" and note.startswith("review"): cls = "care"
+            elif k in ("forfeit_to", "burn_bond") and note.startswith("bond:"): cls = "bond"
+            elif k == "forfeit_to" and note.startswith("G:"): cls = "guarantee"
+            elif k == "arrival_repayment": cls = "loan"
+            elif "court fee" in note: cls = "courtfee"
+            elif k in ("escrow_in", "deposit_in", "feepot_in"): cls = "pots"
+            elif k == "departure": cls = "departure"
+            else: cls = "other_out"
+        inc(f"ev_{st}_{cls}", amt)
+        if cls in ("fee", "emission", "uplift", "reimb", "bond", "courtfee") and e.case is not None:
+            m = self.slot_case_meta.get((x, e.case))
+            if m: inc(f"rf_{m[0]}_{m[1]}_{cls}", amt)
 
     def _role_of(self, cid, name):
         """Addendum 15's P3.2: the role of `name`'s latest review on the case (initial | audit | panel — every panel seat's role is `appeal` — | other)."""
@@ -2875,7 +2940,11 @@ class Stamping:
         if self.learner_id and self.a.learner_role == "requester":
             self.req_read_events(events)                 # Q7: the learned requester's spend, by its own events at the index of each
         self.pop_read_events(events)                     # every requester's spend, nominal (the customers' tasks per credit)
+        _real = self.p.P0 / w.market()["P_t"]
         for e in events:
+            if self.learner_chain_set and e.src != e.dst and e.kind not in ("lock", "release"):   # addendum 20: the slot's wallet events by standing and class
+                if e.dst in self.learner_chain_set: self._slot_event_tally(e.dst, 1, e, _real)
+                if e.src in self.learner_chain_set: self._slot_event_tally(e.src, -1, e, _real)
             if e.dst in self.tally:
                 ty = self.tally[e.dst]
                 if e.kind == "escrow_out":
@@ -2950,6 +3019,8 @@ class Stamping:
                             if outcome == "failure":
                                 self.tally[rv.reviewer].plant_failures += 1
                                 self.pfail_ticks.setdefault(rv.reviewer, []).append(int(w.t))   # addendum 15's P3.3
+                                _m = self.slot_review_meta.get(rid)                                   # addendum 20: by the review's standing and seat
+                                if _m: _d = self.slot_reviews.setdefault(_m[0], {}); _d[f"pw_{_m[1]}_{_m[2]}"] = _d.get(f"pw_{_m[1]}_{_m[2]}", 0) + 1
                                 self.c[f"plant_seat_failures_{kind}"] += 1
                                 self.c[f"plant_fail_bad_{kind}"] += 1                        # a planted approval is bad work by construction
                         self.c["plant_seats_state"] += len(c.plant_state_seats)
@@ -2973,6 +3044,8 @@ class Stamping:
                             if outcome == "failure":
                                 self.tally[rv.reviewer].plant_failures += 1
                                 self.pfail_ticks.setdefault(rv.reviewer, []).append(int(w.t))   # addendum 15's P3.3
+                                _m = self.slot_review_meta.get(rid)                                   # addendum 20: by the review's standing and seat
+                                if _m: _d = self.slot_reviews.setdefault(_m[0], {}); _d[f"pw_{_m[1]}_{_m[2]}"] = _d.get(f"pw_{_m[1]}_{_m[2]}", 0) + 1
                                 self.c[f"plant_seat_failures_{kind}"] += 1
                                 self.c[f"plant_fail_{'bad' if _bad else 'good'}_{kind}"] += 1   # addendum 17's V3.3: bad work approved / good work rejected, by seat
                             if _bad:

@@ -2475,10 +2475,10 @@ class Stamping:
                     if r.reviewer in self.state_rejecters and w.is_troop(c.actor) and not self.tasks[cid].plant:
                         v = N                            # 2.1.0 §8.9 red team: rejects the state's work (reads the case's actor — declared)
                         self.c["state_rejections"] += 1
+                    if r.reviewer in self.learner_chain_set:
+                        self._slot_review_tally(r, c, cid, v, cost)         # addenda 18–19: the per-slot reviews by standing and seat (a reading; the standing read before the verdict's own consequence)
                     w.complete_review(rid, v, cost)
                     self.tally[r.reviewer].reviews += 1
-                    if r.reviewer in self.learner_chain_set:
-                        self._slot_review_tally(r, c, cid, v, cost)         # addenda 18–19: the per-slot reviews by standing and seat (a reading)
                     if on_probation:
                         self.tally[r.reviewer].probation_reviews += 1
                         if v == F:
@@ -2829,7 +2829,7 @@ class Stamping:
         its careful reviews and the cost claimed, each real at the tick's index (the claimed part is `private_real` over the temptation); its wrong approvals
         of real bad work as a first reviewer, paid or overturned read from the events when the case settles. Readings from the record; nothing drawn."""
         x = r.reviewer; w = self.w; ac = w.actor(x); task = self.tasks[cid]
-        st = "probation" if ac.probation else ("member" if ac.is_member else "down")
+        st = "probation" if ac.probation else ("member" if ac.is_member else "down")   # read before `complete_review`, whose adjudication of a wrong planted verdict may suspend the slot at once
         if r.role == "initial":
             seat = "resumed" if getattr(r, "resumed", False) else "initial"
         elif r.role == "audit":

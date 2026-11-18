@@ -348,6 +348,9 @@ def _I15_expected_cases(cases, expected, netted_plants: bool = True, resolve=lam
             expected[(resolve(c.actor), f"G:{c.id}")] = c.G          # a troop's lock sits on the fund (1.4.0); a plant actor's on its wallet
         if c.is_nested() and c.state == "AVAILABLE":
             expected[(c.requester, f"beta:{c.id}")] = c.posting_lock if c.own_pots else c.beta   # 2.3.0: the all-in with the pots
+        ch = c.challenge
+        if ch is not None and ch.get("second") and not ch["resolved"]:
+            expected[(resolve(ch["challenger"]), f"second:{c.id}")] = c.D       # addendum 31: the second filing's fee, locked until the deciding verdict
         if c.is_root and c.state == "AVAILABLE" and (c.plant is None or market_plant) and c.index_at_lock is not None:
             expected[(resolve(c.requester), f"post:{c.id}")] = c.posting_lock    # 2.0.0 §2.1 / I29: the posting lock
         if c.is_nested() and c.rejection_bond > EPS:

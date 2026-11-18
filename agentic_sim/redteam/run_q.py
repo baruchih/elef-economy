@@ -59,6 +59,10 @@ REV_POP_KEYS = tuple(dict.fromkeys(POP_KEYS + ("troop_deliveries", "troop_delive
                                              "plant_audits_waived", "confirmations_sampled", "confirmations_overturned", "lenient_bonds_kept", "troop_reviews", "troop_review_cost",
                                              "cost_of_truth", "cust_overhead_per_vested", "cust_overhead_share", "sys_overhead_per_vested", "sys_overhead_share",
                                              "vest_ticks_mean", "vest_ticks_p50", "vest_ticks_p90",
+                                             # addendum 31 (November 18, 2026; notes §126): the overhead's terms, the mark for a miss on real work, the second filing, the requesters' court fees
+                                             "care_cost_real", "care_cost_plant", "plant_price_sum", "vested_real_roots", "real_miss_marks", "second_filings", "second_filings_won",
+                                             "second_filings_lost", "second_windows_lapsed", "second_filed_dispute", "second_filed_appeal", "second_unfunded", "second_refused", "second_declined",
+                                             "req_court_paid_real", "req_court_back_real",
                                              "appeals_unfunded", "appeals_unfunded_fee", "appeals_unfunded_wallet", "false_rejections_unfunded", "appeals_lost", "false_rejections_total", "troop_initial_seats", "deciding_answers",   # addendum 24 (November 17, 2026): the appeals wanted and unfunded, the state at the first review
                                              "troop_panel_seats", "seated_appeal_member", "seated_audit_member", "troop_audits", "seated_initial_member", "seated_initial_probationer",   # the seats by their holder (the reviewer's (a), November 10)
                                              "appeals_unassignable_ticks", "panel_short_tier_ticks", "panel_short_free_ticks", "panel_ineligible_member_periods",   # the shortfall's cause (read 2)
@@ -258,6 +262,7 @@ def episode(env, policy, seed, rng):
         work["learner_slots_json"] = row["learner_slots_json"]
         if row.get("seats_by_kind_json"):
             work["bad_met_first_json"] = row.get("bad_met_first_json")   # addendum 24's AD4.1 (November 17, 2026): the bad deliveries by their first reviewer's kind and a wrong first approval's fate
+            work["ra_json"] = row.get("ra_json")   # addendum 31's AK4.3 / AL4.1 (November 18, 2026): every first approval of a member's real delivery — who looked again, and whether it ended overturned
             for _k in ("pair_meet_json", "pair_fail_json", "pick_json"): work[_k] = row.get(_k)   # addendum 28 (November 18, 2026): how often one pair meets, the shared failed planted cases, the picks by group
             work["seats_by_kind_json"] = row["seats_by_kind_json"]   # addendum 15's P3.4 (November 16, 2026): the deciding verdicts by reason and kind and the panel seats by holder and kind, at a vested real root's closure
     if env.role == "reviewer":                                     # addendum 9: the world's readings kept for a single learner slot too (the loop's leak, overhead and the bank's names line beside an operator)

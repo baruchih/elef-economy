@@ -512,3 +512,177 @@ def test_the_bond_at_an_audit_or_panel_seat_is_a_multiple_of_G_V_under_bond_mult
     assert w0.reviews[ra0].bond == c0.G_V and w0.p.bond_mult_later == 1.0
     with pytest.raises(ValueError):
         Params(bond_mult_later=0.0)
+
+
+# ------------------------------------------------------------ addendum 31's two options (November 18, 2026; notes §126) — off in every run of record
+
+def test_the_mark_and_the_second_filing_are_built_on_the_trusted_ruling_and_off_by_default():
+    p = Params()
+    assert p.real_miss_mark is False and p.second_filing is False and p.T_second == 2
+    with pytest.raises(ValueError):
+        Params(real_miss_mark=True)
+    with pytest.raises(ValueError):
+        Params(second_filing=True)
+    with pytest.raises(ValueError):
+        Params(trusted_ruling=True, second_filing=True, T_second=0)
+    w = make_world(second_filing=False)
+    q, r = real_approved(w)
+    w.dispute(q, "H", "the result does not meet the request")
+    with pytest.raises(RuleError):
+        w.second_filing(q, "H")                                      # the option off: refused, nothing moves
+
+
+def test_the_mark_enters_an_overturned_approval_of_real_work_on_the_first_reviewers_bad_record_and_nothing_else():
+    """Params.real_miss_mark: an approval of a real root that the deciding verdict overturns is a wrong entry in the first reviewer's `plant_bad`
+    window (the record the earned seats and the suspension read), at any standing; a rejection overturned, an approval confirmed and the audit
+    seat's own verdict write nothing; with the flag off the same world writes nothing."""
+    for flag in (True, False):
+        w = make_world(real_miss_mark=flag)
+        q, c, r, ra = audited_disagreeing(w)                          # C approves, D's audit rejects: the deciding verdict
+        before = list(w.actors["C"].plant_bad)
+        w.advance(w.t + 1)
+        for s in deciding_open(w, c):
+            w.complete_review(s.id, N, 0.0)                           # the orchestrator finds the work unfulfilled: C's approval overturned
+        assert c.state == "FINAL_N" and w.reviews[r].status == "overturned"
+        if flag:
+            assert w.actors["C"].plant_bad == before + [(w.t, True)] and w.actors["C"].real_marks == 1 and w.real_miss_marks == 1
+            assert w.actors["D"].plant_bad == [] and w.actors["D"].real_marks == 0            # the audit seat writes nothing
+            assert any(e["kind"] == "real_miss_mark" and e["payload"]["actor"] == "C" for e in w.history.entries)
+        else:
+            assert w.actors["C"].plant_bad == before and w.actors["C"].real_marks == 0 and w.real_miss_marks == 0
+            assert not any(e["kind"] == "real_miss_mark" for e in w.history.entries)
+        # a rejection overturned writes nothing on anyone's record under either setting
+        q2, r2 = real_rejected(w, reviewer="E")
+        c2 = w.cases[q2]
+        w.respond(q2, "appeal", "the work meets the request")
+        p1, p2 = w.assign_appeal(q2, "D"), w.assign_appeal(q2, "F")
+        w.advance(w.t + 1)
+        w.complete_review(p1, F, 2.0)
+        w.complete_review(p2, F, 2.0)                                 # the panel would overturn: escalated under arm 1
+        w.advance(w.t + 1)
+        for s in deciding_open(w, c2):
+            w.complete_review(s.id, F, 0.0)
+        assert w.reviews[r2].status == "overturned" and w.actors["E"].plant_bad == [] and w.actors["E"].real_marks == 0
+        # an approval the deciding verdict confirms writes nothing
+        q3, c3, r3, ra3 = audited_disagreeing(w, auditor="F")
+        w.advance(w.t + 1)
+        for s in deciding_open(w, c3):
+            w.complete_review(s.id, F, 0.0)
+        assert w.reviews[r3].status == "done" and w.actors["C"].real_marks == (1 if flag else 0)
+        w.advance(w.t + 2)
+        check_all(w)
+
+
+def test_the_mark_reads_as_a_planted_failure_at_any_standing_and_can_suspend():
+    """Four marks on a determined record cross θ_duty as four failed planted bad cases would: the first reviewer loses its earned seats on the way and is
+    suspended; a probationer's mark re-suspends it as a plant failure does."""
+    w = make_world(real_miss_mark=True, n_min=2)
+    a = w.actors["C"]
+    a.plant_bad = [(0, False), (0, False)]                           # a determined, clean record of two
+    marks = 0
+    for i in range(3):
+        q, c, r, ra = audited_disagreeing(w, auditor=["D", "E", "F"][i])
+        w.advance(w.t + 1)
+        for s in deciding_open(w, c):
+            w.complete_review(s.id, N, 0.0)
+        marks += 1
+        assert a.real_marks == marks and len(a.plant_bad) == 2 + marks
+        if a.suspended_until is not None:
+            break
+    assert a.suspended_until is not None and a.on_duty is False      # 3 wrong of 5: a_hat (3+1)/(5+2) = 0.57 > θ_duty 0.50
+    assert any(e["kind"] == "suspension" and e["payload"]["actor"] == "C" for e in w.history.entries)
+    w.advance(w.t + 2)
+    check_all(w)
+
+
+def test_the_second_filing_goes_on_after_a_confirmation_pays_the_fee_again_and_the_deciding_verdict_settles_the_fees_and_the_seats():
+    """Params.second_filing: a panel's confirmation is held T_second ticks; the challenger alone may go on, the fee D locked; the deciding verdict
+    overturning releases the second fee, returns the first from the initial reviewer's bond and overturns the confirming member panel; confirming,
+    the second fee is Ω's and the confirmation stands. No filing by the window's close: the confirmation is final as today."""
+    # (i) a dispute confirmed by the panel, the requester goes on, the deciding verdict overturns
+    w = make_world(second_filing=True)
+    q, r = real_approved(w)
+    c = w.cases[q]
+    w.dispute(q, "H", "the result does not meet the request")
+    p1, p2 = w.assign_appeal(q, "D"), w.assign_appeal(q, "E")
+    w.advance(w.t + 1)
+    w.complete_review(p1, F, 2.0)
+    w.complete_review(p2, F, 2.0)                                     # both confirm the approval
+    ch = c.challenge
+    assert not ch["resolved"] and ch.get("confirmed_at") == w.t and ch["second_deadline"] == w.t + w.p.T_second and not ch.get("escalated") and c.deciding is None
+    with pytest.raises(RuleError):
+        w.second_filing(q, "B")                                       # not the challenger
+    omega0, hU = w.ledger.wallet(Ledger.OMEGA).U, w.ledger.wallet("H").U
+    w.second_filing(q, "H")
+    assert ch["escalated"] and ch.get("second") and c.deciding["reason"] == "second_filing" and w.second_filings == 1
+    assert abs(w.ledger.wallet("H").U - (hU - c.D)) < 1e-9 and abs(w.ledger.lock_record("H", f"second:{q}") - c.D) < 1e-9
+    with pytest.raises(RuleError):
+        w.second_filing(q, "H")                                       # one round: no third filing
+    w.advance(w.t + 1)
+    check_all(w)                                                      # I15 carries the second fee's lock
+    for s in deciding_open(w, c):
+        w.complete_review(s.id, N, 0.0)                               # the orchestrator finds the work unfulfilled
+    assert ch["resolved"] and ch["by"] == "deciding verdict" and ch["outcome"] == N and c.state == "FINAL_N"
+    assert w.reviews[r].status == "overturned" and w.reviews[p1].status == "overturned" and w.reviews[p2].status == "overturned"
+    assert c.court_fee_reimbursed == c.D                              # the first fee back from the bond
+    assert w.ledger.lock_record("H", f"second:{q}") == 0 and w.second_filings_won == 1
+    ev = [e for e in w.ledger.events if e.case == q and "second filing" in (e.note or "")]
+    assert [(e.kind, e.src, e.dst, round(e.amount, 6)) for e in ev] == [("lock", "H", None, c.D), ("release", "H", None, c.D)] or \
+           [(e.kind, round(e.amount, 6)) for e in ev] == [("lock", c.D), ("release", c.D)]       # the second fee locked at the filing and released at the win; nothing to Ω
+    w.advance(w.t + 1)
+    check_all(w)
+    # (ii) the deciding verdict confirms: the second fee is Ω's, the confirmation stands, the panel's seats stand
+    w2 = make_world(second_filing=True)
+    q, r = real_approved(w2)
+    c = w2.cases[q]
+    w2.dispute(q, "H", "the result does not meet the request")
+    p1, p2 = w2.assign_appeal(q, "D"), w2.assign_appeal(q, "E")
+    w2.advance(w2.t + 1)
+    w2.complete_review(p1, F, 2.0)
+    w2.complete_review(p2, F, 2.0)
+    omega0 = w2.ledger.wallet(Ledger.OMEGA).U
+    w2.second_filing(q, "H")
+    w2.advance(w2.t + 1)
+    for s in deciding_open(w2, c):
+        w2.complete_review(s.id, F, 0.0)
+    ch = c.challenge
+    assert ch["resolved"] and ch["outcome"] == F and c.state == "PENDING" and w2.reviews[r].status == "done" and w2.reviews[p1].status == "done"
+    ev = [e for e in w2.ledger.events if e.case == q and "second filing" in (e.note or "")]
+    assert [(e.kind, round(e.amount, 6)) for e in ev] == [("lock", c.D), ("forfeit_to", c.D)] and ev[-1].dst == Ledger.OMEGA   # the second fee Ω's
+    assert w2.second_filings_lost == 1 and c.court_fee_reimbursed == 0.0
+    w2.advance(c.window_end + 3)
+    assert c.state == "VESTED"
+    check_all(w2)
+    # (iii) no filing: the confirmation is final at the window's close, as today
+    w3 = make_world(second_filing=True)
+    q, r = real_approved(w3)
+    c = w3.cases[q]
+    w3.dispute(q, "H", "the result does not meet the request")
+    p1, p2 = w3.assign_appeal(q, "D"), w3.assign_appeal(q, "E")
+    w3.advance(w3.t + 1)
+    w3.complete_review(p1, F, 2.0)
+    w3.complete_review(p2, F, 2.0)
+    t0 = w3.t
+    w3.advance(t0 + w3.p.T_second + 1)
+    ch = c.challenge
+    assert ch["resolved"] and ch["by"] == "appeal reviewers" and ch["outcome"] == F and w3.second_windows_lapsed == 1 and c.deciding is None
+    with pytest.raises(RuleError):
+        w3.second_filing(q, "H")
+    check_all(w3)
+    # (iv) an appeal confirmed by the panel: the actor goes on the same way, and a plant's challenge never reaches the filing
+    w4 = make_world(second_filing=True)
+    q, r = real_rejected(w4)
+    c = w4.cases[q]
+    w4.respond(q, "appeal", "the work meets the request")
+    p1, p2 = w4.assign_appeal(q, "D"), w4.assign_appeal(q, "E")
+    w4.advance(w4.t + 1)
+    w4.complete_review(p1, N, 2.0)
+    w4.complete_review(p2, N, 2.0)                                    # both confirm the rejection
+    assert c.challenge.get("confirmed_at") is not None
+    w4.second_filing(q, "B")
+    assert c.challenge["escalated"] and c.deciding["reason"] == "second_filing"
+    w4.advance(w4.t + 1)
+    for s in deciding_open(w4, c):
+        w4.complete_review(s.id, F, 0.0)
+    assert c.challenge["outcome"] == F and w4.reviews[r].status == "overturned" and c.state == "PENDING"
+    check_all(w4)

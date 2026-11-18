@@ -203,6 +203,10 @@ class Public:
     def dispute(self, cid: str, challenger: str, d: Optional[str] = None):
         self._w.dispute(self._eng(cid), challenger, d)
 
+    def second_filing(self, cid: str, challenger: str):
+        """Addendum 31 (Params.second_filing; off in every run of record): the challenger whose filing a member panel confirmed goes on to the deciding verdict."""
+        self._w.second_filing(self._eng(cid), challenger)
+
     # -- orchestrator operations (§5.2, §8) --------------------------------------
     def award(self, cid: str, actor: str, B: float, tau: int):
         self._w.award(self._eng(cid), actor, B, tau)
@@ -244,6 +248,9 @@ class Public:
                 "plant_audits_waived": w.plant_audits_waived, "confirmations_sampled": w.confirmations_sampled,
                 "confirmations_overturned": w.confirmations_overturned, "lenient_bonds_kept": w.lenient_bonds_kept,
                 "deciding_outcomes_by_reason": dict(w.deciding_outcomes_by_reason), "disputes_refused_after_sample": w.disputes_refused_after_sample,
+                # addendum 31 (notes §126): the mark for a miss on real work and the second filing — readings, zero with the options off
+                "real_miss_marks": w.real_miss_marks, "second_filings": w.second_filings, "second_filings_won": w.second_filings_won,
+                "second_filings_lost": w.second_filings_lost, "second_windows_lapsed": w.second_windows_lapsed,
                 "shortfall_seats": w.troop_shortfall_seats, "shortfall_awards": w.troop_shortfall_awards,
                 "held_ticks": w.troop_held_ticks, "troop_ticks_reviews": w.troop_ticks_reviews,
                 "troop_ticks_deliveries": w.troop_ticks_deliveries,

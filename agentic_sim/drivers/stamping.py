@@ -186,6 +186,8 @@ class Task:
     appealed: bool = False       # the actor appealed its N (the appeals run)
     dispute_rolled: bool = False
     disputed: bool = False       # H disputed the pending F (the dispute run)
+    second_rolled: bool = False  # addendum 31: the party asked once whether to go on after the panel's confirmation
+    second_filed: bool = False
     plant: bool = False          # the orchestrator's planted work (1.2.0)
     probation_false_approval: bool = False   # a probationer approved truly failed work (1.3.0: audited at 1)
     learner_work: Optional[int] = None       # Q3 (the learned deliverer): the slot's quality decision on this case — 0 good, 1 bad (zero effort)
@@ -276,6 +278,7 @@ class Stamping:
         if a.tie_break is None:
             a.tie_break = "draw" if rev12 else "id"                      # 2.6.0 §2.3: the tie after κ by a seeded draw; `id` the control
         p = Params(Res0=a.res0, X=a.on_duty, G_V=a.gv, p_start=a.p_start, p_cap=a.p_cap, p_floor=a.p_floor, p_halve_every=a.p_halve_every, band=a.band, G_frac_nested=a.child_g_frac, bond_mult_later=a.bond_mult_later, w_audit=a.w_audit,
+                   real_miss_mark=(a.real_miss_mark == "on"), second_filing=(a.second_filing == "on"), T_second=a.t_second,   # addendum 31's two options (off every run of record)
                    record_dir=a.record_dir, f_fee=a.fee, phi_E_root=a.phi_e, phi_F_root=a.phi_f,
                    pi0=a.pi0, pi_max=a.pi_max, dial=(a.dial == "on"), beta_P=a.beta_p, Omega0=a.omega0,
                    membership=rev3, duty_fund=(rev3 and a.fund == "on"), net_plant_capital=rev3, m_max=a.m_max,
@@ -503,6 +506,8 @@ class Stamping:
         self.slot_case_meta: dict[tuple, tuple] = {}
         self.slot_st_now: dict[str, str] = {}
         self.slot_spells: dict[str, list] = {}
+        self.slot_last_rho: dict[str, float] = {}      # addendum 31: a slot's ρ at its last tick in place, and its marks for a miss on real work
+        self.slot_last_marks: dict[str, int] = {}
         self._slot_prob: dict[str, dict] = {}
         self.learner_last_benefit = 0.0                             #   … of the last learner decision (read by redteam.env for the decision's own-money reward)        # the plant's filing and revision draws — their own stream
         self.raise_rng = random.Random(a.seed * 1299709 + 13)         # the plant's refusal and delay draws — their own stream, the others' unmoved
@@ -591,6 +596,8 @@ class Stamping:
                   "idle_for_bond_ticks": 0,        # members idle for want of a bond: Σ over ticks of free members whose unlocked balance is below G^V at the index
                   "disputes_filed": 0, "disputes_refused": 0, "disputes_won": 0, "disputes_lost": 0,
                   "false_approvals_disputed": 0, "false_approvals_overturned": 0,
+                  # addendum 31 (November 18, 2026; notes §126): the second filing as the driver's parties take it, and what the requesters put down in court fees and got back (real)
+                  "second_filed_dispute": 0, "second_filed_appeal": 0, "second_unfunded": 0, "second_refused": 0, "second_declined": 0, "req_court_paid_real": 0.0, "req_court_back_real": 0.0,
                   "true_approvals_disputed": 0, "true_approvals_overturned": 0,
                   "care_cost_plant": 0.0, "care_cost_real": 0.0, "care_reviews_plant": 0, "care_reviews_real": 0,   # 2.8.0 §8.6: the care spent by case kind
                   "tell_initial_cared": 0, "tell_later_plant_stamped": 0, "tell_later_real_stamped": 0, "tell_later_plant_cared": 0, "tell_later_real_cared": 0,
@@ -684,6 +691,7 @@ class Stamping:
         self.slot_standing: dict[str, dict[str, float]] = {}
         self.seats_by_kind: dict[str, int] = {}                     # addendum 15's P3.4: at a vested real root's closure
         self.bad_met_first: dict[str, int] = {}
+        self.ra_tally: dict[str, int] = {}                          # addendum 31's AK4.3 / AL4.1: every first approval of a member's real delivery — who looked again, and whether it ended overturned
         self.pair_meet: dict[str, list] = {}                        # addendum 28's AH5 (November 18, 2026): `<first reviewer>|<member at its audit seat>` -> the ticks they met (every member audit seat)
         self.pair_fail: dict[str, list] = {}                        # addendum 28's AH4.2: two member slots that gave a wrong verdict on the same planted case -> the ticks of the reveal                     # addendum 24's AD4.1: the bad deliveries by their first reviewer's kind, and a wrong first approval's fate
         self._slot_last: dict[str, tuple[float, float]] = {}
@@ -1893,6 +1901,10 @@ class Stamping:
                            "pfail_ticks": [int(t) for t in self.pfail_ticks.get(x, [])],
                            **{k: (round(v, 3) if isinstance(v, float) else v) for k, v in self.slot_phase.get(x, {}).items()},
                            **{k: (round(v, 3) if isinstance(v, float) else v) for k, v in self.slot_reviews.get(x, {}).items()}})   # addenda 18–19 (notes §117)
+            _ss = self.slot_standing.get(x, {})   # addendum 31's AK4.1 and AK10: ρ over the member ticks and at the end (the exit's for a departed slot), the marks for a miss on real work
+            out[x]["rho_member_mean"] = round(_ss["rho_member_sum"] / _ss["ticks_member"], 4) if _ss.get("ticks_member") else ""
+            out[x]["rho_end"] = round(self.slot_last_rho[x], 4) if x in self.slot_last_rho else ""
+            out[x]["marks_real"] = (getattr(w.actor(x), "real_marks", 0) if alive else self.slot_last_marks.get(x, 0))
             sp = self._slot_prob.get(x); t_end = (t_out if t_out is not None else self.w.t)   # addendum 20: the probation spells, an open one closed at the exit or the run's end
             out[x]["spells"] = self.slot_spells.get(x, []) + ([{**sp, "t1": int(t_end), "ticks": int(t_end) - sp["t0"], "reviews": (ty.reviews if ty else 0) - sp["r0"], "end": "departed" if not alive else "open"}] if sp else [])
         return out
@@ -2213,8 +2225,10 @@ class Stamping:
             last = self._slot_last.get(x)
             d = self.slot_standing.setdefault(x, {"ticks_good": 0, "ticks_down": 0, "income_good": 0.0, "income_down": 0.0, "benefit_good": 0.0, "benefit_down": 0.0})
             d[f"ticks_{st}"] += 1
+            self.slot_last_rho[x] = ac.rho; self.slot_last_marks[x] = getattr(ac, "real_marks", 0)   # addendum 31's AK4.1 and AK10: the window the award reads, and the marks (read at the exit too)
             if pst == "member":   # addendum 24 (November 17, 2026): the ticks as a member, and those without the earned seats (not panel-eligible on its own record)
                 d["ticks_member"] = d.get("ticks_member", 0) + 1
+                d["rho_member_sum"] = d.get("rho_member_sum", 0.0) + ac.rho   # addendum 31's AK4.1: ρ over the member ticks
                 if not ac.panel_eligible:
                     d["ticks_member_noseat"] = d.get("ticks_member_noseat", 0) + 1
                     if self.slot_reviews.get(x, {}).get("pb_met", 0) < self.p.n_min: d["ticks_member_noseat_undet"] = d.get("ticks_member_noseat_undet", 0) + 1   # an undetermined record, not a failed one
@@ -2688,6 +2702,31 @@ class Stamping:
         for cid in list(self.active):
             c = w.case(cid)
             task = self.tasks[cid]
+            _ch2 = c.challenge
+            if a.second_filing == "on" and _ch2 is not None and not _ch2["resolved"] and _ch2.get("confirmed_at") is not None and not _ch2.get("escalated") \
+                    and not task.plant and not task.second_rolled:
+                # addendum 31 (Params.second_filing): the party whose filing the panel confirmed is asked once, the tick after the confirmation, whether to go on
+                # to the deciding verdict — the truthful party goes on where the truth is on its side (it read the truth at its first filing, outside the convention
+                # and declared since run 30: a requester disputes under --dispute-policy where the work truly failed, an actor appeals where its work was truly
+                # fulfilled); a lying filing (--dispute-lie / --appeal-lie) does not go on; `always` goes on; the fee D must be fundable
+                task.second_rolled = True
+                _party, _kind = _ch2["challenger"], _ch2["kind"]
+                if _kind == "dispute":
+                    _want = a.dispute_policy == "always" or (a.dispute_policy in ("truthful", "half") and not task.fulfilled)
+                else:
+                    _want = a.appeal_policy == "always" or (a.appeal_policy == "truthful" and task.fulfilled)
+                if _want and w.unlocked(_party) + 1e-9 < c.D:
+                    self.c["second_unfunded"] += 1; _want = False
+                if _want:
+                    try:
+                        w.second_filing(cid, _party)
+                        task.second_filed = True
+                        self.c[f"second_filed_{_kind}"] += 1
+                    except (RuleError, LedgerError):
+                        self.c["second_refused"] += 1
+                else:
+                    self.c["second_declined"] += 1
+                c = w.case(cid)
             if c.state == "SUBMITTED" and not c.is_root:
                 continue                                     # 2.3.0 §2.4: the parent judges its child (delegation_step)
             if task.planted_approval and c.state == "SUBMITTED":
@@ -3292,6 +3331,23 @@ class Stamping:
                 revs_c = [w.review(rid) for rid in c.reviews]
                 if not task.plant and not w.is_troop(c.actor) and c.is_root:
                     # A1 §6: the leak's second denominator and the false penalties by seat — a member's delivery, its truth the task's
+                    _ir0 = next((x for x in revs_c if x.role == "initial" and not getattr(x, "resumed", False)), None); _ch0 = c.challenge or {}
+                    if _ir0 is not None and _ir0.verdict == F:
+                        # addendum 31's AK4.3 and AL4.1 (November 18, 2026): every first approval of a member's real delivery — who looked at it again (a member's audit, the
+                        # state's, a dispute panel with no audit, nobody) and whether it ended overturned, per run (`ra_json`) and on the first reviewer's slot (`ra_*`), the truth beside
+                        _aud0 = [x for x in revs_c if x.role == "audit" and x.status != "withdrawn"]
+                        _look = ("state" if w.is_troop(_aud0[0].reviewer) else "member") if _aud0 else ("panel" if _ch0.get("kind") == "dispute" else "never")
+                        _tr0 = "good" if task.fulfilled else "bad"; _ov0 = _ir0.status == "overturned"
+                        for _k0 in (f"{_look}_{_tr0}_n", f"{_look}_n") + ((f"{_look}_{_tr0}_over", f"{_look}_over") if _ov0 else ()): self.ra_tally[_k0] = self.ra_tally.get(_k0, 0) + 1
+                        if _ch0.get("second"): _k0 = f"second_{_tr0}_{'over' if _ov0 else 'conf'}"; self.ra_tally[_k0] = self.ra_tally.get(_k0, 0) + 1
+                        if _ir0.reviewer in self.learner_chain_set:
+                            _d0 = self.slot_reviews.setdefault(_ir0.reviewer, {})
+                            for _k0 in ("ra_first", f"ra_{_tr0}", f"ra_{_look}", f"ra_{_look}_{_tr0}") + ((f"ra_over_{_look}", "ra_over", f"ra_over_{_tr0}") if _ov0 else ()): _d0[_k0] = _d0.get(_k0, 0) + 1
+                    if _ch0.get("kind") == "dispute" and _ch0.get("challenger") is not None and _ch0.get("resolved"):
+                        # addendum 31's AK10: what the requester put down in court fees and got back, real at the closure (the first fee back from the bond where it won; the second released)
+                        _realc = self.p.P0 / w.market()["P_t"]; _paid0 = c.D * (2 if _ch0.get("second") else 1)
+                        _back0 = float(c.court_fee_reimbursed or 0.0) + (c.D if (_ch0.get("second") and _ch0.get("outcome") != c.verdict) else 0.0)
+                        self.c["req_court_paid_real"] = round(self.c["req_court_paid_real"] + _paid0 * _realc, 6); self.c["req_court_back_real"] = round(self.c["req_court_back_real"] + _back0 * _realc, 6)
                     if not task.fulfilled:
                         self.c["bad_deliveries"] += 1
                         # addendum 24's AD4.1 (November 17, 2026): who met the bad delivery at its first review (a member, a probationer, the state), and what became of a
@@ -3306,7 +3362,7 @@ class Stamping:
                                 _cl = "claim" if (_ir.reviewer, cid) in self.slot_claim_cases else "care"
                                 _aud = [x for x in revs_c if x.role == "audit" and x.status != "withdrawn"]; _ch = c.challenge or {}
                                 _at = (("audit_state" if w.is_troop(_aud[0].reviewer) else "audit_member") + ("_differed" if _aud[0].verdict != F else "_confirmed")) if _aud else ("panel" if _ch.get("kind") == "dispute" else "none")
-                                _by = {"deciding verdict": "deciding", "appeal reviewers": "panel", "orchestrator": "ruling"}.get(_ch.get("by"), "audit" if _aud else "none")
+                                _by = {"deciding verdict": "deciding", "appeal reviewers": "panel", "orchestrator": "ruling"}.get(_ch.get("by"), "audit" if _aud else "none") + ("_second" if _ch.get("second") else "")   # addendum 31: after a second filing
                                 _k = f"fa_{_who}_{_cl}_" + (f"overturned_{_at}_by_{_by}" if _ir.status == "overturned" else f"paid_{_at}")
                                 _bm[_k] = _bm.get(_k, 0) + 1; _bm[f"fa_{_who}_{_cl}"] = _bm.get(f"fa_{_who}_{_cl}", 0) + 1
                                 if self.a.seat_group != "off" and _who == "member":   # addendum 28's AH5: the holder of the audit by the first reviewer's group (the same group, the other, the state; none where never audited)
@@ -3448,6 +3504,8 @@ class Stamping:
               "deciding_sa_confirmed": tr["deciding_outcomes_by_reason"].get("state_audit:confirmed", 0),     # arm 2: the audit seat's error the second seat corrected
               "deciding_sa_overturned": tr["deciding_outcomes_by_reason"].get("state_audit:overturned", 0),
               "disputes_refused_after_sample": tr["disputes_refused_after_sample"],
+              "real_miss_marks": tr.get("real_miss_marks", 0), "second_filings": tr.get("second_filings", 0), "second_filings_won": tr.get("second_filings_won", 0),   # addendum 31
+              "second_filings_lost": tr.get("second_filings_lost", 0), "second_windows_lapsed": tr.get("second_windows_lapsed", 0),
               "leak_paid": round(self.c["false_approvals"] / max(1, self.c["vested"]), 6),
               "leak_bad": round(self.c["false_approvals"] / max(1, self.c["bad_deliveries"]), 6)}
         row.update(a1)
@@ -3594,6 +3652,7 @@ class Stamping:
                     "learner_decisions": self.learner_decisions, "learner_false_approvals": self.c["learner_false_approvals"],
                     "seats_by_kind_json": json.dumps(self.seats_by_kind, sort_keys=True),   # addendum 15's P3.4
                     "bad_met_first_json": json.dumps(self.bad_met_first, sort_keys=True),   # addendum 24's AD4.1
+                    "ra_json": json.dumps(self.ra_tally, sort_keys=True),   # addendum 31's AK4.3 / AL4.1
                     "pair_meet_json": json.dumps(self.pair_meet, sort_keys=True), "pair_fail_json": json.dumps(self.pair_fail, sort_keys=True),   # addendum 28's AH4.2 and AH5: how often one pair meets; two slots failing the same planted case
                     "pick_json": json.dumps({k: v for k, v in self.c.items() if k.startswith("pick_")}, sort_keys=True),   # addendum 28's AH5: the audit and panel picks by group
                     "learner_claims": self.c["learner_claims"], "learner_claims_initial": self.c.get("learner_claims_initial", 0), "learner_claims_audit": self.c.get("learner_claims_audit", 0),
@@ -3846,6 +3905,14 @@ def build_parser():
     ap.add_argument("--shared-difficulty-ruling", type=float, default=0.0, help="… the ruling at a split reading the shared coin with this probability at --ruling-accuracy's marginal rate — stated apart")
     ap.add_argument("--w-audit", type=float, default=1.5, help="Params.w_audit, the audit seat's role weight (Appendix A 1.5: the audit fee 1.5 f; the deciding verdict's seats carry it too under arms 1 and 4) — exposed November 12, 2026 for addendum 7's G2 cells (the weight at 3); a harness option on a parameter of record, 1.5 in every run of record")
     ap.add_argument("--bond-mult-later", type=float, default=1.0, help="Params.bond_mult_later (a harness option, no rule): the reviewer's bond at an audit or panel seat as a multiple of G_V (A1 r2 §4's sweep ×2, ×4); 1.0 every run of record")
+    ap.add_argument("--real-miss-mark", choices=["off", "on"], default="off",
+                    help="Params.real_miss_mark (brief A1, addendum 31, AK10 — Baruchi's agreed read, November 18, 2026; off in every run of record; no rule): an approval of a real root that the deciding verdict "
+                         "overturns is entered on its first reviewer's planted record as a wrong verdict on a planted bad case, at any standing, and the record re-checked as after a plant; nothing else of real work enters. Needs --arm 1")
+    ap.add_argument("--second-filing", choices=["off", "on"], default="off",
+                    help="Params.second_filing (addendum 31, AK10; off in every run of record; no rule): a challenger whose appeal or dispute a member panel confirmed may go on to the deciding verdict within --t-second ticks, "
+                         "the court fee put down again (kept by Ω if it loses, returned if it wins); the confirmation final at the window's close with no filing. The driver's truthful party goes on where the truth is on its side "
+                         "(a requester under --dispute-policy truthful/half/always where the work truly failed; an actor under --appeal-policy truthful/always where its work was truly fulfilled). Needs --arm 1")
+    ap.add_argument("--t-second", type=int, default=2, help="Params.T_second, the second filing's window after the panel's confirmation (an open number of the rulebook; T_resp's length)")
     ap.add_argument("--p-start", type=float, default=1.0, help="a newcomer's audit odds (1.2.0 §2.4: 1.0; 1.1.0: 0.5)")
     ap.add_argument("--p-cap", type=float, default=1.0, help="the audit odds' cap on doubling (1.2.0 §2.4: 1.0; 1.1.0: 0.5)")
     ap.add_argument("--p-floor", type=float, default=Params.p_floor, help="the audit rate's floor (§8.3; Appendix A 0.5 from November 6, 2026 — the economy reviewer's defaults move after run 42's read; 0.2 before)")

@@ -103,6 +103,7 @@ class Actor:
     susp_started: Optional[int] = None
     readmitted_at: Optional[int] = None
     arrived_at: Optional[int] = None    # 2.3.0 §2.1: an arrival (None for a genesis actor)
+    real_marks: int = 0                 # addendum 31 (Params.real_miss_mark): the misses on real work marked on this record — read apart, nothing else moves
     admitted_at: Optional[int] = None   # 2.3.0 §2.1: when the arrival's record admitted it to membership
     _world: object = None
 
@@ -525,6 +526,12 @@ class World:
         self.confirmations_sampled: int = 0
         self.confirmations_overturned: int = 0
         self.lenient_bonds_kept: int = 0
+        # addendum 31 (November 18, 2026; notes §126): the mark for a miss on real work and the second filing — readings, under their flags
+        self.real_miss_marks: int = 0
+        self.second_filings: int = 0
+        self.second_filings_won: int = 0
+        self.second_filings_lost: int = 0
+        self.second_windows_lapsed: int = 0
         self.plant_mint_by_kind: dict = {"dial": 0.0, "approval": 0.0, "lie": 0.0, "rev": 0.0}
         self.plant_retire_by_kind: dict = {"dial": 0.0, "approval": 0.0, "lie": 0.0, "rev": 0.0}
         self.plants_created = 0
@@ -2052,6 +2059,34 @@ class World:
         c.assessments.append((self.t, challenger, N, "dispute"))
         self._log(c, f"{challenger} disputes the approval")
 
+    def second_filing(self, cid: str, challenger: str):
+        """The buyer's complaint on the ruled road (brief A1, addendum 31, AK10 — Baruchi's agreed read; `Params.second_filing`, off in every run of record;
+        no rule): a party whose appeal or dispute a member panel confirmed may go on to the deciding verdict within T_second ticks of the confirmation.
+        The court fee D is put down again at the filing and locked on the challenger: kept by Ω if the deciding verdict confirms the panel, released if
+        it overturns (the first fee then returns from the overturned reviewer's bond, as today). The same challenge record continues — one round, no
+        new filing; the confirming panel's member seats are overturned by the deciding verdict where they differ, as every escalated panel's are, and
+        the orchestrator's own seats never. A plant's challenge resolves by its truth at the panel and never reaches here."""
+        c = self._case(cid)
+        if not self.p.second_filing:
+            raise RuleError("second_filing: not admitted (Params.second_filing is off)")
+        ch = c.challenge
+        if ch is None or ch["resolved"] or ch.get("confirmed_at") is None or ch.get("escalated"):
+            raise RuleError("second_filing: no panel confirmation awaits a second filing on this case")
+        if c.plant is not None:
+            raise RuleError("second_filing: a plant's challenge resolves by its truth")
+        if challenger != ch["challenger"]:
+            raise RuleError("second_filing: only the challenger may go on")
+        if self.t > ch["second_deadline"]:
+            raise RuleError("second_filing: the window closed")
+        if self.ledger.wallet(challenger).U + 1e-9 < c.D:
+            raise LedgerError(f"second_filing: {challenger} cannot fund the court fee {c.D}")   # validate before any change
+        self.ledger.lock(challenger, c.D, key=f"second:{c.id}", case=c.id, note=f"court fee (second filing, {ch['kind']})")
+        ch["escalated"], ch["second"], ch["second_filed_at"] = True, True, self.t
+        self.second_filings += 1
+        self.history.append("challenge", {"t": self.t, "case": c.id, "kind": ch["kind"], "challenger": challenger, "msg": "second filing"})
+        self._log(c, f"second filing by {challenger}: the {ch['kind']} goes on to the deciding verdict")
+        self._open_deciding(c, "second_filing")
+
     def _audit_result(self, c: Case, r: Review):
         if c.plant is None and not self.is_system_reviewer(r.reviewer):
             # 2.9.0 §2.2 as ruled after run 38 (Appendix V): a real approval audited by a member is the planted approvals' base — π^A credited
@@ -2096,6 +2131,8 @@ class World:
             return
         if c.deciding is not None and not c.deciding["resolved"]:
             return                                      # A1: the deciding verdict settles it
+        if ch.get("confirmed_at") is not None and not ch.get("escalated"):
+            return                                      # addendum 31: the panel's confirmation held for the second filing (the filing or the window's close settles it)
         done = [self.reviews[r] for r in ch["reviews"] if self.reviews[r].status == "done"]
         if len(done) < 2:
             return
@@ -2121,6 +2158,13 @@ class World:
                 self._open_deciding(c, "sample_panel")
                 return
             if both_confirm:
+                if self.p.second_filing and ch.get("challenger") is not None and c.plant is None:
+                    # addendum 31 (Params.second_filing): the confirmation is held — the challenger may go on to the deciding verdict within T_second
+                    ch["confirmed_at"], ch["second_deadline"] = self.t, self.t + self.p.T_second
+                    self.history.append("challenge", {"t": self.t, "case": c.id, "kind": ch["kind"], "msg": "the panel confirms; the second filing open",
+                                                      "until": ch["second_deadline"]})
+                    self._log(c, f"the panel confirms; {ch['challenger']} may go on to the deciding verdict by tick {ch['second_deadline']} (second filing)")
+                    return
                 self._settle_challenge(c, outcome=c.verdict, by="appeal reviewers")
                 return
             ch["escalated"] = True
@@ -2170,11 +2214,22 @@ class World:
             original_overturned = (objection == REJECTED)
         else:
             original_overturned = (c.verdict != outcome)
+        ir = None
         if original_overturned:
             if c.is_root:
-                self._overturn_review(c, self._initial_review(c), pay_fee_to=challenger)
+                ir = self._initial_review(c)
+                self._overturn_review(c, ir, pay_fee_to=challenger)
             else:
                 self._overturn_requester_verdict(c, pay_fee_to=challenger)
+        if ch.get("second"):
+            # addendum 31 (Params.second_filing): the second fee — released to the challenger where the deciding verdict overturned, Ω's where it confirmed
+            if original_overturned:
+                self.ledger.release(challenger, c.D, key=f"second:{c.id}", case=c.id, note="court fee (second filing) returned")
+                self.second_filings_won += 1
+            else:
+                self.ledger.transfer_locked(challenger, Ledger.OMEGA, c.D, key=f"second:{c.id}", case=c.id, note="court fee (second filing) forfeited")
+                self.second_filings_lost += 1
+                self._service_omega_claims()
         self._release_attached_reviewer(c)
         for rid in ch["reviews"]:
             r = self.reviews[rid]
@@ -2197,6 +2252,27 @@ class World:
         else:
             c.state = "PENDING"
             self._release_capacity(c)
+        if self.p.real_miss_mark and ir is not None and by == "deciding verdict" and c.plant is None and c.verdict == F:
+            self._mark_real_miss(c, ir)
+
+    def _mark_real_miss(self, c: Case, r: Review):
+        """The mark for a miss on real work (brief A1, addendum 31, AK10 — Baruchi's agreed read; `Params.real_miss_mark`, off in every run of record;
+        no rule): the approval of a real root that the deciding verdict overturned is entered on its first reviewer's planted record as a wrong verdict
+        on a planted bad case — the trailing window the earned seats, the suspension, an arrival's admission and the readmission read — at any
+        standing, and the record is re-checked as after a plant. Nothing else of real work enters: no rejection, no verdict that stood, nothing at the
+        audit or panel seats; a wrong deciding verdict marks as a right one does (a court's error becomes a mark). The troops keep no record."""
+        a = self.actors.get(r.reviewer)
+        if a is None:
+            return
+        a.plant_bad.append((self.t, True))
+        if len(a.plant_bad) > self.p.n_P:
+            del a.plant_bad[: len(a.plant_bad) - self.p.n_P]
+        a.real_marks += 1
+        self.real_miss_marks += 1
+        self.history.append("real_miss_mark", {"t": self.t, "case": c.id, "actor": a.id, "review": r.id,
+                                               "msg": "an approval of real work overturned by the deciding verdict, entered on the planted record"})
+        self._log(c, f"a miss on real work marked on {a.id}'s record ({r.id}; Params.real_miss_mark)")
+        self._check_record(a, failed=True)
 
     def _overturn_review(self, c: Case, r: Review, pay_fee_to: Optional[str]):
         r.status = "overturned"
@@ -2781,6 +2857,14 @@ class World:
         for r in list(self._live_reviews.values()):
             if r.status == "open" and tick >= r.deadline:
                 self._withdraw_review(r)
+        if self.p.second_filing:
+            # addendum 31: a panel's confirmation held for the second filing is final at the window's close with no filing
+            for c in list(self._live_cases.values()):
+                ch = c.challenge
+                if ch is not None and not ch["resolved"] and ch.get("confirmed_at") is not None and not ch.get("escalated") and tick >= ch["second_deadline"]:
+                    self.second_windows_lapsed += 1
+                    self._log(c, "no second filing by the window's close: the panel's confirmation is final")
+                    self._settle_challenge(c, outcome=c.verdict, by="appeal reviewers")
         # step 3: vesting and settlement, one emission batch
         if self.p.plants_every_seat:
             # 2.8.0 §2.2: the vesting step finalizes a bad plant N by truth where a real case would vest — its F pending to the window's

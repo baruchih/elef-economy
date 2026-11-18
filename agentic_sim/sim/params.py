@@ -240,6 +240,18 @@ class Params:
                                         # audit obligation discharged with no seat; `planted_approval` off (its base is zero by construction)
     state_bench: bool = False           # arm 3: an appeal or dispute on a member's delivery is decided by the deciding verdict at the filing's pass;
                                         # no member panel; plants file no challenge (the truthful ones included)
+    # Brief A1, addendum 31 (November 18, 2026; notes §126): two reads Baruchi agreed, each behind an option that is off in every run of record —
+    # built on the trusted ruling (the deciding verdict); neither is a rule. Off, the engine is 2.9.0 to the hash.
+    real_miss_mark: bool = False        # the mark for a miss on real work: an approval of a real root that the deciding verdict overturns is entered on its
+                                        # first reviewer's planted record as a wrong verdict on a planted bad case, at any standing, and the record is
+                                        # re-checked as after a plant; nothing else of real work enters — no rejection, no verdict that stood, nothing at
+                                        # the audit or panel seats (the troops keep no record)
+    second_filing: bool = False         # the buyer's complaint on the ruled road: a challenger whose appeal or dispute a member panel confirmed may go on
+                                        # to the deciding verdict within T_second ticks of the confirmation, the court fee D put down again at the filing
+                                        # (locked; kept by Ω if the deciding verdict confirms, released if it overturns); the confirmation is final at the
+                                        # window's close with no filing; the same challenge record continues (one round); a plant's challenge resolves by
+                                        # its truth at the panel and never reaches it
+    T_second: int = 2                   # the second filing's window after the panel's confirmation (an open number of the rulebook; T_resp's length taken)
 
     def __post_init__(self):
         if self.dial_start is not None:
@@ -255,6 +267,10 @@ class Params:
         # A1: the arms are built on arm 1; the state's audit turns the planted approval off
         if (self.sampled_confirmation > 0 or self.lenient_false_alarm or self.state_audit or self.state_bench) and not self.trusted_ruling:
             raise ValueError("Params: A1's arms 1b, 1c, 2, 3 and 4 are built on the trusted ruling (trusted_ruling=True)")
+        if (self.real_miss_mark or self.second_filing) and not self.trusted_ruling:
+            raise ValueError("Params: the mark for a miss on real work and the second filing are built on the trusted ruling (trusted_ruling=True)")
+        if self.T_second < 1:
+            raise ValueError("Params: T_second must be at least one tick")
         if self.state_audit:
             self.planted_approval = False
         # 2.4.0 §2.3 (I33): the arrival float exists so that an arrival can post the reviewer's bond — a constraint on the parameters,

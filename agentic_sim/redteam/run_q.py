@@ -258,6 +258,7 @@ def episode(env, policy, seed, rng):
         work["learner_slots_json"] = row["learner_slots_json"]
         if row.get("seats_by_kind_json"):
             work["bad_met_first_json"] = row.get("bad_met_first_json")   # addendum 24's AD4.1 (November 17, 2026): the bad deliveries by their first reviewer's kind and a wrong first approval's fate
+            for _k in ("pair_meet_json", "pair_fail_json", "pick_json"): work[_k] = row.get(_k)   # addendum 28 (November 18, 2026): how often one pair meets, the shared failed planted cases, the picks by group
             work["seats_by_kind_json"] = row["seats_by_kind_json"]   # addendum 15's P3.4 (November 16, 2026): the deciding verdicts by reason and kind and the panel seats by holder and kind, at a vested real root's closure
     if env.role == "reviewer":                                     # addendum 9: the world's readings kept for a single learner slot too (the loop's leak, overhead and the bank's names line beside an operator)
         for k in WORLD_KEYS:

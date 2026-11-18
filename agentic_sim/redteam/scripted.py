@@ -5,6 +5,7 @@ from __future__ import annotations
 import hashlib
 
 from redteam.obs import IDX
+from drivers.stamping import slot_group                      # addendum 28's AH5: the slot's group, one function with the driver's seating by group
 
 
 class MixPolicy:
@@ -61,9 +62,9 @@ class ConductPolicy(DosePolicy):
     member claims on it, at the first review, the audit seat and the panels alike, a planted case included), and is careful at the other cases with the
     careful's own error drawn as now; on probation it is careful, as conduct M is. No coin of the episode's rng is drawn for the claim."""
     def __init__(self, q, mode):
-        super().__init__(q); self.mode = mode; self.held = True; self.case = None; self.seed = None
+        super().__init__(q); self.mode = mode; self.held = True; self.case = None; self.seed = None; self.identity = None
     def set_identity(self, identity, seed):
-        self.seed = seed
+        self.seed, self.identity = seed, identity
     def set_info(self, info):
         super().set_info(info); self.held = bool(info.get("panel_eligible", True)); self.case = info.get("case")
     def __call__(self, obs, rng):
@@ -71,6 +72,9 @@ class ConductPolicy(DosePolicy):
         if not (obs[IDX["own_member"]] > 0.5 and obs[IDX["own_probationer"]] < 0.5): return 0
         if self.mode == "C":
             h = int.from_bytes(hashlib.md5(f"{self.seed}:{self.case}".encode()).digest()[:2], "big")
+            return 3 if h < self.q * 65536 else 0
+        if self.mode == "CG":                                   # addendum 28's AH5 (November 18, 2026): `caseG<q>` — the claims set by the case under the slot's group's salt (drivers.stamping.slot_group)
+            h = int.from_bytes(hashlib.md5(f"{self.seed}:g{slot_group(self.identity, self.seed)}:{self.case}".encode()).digest()[:2], "big")
             return 3 if h < self.q * 65536 else 0
         if self.mode in ("F", "G") and obs[IDX["own_plant_failures"]] < 0.05: return 0
         if self.mode == "G" and self.held: return 0
@@ -86,6 +90,8 @@ def scripted_of(name, make):
         return ConductPolicy(name[5:], name[4])
     if name.startswith("caseM"):
         return ConductPolicy(name[5:], "C")                     # addendum 22's AB7: the claims set by the case
+    if name.startswith("caseG"):
+        return ConductPolicy(name[5:], "CG")                    # addendum 28's AH5: the claims set by the case under the slot's group's salt
     if name.startswith("dose"):
         rest = name[4:]; seats = "audit" if rest.endswith("audit") else ("first" if rest.endswith("first") else None)
         return DosePolicy(rest[:-5] if seats in ("audit", "first") else rest, seats)

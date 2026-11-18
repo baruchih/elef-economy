@@ -97,6 +97,7 @@ vested / final N, the gain from trade, brokers (parents delegating more than hal
 """
 from __future__ import annotations
 import argparse
+import hashlib
 import json
 import math
 import os
@@ -109,6 +110,13 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from sim import Params, World, RuleError, LedgerError, check_all   # noqa: E402
 from sim.engine import F, N, P, BOT, PLANT                          # noqa: E402
 from drivers.view import Public                                     # noqa: E402
+
+
+def slot_group(name: str, seed: int) -> int:
+    """Addendum 28's AH5 (November 18, 2026): a slot's group for the seating by group — a second salt on the seed and the slot's name (the first byte of the md5 of
+    `<seed>:group:<name>`, its lowest bit), about half the slots in each group, the same names in every read at a seed. The conduct `caseG<q>` (redteam.scripted) reads
+    the same function so that its group's set of cases is its own: two salts, two sets, a case in both about q² of the time. A harness construction, no rule."""
+    return hashlib.md5(f"{seed}:group:{name}".encode()).digest()[0] & 1
 from drivers.results import RunRecorder                             # noqa: E402
 
 CAREFUL, STAMPER = "careful", "stamper"
@@ -565,6 +573,7 @@ class Stamping:
                   # addendum 24 (November 17, 2026; AD4.4): the appeals an actor wanted and could not fund — the court fee and the actor's unlocked balance at the time (real), and the
                   # rejections of good work among them; AD4.2: the state's first-review seats, counted apart from its audit and panel seats
                   "appeals_unfunded_fee": 0.0, "appeals_unfunded_wallet": 0.0, "false_rejections_unfunded": 0, "troop_initial_seats": 0,
+                  "pick_audit_same": 0, "pick_audit_other": 0, "pick_audit_fallback": 0, "pick_audit_nofirst": 0, "pick_panel_same": 0, "pick_panel_other": 0, "pick_panel_fallback": 0, "pick_panel_nofirst": 0,   # addendum 28's AH5: the picks by the group of the first reviewer
                   "false_rejections_total": 0, "false_rejections_appealed": 0, "false_rejections_overturned": 0,
                   "true_rejections_appealed": 0, "true_rejections_overturned": 0,
                   "duty_short_of_bond_ticks": 0,   # Σ over ticks of on-duty actors that cannot fund G^V (q6 solvency)
@@ -669,7 +678,9 @@ class Stamping:
         # standing ("good") or suspended or on probation ("down") — tallied once a tick from the actor's standing; a reading, nothing moves
         self.slot_standing: dict[str, dict[str, float]] = {}
         self.seats_by_kind: dict[str, int] = {}                     # addendum 15's P3.4: at a vested real root's closure
-        self.bad_met_first: dict[str, int] = {}                     # addendum 24's AD4.1: the bad deliveries by their first reviewer's kind, and a wrong first approval's fate
+        self.bad_met_first: dict[str, int] = {}
+        self.pair_meet: dict[str, list] = {}                        # addendum 28's AH5 (November 18, 2026): `<first reviewer>|<member at its audit seat>` -> the ticks they met (every member audit seat)
+        self.pair_fail: dict[str, list] = {}                        # addendum 28's AH4.2: two member slots that gave a wrong verdict on the same planted case -> the ticks of the reveal                     # addendum 24's AD4.1: the bad deliveries by their first reviewer's kind, and a wrong first approval's fate
         self._slot_last: dict[str, tuple[float, float]] = {}
         self.slot_admission: dict[str, dict[str, float]] = {}   # addendum 12's L3.2: an arrival-born slot's Tally at its admission (what the admission cost and paid)
         self._susp_seen: dict[str, int | None] = {}
@@ -1018,6 +1029,34 @@ class Stamping:
         after = [aid for aid in order if int(aid[1:]) > self.rr_last]
         chosen = (after or order)[0]
         self.rr_last = int(chosen[1:])
+        return chosen
+
+    def _first_member_reviewer(self, c):
+        """The case's first reviewer where it is a slot of the harness (a member's or a probationer's seat; None for the state's or the orchestrator's own)."""
+        for x in c.reviews:
+            r = self.w.review(x)
+            if r.role == "initial" and not getattr(r, "resumed", False):
+                return None if self.w.is_troop(r.reviewer) else r.reviewer      # a departed slot keeps its name and its group
+        return None
+
+    def pick_seat(self, c, el: list[str], kind: str) -> str:
+        """Addendum 28's AH5 (November 18, 2026): the audit and panel picks by group — `--seat-group off` is today's pick (`pick_reviewer`, nothing read); `read` is today's
+        pick with the pick's group read beside the first reviewer's (`pick_<kind>_same` / `_other`; `_nofirst` where the first seat was the state's); `prefer` takes today's
+        pick among the free panel-eligible members of the other group from the first reviewer's where one is free (`_other`) and today's pick among all where none is
+        (`_fallback`). The round-robin pointer moves to the pick made, as today. A construction in the harness: ELEF does not know a member's model."""
+        if self.a.seat_group == "off":
+            return self.pick_reviewer(el)
+        first = self._first_member_reviewer(c)
+        if first is None:
+            self.c[f"pick_{kind}_nofirst"] += 1; return self.pick_reviewer(el)
+        g = slot_group(first, self.a.seed)
+        if self.a.seat_group == "prefer":
+            other = [x for x in el if slot_group(x, self.a.seed) != g]
+            if other:
+                self.c[f"pick_{kind}_other"] += 1; return self.pick_reviewer(other)
+            self.c[f"pick_{kind}_fallback"] += 1; return self.pick_reviewer(el)
+        chosen = self.pick_reviewer(el)
+        self.c[f"pick_{kind}_same" if slot_group(chosen, self.a.seed) == g else f"pick_{kind}_other"] += 1
         return chosen
 
     def duty_funding(self):
@@ -1814,6 +1853,7 @@ class Stamping:
             alive = x in self.actors
             wealth = ((w.wealth(x) - min(w.wealth(x), w.loan_outstanding(x))) * real) if alive else self.depart_wealth_real.get(x, 0.0)
             out[x] = {"alive": int(alive), "wealth_real": round(wealth, 3), "private_real": round(self.learner_private_real_of.get(x, 0.0), 3),
+                      **({"group": slot_group(x, self.a.seed)} if self.a.seat_group != "off" else {}),   # addendum 28's AH5: the slot's group where the seating reads groups
                       "claims": self.learner_claims_of.get(x, 0), "suspensions": len(self.susp_log.get(x, [])), "cost": round(self.c_d_of.get(x, 0.0), 3),
                       "susp_ticks": [int(t) for t in self.susp_log.get(x, [])],   # addendum 10's J3.3 (November 13, 2026): the ticks at which its suspensions began
                       **{k: (round(v, 3) if isinstance(v, float) else v) for k, v in self.slot_standing.get(x, {}).items()},   # addendum 11's K3: by standing
@@ -2773,7 +2813,9 @@ class Stamping:
                     # A1 arm 2: the audit of a member's work is the orchestrator's seat in the engine's pass; a plant's obligation discharged there
                     el = self.eligible_reviewers(cid, panel=True)
                     if el:
-                        rid = w.assign_audit(cid, self.pick_reviewer(el))
+                        _ch_ = self.pick_seat(c, el, "audit"); rid = w.assign_audit(cid, _ch_)
+                        _f_ = self._first_member_reviewer(c)                                   # addendum 28's AH5: how often one pair meets (a first reviewer and the member at its audit seat)
+                        if _f_ is not None: self.pair_meet.setdefault(f"{_f_}|{_ch_}", []).append(int(w.t))
                         self.c["seated_audit_member"] += 1
                         self.review_owner[rid] = w.review(rid).reviewer
                         task.audit_wanted, task.t_audit_assign = False, w.t
@@ -2793,7 +2835,7 @@ class Stamping:
                     if c.challenge.get("escalated"):
                         pass                                 # A1: the deciding verdict holds this challenge — no member seat, no ruling
                     elif el:
-                        rid = w.assign_appeal(cid, self.pick_reviewer(el))
+                        rid = w.assign_appeal(cid, self.pick_seat(c, el, "panel"))
                         self.c["seated_appeal_member"] += 1
                         self.review_owner[rid] = w.review(rid).reviewer
                         if task.t_panel_assign is None:
@@ -3029,6 +3071,7 @@ class Stamping:
                         self.c["pa_state_audit"] += sum(1 for s_ in c.plant_state_seats if s_[1] == "audit")   # 0 since the ruling after run 38
                         self.c["pa_unseated"] += int(bool(c.pa_unseated))
                         self.c["pa_pass_would_audit"] += int(bool(c.pa_pass_would_audit))
+                        _fails_ = []                                                 # addendum 28's AH4.2: the member slots that gave a wrong verdict on this planted case
                         for (_t, rid, kind, _v, outcome) in c.plant_adjudications:
                             if outcome not in ("stood", "failure"):
                                 continue
@@ -3041,12 +3084,16 @@ class Stamping:
                                 self.pfail_ticks.setdefault(rv.reviewer, []).append(int(w.t))   # addendum 15's P3.3
                                 _m = self.slot_review_meta.get(rid)                                   # addendum 20: by the review's standing and seat
                                 if _m: _d = self.slot_reviews.setdefault(_m[0], {}); _d[f"pw_{_m[1]}_{_m[2]}"] = _d.get(f"pw_{_m[1]}_{_m[2]}", 0) + 1
+                                if _m and _m[1] == "member": _fails_.append(_m[0])
                                 if _m and _m[1] == "member":   # addendum 26's AE3.3: the slot's first wrong planted verdict as a member — the planted bad cases its window held at that verdict (this one included), the seat, and whether it holds the earned seats when the driver learns of it at the reveal
                                     _n = self.slot_review_pb.get(rid, 0)
                                     if "pf_first_member_n" not in _d or _n < _d["pf_first_member_n"]:
                                         _d["pf_first_member_n"] = _n; _d["pf_first_member_seat"] = _m[2]; _d["pf_first_member_t"] = int(w.t); _d["pf_first_member_elig"] = (int(w.actor(_m[0]).panel_eligible) if _m[0] in self.actors else -1)
                                 self.c[f"plant_seat_failures_{kind}"] += 1
                                 self.c[f"plant_fail_bad_{kind}"] += 1                        # a planted approval is bad work by construction
+                        for _i_ in range(len(_fails_)):
+                            for _j_ in range(_i_ + 1, len(_fails_)):
+                                if _fails_[_i_] != _fails_[_j_]: self.pair_fail.setdefault("|".join(sorted((_fails_[_i_], _fails_[_j_]))), []).append(int(w.t))
                         self.c["plant_seats_state"] += len(c.plant_state_seats)
                         self._life_close(c, task)
                     if c.plant_outcome in ("planted", "state"):
@@ -3058,6 +3105,7 @@ class Stamping:
                             self.c["bad_plants_approved" if c.plant is False else "good_plants_rejected"] += 1   # the truth sealed at posting (the initial seat's)
                         else:
                             self.c["plants_stood"] += 1
+                        _fails_ = []                                                 # addendum 28's AH4.2: the member slots that gave a wrong verdict on this planted case
                         for (_t, rid, kind, _v, outcome) in c.plant_adjudications:
                             if outcome not in ("stood", "failure"):
                                 continue
@@ -3070,6 +3118,7 @@ class Stamping:
                                 self.pfail_ticks.setdefault(rv.reviewer, []).append(int(w.t))   # addendum 15's P3.3
                                 _m = self.slot_review_meta.get(rid)                                   # addendum 20: by the review's standing and seat
                                 if _m: _d = self.slot_reviews.setdefault(_m[0], {}); _d[f"pw_{_m[1]}_{_m[2]}"] = _d.get(f"pw_{_m[1]}_{_m[2]}", 0) + 1
+                                if _m and _m[1] == "member": _fails_.append(_m[0])
                                 if _m and _m[1] == "member":   # addendum 26's AE3.3: the slot's first wrong planted verdict as a member — the planted bad cases its window held at that verdict (this one included), the seat, and whether it holds the earned seats when the driver learns of it at the reveal
                                     _n = self.slot_review_pb.get(rid, 0)
                                     if "pf_first_member_n" not in _d or _n < _d["pf_first_member_n"]:
@@ -3082,6 +3131,9 @@ class Stamping:
                                 self.c[f"lie_adj_{kind}"] += 1
                                 if outcome == "failure":
                                     self.c[f"lie_sided_{kind}"] += 1
+                        for _i_ in range(len(_fails_)):
+                            for _j_ in range(_i_ + 1, len(_fails_)):
+                                if _fails_[_i_] != _fails_[_j_]: self.pair_fail.setdefault("|".join(sorted((_fails_[_i_], _fails_[_j_]))), []).append(int(w.t))
                         self.c["plant_seats_state"] += len(c.plant_state_seats)
                         self._life_close(c, task)
                     else:
@@ -3245,6 +3297,9 @@ class Stamping:
                                 _by = {"deciding verdict": "deciding", "appeal reviewers": "panel", "orchestrator": "ruling"}.get(_ch.get("by"), "audit" if _aud else "none")
                                 _k = f"fa_{_who}_{_cl}_" + (f"overturned_{_at}_by_{_by}" if _ir.status == "overturned" else f"paid_{_at}")
                                 _bm[_k] = _bm.get(_k, 0) + 1; _bm[f"fa_{_who}_{_cl}"] = _bm.get(f"fa_{_who}_{_cl}", 0) + 1
+                                if self.a.seat_group != "off" and _who == "member":   # addendum 28's AH5: the holder of the audit by the first reviewer's group (the same group, the other, the state; none where never audited)
+                                    _hg = (("state" if w.is_troop(_aud[0].reviewer) else ("same" if slot_group(_aud[0].reviewer, self.a.seed) == slot_group(_ir.reviewer, self.a.seed) else "other")) + ("_differed" if _aud[0].verdict != F else "_confirmed")) if _aud else "none"
+                                    _kg = f"fag_{_cl}_{'overturned' if _ir.status == 'overturned' else 'paid'}_{_hg}"; _bm[_kg] = _bm.get(_kg, 0) + 1
                     truth_v = F if task.fulfilled else N
                     ch_by = (c.challenge or {}).get("by")
                     for x in revs_c:
@@ -3526,6 +3581,8 @@ class Stamping:
                     "learner_decisions": self.learner_decisions, "learner_false_approvals": self.c["learner_false_approvals"],
                     "seats_by_kind_json": json.dumps(self.seats_by_kind, sort_keys=True),   # addendum 15's P3.4
                     "bad_met_first_json": json.dumps(self.bad_met_first, sort_keys=True),   # addendum 24's AD4.1
+                    "pair_meet_json": json.dumps(self.pair_meet, sort_keys=True), "pair_fail_json": json.dumps(self.pair_fail, sort_keys=True),   # addendum 28's AH4.2 and AH5: how often one pair meets; two slots failing the same planted case
+                    "pick_json": json.dumps({k: v for k, v in self.c.items() if k.startswith("pick_")}, sort_keys=True),   # addendum 28's AH5: the audit and panel picks by group
                     "learner_claims": self.c["learner_claims"], "learner_claims_initial": self.c.get("learner_claims_initial", 0), "learner_claims_audit": self.c.get("learner_claims_audit", 0),
                     "learner_claims_appeal": self.c.get("learner_claims_appeal", 0), "learner_claims_resumed": self.c.get("learner_claims_resumed", 0),
                     "allowance_claimed": self.c["allowance_claimed"], "learner_private_real": round(self.learner_private_real, 3),   # the stressed world (step 3)
@@ -3804,6 +3861,8 @@ def build_parser():
     ap.add_argument("--t-susp", type=int, default=100, help="T_susp, the suspension length before probation (1.3.0 Appendix A: 100; run 9's addendum sweeps 0, 50, 100)")
     ap.add_argument("--theta-panel", type=float, default=0.20, help="θ_panel, the panel tier's bad-plant approval threshold (1.6.0 §8 sweeps 0.15)")
     ap.add_argument("--theta-duty", type=float, default=0.50, help="Params.theta_duty, the suspension's threshold on the trailing plant record (1.2.0 Appendix A: 0.50; the record read from n_min bad plants on, a_hat = (wrong + 1)/(n + 2)) — exposed November 17, 2026 for addendum 22's cells (0.34: a second wrong planted verdict suspends while the window holds no more than six; 0.20: the earned seats' own threshold, a first wrong verdict suspends while it holds no more than seven); a harness option on a parameter of record, 0.50 in every run of record. The engine reads it at duty eligibility (every assignment and the rotation), at the count E_t of the members eligible for duty (the members' cap and the seats' sizing), at an arrival's admission, at the readmission after a suspension and at the suspension itself")
+    ap.add_argument("--seat-group", choices=["off", "read", "prefer"], default="off",
+                    help="addendum 28's AH5 (November 18, 2026; a harness construction, no rule): off — today's picks, nothing read; read — today's picks, every slot's group (a second salt on the seed and the name) read beside the first reviewer's at the audit and panel picks; prefer — the audit and panel picks take a free panel-eligible member of the other group from the first reviewer's where one is free, today's pick where none is")
     ap.add_argument("--record-window", type=int, default=20, help="n_P, the plant record's trailing window (1.6.0 §8 sweeps 12)")
     ap.add_argument("--withdraw-after", type=int, default=0,
                     help="1.6.0 §8 red team: H withdraws an unawarded request older than this many ticks (0: never)")

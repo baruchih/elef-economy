@@ -68,7 +68,7 @@ REV_POP_KEYS = tuple(dict.fromkeys(POP_KEYS + ("troop_deliveries", "troop_delive
                                              "pa_state_audit", "pa_state_would_seat", "pa_unseated", "pa_pass_would_audit", "plant_lies_coin", "plant_lies_floor",
                                              "life_real_filing_pos", "life_plant_filing_pos", "life_lie_filing_pos",   # the rulings after runs 38–39
                                              "plant_lies_filed_appeal", "plant_lies_filed_dispute", "lie_adj_appeal",
-                                             "lie_sided_appeal", "lie_adj_dispute", "lie_sided_dispute", "pi_A", "m_A", "pi_La", "m_La", "pi_Ld", "m_Ld",
+                                             "lie_sided_appeal", "lie_adj_dispute", "lie_sided_dispute", "pi_A", "m_A", "pi_La", "m_La", "pi_Ld", "m_Ld", "m", "pi", "m_mean", "pi_mean",   # addendum 30's AJ6: the dial's level at the end and over the periods
                                              "F_hat_A", "F_hat_La", "F_hat_Ld", "obligations_discharged", "bad_met_initial", "bad_met_audit", "bad_met_third",
                                              "bad_met_appeal", "bad_met_dispute", "bad_met_resumed", "panel_ineligible_member_periods", "member_periods",
                                              "plant_mint_dial", "plant_mint_approval", "plant_mint_lie", "plant_mint_rev", "cost_of_truth")))   # 2.8.0 §8.7 (c): the appeal layer, and the lies (--appeal-lie / --dispute-lie) with their wins

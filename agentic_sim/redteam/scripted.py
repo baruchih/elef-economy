@@ -60,19 +60,28 @@ class ConductPolicy(DosePolicy):
     falls under the dose (the first two bytes of the md5 of the seed and the case's public identifier, read against q × 65536 as the mix's share is — the seed's
     salt so that the cases claimed on differ between seeds; the public identifier is the same at every seat of a case, so every slot that meets the case as a
     member claims on it, at the first review, the audit seat and the panels alike, a planted case included), and is careful at the other cases with the
-    careful's own error drawn as now; on probation it is careful, as conduct M is. No coin of the episode's rng is drawn for the claim."""
-    def __init__(self, q, mode):
-        super().__init__(q); self.mode = mode; self.held = True; self.case = None; self.seed = None; self.identity = None
+    careful's own error drawn as now; on probation it is careful, as conduct M is. No coin of the episode's rng is drawn for the claim.
+    Addendum 30's AJ6 (November 18, 2026; on Baruchi's word): `caseM<q>p<qP>` — conduct M with its claims set by the case at a dose of q on real cases and of q_P on planted *bad* cases
+    (a planted good case goes as a real one, at q); one hash of the case (the seed's salt and the public identifier) read against the dose of the case's kind, so with q_P = q it is
+    caseM<q> to the digit; careful on probation. The case's kind is read from the env's info (`is_plant`, `fulfilled` — the driver's own record, `run.tasks[cid].plant` and the plant's
+    truth), outside the drivers' convention and declared so: the conduct stands for a model that fails ELEF's planted tasks at another rate than it fails real work. Named with `p`, not a
+    colon, since the mix wrapper splits its name on colons (`mix:caseM0.2p0:0.75`)."""
+    def __init__(self, q, mode, qp=None):
+        super().__init__(q); self.mode = mode; self.held = True; self.case = None; self.seed = None; self.identity = None; self.qp = (float(qp) if qp is not None else None); self.is_plant = False; self.fulfilled = True
     def set_identity(self, identity, seed):
         self.seed, self.identity = seed, identity
     def set_info(self, info):
-        super().set_info(info); self.held = bool(info.get("panel_eligible", True)); self.case = info.get("case")
+        super().set_info(info); self.held = bool(info.get("panel_eligible", True)); self.case = info.get("case"); self.is_plant = bool(info.get("is_plant", False)); self.fulfilled = bool(info.get("fulfilled", True))
     def __call__(self, obs, rng):
         if obs[IDX["decision_boundary"]] > 0.5: return 0
         if not (obs[IDX["own_member"]] > 0.5 and obs[IDX["own_probationer"]] < 0.5): return 0
         if self.mode == "C":
             h = int.from_bytes(hashlib.md5(f"{self.seed}:{self.case}".encode()).digest()[:2], "big")
             return 3 if h < self.q * 65536 else 0
+        if self.mode == "CP":                                   # addendum 30's AJ6 (November 18, 2026; Baruchi's word of November 18): `caseM<q>p<qP>` — the claims set by the case under two doses
+            dose = self.qp if (self.is_plant and not self.fulfilled) else self.q    # a planted bad case at q_P; a real case and a planted good case at q (the plant flag and its truth from the driver's own record, outside the convention)
+            h = int.from_bytes(hashlib.md5(f"{self.seed}:{self.case}".encode()).digest()[:2], "big")   # one hash of the case, as caseM's: with the two doses equal the conduct is caseM<q> to the digit
+            return 3 if h < dose * 65536 else 0
         if self.mode == "CG":                                   # addendum 28's AH5 (November 18, 2026): `caseG<q>` — the claims set by the case under the slot's group's salt (drivers.stamping.slot_group)
             h = int.from_bytes(hashlib.md5(f"{self.seed}:g{slot_group(self.identity, self.seed)}:{self.case}".encode()).digest()[:2], "big")
             return 3 if h < self.q * 65536 else 0
@@ -89,6 +98,8 @@ def scripted_of(name, make):
     if name.startswith("doseM") or name.startswith("doseF") or name.startswith("doseG"):
         return ConductPolicy(name[5:], name[4])
     if name.startswith("caseM"):
+        if "p" in name[5:]:                                       # addendum 30's AJ6: `caseM<q>p<qP>` — the dose on real cases, then the dose on planted bad cases (no colon: the mix wrapper's own)
+            q_, qp_ = name[5:].split("p", 1); return ConductPolicy(q_, "CP", qp=qp_)
         return ConductPolicy(name[5:], "C")                     # addendum 22's AB7: the claims set by the case
     if name.startswith("caseG"):
         return ConductPolicy(name[5:], "CG")                    # addendum 28's AH5: the claims set by the case under the slot's group's salt

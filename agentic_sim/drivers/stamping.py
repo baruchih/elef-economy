@@ -1036,7 +1036,7 @@ class Stamping:
         for x in c.reviews:
             r = self.w.review(x)
             if r.role == "initial" and not getattr(r, "resumed", False):
-                return None if self.w.is_troop(r.reviewer) else r.reviewer      # a departed slot keeps its name and its group
+                return r.reviewer if (r.reviewer in self.actors or r.reviewer in self.learner_chain_set) else None   # a slot's, alive or departed (its name keeps its group); None for the state's, the orchestrator's alias (`is_troop` does not name it) or any other name
         return None
 
     def pick_seat(self, c, el: list[str], kind: str) -> str:

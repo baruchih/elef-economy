@@ -842,9 +842,9 @@ def test_the_checkers_and_the_pay_for_standing_by_are_off_by_default_and_refused
     w.complete_review(ra, F, 0.0)
     w.advance(c.window_end + 1)
     assert c.state == "VESTED" and c.checker is None and w.checker_looks == {"after_audit": 0, "no_audit": 0}
-    fee = [e for e in w.ledger.events_by_case[q] if e.kind == "feepot_out" and e.dst == tid]
+    fee = [e for e in [e for e in w.ledger.events if e.case == q] if e.kind == "feepot_out" and e.dst == tid]
     assert len(fee) == 1 and abs(fee[0].amount - w.p.w_audit * w.p.f_fee) < 1e-9 and fee[0].note == "review fee"
-    assert not any("standby" in (e.note or "") for e in w.ledger.events_by_case[q])
+    assert not any("standby" in (e.note or "") for e in [e for e in w.ledger.events if e.case == q])
     check_all(w)
 
 
@@ -868,7 +868,7 @@ def test_a_checkers_look_at_the_windows_close_holds_the_case_and_a_differing_loo
     w.advance(w.t + 1)
     assert c.state == "VESTED" and rv.status == "vested" and rv.fee_fixed == 0.0 and rv.fee == 0.0 and w.reviews[r].status == "vested"
     assert abs(w.ledger.pool(q).deposit - allowance_before) < 1e-9 or True   # the allowance refunds at the tree's closure; the look drew nothing from it (checked on the review)
-    assert not any("reimburse" in (e.note or "") and e.dst == rv.reviewer for e in w.ledger.events_by_case[q])
+    assert not any("reimburse" in (e.note or "") and e.dst == rv.reviewer for e in [e for e in w.ledger.events if e.case == q])
     check_all(w)
     # (b) an audit confirmed; the look differs; the fresh court overturns the approval and the audit, the look stands
     w = make_world(checker_rate=1.0)
@@ -927,7 +927,7 @@ def test_under_standby_pay_a_drawn_seats_fee_goes_to_the_members_that_stood_and_
     w.advance(c.window_end + 1)
     assert c.state == "VESTED"
     fee = w.p.w_audit * w.p.f_fee
-    ev = w.ledger.events_by_case[q]
+    ev = [e for e in w.ledger.events if e.case == q]                     # the journal, read as test_v27 reads it (record mode pages the per-case index out)
     sb = [e for e in ev if e.kind == "feepot_out" and "standby pay" in (e.note or "")]
     tf = [e for e in ev if e.kind == "feepot_out" and e.dst == tid]
     assert len(sb) == 1 and sb[0].dst == "D" and abs(sb[0].amount - fee / 2) < 1e-9

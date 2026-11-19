@@ -257,6 +257,10 @@ class Stamping:
             raise SystemExit("--seat-draw and --seat-group are not combined")
         if getattr(a, "draw_min", 0) > 0 and getattr(a, "seat_draw", "off") != "seats":
             raise SystemExit("--draw-min needs --seat-draw seats (addendum 33 (ii): the troops are candidates in the draw)")
+        if getattr(a, "draw_wait", "off") == "on" and getattr(a, "draw_min", 0) <= 0:
+            raise SystemExit("--draw-wait on needs --draw-min K (addendum 34 (v): the wait kept under a minimum)")
+        if getattr(a, "standby_pay", "off") == "on" and getattr(a, "draw_min", 0) <= 0:
+            raise SystemExit("--standby-pay on needs --draw-min K (addendum 34 (iv): the pay where the minimum took a seat from a member that was free)")
         self.drawn_troops: set = set()                               # addendum 33 (ii): the troops seated by the draw (the record tells them from the summoned)
         self.seat_tally: dict[str, int] = {}                         # addendum 33's 6.10: the pool at a seat's first seating step and how the seat was filled
         self.actors = [f"a{i:02d}" for i in range(a.actors)]
@@ -289,6 +293,7 @@ class Stamping:
         p = Params(Res0=a.res0, X=a.on_duty, G_V=a.gv, p_start=a.p_start, p_cap=a.p_cap, p_floor=a.p_floor, p_halve_every=a.p_halve_every, band=a.band, G_frac_nested=a.child_g_frac, bond_mult_later=a.bond_mult_later, w_audit=a.w_audit,
                    real_miss_mark=(a.real_miss_mark == "on"), second_filing=(a.second_filing == "on"), T_second=a.t_second,   # addendum 31's two options (off every run of record)
                    troop_audit_no_vote=(a.troop_no_vote == "on"), troop_draw=(a.draw_min > 0),   # addendum 33's two options (off every run of record)
+                   checker_rate=a.checker_rate, standby_pay=(a.standby_pay == "on"),   # addendum 34's two engine options (off every run of record); (v) is --draw-wait, the harness's
                    record_dir=a.record_dir, f_fee=a.fee, phi_E_root=a.phi_e, phi_F_root=a.phi_f,
                    pi0=a.pi0, pi_max=a.pi_max, dial=(a.dial == "on"), beta_P=a.beta_p, Omega0=a.omega0,
                    membership=rev3, duty_fund=(rev3 and a.fund == "on"), net_plant_capital=rev3, m_max=a.m_max,
@@ -594,7 +599,7 @@ class Stamping:
                   "pick_audit_same": 0, "pick_audit_other": 0, "pick_audit_fallback": 0, "pick_audit_nofirst": 0, "pick_panel_same": 0, "pick_panel_other": 0, "pick_panel_fallback": 0, "pick_panel_nofirst": 0,
                   **{f"pick_{k}_free_{j}": 0 for k in ("audit", "panel") for j in ("sum", "n", "1", "2", "3p")},   # addendum 30's AJ6: the free panel-eligible members at the seat's turn where a member takes it (a reading, every mode)
                   "pick_audit_drawn": 0, "pick_panel_drawn": 0, "pick_audit_troop_drawn": 0, "pick_panel_troop_drawn": 0, "pick_audit_free_0": 0, "pick_panel_free_0": 0,   # addendum 33 (ii): the troops drawn, the pick asked with none free
-                  "seated_audit_troop_drawn": 0, "seated_appeal_troop_drawn": 0, "seated_audit_state_drawn_plant": 0, "seated_appeal_state_drawn_plant": 0, "draw_troop_refused": 0,   # addendum 30's AJ6: the seats drawn among them (`--seat-draw seats`)   # addendum 28's AH5: the picks by the group of the first reviewer
+                  "checker_answers": 0, "seated_audit_troop_drawn_wait": 0, "seated_appeal_troop_drawn_wait": 0, "seated_audit_troop_drawn": 0, "seated_appeal_troop_drawn": 0, "seated_audit_state_drawn_plant": 0, "seated_appeal_state_drawn_plant": 0, "draw_troop_refused": 0,   # addendum 30's AJ6: the seats drawn among them (`--seat-draw seats`)   # addendum 28's AH5: the picks by the group of the first reviewer
                   "false_rejections_total": 0, "false_rejections_appealed": 0, "false_rejections_overturned": 0,
                   "true_rejections_appealed": 0, "true_rejections_overturned": 0,
                   "duty_short_of_bond_ticks": 0,   # Σ over ticks of on-duty actors that cannot fund G^V (q6 solvency)
@@ -2564,6 +2569,8 @@ class Stamping:
                             self.c["troop_panel_seats"] += 1
                         if r.role == "deciding":
                             self.c["deciding_answers"] += 1   # A1: a seat of the deciding verdict, answered as any troop's
+                        if r.role == "checker":
+                            self.c["checker_answers"] += 1    # addendum 34 (iii): the checker's look, answered as any troop's
                         continue
                     on_probation = w.actor(r.reviewer).probation
                     task = self.tasks[cid]
@@ -2888,15 +2895,19 @@ class Stamping:
                     if task.audit_first_step is None:
                         task.audit_first_step = w.t
                         if _tally_seat: self._seat_tally(f"seatpool_audit_{min(len(el), 5)}")
-                    _draw = self.a.draw_min > 0 and not task.planted_approval and not c.market_audit_only   # addendum 33 (ii): troop candidates where the seat can be the state's
+                    _draw = self.a.draw_min > 0 and not task.planted_approval and not c.market_audit_only and (self.a.draw_wait == "off" or bool(el))   # addendum 33 (ii): troop candidates where the seat can be the state's; addendum 34 (v): none drawn where none is free under the wait kept
                     if el or _draw:
                         _ch_ = self.pick_seat(c, el, "audit", troops=_draw)
                         if _ch_ == TROOP_DRAW:
                             try:
-                                _tid = w.draw_troop_seat(cid, "audit")
+                                _tid = w.draw_troop_seat(cid, "audit", stood=list(el))                # addendum 34 (iv): the members that stood, for the seat's fee under --standby-pay
                                 self.c["seated_audit_state_drawn_plant" if _tid == "state" else "seated_audit_troop_drawn"] += 1; self.drawn_troops.add(_tid)
                                 task.audit_wanted, task.t_audit_assign = False, w.t
-                                if _tally_seat: self._seat_tally("seatfill_audit_troop_drawn")
+                                if w.t != task.audit_first_step: self.c["seated_audit_troop_drawn_wait"] += 1   # addendum 34 (v): drawn at a later step
+                                if _tally_seat:
+                                    self._seat_tally("seatfill_audit_troop_drawn")
+                                    if w.t != task.audit_first_step: self._seat_tally("seatfill_audit_troop_drawn_later")
+                                    if el and _tid != "state": self._seat_tally(f"seatstood_audit_{min(len(el), 5)}")   # addendum 34 (iv): members stood and a troop was drawn
                             except (RuleError, LedgerError):
                                 self.c["draw_troop_refused"] += 1; self.c["audit_unassignable_ticks"] += 1   # the summons refused: the seat waits as today
                         else:
@@ -2933,14 +2944,18 @@ class Stamping:
                         if _tally_seat: self._seat_tally(f"seatpool_panel_{min(len(el), 5)}")
                     if c.challenge.get("escalated"):
                         pass                                 # A1: the deciding verdict holds this challenge — no member seat, no ruling
-                    elif el or self.a.draw_min > 0:
+                    elif el or (self.a.draw_min > 0 and self.a.draw_wait == "off"):   # addendum 34 (v): under the wait kept no troop is drawn where none is free
                         _ch_ = self.pick_seat(c, el, "panel", troops=(self.a.draw_min > 0))
                         if _ch_ == TROOP_DRAW:
                             try:
-                                _tid = w.draw_troop_seat(cid, "appeal")                          # addendum 33 (ii): a troop drawn sits the panel seat at once (a plant's: the state's verdict)
+                                _tid = w.draw_troop_seat(cid, "appeal", stood=list(el))          # addendum 33 (ii): a troop drawn sits the panel seat at once (a plant's: the state's verdict); addendum 34 (iv): the members that stood
                                 self.c["seated_appeal_state_drawn_plant" if _tid == "state" else "seated_appeal_troop_drawn"] += 1; self.drawn_troops.add(_tid)
                                 task.panel_seen[_held]["fill"] = "troop_drawn"
-                                if _tally_seat: self._seat_tally("seatfill_panel_troop_drawn")
+                                if w.t != task.panel_seen[_held]["t"]: self.c["seated_appeal_troop_drawn_wait"] += 1   # addendum 34 (v)
+                                if _tally_seat:
+                                    self._seat_tally("seatfill_panel_troop_drawn")
+                                    if w.t != task.panel_seen[_held]["t"]: self._seat_tally("seatfill_panel_troop_drawn_later")
+                                    if el and _tid != "state": self._seat_tally(f"seatstood_panel_{min(len(el), 5)}")
                                 if task.t_panel_assign is None:
                                     task.t_panel_assign = w.t
                             except (RuleError, LedgerError):
@@ -3071,7 +3086,8 @@ class Stamping:
         d = self.slot_reviews.setdefault(x, {})
         def inc(key, n): d[key] = d.get(key, 0.0) + n
         if sign > 0:
-            if k == "feepot_out" and note.endswith("review fee"): cls = "fee"
+            if k == "feepot_out" and "standby pay" in note: cls = "standby"       # addendum 34 (iv): the pay for standing by, read apart from the seat's own fee
+            elif k == "feepot_out" and note.endswith("review fee"): cls = "fee"
             elif k == "fee_out" and note == "emission share": cls = "emission"
             elif k == "transfer" and note == "duty uplift": cls = "uplift"
             elif "court fee" in note: cls = "courtfee"
@@ -3416,6 +3432,13 @@ class Stamping:
                         _aud0 = [x for x in revs_c if x.role == "audit" and x.status != "withdrawn"]
                         _look = ("state" if w.is_troop(_aud0[0].reviewer) else "member") if _aud0 else ("panel" if _ch0.get("kind") == "dispute" else "never")
                         _tr0 = "good" if task.fulfilled else "bad"; _ov0 = _ir0.status == "overturned"
+                        _ck0 = getattr(c, "checker", None) or {}
+                        if _ck0.get("review") is not None:
+                            # addendum 34 (iii): the checker's look on top, read apart — by whether an audit had confirmed, the truth, and what became of it; its overturns
+                            # are not the member's, the state's or nobody's rate (the look came after the community's)
+                            _by0 = "after" if _ck0.get("by") == "after_audit" else "no"
+                            for _k0 in (f"chk_{_by0}_{_tr0}_n", f"chk_{_tr0}_n") + ((f"chk_{_by0}_{_tr0}_over", f"chk_{_tr0}_over") if _ck0.get("outcome") == "overturned" else ()): self.ra_tally[_k0] = self.ra_tally.get(_k0, 0) + 1
+                            if _ck0.get("outcome") == "overturned": _ov0 = False
                         for _k0 in (f"{_look}_{_tr0}_n", f"{_look}_n") + ((f"{_look}_{_tr0}_over", f"{_look}_over") if _ov0 else ()): self.ra_tally[_k0] = self.ra_tally.get(_k0, 0) + 1
                         if _look == "state" and _aud0[0].reviewer in self.drawn_troops:   # addendum 33 (ii): the state's look by the draw, read apart from the summoned
                             for _k0 in (f"statedrawn_{_tr0}_n", "statedrawn_n") + ((f"statedrawn_{_tr0}_over", "statedrawn_over") if _ov0 else ()): self.ra_tally[_k0] = self.ra_tally.get(_k0, 0) + 1
@@ -3590,6 +3613,16 @@ class Stamping:
               "troop_drawn_audit": tr.get("troop_drawn_seats", {}).get("audit", 0), "troop_drawn_appeal": tr.get("troop_drawn_seats", {}).get("appeal", 0),   # addendum 33 (ii)
               "troop_drawn_plant_audit": tr.get("troop_drawn_plant_seats", {}).get("audit", 0), "troop_drawn_plant_appeal": tr.get("troop_drawn_plant_seats", {}).get("appeal", 0),
               "troop_draw_refused": tr.get("troop_draw_refused", 0),
+              # addendum 34 (November 19, 2026; notes §128): the checkers' looks by whether an audit had confirmed the approval, and the pay for standing by
+              "chk_looks_after": tr.get("checker_looks", {}).get("after_audit", 0), "chk_looks_no": tr.get("checker_looks", {}).get("no_audit", 0),
+              "chk_diff_after": tr.get("checker_differed", {}).get("after_audit", 0), "chk_diff_no": tr.get("checker_differed", {}).get("no_audit", 0),
+              "chk_over_after": tr.get("checker_overturned", {}).get("after_audit", 0), "chk_over_no": tr.get("checker_overturned", {}).get("no_audit", 0),
+              "chk_refused": tr.get("checker_refused", 0), "chk_skipped_court": tr.get("checker_skipped_court", 0), "chk_cost": round(tr.get("checker_cost", 0.0), 6),
+              "checker_answers": self.c["checker_answers"],
+              "standby_pay_total": round(tr.get("standby_pay_total", 0.0), 6), "standby_pay_audit": round(tr.get("standby_pay_by_role", {}).get("audit", 0.0), 6),
+              "standby_pay_appeal": round(tr.get("standby_pay_by_role", {}).get("appeal", 0.0), 6), "standby_pay_seats": tr.get("standby_pay_seats", 0),
+              "standby_unpaid_departed": round(tr.get("standby_unpaid_departed", 0.0), 6), "standby_names": tr.get("standby_names", 0),
+              "seated_audit_troop_drawn_wait": self.c["seated_audit_troop_drawn_wait"], "seated_appeal_troop_drawn_wait": self.c["seated_appeal_troop_drawn_wait"],
               "leak_paid": round(self.c["false_approvals"] / max(1, self.c["vested"]), 6),
               "leak_bad": round(self.c["false_approvals"] / max(1, self.c["bad_deliveries"]), 6)}
         row.update(a1)
@@ -4005,6 +4038,17 @@ def build_parser():
                     help="Params.troop_draw with the harness's draw (addendum 33 (ii) — Baruchi's position of November 18; 0 in every run of record; no rule): under --seat-draw seats, at an audit or "
                          "panel seat's turn the candidates are the free panel-eligible members with the state's troops added up to this minimum; one candidate is drawn over all; a troop drawn sits "
                          "at once on the troop seat's road (its cost, its bond, its fee; a plant's seat the orchestrator's own verdict). 0: off")
+    ap.add_argument("--draw-wait", choices=["off", "on"], default="off",
+                    help="addendum 34 (v) (November 19, 2026; off in every run of record; a harness construction, no rule): under --draw-min K the wait is kept — where no member is free at a "
+                         "seating step no troop is drawn and the seat waits as with the option off (the pass summons a troop past w_R as today, recorded as summoned); the draw is made at the "
+                         "first step at which a member is free, among the free members and troop candidates up to K. off: the draw at the first step, a troop for certain where none is free")
+    ap.add_argument("--standby-pay", choices=["off", "on"], default="off",
+                    help="Params.standby_pay (addendum 34 (iv) — Baruchi's position of November 18, in one form; off in every run of record; no rule): where a troop is drawn at an audit or panel "
+                         "seat for which members were candidates, the seat's fixed fee goes to those members in equal parts at the seat's settlement, not to Ω. Needs --draw-min")
+    ap.add_argument("--checker-rate", type=float, default=0.0,
+                    help="Params.checker_rate (addendum 34 (iii) — Baruchi's position of November 18; 0 in every run of record; no rule): a look by the state on a sample of approved real work — at "
+                         "the window's close of a member's real root whose approval stands with the challenge round unused, a coin on the History's head at this rate seats a troop's look (its "
+                         "cost the state's, no fee); agreeing it vests, differing the deciding verdict afresh. Needs --arm 1")
     ap.add_argument("--t-second", type=int, default=2, help="Params.T_second, the second filing's window after the panel's confirmation (an open number of the rulebook; T_resp's length)")
     ap.add_argument("--p-start", type=float, default=1.0, help="a newcomer's audit odds (1.2.0 §2.4: 1.0; 1.1.0: 0.5)")
     ap.add_argument("--p-cap", type=float, default=1.0, help="the audit odds' cap on doubling (1.2.0 §2.4: 1.0; 1.1.0: 0.5)")

@@ -261,6 +261,18 @@ class Params:
                                         # November 18): admits `World.draw_troop_seat(cid, role)` — the harness draws at the seat's turn among the free
                                         # panel-eligible members with troop candidates added up to K (`--seat-draw seats --draw-min K`), and a troop drawn sits at
                                         # once on the troop seat's road (its cost c_T, its bond, its fee; the seat waits for nothing). Requires troops
+    # Brief A1, addendum 34 (November 19, 2026; notes §128): three things to build, each behind an option off in every run of record; none a rule.
+    # (v), the wait kept under a minimum, is the harness's alone (`--draw-wait on`): nothing of it in the engine.
+    checker_rate: float = 0.0           # (iii) checkers (Baruchi's position of November 18; the implementer's sentence 7 of §126h): a look by the state on a sample
+                                        # of approved real work — at the window's close of a member's real root whose approval stands with the one challenge round
+                                        # unused, a coin on the History's head at this rate seats a troop review of role `checker` on the troop seat's road (its cost
+                                        # c_T the state's own: nothing from the request's allowance, no fee, no emission); the case is held open by the look; a look
+                                        # that agrees lets it vest, one that differs opens the deciding verdict afresh (two troop seats, a third on a split) and the
+                                        # case settles as after an audit that differed. Built on the trusted ruling. 0 is off
+    standby_pay: bool = False           # (iv) pay for standing by (Baruchi's position of November 18, in one form): where a troop is drawn at an audit or panel seat for
+                                        # which members were candidates (`draw_troop_seat(..., stood=…)`), the seat's fixed fee goes at the seat's settlement to those
+                                        # members in equal parts and not to Ω; a share owed to a name that has since departed is Ω's as today; a member that lost its
+                                        # standing is paid (it stood). The troop's cost, reimbursement and bond as they are. Requires troop_draw
 
     def __post_init__(self):
         if self.dial_start is not None:
@@ -284,6 +296,12 @@ class Params:
             raise ValueError("Params: the state's audit as no vote of the court is built on the trusted ruling (trusted_ruling=True)")
         if self.troop_draw and not self.troops:
             raise ValueError("Params: troops as candidates in the draw need the troops (troops=True)")
+        if not (0.0 <= self.checker_rate <= 1.0):
+            raise ValueError(f"Params: checker_rate {self.checker_rate} is a probability")
+        if self.checker_rate > 0 and not self.trusted_ruling:
+            raise ValueError("Params: the checkers are built on the trusted ruling (trusted_ruling=True)")
+        if self.standby_pay and not self.troop_draw:
+            raise ValueError("Params: pay for standing by needs the troops as candidates in the draw (troop_draw=True)")
         if self.state_audit:
             self.planted_approval = False
         # 2.4.0 §2.3 (I33): the arrival float exists so that an arrival can post the reviewer's bond — a constraint on the parameters,

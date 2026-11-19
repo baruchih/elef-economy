@@ -57,7 +57,8 @@ def _i19_event_ok(e) -> bool:
     if e.kind == "deposit_out":
         return "fee" not in e.note
     if e.kind == "feepot_out":
-        return e.note in ("review fee", "nested review fee") or e.note.startswith("tree closure") or e.note.startswith("node closure")
+        return e.note in ("review fee", "nested review fee") or e.note.startswith("tree closure") or e.note.startswith("node closure") \
+            or "standby pay" in e.note                   # addendum 34 (iv) (Params.standby_pay, off in every run of record): a drawn seat's fixed fee to the members that stood
     return True
 
 

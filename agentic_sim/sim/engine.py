@@ -39,7 +39,7 @@ UPHELD, REJECTED = "upheld", "rejected"          # disposition of a ⊥ objectio
 # Label grades (§15.3); `plant` since 1.2.0 — truth known by construction, never promoted
 HUMAN, DELEGATE, DEFAULT, PROCEDURAL, PLANT = "human-explicit", "delegate-explicit", "protocol-default", "procedural", "plant"
 
-ROLE_W = {"initial": "w_ordinary", "appeal": "w_appeal", "audit": "w_audit", "deciding": "w_audit"}   # A1: the deciding verdict's seat (fee 0)
+ROLE_W = {"initial": "w_ordinary", "appeal": "w_appeal", "audit": "w_audit", "deciding": "w_audit", "checker": "w_audit"}   # A1: the deciding verdict's seat (fee 0); addendum 34: the checker's look (fee 0, the state's own cost)
 PANEL_ROLES = ("appeal", "audit")              # the challenge-panel seats (1.2.0 §2.2)
 
 # The orchestrator's two system wallets (1.2.0 §2.1, Appendix A): a plant's requester and its actor.
@@ -237,6 +237,10 @@ class Review:
     # the truth it was judged against (the resubmitted one for a review after a revision)
     plant_outcome: Optional[str] = None
     plant_truth: Optional[bool] = None
+    # addendum 34 (iv) (`Params.standby_pay`, off in every run of record): the members that stood as candidates where this troop's seat was drawn, and
+    # what of the seat's fixed fee went to them at the settlement
+    standby: tuple = ()
+    standby_paid: float = 0.0
 
 
 @dataclass
@@ -328,6 +332,9 @@ class Case:
     pa_unseated: bool = False              # no member took its audit seat by the window's close: closed by truth, spent (Appendix V)
     audit_after_dispute: bool = False      # the state's own work disputed before a panel of the state's alone: the audit seat admitted after (Appendix V)
     deciding: Optional[dict] = None        # A1 (not in force): the deciding verdict on this case — reason, the seats, the verdicts, want, resolved, outcome
+    checker: Optional[dict] = None         # addendum 34 (iii) (`Params.checker_rate`, off in every run of record): the checker's look at the window's close — the review, the
+                                           # tick, `by` (after_audit | no_audit: whether an audit had confirmed the approval), the outcome (agreed | differed → confirmed | overturned);
+                                           # or `skipped` (coin | court | refused)
     state_unreimbursed: float = 0.0        # A1 (D4): the deciding verdict's cost the allowance did not cover — the orchestrator's own, read apart
     phi_E_topped: float = 0.0                                 # (A) what the bank added to a plant's allowance and fee pot at its seats' assignment
     phi_F_topped: float = 0.0
@@ -537,6 +544,18 @@ class World:
         self.troop_drawn_seats: dict = {"audit": 0, "appeal": 0}      # troop reviews seated by `draw_troop_seat`, by role
         self.troop_drawn_plant_seats: dict = {"audit": 0, "appeal": 0}   # the orchestrator's own verdict on a plant's seat by the draw (no review, as past w_R)
         self.troop_draw_refused: int = 0
+        # addendum 34 (notes §128): the checkers' looks and the pay for standing by — readings, zero with the options off
+        self.checker_looks: dict = {"after_audit": 0, "no_audit": 0}        # looks seated, by whether an audit had confirmed the approval before
+        self.checker_differed: dict = {"after_audit": 0, "no_audit": 0}     # looks that differed (the deciding verdict opened afresh)
+        self.checker_overturned: dict = {"after_audit": 0, "no_audit": 0}   # looks whose deciding verdict overturned the approval
+        self.checker_refused: int = 0                                       # the coin said look and the summons was refused (capacity or funds): the case vested
+        self.checker_skipped_court: int = 0                                 # approvals standing at the window's close with the challenge round used: not sampled
+        self.checker_cost: float = 0.0                                      # the looks' cost c_T purchased from Ω (credits), the state's own
+        self.standby_pay_total: float = 0.0                                 # the fixed fee paid to the members that stood at drawn seats
+        self.standby_pay_by_role: dict = {"audit": 0.0, "appeal": 0.0}
+        self.standby_pay_seats: int = 0                                     # drawn seats whose fee went to the members that stood
+        self.standby_unpaid_departed: float = 0.0                           # shares owed to names that had departed: Ω's
+        self.standby_names: int = 0                                         # the members that stood at drawn seats, summed over the seats
         self.plant_mint_by_kind: dict = {"dial": 0.0, "approval": 0.0, "lie": 0.0, "rev": 0.0}
         self.plant_retire_by_kind: dict = {"dial": 0.0, "approval": 0.0, "lie": 0.0, "rev": 0.0}
         self.plants_created = 0
@@ -833,7 +852,7 @@ class World:
         unused pots returned."""
         k, n = e.kind, e.note or ""
         if k == "feepot_out":
-            return n.endswith("review fee")
+            return n.endswith("review fee") or "standby pay" in n     # addendum 34 (iv): the pay for standing by is the seat's fee, income to the name
         if k == "fee_out":
             return n == "emission share"
         if k == "transfer":
@@ -1740,6 +1759,8 @@ class World:
         """§4.3 order: the root's expense allowance, then an Ω advance, then deferral to
         settlement. A nested case's draw on its root's allowance is attributed to the root (whose
         money it is) with a note I10 recognises."""
+        if r.role == "checker":
+            return                                      # addendum 34 (iii): a checker's look is the state's own cost — nothing from the allowance, no advance, no claim
         target = min(r.cost, c.K)
         amt = target - (r.reimbursed + r.deferred)
         if amt <= 1e-12:
@@ -1827,6 +1848,8 @@ class World:
                 self._audit_result(c, r)
             elif r.role == "deciding":
                 self._deciding_result(c, r)             # A1: a seat of the deciding verdict
+            elif r.role == "checker":
+                self._checker_result(c, r)              # addendum 34 (iii): the checker's look at the window's close
             else:
                 self._maybe_settle_challenge(c)
             return
@@ -2092,7 +2115,7 @@ class World:
         self._log(c, f"second filing by {challenger}: the {ch['kind']} goes on to the deciding verdict")
         self._open_deciding(c, "second_filing")
 
-    def draw_troop_seat(self, cid: str, role: str) -> str:
+    def draw_troop_seat(self, cid: str, role: str, stood=None) -> str:
         """Addendum 33 (ii) (`Params.troop_draw`, off in every run of record; no rule; Baruchi's position of November 18): the state's troops as candidates
         in the draw of a second look. The draw is the harness's (`--seat-draw seats --draw-min K`: at the seat's turn the free panel-eligible members, troop
         candidates added up to K, one drawn); where a troop is drawn it sits the seat at once on the troop seat's road — the summons pass's road with no
@@ -2109,6 +2132,10 @@ class World:
             raise RuleError("draw_troop_seat: the draw seats an audit or a panel seat")
         if any(a[3] == "override" for a in c.assessments):
             raise RuleError("draw_troop_seat: a human has ruled on this case")
+        # addendum 34 (iv): the members that stood as candidates in the draw — recorded on the seat under `Params.standby_pay`, for the seat's fee at its settlement
+        stood = tuple(dict.fromkeys(str(x) for x in (stood or ())))
+        if self.p.standby_pay and any(x not in self.actors for x in stood):
+            raise RuleError("draw_troop_seat: a name that stood in the draw is not an actor's")
         plant = c.plant is not None
         if plant and not self.p.plants_every_seat:
             raise RuleError("draw_troop_seat: a plant's seat is a member's alone under this rule version")
@@ -2135,6 +2162,12 @@ class World:
             self.troop_draw_refused += 1
             raise RuleError("draw_troop_seat: the summons was refused (capacity or funds); the seat waits")
         self.troop_drawn_seats[role] += 1
+        if self.p.standby_pay and stood:
+            r = self.reviews[self.troops[tid]["review"]]
+            r.standby = stood
+            self.troops[tid]["stood"] = stood
+            self.standby_names += len(stood)
+            self._log(c, f"{len(stood)} member(s) stood in the draw for the {role} seat: the seat's fee is theirs at the settlement (standby_pay)")
         return tid
 
     def _audit_result(self, c: Case, r: Review):
@@ -2636,7 +2669,7 @@ class World:
             if e > 0:
                 self.ledger.mint_emission_to_pool(c.id, e)
             r.fee = e
-            r.fee_owed = 0.0 if (r.reviewer in self.plant_rev_names or r.role == "deciding") else self._w(r.role) * self.p.f_fee   # 2.9.0 §2.5: the alias is paid no fee; A1 (D4): the deciding seat too
+            r.fee_owed = 0.0 if (r.reviewer in self.plant_rev_names or r.role in ("deciding", "checker")) else self._w(r.role) * self.p.f_fee   # 2.9.0 §2.5: the alias is paid no fee; A1 (D4): the deciding seat too; addendum 34: the checker's look too
         # 1. expense debts, every review — an overturned reviewer's bond was the penalty; its cost survives
         for rid in c.reviews:
             r = self.reviews[rid]
@@ -2661,7 +2694,9 @@ class World:
             scale = min(1.0, rpool.fee_pot / owed) if owed > 1e-12 else 0.0
             for r in surviving:
                 fixed = r.fee_owed * scale
-                if fixed > 1e-12:
+                if fixed > 1e-12 and self.p.standby_pay and r.standby:
+                    fixed = self._pay_standby(c, pots, r, fixed, nested)   # addendum 34 (iv): the drawn seat's fee to the members that stood; the troop keeps the departed names' shares
+                elif fixed > 1e-12:
                     self.ledger.pay_from_fee_pot(pots.id, r.reviewer, fixed, note=f"{nested}review fee")
                     pots.fees_from_pot += fixed
                 r.fee_fixed = fixed
@@ -2940,6 +2975,8 @@ class World:
                 if c.plant is not None and c.state == "PENDING" and c.open_items == 0 and c.window_end is not None \
                         and tick >= c.window_end and (c.challenge is None or c.challenge["resolved"]) and not self._plant_truth(c):
                     self._finalize_N(c, reason="plant: not fulfilled by construction (the window closed)", actor_fault=False)
+        if self.p.checker_rate > 0:
+            self._checker_pass(tick)                            # addendum 34 (iii): the checkers' looks at the window's close, before the money is final
         vesting = [c for c in self._live_cases.values()
                    if c.state == "PENDING" and c.open_items == 0 and c.window_end is not None
                    and tick >= c.window_end and (c.challenge is None or c.challenge["resolved"])]
@@ -4714,7 +4751,133 @@ class World:
         self.deciding_outcomes_by_reason[key] = self.deciding_outcomes_by_reason.get(key, 0) + 1
         if ch.get("sampled") and outcome != c.verdict:
             self.confirmations_overturned += 1
+        over = outcome != c.verdict
         self._settle_challenge(c, outcome=outcome, by="deciding verdict")
+        if d["reason"] == "checker" and c.checker is not None:
+            # addendum 34 (iii): the checker's look that differed — what the court made of it
+            c.checker["outcome"] = "overturned" if over else "confirmed"
+            if over:
+                self.checker_overturned[c.checker["by"]] += 1
+
+    # ------------------------------------------------------------ addendum 34 (November 19, 2026; notes §128): the checkers, the pay for standing by
+    def _checker_pass(self, tick: int):
+        """(iii) `Params.checker_rate` (off in every run of record; no rule): a look by the state on a sample of approved real work, on top of the
+        community's. The coin runs over the approvals of a member's real root delivery whose window closes with the approval standing and the one
+        challenge round unused — never looked at again, or audited and confirmed (an approval the court has already confirmed, after an audit
+        that differed or a dispute, is not sampled and is read apart); it is the orchestrator's own, on the History's head, at the window's close,
+        and no member can foresee it. A look seats a troop review of role `checker` on the troop seat's road at that moment (the capacity and the
+        carry check as any seat's; c_T purchased from Ω, the state's own; the bond locked; no fee); the look holds the case open (`open_items`)
+        past its window until it is answered — agreeing, the case vests at the next vesting step; differing, the deciding verdict is opened afresh
+        and the case settles as after an audit that differed. A summons refused for capacity or funds leaves the coin spent and the case vests."""
+        rate = self.p.checker_rate
+        for c in list(self._live_cases.values()):
+            if c.checker is not None or c.state != "PENDING" or c.open_items != 0 or c.window_end is None or tick < c.window_end:
+                continue
+            if not (c.is_root and self._member_delivery(c)) or c.outcome_or_verdict() != F:
+                continue
+            if any(a[3] == "override" for a in c.assessments):
+                continue
+            if c.challenge_round_used:
+                c.checker = {"skipped": "court"}
+                self.checker_skipped_court += 1
+                continue
+            if self._a1_coin(c, "checker") >= rate:
+                c.checker = {"skipped": "coin"}
+                continue
+            after = any(self.reviews[x].role == "audit" and self.reviews[x].status in ("done", "vested") for x in c.reviews)
+            by = "after_audit" if after else "no_audit"
+            rid = self._summon_checker(c, tick)
+            if rid is None:
+                c.checker = {"skipped": "refused", "by": by}
+                self.checker_refused += 1
+                continue
+            c.checker = {"review": rid, "opened": tick, "by": by, "outcome": None}
+            c.open_items += 1
+            self.checker_looks[by] += 1
+            self._log(c, f"a checker's look at the window's close ({rid}; {'an audit had confirmed the approval' if after else 'no audit'}; Params.checker_rate)")
+
+    def _summon_checker(self, c: Case, tick: int) -> Optional[str]:
+        """The checker's seat: the troop seat's road with no positions bound (I8 admits it under the option), no wait and no free-member test — the
+        capacity and the carry check as any seat's; c_T purchased at the summons and counted the state's own; the bond locked; no fee (the seat is
+        the state's look, not a review the request pays for)."""
+        cost_credits = self.p.c_T * (self.ledger.index() if self.p.floating else 1.0)
+        need = cost_credits + c.G_V
+        self._last_refusal_funds = False
+        if self._capacity_refuses(1):
+            self.troop_refused_capacity_seats += 1
+            self.period["refused_capacity_seats"] += 1
+            c.refused_capacity += 1
+            self._mark_refused(c, "capacity", tick)
+            return None
+        if not self._fund_can_carry(need, c.id, "review"):
+            self.troop_shortfall_seats += 1
+            self.period["troop_shortfall_seats"] += 1
+            self._last_refusal_funds = True
+            return None
+        tid = self._new_troop("review", c.id, cost_credits, c.G_V)
+        credits = self.ledger.purchase(tid, cost_credits if self.p.floating else cost_credits * self.ledger.v, case=c.id, note="troop cost (checker)")
+        self.checker_cost += credits
+        self.ledger.lock(tid, c.G_V, key=f"bond:r{self._n_review + 1}", case=c.id, note="bond (checker, troop)")
+        self._n_review += 1
+        rid = f"r{self._n_review}"
+        r = Review(rid, c.id, tid, "checker", tick, tick + self.p.T_review, bond=c.G_V)
+        r.cost = credits
+        self.reviews[rid] = r
+        self._live_reviews[rid] = r
+        c.reviews.append(rid)
+        c.excluded.add(tid)
+        self.troops[tid]["review"] = rid
+        self.troop_summons_reviews += 1
+        self.period["troop_summons_reviews"] += 1
+        self.troop_capital_peak = max(self.troop_capital_peak, self._troop_capital_now())
+        self.history.append("troop", {"t": tick, "troop": tid, "kind": "review", "seat": "checker", "case": c.id, "review": rid, "msg": "drawn by the coin"})
+        return rid
+
+    def _checker_result(self, c: Case, r: Review):
+        """The look answered: agreeing, the case is free to vest; differing, the challenge record is opened on the look as on an audit that differed,
+        escalated, and the deciding verdict opened afresh (two troop seats, a third on a split); the look itself, the orchestrator's, is never
+        overturned."""
+        c.open_items -= 1
+        ck = c.checker
+        ck["answered"] = self.t
+        if r.verdict == c.outcome_or_verdict():
+            ck["outcome"] = "agreed"
+            self._log(c, f"the checker's look {r.id} agrees; the approval vests")
+            return
+        ck["outcome"] = "differed"
+        self.checker_differed[ck["by"]] += 1
+        self._open_challenge(c, "audit", challenger=None, audit_review=r)
+        c.challenge["escalated"], c.challenge["checker"] = True, True
+        for x in c.reviews:
+            # the audit that confirmed the approval joins the record as a dispute attaches a done audit: overturned where the court differs from it
+            ar = self.reviews[x]
+            if ar.role == "audit" and ar.status == "done" and x not in c.challenge["reviews"]:
+                ar.is_audit_as_appeal = True
+                c.challenge["reviews"].append(x)
+        self._log(c, f"the checker's look {r.id} differs: the deciding verdict afresh")
+        self._open_deciding(c, "checker")
+
+    def _pay_standby(self, c: Case, pots: Case, r: Review, fixed: float, nested: str) -> float:
+        """(iv) `Params.standby_pay`: the drawn seat's fixed fee in equal parts to the members that stood as candidates in its draw, at the seat's
+        settlement — the moment the troop's fee would have moved; a share owed to a name that has since departed stays the troop's (Ω's), there being
+        no wallet to pay; a member that has lost its standing is paid, having stood. Returns the troop's part."""
+        share = fixed / len(r.standby)
+        troop_part = 0.0
+        for nm in r.standby:
+            if nm in self.actors:
+                self.ledger.pay_from_fee_pot(pots.id, nm, share, note=f"{nested}standby pay ({r.role} seat {r.id})")
+                self.standby_pay_total += share
+                self.standby_pay_by_role[r.role] = self.standby_pay_by_role.get(r.role, 0.0) + share
+            else:
+                troop_part += share
+                self.standby_unpaid_departed += share
+        if troop_part > 1e-12:
+            self.ledger.pay_from_fee_pot(pots.id, r.reviewer, troop_part, note=f"{nested}review fee")
+        pots.fees_from_pot += fixed
+        self.standby_pay_seats += 1
+        r.standby_paid = fixed - troop_part
+        self._log(c, f"the {r.role} seat's fee {fixed:.3f} to the {len(r.standby)} that stood in its draw ({fixed - troop_part:.3f}; {troop_part:.3f} the departed names' share, Ω's)")
+        return troop_part
 
     def _summon_review(self, c: Case, role: str, tick: int, drawn: bool = False) -> Optional[str]:
         """A troop for a review seat: the summons pass's road (1.4.0 §2.2); `drawn` is addendum 33's draw (`draw_troop_seat`) — the same road at the seat's

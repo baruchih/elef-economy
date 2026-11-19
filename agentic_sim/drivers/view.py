@@ -203,9 +203,10 @@ class Public:
     def dispute(self, cid: str, challenger: str, d: Optional[str] = None):
         self._w.dispute(self._eng(cid), challenger, d)
 
-    def draw_troop_seat(self, cid: str, role: str) -> str:
-        """Addendum 33 (ii), `Params.troop_draw` (off in every run of record): a troop drawn as a candidate at an audit or panel seat's turn sits it at once."""
-        return self._w.draw_troop_seat(self._eng(cid), role)
+    def draw_troop_seat(self, cid: str, role: str, stood=None) -> str:
+        """Addendum 33 (ii), `Params.troop_draw` (off in every run of record): a troop drawn as a candidate at an audit or panel seat's turn sits it at once.
+        Addendum 34 (iv): `stood` names the members that were candidates in the draw — under `Params.standby_pay` the seat's fee is theirs at its settlement."""
+        return self._w.draw_troop_seat(self._eng(cid), role, stood=stood)
 
     def second_filing(self, cid: str, challenger: str):
         """Addendum 31 (Params.second_filing; off in every run of record): the challenger whose filing a member panel confirmed goes on to the deciding verdict."""
@@ -258,6 +259,11 @@ class Public:
                 # addendum 33 (notes §127): the state's audit as no vote and the troops drawn — readings, zero with the options off
                 "deciding_state_audit_fresh": w.deciding_state_audit_fresh, "troop_drawn_seats": dict(w.troop_drawn_seats),
                 "troop_drawn_plant_seats": dict(w.troop_drawn_plant_seats), "troop_draw_refused": w.troop_draw_refused,
+                # addendum 34 (notes §128): the checkers' looks and the pay for standing by — readings, zero with the options off
+                "checker_looks": dict(w.checker_looks), "checker_differed": dict(w.checker_differed), "checker_overturned": dict(w.checker_overturned),
+                "checker_refused": w.checker_refused, "checker_skipped_court": w.checker_skipped_court, "checker_cost": w.checker_cost,
+                "standby_pay_total": w.standby_pay_total, "standby_pay_by_role": dict(w.standby_pay_by_role), "standby_pay_seats": w.standby_pay_seats,
+                "standby_unpaid_departed": w.standby_unpaid_departed, "standby_names": w.standby_names,
                 "shortfall_seats": w.troop_shortfall_seats, "shortfall_awards": w.troop_shortfall_awards,
                 "held_ticks": w.troop_held_ticks, "troop_ticks_reviews": w.troop_ticks_reviews,
                 "troop_ticks_deliveries": w.troop_ticks_deliveries,

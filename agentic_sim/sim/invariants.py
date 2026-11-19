@@ -185,6 +185,9 @@ def I8_positions_bound(w, cases=None):
         d = getattr(c, "deciding", None)
         if d is not None:
             room += len(d["seats"])                                               # A1 §3: the deciding verdict's seats under the flag
+        ck = getattr(c, "checker", None)
+        if ck is not None and ck.get("review") is not None:
+            room += 1                                                             # addendum 34 (iii): the checker's look under the option
         if n > w.p.V_max + room:
             _fail(f"I8 {c.id} holds {n} review positions > V_max")
 

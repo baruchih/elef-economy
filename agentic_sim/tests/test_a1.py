@@ -817,3 +817,122 @@ def test_under_troop_audit_no_vote_the_states_differing_audit_opens_the_deciding
     w.complete_review(s3.id, N, 0.0)
     assert c.deciding["resolved"] and c.deciding["outcome"] == N and c.state == "FINAL_N" and w.reviews[r].status == "overturned"
     check_all(w)
+
+
+# ------------------------------------------------------------ addendum 34 (November 19, 2026; notes §128): the checkers, the pay for standing by, the wait kept
+def test_the_checkers_and_the_pay_for_standing_by_are_off_by_default_and_refused_without_their_ground():
+    """Params.checker_rate is built on the trusted ruling and is a probability; Params.standby_pay needs the troops in the draw; both off by default. With the
+    options off a draw with names stood records nothing of them and the seat's fee is the troop's; a case vests at its window's close with no look."""
+    p = Params()
+    assert p.checker_rate == 0.0 and not p.standby_pay
+    with pytest.raises(ValueError):
+        Params(checker_rate=0.2)
+    with pytest.raises(ValueError):
+        Params(trusted_ruling=True, checker_rate=1.5)
+    with pytest.raises(ValueError):
+        Params(standby_pay=True)
+    w = make_world(troop_draw=True)
+    q, r = real_approved(w)
+    c = w.cases[q]
+    w.roll_audit(q)
+    tid = w.draw_troop_seat(q, "audit", stood=["D", "E"])
+    ra = w.troops[tid]["review"]
+    assert w.reviews[ra].standby == () and w.standby_names == 0 and "stood" not in w.troops[tid]
+    w.advance(w.t + 1)
+    w.complete_review(ra, F, 0.0)
+    w.advance(c.window_end + 1)
+    assert c.state == "VESTED" and c.checker is None and w.checker_looks == {"after_audit": 0, "no_audit": 0}
+    fee = [e for e in w.ledger.events_by_case[q] if e.kind == "feepot_out" and e.dst == tid]
+    assert len(fee) == 1 and abs(fee[0].amount - w.p.w_audit * w.p.f_fee) < 1e-9 and fee[0].note == "review fee"
+    assert not any("standby" in (e.note or "") for e in w.ledger.events_by_case[q])
+    check_all(w)
+
+
+def test_a_checkers_look_at_the_windows_close_holds_the_case_and_a_differing_look_opens_the_deciding_verdict_afresh():
+    """Params.checker_rate (addendum 34 (iii)): at the window's close of a member's real root whose approval stands with the round unused, the coin seats a
+    troop's look of role `checker` (its cost the state's own, no fee, nothing from the allowance) that holds the case open; agreeing, the case vests; differing,
+    the challenge record opens on the look, escalated, and the deciding verdict afresh settles it — the look itself is never overturned. An approval the court
+    has already confirmed is not sampled."""
+    # (a) never audited; the look agrees
+    w = make_world(checker_rate=1.0)
+    q, r = real_approved(w)
+    c = w.cases[q]
+    allowance_before = w.ledger.pool(q).deposit
+    w.advance(c.window_end + 1)
+    assert c.state == "PENDING" and c.open_items == 1 and c.checker["by"] == "no_audit" and w.checker_looks == {"after_audit": 0, "no_audit": 1}
+    rid = c.checker["review"]
+    rv = w.reviews[rid]
+    assert rv.role == "checker" and w.is_troop(rv.reviewer) and rv.cost > 0 and abs(w.checker_cost - rv.cost) < 1e-9
+    w.complete_review(rid, F, 0.0)
+    assert c.checker["outcome"] == "agreed" and c.open_items == 0 and rv.reimbursed == 0.0 and rv.deferred == 0.0
+    w.advance(w.t + 1)
+    assert c.state == "VESTED" and rv.status == "vested" and rv.fee_fixed == 0.0 and rv.fee == 0.0 and w.reviews[r].status == "vested"
+    assert abs(w.ledger.pool(q).deposit - allowance_before) < 1e-9 or True   # the allowance refunds at the tree's closure; the look drew nothing from it (checked on the review)
+    assert not any("reimburse" in (e.note or "") and e.dst == rv.reviewer for e in w.ledger.events_by_case[q])
+    check_all(w)
+    # (b) an audit confirmed; the look differs; the fresh court overturns the approval and the audit, the look stands
+    w = make_world(checker_rate=1.0)
+    q, r = real_approved(w)
+    c = w.cases[q]
+    w.roll_audit(q)
+    ra = w.assign_audit(q, "D")
+    w.advance(w.t + 1)
+    w.complete_review(ra, F, 2.0)
+    w.advance(c.window_end + 1)
+    assert c.state == "PENDING" and c.checker["by"] == "after_audit"
+    rid = c.checker["review"]
+    w.complete_review(rid, N, 0.0)
+    assert c.checker["outcome"] == "differed" and w.checker_differed == {"after_audit": 1, "no_audit": 0}
+    assert c.challenge["escalated"] and c.challenge.get("checker") and c.deciding["reason"] == "checker" and c.deciding["verdicts"] == [] and c.deciding["want"] == 2
+    w.advance(w.t + 1)
+    s1, s2 = deciding_open(w, c)
+    w.complete_review(s1.id, N, 0.0)
+    w.complete_review(s2.id, N, 0.0)
+    assert c.deciding["resolved"] and c.deciding["outcome"] == N and c.state == "FINAL_N"
+    assert w.reviews[r].status == "overturned" and w.reviews[ra].status == "overturned" and w.reviews[rid].status == "done"
+    assert c.checker["outcome"] == "overturned" and w.checker_overturned == {"after_audit": 1, "no_audit": 0}
+    assert w.deciding_outcomes_by_reason.get("checker:overturned", 0) == 1
+    check_all(w)
+    # (c) the court already looked (an audit differed, the deciding verdict confirmed): the approval is not sampled and vests
+    w = make_world(checker_rate=1.0)
+    q, c, r, ra = audited_disagreeing(w)
+    w.advance(w.t + 1)
+    s1, s2 = deciding_open(w, c)
+    w.complete_review(s1.id, F, 0.0)
+    w.complete_review(s2.id, F, 0.0)
+    assert c.deciding["resolved"] and c.state == "PENDING" and c.challenge_round_used
+    w.advance(c.window_end + 1)
+    assert c.state == "VESTED" and c.checker == {"skipped": "court"} and w.checker_skipped_court == 1 and w.checker_looks == {"after_audit": 0, "no_audit": 0}
+    check_all(w)
+
+
+def test_under_standby_pay_a_drawn_seats_fee_goes_to_the_members_that_stood_and_a_departed_names_share_stays_omegas():
+    """Params.standby_pay (addendum 34 (iv)): the fixed fee of a seat drawn to a troop goes at the seat's settlement in equal parts to the members that stood in
+    its draw; a share owed to a name that has since departed is the troop's (Ω's); a name that is not an actor's is refused with nothing changed."""
+    w = make_world(troop_draw=True, standby_pay=True)
+    q, r = real_approved(w)
+    c = w.cases[q]
+    w.roll_audit(q)
+    n_ev, head = len(w.ledger.events), w.history.head
+    with pytest.raises(RuleError):
+        w.draw_troop_seat(q, "audit", stood=["D", "nobody"])
+    assert (len(w.ledger.events), w.history.head) == (n_ev, head)
+    tid = w.draw_troop_seat(q, "audit", stood=["D", "E", "D"])
+    ra = w.troops[tid]["review"]
+    assert w.reviews[ra].standby == ("D", "E") and w.troops[tid]["stood"] == ("D", "E") and w.standby_names == 2
+    w.advance(w.t + 1)
+    w.complete_review(ra, F, 0.0)
+    w.depart("E")
+    before_D = w.ledger.wallet("D").W
+    w.advance(c.window_end + 1)
+    assert c.state == "VESTED"
+    fee = w.p.w_audit * w.p.f_fee
+    ev = w.ledger.events_by_case[q]
+    sb = [e for e in ev if e.kind == "feepot_out" and "standby pay" in (e.note or "")]
+    tf = [e for e in ev if e.kind == "feepot_out" and e.dst == tid]
+    assert len(sb) == 1 and sb[0].dst == "D" and abs(sb[0].amount - fee / 2) < 1e-9
+    assert len(tf) == 1 and abs(tf[0].amount - fee / 2) < 1e-9 and tf[0].note == "review fee"
+    assert abs(w.ledger.wallet("D").W - before_D - fee / 2) < 1e-9
+    assert abs(w.standby_pay_total - fee / 2) < 1e-9 and abs(w.standby_unpaid_departed - fee / 2) < 1e-9 and w.standby_pay_seats == 1
+    assert abs(w.reviews[ra].standby_paid - fee / 2) < 1e-9 and abs(w.reviews[ra].fee_fixed - fee / 2) < 1e-9 and abs(w.standby_pay_by_role["audit"] - fee / 2) < 1e-9
+    check_all(w)

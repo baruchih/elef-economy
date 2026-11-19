@@ -532,6 +532,11 @@ class World:
         self.second_filings_won: int = 0
         self.second_filings_lost: int = 0
         self.second_windows_lapsed: int = 0
+        # addendum 33 (notes §127): the state's audit as no vote (the deciding verdicts opened afresh after a troop's audit differed) and the troops drawn
+        self.deciding_state_audit_fresh: int = 0
+        self.troop_drawn_seats: dict = {"audit": 0, "appeal": 0}      # troop reviews seated by `draw_troop_seat`, by role
+        self.troop_drawn_plant_seats: dict = {"audit": 0, "appeal": 0}   # the orchestrator's own verdict on a plant's seat by the draw (no review, as past w_R)
+        self.troop_draw_refused: int = 0
         self.plant_mint_by_kind: dict = {"dial": 0.0, "approval": 0.0, "lie": 0.0, "rev": 0.0}
         self.plant_retire_by_kind: dict = {"dial": 0.0, "approval": 0.0, "lie": 0.0, "rev": 0.0}
         self.plants_created = 0
@@ -2087,6 +2092,51 @@ class World:
         self._log(c, f"second filing by {challenger}: the {ch['kind']} goes on to the deciding verdict")
         self._open_deciding(c, "second_filing")
 
+    def draw_troop_seat(self, cid: str, role: str) -> str:
+        """Addendum 33 (ii) (`Params.troop_draw`, off in every run of record; no rule; Baruchi's position of November 18): the state's troops as candidates
+        in the draw of a second look. The draw is the harness's (`--seat-draw seats --draw-min K`: at the seat's turn the free panel-eligible members, troop
+        candidates added up to K, one drawn); where a troop is drawn it sits the seat at once on the troop seat's road — the summons pass's road with no
+        w_R wait and no free-member test: its cost c_T purchased from Ω, its bond G_V locked, its fee the seat's, released and reimbursed as every troop's;
+        a plant's seat is the orchestrator's own verdict as past w_R (no review, no fee, counted apart), a planted approval's audit seat never the state's
+        (Appendix V). Refused where the seat is not open to it: the audit seat requires a pending approval with its obligation standing, no open challenge
+        and no open audit review; the panel seat an open challenge not escalated with a seat free. A summons the fund or the capacity refuses raises
+        RuleError with nothing changed, and the seat waits as today. The record tells a drawn troop from a summoned one (the History's `troop` entry says
+        `drawn`, the counters by role)."""
+        c = self._case(cid)
+        if not self.p.troop_draw:
+            raise RuleError("draw_troop_seat: not admitted (Params.troop_draw is off)")
+        if role not in ("audit", "appeal"):
+            raise RuleError("draw_troop_seat: the draw seats an audit or a panel seat")
+        if any(a[3] == "override" for a in c.assessments):
+            raise RuleError("draw_troop_seat: a human has ruled on this case")
+        plant = c.plant is not None
+        if plant and not self.p.plants_every_seat:
+            raise RuleError("draw_troop_seat: a plant's seat is a member's alone under this rule version")
+        if role == "audit":
+            if not (c.state == "PENDING" and (c.audit_obligation or c.audit_vacated) and (c.challenge is None or c.challenge["resolved"])
+                    and not any(self.reviews[r].role == "audit" and self.reviews[r].status == "open" for r in c.reviews)):
+                raise RuleError("draw_troop_seat: no audit seat is open on this case")
+            if c.market_audit_only:
+                raise RuleError("draw_troop_seat: the audit of the orchestrator's own work is a member's (1.4.0 §2.2)")
+            if c.planted_approval:
+                raise RuleError("draw_troop_seat: a planted approval's audit seat is a member's or nobody's (Appendix V)")
+        else:
+            ch = c.challenge
+            seats_held = (len(ch["reviews"]) + len(ch.get("state_verdicts", ()))) if ch else 0
+            if not (ch and not ch["resolved"] and seats_held < 2 and not ch.get("escalated")):
+                raise RuleError("draw_troop_seat: no panel seat is open on this case")
+        if plant:
+            self._state_verdict_on_plant(c, role, self.t)
+            self.troop_drawn_plant_seats[role] += 1
+            self._log(c, f"the orchestrator's own verdict takes the plant's {role} seat by the draw")
+            return "state"
+        tid = self._summon_review(c, role, self.t, drawn=True)
+        if tid is None:
+            self.troop_draw_refused += 1
+            raise RuleError("draw_troop_seat: the summons was refused (capacity or funds); the seat waits")
+        self.troop_drawn_seats[role] += 1
+        return tid
+
     def _audit_result(self, c: Case, r: Review):
         if c.plant is None and not self.is_system_reviewer(r.reviewer):
             # 2.9.0 §2.2 as ruled after run 38 (Appendix V): a real approval audited by a member is the planted approvals' base — π^A credited
@@ -2115,8 +2165,14 @@ class World:
             # A1 arm 1: no member's third seat — the deciding verdict settles the audit's disagreement; arm 2: the state's audit seat is its first
             self._open_challenge(c, "audit", challenger=None, audit_review=r)
             c.challenge["escalated"] = True
-            if self.is_troop(r.reviewer):
+            if self.is_troop(r.reviewer) and not self.p.troop_audit_no_vote:
                 self._open_deciding(c, "state_audit", first=(r.id, r.verdict))
+            elif self.is_troop(r.reviewer):
+                # addendum 33 (i) (`Params.troop_audit_no_vote`; Baruchi's ruling of November 17): the state's audit that differed is no vote of the court —
+                # the deciding verdict is given afresh by two troop seats, as after a member's audit differed; the audit stands as the seat that differed
+                self.deciding_state_audit_fresh += 1
+                self._log(c, "the state's audit that differed is no vote of the deciding verdict: two fresh seats (troop_audit_no_vote)")
+                self._open_deciding(c, "state_audit")
             else:
                 self._open_deciding(c, "audit")
             return
@@ -4660,7 +4716,9 @@ class World:
             self.confirmations_overturned += 1
         self._settle_challenge(c, outcome=outcome, by="deciding verdict")
 
-    def _summon_review(self, c: Case, role: str, tick: int) -> Optional[str]:
+    def _summon_review(self, c: Case, role: str, tick: int, drawn: bool = False) -> Optional[str]:
+        """A troop for a review seat: the summons pass's road (1.4.0 §2.2); `drawn` is addendum 33's draw (`draw_troop_seat`) — the same road at the seat's
+        turn, outside the pass: a refusal is counted and raised to the caller, and enters neither the pass's demand nor its priority reading."""
         if self._positions(c) + 1 > self.p.V_max:
             return None                                 # no seat to take: the path is full (I8)
         cost_credits = self.p.c_T * (self.ledger.index() if self.p.floating else 1.0)   # 2.0.0: c_T indexed; before, credits at v ≈ 1
@@ -4671,7 +4729,7 @@ class World:
             self.period["refused_capacity_seats"] += 1
             c.refused_capacity += 1
             self._mark_refused(c, "capacity", tick)
-            if self._pass_refused_review_tpost is None or (c.t_post is not None and c.t_post < self._pass_refused_review_tpost):
+            if not drawn and (self._pass_refused_review_tpost is None or (c.t_post is not None and c.t_post < self._pass_refused_review_tpost)):
                 self._pass_refused_review_tpost = c.t_post
             return None
         if not self._fund_can_carry(need, c.id, "review"):
@@ -4680,9 +4738,10 @@ class World:
                 self.period["refused_credit_seats"] += 1
             self.troop_shortfall_seats += 1
             self.period["troop_shortfall_seats"] += 1
-            self._pass_refused += need                  # 1.5.0 §2.1: the amount the carry check refused is demand
+            if not drawn:
+                self._pass_refused += need              # 1.5.0 §2.1: the amount the carry check refused is demand
             self._last_refusal_funds = True
-            if self._pass_refused_review_tpost is None or (c.t_post is not None and c.t_post < self._pass_refused_review_tpost):
+            if not drawn and (self._pass_refused_review_tpost is None or (c.t_post is not None and c.t_post < self._pass_refused_review_tpost)):
                 self._pass_refused_review_tpost = c.t_post
             return None
         tid = self._new_troop("review", c.id, cost_credits, c.G_V)
@@ -4714,9 +4773,15 @@ class World:
         self.period["troop_summons_reviews"] += 1
         if role in PANEL_ROLES:
             self.period["troop_panel_summons"] += 1
-        if self._pass_refused_review_tpost is not None and c.t_post is not None and c.t_post > self._pass_refused_review_tpost:
+        if not drawn and self._pass_refused_review_tpost is not None and c.t_post is not None and c.t_post > self._pass_refused_review_tpost:
             self._priority_violation = f"review seat of {c.id} (posted {c.t_post}) summoned after an older case was refused"
         self.troop_capital_peak = max(self.troop_capital_peak, self._troop_capital_now())
+        if drawn:
+            self.troops[tid]["drawn"] = True
+            self.history.append("troop", {"t": tick, "troop": tid, "kind": "review", "seat": role, "case": c.id,
+                                          "review": rid, "msg": "drawn"})
+            self._log(c, f"troop {tid} drawn for the {role} seat ({rid}) at its turn")
+            return tid
         self.history.append("troop", {"t": tick, "troop": tid, "kind": "review", "seat": role, "case": c.id,
                                       "review": rid, "msg": "summoned"})
         self._log(c, f"troop {tid} summoned for the {role} seat ({rid}) after it waited {self.p.w_R} ticks")

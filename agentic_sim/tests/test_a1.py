@@ -686,3 +686,134 @@ def test_the_second_filing_goes_on_after_a_confirmation_pays_the_fee_again_and_t
         w4.complete_review(s.id, F, 0.0)
     assert c.challenge["outcome"] == F and w4.reviews[r].status == "overturned" and c.state == "PENDING"
     check_all(w4)
+
+
+# ------------------------------------------------------------ addendum 33 (November 18, 2026, late night; notes §127): two things built behind options off by default
+def test_the_states_audit_as_no_vote_and_the_troops_in_the_draw_are_off_by_default_and_refused_without_their_ground():
+    """Params.troop_audit_no_vote is built on the trusted ruling; Params.troop_draw needs the troops; both off by default; the draw is refused when off
+    with nothing changed."""
+    p = Params()
+    assert not p.troop_audit_no_vote and not p.troop_draw
+    with pytest.raises(ValueError):
+        Params(troop_audit_no_vote=True)
+    with pytest.raises(ValueError):
+        Params(troop_draw=True, troops=False)
+    w = make_world()
+    q, r = real_approved(w)
+    w.roll_audit(q)
+    n_ev, n_rev, head = len(w.ledger.events), len(w.reviews), w.history.head
+    with pytest.raises(RuleError):
+        w.draw_troop_seat(q, "audit")
+    assert (len(w.ledger.events), len(w.reviews), w.history.head) == (n_ev, n_rev, head) and w.troop_drawn_seats == {"audit": 0, "appeal": 0}
+
+
+def test_a_drawn_troop_sits_the_audit_or_panel_seat_at_once_on_the_troop_seats_road_and_the_record_tells_it_from_a_summoned_one():
+    """Params.troop_draw: `draw_troop_seat` seats a troop at the seat's turn — no w_R wait, no free-member test — with its cost, its bond and its fee;
+    refused where no such seat is open; the History's troop entry says `drawn` and the counters count by role."""
+    w = make_world(troop_draw=True)
+    q, r = real_approved(w)
+    c = w.cases[q]
+    with pytest.raises(RuleError):
+        w.draw_troop_seat(q, "audit")                                 # no obligation yet
+    w.roll_audit(q)
+    with pytest.raises(RuleError):
+        w.draw_troop_seat(q, "initial")                               # the draw seats an audit or a panel seat
+    omega0 = w.ledger.wallet(Ledger.OMEGA).U
+    tid = w.draw_troop_seat(q, "audit")
+    assert w.is_troop(tid) and w.troops[tid]["drawn"] and w.troops[tid]["kind"] == "review"
+    ra = w.troops[tid]["review"]
+    assert w.reviews[ra].role == "audit" and w.reviews[ra].status == "open" and w.reviews[ra].t_assign == w.t
+    assert not c.audit_obligation and w.troop_drawn_seats == {"audit": 1, "appeal": 0} and w.troop_summons_reviews == 1
+    assert w.ledger.wallet(Ledger.OMEGA).U < omega0                   # the troop's cost purchased and its bond locked from Ω
+    tr = [e for e in w.history.entries if e["kind"] == "troop" and e["payload"].get("troop") == tid]
+    assert tr and tr[0]["payload"]["msg"] == "drawn" and tr[0]["payload"]["seat"] == "audit"
+    with pytest.raises(RuleError):
+        w.draw_troop_seat(q, "audit")                                 # the seat is held
+    w.advance(w.t + 1)
+    w.complete_review(ra, F, 0.0)                                     # the troop agrees: the approval stands as after any audit
+    assert c.state == "PENDING" and c.deciding is None
+    check_all(w)
+    # the panel: a dispute's two seats drawn to troops; both confirming settles the dispute as today's rule has it
+    w2 = make_world(troop_draw=True)
+    q, r = real_approved(w2)
+    c = w2.cases[q]
+    with pytest.raises(RuleError):
+        w2.draw_troop_seat(q, "appeal")                               # no challenge open
+    w2.dispute(q, "H", "the result does not meet the request")
+    t1 = w2.draw_troop_seat(q, "appeal")
+    t2 = w2.draw_troop_seat(q, "appeal")
+    assert t1 != t2 and w2.troop_drawn_seats == {"audit": 0, "appeal": 2} and len(c.challenge["reviews"]) == 2
+    with pytest.raises(RuleError):
+        w2.draw_troop_seat(q, "appeal")                               # the panel is full
+    w2.advance(w2.t + 1)
+    for tid_ in (t1, t2):
+        w2.complete_review(w2.troops[tid_]["review"], F, 0.0)
+    assert c.challenge["resolved"] and c.challenge["outcome"] == F and c.challenge["by"] == "appeal reviewers" and c.state == "PENDING"
+    check_all(w2)
+    # one troop differing escalates to the deciding verdict, as any member panel's split does
+    w3 = make_world(troop_draw=True)
+    q, r = real_approved(w3)
+    c = w3.cases[q]
+    w3.dispute(q, "H", "the result does not meet the request")
+    t1 = w3.draw_troop_seat(q, "appeal")
+    p2 = w3.assign_appeal(q, "D")
+    w3.advance(w3.t + 1)
+    w3.complete_review(w3.troops[t1]["review"], N, 0.0)
+    w3.complete_review(p2, F, 2.0)
+    assert c.challenge["escalated"] and c.deciding is not None and c.deciding["reason"] == "panel" and c.deciding["verdicts"] == []
+    with pytest.raises(RuleError):
+        w3.draw_troop_seat(q, "appeal")                               # the deciding verdict holds the challenge
+    w3.advance(w3.t + 1)
+    check_all(w3)
+
+
+def test_under_troop_audit_no_vote_the_states_differing_audit_opens_the_deciding_verdict_afresh_and_is_no_vote():
+    """Params.troop_audit_no_vote (Baruchi's ruling of November 17): where a troop sat the audit that differed the deciding verdict is given by two fresh
+    troop seats — the audit is not its first vote; off, the state's audit is the first seat (the cell of record). The troop's audit is never overturned."""
+    for no_vote in (False, True):
+        w = make_world(troop_draw=True, troop_audit_no_vote=no_vote)
+        q, r = real_approved(w)
+        c = w.cases[q]
+        w.roll_audit(q)
+        tid = w.draw_troop_seat(q, "audit")
+        ra = w.troops[tid]["review"]
+        w.advance(w.t + 1)
+        w.complete_review(ra, N, 0.0)                                 # the state's audit differs
+        d = c.deciding
+        assert d is not None and d["reason"] == "state_audit" and c.challenge["escalated"]
+        if no_vote:
+            assert d["verdicts"] == [] and d["want"] == 2 and w.deciding_state_audit_fresh == 1
+        else:
+            assert d["verdicts"] == [(ra, N)] and w.deciding_state_audit_fresh == 0
+        w.advance(w.t + 1)                                            # the pass seats the deciding seats
+        seats = deciding_open(w, c)
+        assert len(seats) == (2 if no_vote else 1)
+        for s in seats:
+            w.complete_review(s.id, F, 0.0)                           # the fresh seats confirm the approval (off: the one seat differs from the first vote — a split, a third decides)
+        if not no_vote:
+            assert not d["resolved"] and d["want"] == 3
+            w.advance(w.t + 1)
+            (s3,) = deciding_open(w, c)
+            w.complete_review(s3.id, F, 0.0)
+        assert d["resolved"] and d["outcome"] == F and c.state == "PENDING" and len(d["verdicts"]) == (2 if no_vote else 3)
+        assert w.reviews[ra].status == "done" and w.reviews[r].status == "done"   # the troop's differing audit stands unoverturned; the approval stands
+        assert w.deciding_outcomes_by_reason.get("state_audit:confirmed", 0) == 1
+        check_all(w)
+    # the fresh seats split: a third decides, and an overturn marks the first reviewer as after a member's audit
+    w = make_world(troop_draw=True, troop_audit_no_vote=True)
+    q, r = real_approved(w)
+    c = w.cases[q]
+    w.roll_audit(q)
+    tid = w.draw_troop_seat(q, "audit")
+    w.advance(w.t + 1)
+    w.complete_review(w.troops[tid]["review"], N, 0.0)
+    w.advance(w.t + 1)
+    s1, s2 = deciding_open(w, c)
+    w.complete_review(s1.id, F, 0.0)
+    w.complete_review(s2.id, N, 0.0)
+    assert c.deciding["want"] == 3 and w.deciding_splits == 1
+    w.advance(w.t + 1)
+    (s3,) = deciding_open(w, c)
+    w.complete_review(s3.id, N, 0.0)
+    assert c.deciding["resolved"] and c.deciding["outcome"] == N and c.state == "FINAL_N" and w.reviews[r].status == "overturned"
+    check_all(w)

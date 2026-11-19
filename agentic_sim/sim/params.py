@@ -252,6 +252,15 @@ class Params:
                                         # window's close with no filing; the same challenge record continues (one round); a plant's challenge resolves by
                                         # its truth at the panel and never reaches it
     T_second: int = 2                   # the second filing's window after the panel's confirmation (an open number of the rulebook; T_resp's length taken)
+    # Brief A1, addendum 33 (November 18, 2026, late night; notes §127): two things to build, each behind an option off in every run of record; neither a rule.
+    troop_audit_no_vote: bool = False   # (i) the state's audit that differed is no vote of the court (Baruchi's ruling of November 17): where a troop sat the audit
+                                        # seat and differed, the deciding verdict is given afresh by two troop seats, as after a member's audit differed; the
+                                        # audit is not its first vote (off: the state's audit is the deciding verdict's first seat, the cell of record's count).
+                                        # Built on the trusted ruling. The deciding seats' error is the driver's (`--eps-deciding`, equal to ε_T by default)
+    troop_draw: bool = False            # (ii) the state's troops as candidates in the draw of an audit or panel seat up to a minimum K (Baruchi's position of
+                                        # November 18): admits `World.draw_troop_seat(cid, role)` — the harness draws at the seat's turn among the free
+                                        # panel-eligible members with troop candidates added up to K (`--seat-draw seats --draw-min K`), and a troop drawn sits at
+                                        # once on the troop seat's road (its cost c_T, its bond, its fee; the seat waits for nothing). Requires troops
 
     def __post_init__(self):
         if self.dial_start is not None:
@@ -271,6 +280,10 @@ class Params:
             raise ValueError("Params: the mark for a miss on real work and the second filing are built on the trusted ruling (trusted_ruling=True)")
         if self.T_second < 1:
             raise ValueError("Params: T_second must be at least one tick")
+        if self.troop_audit_no_vote and not self.trusted_ruling:
+            raise ValueError("Params: the state's audit as no vote of the court is built on the trusted ruling (trusted_ruling=True)")
+        if self.troop_draw and not self.troops:
+            raise ValueError("Params: troops as candidates in the draw need the troops (troops=True)")
         if self.state_audit:
             self.planted_approval = False
         # 2.4.0 §2.3 (I33): the arrival float exists so that an arrival can post the reviewer's bond — a constraint on the parameters,

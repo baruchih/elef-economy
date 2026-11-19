@@ -203,6 +203,10 @@ class Public:
     def dispute(self, cid: str, challenger: str, d: Optional[str] = None):
         self._w.dispute(self._eng(cid), challenger, d)
 
+    def draw_troop_seat(self, cid: str, role: str) -> str:
+        """Addendum 33 (ii), `Params.troop_draw` (off in every run of record): a troop drawn as a candidate at an audit or panel seat's turn sits it at once."""
+        return self._w.draw_troop_seat(self._eng(cid), role)
+
     def second_filing(self, cid: str, challenger: str):
         """Addendum 31 (Params.second_filing; off in every run of record): the challenger whose filing a member panel confirmed goes on to the deciding verdict."""
         self._w.second_filing(self._eng(cid), challenger)
@@ -251,6 +255,9 @@ class Public:
                 # addendum 31 (notes §126): the mark for a miss on real work and the second filing — readings, zero with the options off
                 "real_miss_marks": w.real_miss_marks, "second_filings": w.second_filings, "second_filings_won": w.second_filings_won,
                 "second_filings_lost": w.second_filings_lost, "second_windows_lapsed": w.second_windows_lapsed,
+                # addendum 33 (notes §127): the state's audit as no vote and the troops drawn — readings, zero with the options off
+                "deciding_state_audit_fresh": w.deciding_state_audit_fresh, "troop_drawn_seats": dict(w.troop_drawn_seats),
+                "troop_drawn_plant_seats": dict(w.troop_drawn_plant_seats), "troop_draw_refused": w.troop_draw_refused,
                 "shortfall_seats": w.troop_shortfall_seats, "shortfall_awards": w.troop_shortfall_awards,
                 "held_ticks": w.troop_held_ticks, "troop_ticks_reviews": w.troop_ticks_reviews,
                 "troop_ticks_deliveries": w.troop_ticks_deliveries,

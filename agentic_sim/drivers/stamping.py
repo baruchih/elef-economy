@@ -172,6 +172,9 @@ NOT_IN_RUN = ["appeals by actors (unless --appeal-policy is set)", "disputes (un
               "a reviewer that tries to tell a plant from real work (the view carries nothing to tell by; 1.2.0 §2.1)"]
 
 
+TROOP_DRAW = "<troop drawn>"   # addendum 33 (ii): `pick_seat`'s answer where a troop candidate is drawn (`--seat-draw seats --draw-min K`); the caller seats it through the view
+
+
 @dataclass
 class Task:
     cid: str
@@ -188,6 +191,8 @@ class Task:
     disputed: bool = False       # H disputed the pending F (the dispute run)
     second_rolled: bool = False  # addendum 31: the party asked once whether to go on after the panel's confirmation
     second_filed: bool = False
+    audit_first_step: Optional[int] = None   # addendum 33's 6.10: the audit seat's first seating step (the pool of free panel-eligible members read there)
+    panel_seen: Optional[dict] = None        #   the panel seats' first steps by seat index, and how each was filled (a member at the first step or later, the state, a drawn troop)
     plant: bool = False          # the orchestrator's planted work (1.2.0)
     probation_false_approval: bool = False   # a probationer approved truly failed work (1.3.0: audited at 1)
     learner_work: Optional[int] = None       # Q3 (the learned deliverer): the slot's quality decision on this case — 0 good, 1 bad (zero effort)
@@ -250,6 +255,10 @@ class Stamping:
         self.seat_rng = random.Random(f"{a.seed}:seat-draw")      # addendum 30's AJ6 (November 18, 2026): the drawn audit and panel seats' own stream (`--seat-draw seats`), so the world's draws on self.rng are as today's
         if getattr(a, "seat_draw", "off") != "off" and getattr(a, "seat_group", "off") != "off":
             raise SystemExit("--seat-draw and --seat-group are not combined")
+        if getattr(a, "draw_min", 0) > 0 and getattr(a, "seat_draw", "off") != "seats":
+            raise SystemExit("--draw-min needs --seat-draw seats (addendum 33 (ii): the troops are candidates in the draw)")
+        self.drawn_troops: set = set()                               # addendum 33 (ii): the troops seated by the draw (the record tells them from the summoned)
+        self.seat_tally: dict[str, int] = {}                         # addendum 33's 6.10: the pool at a seat's first seating step and how the seat was filled
         self.actors = [f"a{i:02d}" for i in range(a.actors)]
         n_st = round(a.actors * a.stampers)
         ids = list(self.actors)
@@ -279,6 +288,7 @@ class Stamping:
             a.tie_break = "draw" if rev12 else "id"                      # 2.6.0 §2.3: the tie after κ by a seeded draw; `id` the control
         p = Params(Res0=a.res0, X=a.on_duty, G_V=a.gv, p_start=a.p_start, p_cap=a.p_cap, p_floor=a.p_floor, p_halve_every=a.p_halve_every, band=a.band, G_frac_nested=a.child_g_frac, bond_mult_later=a.bond_mult_later, w_audit=a.w_audit,
                    real_miss_mark=(a.real_miss_mark == "on"), second_filing=(a.second_filing == "on"), T_second=a.t_second,   # addendum 31's two options (off every run of record)
+                   troop_audit_no_vote=(a.troop_no_vote == "on"), troop_draw=(a.draw_min > 0),   # addendum 33's two options (off every run of record)
                    record_dir=a.record_dir, f_fee=a.fee, phi_E_root=a.phi_e, phi_F_root=a.phi_f,
                    pi0=a.pi0, pi_max=a.pi_max, dial=(a.dial == "on"), beta_P=a.beta_p, Omega0=a.omega0,
                    membership=rev3, duty_fund=(rev3 and a.fund == "on"), net_plant_capital=rev3, m_max=a.m_max,
@@ -583,7 +593,8 @@ class Stamping:
                   "appeals_unfunded_fee": 0.0, "appeals_unfunded_wallet": 0.0, "false_rejections_unfunded": 0, "troop_initial_seats": 0,
                   "pick_audit_same": 0, "pick_audit_other": 0, "pick_audit_fallback": 0, "pick_audit_nofirst": 0, "pick_panel_same": 0, "pick_panel_other": 0, "pick_panel_fallback": 0, "pick_panel_nofirst": 0,
                   **{f"pick_{k}_free_{j}": 0 for k in ("audit", "panel") for j in ("sum", "n", "1", "2", "3p")},   # addendum 30's AJ6: the free panel-eligible members at the seat's turn where a member takes it (a reading, every mode)
-                  "pick_audit_drawn": 0, "pick_panel_drawn": 0,   # addendum 30's AJ6: the seats drawn among them (`--seat-draw seats`)   # addendum 28's AH5: the picks by the group of the first reviewer
+                  "pick_audit_drawn": 0, "pick_panel_drawn": 0, "pick_audit_troop_drawn": 0, "pick_panel_troop_drawn": 0, "pick_audit_free_0": 0, "pick_panel_free_0": 0,   # addendum 33 (ii): the troops drawn, the pick asked with none free
+                  "seated_audit_troop_drawn": 0, "seated_appeal_troop_drawn": 0, "seated_audit_state_drawn_plant": 0, "seated_appeal_state_drawn_plant": 0, "draw_troop_refused": 0,   # addendum 30's AJ6: the seats drawn among them (`--seat-draw seats`)   # addendum 28's AH5: the picks by the group of the first reviewer
                   "false_rejections_total": 0, "false_rejections_appealed": 0, "false_rejections_overturned": 0,
                   "true_rejections_appealed": 0, "true_rejections_overturned": 0,
                   "duty_short_of_bond_ticks": 0,   # Σ over ticks of on-duty actors that cannot fund G^V (q6 solvency)
@@ -1052,15 +1063,23 @@ class Stamping:
                 return r.reviewer if (r.reviewer in self.actors or r.reviewer in self.learner_chain_set) else None   # a slot's, alive or departed (its name keeps its group); None for the state's, the orchestrator's alias (`is_troop` does not name it) or any other name
         return None
 
-    def pick_seat(self, c, el: list[str], kind: str) -> str:
+    def pick_seat(self, c, el: list[str], kind: str, troops: bool = True) -> str:
         """Addendum 28's AH5 (November 18, 2026): the audit and panel picks by group — `--seat-group off` is today's pick (`pick_reviewer`, nothing read); `read` is today's
         pick with the pick's group read beside the first reviewer's (`pick_<kind>_same` / `_other`; `_nofirst` where the first seat was the state's); `prefer` takes today's
         pick among the free panel-eligible members of the other group from the first reviewer's where one is free (`_other`) and today's pick among all where none is
         (`_fallback`). The round-robin pointer moves to the pick made, as today. A construction in the harness: ELEF does not know a member's model."""
-        _n_ = len(el); self.c[f"pick_{kind}_free_sum"] += _n_; self.c[f"pick_{kind}_free_n"] += 1; self.c[f"pick_{kind}_free_{'1' if _n_ == 1 else '2' if _n_ == 2 else '3p'}"] += 1   # addendum 30's AJ6: how many are free at the seat's turn (nothing drawn)
+        _n_ = len(el); self.c[f"pick_{kind}_free_sum"] += _n_; self.c[f"pick_{kind}_free_n"] += 1; self.c[f"pick_{kind}_free_{'0' if _n_ == 0 else '1' if _n_ == 1 else '2' if _n_ == 2 else '3p'}"] += 1   # addendum 30's AJ6: how many are free at the seat's turn (nothing drawn; `_0` only under --draw-min, where the pick is asked with none free)
         if getattr(self.a, "seat_draw", "off") == "seats":
             # addendum 30's AJ6 (November 18, 2026; a harness construction, no rule): the audit and panel seats drawn among the free panel-eligible members at the seat's turn, on their own
             # stream (`seat_rng`, salted on the seed); the first review by the round-robin as today, whose pointer a drawn seat does not move; `--assignment seeded` is the record's other draw, on the world's stream
+            _K = getattr(self.a, "draw_min", 0)
+            if _K > 0 and troops:                                      # `troops` False where the seat cannot be the state's (a planted approval's audit seat, Appendix V): the members alone
+                # addendum 33 (ii) (`--draw-min K` with `Params.troop_draw`; off in every run of record): troop candidates added up to K where fewer members are free, one candidate
+                # drawn over all on the same stream; a troop drawn is seated by the caller at once through `draw_troop_seat` (the troop seat's road, no wait)
+                _pick = self.seat_rng.choice(list(el) + [TROOP_DRAW] * max(0, _K - _n_))
+                if _pick == TROOP_DRAW:
+                    self.c[f"pick_{kind}_troop_drawn"] += 1; return TROOP_DRAW
+                self.c[f"pick_{kind}_drawn"] += 1; return _pick
             self.c[f"pick_{kind}_drawn"] += 1; return self.seat_rng.choice(el)
         if self.a.seat_group == "off":
             return self.pick_reviewer(el)
@@ -1076,6 +1095,9 @@ class Stamping:
         chosen = self.pick_reviewer(el)
         self.c[f"pick_{kind}_same" if slot_group(chosen, self.a.seed) == g else f"pick_{kind}_other"] += 1
         return chosen
+
+    def _seat_tally(self, k: str):
+        self.seat_tally[k] = self.seat_tally.get(k, 0) + 1
 
     def duty_funding(self):
         """Solvency (§18.1 q6): how many on-duty actors cannot fund the bond right now."""
@@ -2530,7 +2552,8 @@ class Stamping:
                     if w.is_troop(r.reviewer):
                         # 1.4.0 §2.1: the troop's declared disposition — the truth with probability 1 − ε_T, no cost
                         truth = self.tasks[cid].fulfilled
-                        right = self._right(self.tasks.get(cid), 1.0 - a.eps_t, rho=a.shared_difficulty_troops, own=self.rng.random() >= a.eps_t)   # the stressed world: the troops' shared coin, stated apart (the own coin as it was)
+                        _eps = a.eps_deciding if (r.role == "deciding" and a.eps_deciding is not None) else a.eps_t   # addendum 33 (i): the deciding seats' error declared apart from the troops' (ε_T by default)
+                        right = self._right(self.tasks.get(cid), 1.0 - _eps, rho=a.shared_difficulty_troops, own=self.rng.random() >= _eps)   # the stressed world: the troops' shared coin, stated apart (the own coin as it was)
                         w.complete_review(rid, F if (truth == right) else N, 0.0)
                         self.c["troop_reviews"] += 1
                         if r.role == "initial":
@@ -2861,34 +2884,75 @@ class Stamping:
                         and not (self.p.state_audit and (task.plant or (not w.is_troop(c.actor) and not c.market_audit_only))):
                     # A1 arm 2: the audit of a member's work is the orchestrator's seat in the engine's pass; a plant's obligation discharged there
                     el = self.eligible_reviewers(cid, panel=True)
-                    if el:
-                        _ch_ = self.pick_seat(c, el, "audit"); rid = w.assign_audit(cid, _ch_)
-                        _f_ = self._first_member_reviewer(c)                                   # addendum 28's AH5: how often one pair meets (a first reviewer and the member at its audit seat)
-                        if _f_ is not None: self.pair_meet.setdefault(f"{_f_}|{_ch_}", []).append(int(w.t))
-                        self.c["seated_audit_member"] += 1
-                        self.review_owner[rid] = w.review(rid).reviewer
-                        task.audit_wanted, task.t_audit_assign = False, w.t
-                        self.c["audits_assigned"] += 1
+                    _tally_seat = not task.plant and not w.is_troop(c.actor) and c.is_root     # addendum 33's 6.10: a member's real root's seats — the pool at the first step, the fill
+                    if task.audit_first_step is None:
+                        task.audit_first_step = w.t
+                        if _tally_seat: self._seat_tally(f"seatpool_audit_{min(len(el), 5)}")
+                    _draw = self.a.draw_min > 0 and not task.planted_approval and not c.market_audit_only   # addendum 33 (ii): troop candidates where the seat can be the state's
+                    if el or _draw:
+                        _ch_ = self.pick_seat(c, el, "audit", troops=_draw)
+                        if _ch_ == TROOP_DRAW:
+                            try:
+                                _tid = w.draw_troop_seat(cid, "audit")
+                                self.c["seated_audit_state_drawn_plant" if _tid == "state" else "seated_audit_troop_drawn"] += 1; self.drawn_troops.add(_tid)
+                                task.audit_wanted, task.t_audit_assign = False, w.t
+                                if _tally_seat: self._seat_tally("seatfill_audit_troop_drawn")
+                            except (RuleError, LedgerError):
+                                self.c["draw_troop_refused"] += 1; self.c["audit_unassignable_ticks"] += 1   # the summons refused: the seat waits as today
+                        else:
+                            rid = w.assign_audit(cid, _ch_)
+                            _f_ = self._first_member_reviewer(c)                                   # addendum 28's AH5: how often one pair meets (a first reviewer and the member at its audit seat)
+                            if _f_ is not None: self.pair_meet.setdefault(f"{_f_}|{_ch_}", []).append(int(w.t))
+                            self.c["seated_audit_member"] += 1
+                            self.review_owner[rid] = w.review(rid).reviewer
+                            task.audit_wanted, task.t_audit_assign = False, w.t
+                            self.c["audits_assigned"] += 1
+                            if _tally_seat: self._seat_tally("seatfill_audit_member_step1" if w.t == task.audit_first_step else "seatfill_audit_member_later")
                     else:
                         self.c["audit_unassignable_ticks"] += 1
                 elif task.audit_wanted:
                     task.audit_wanted = False                             # a troop took the seat
+                    if task.audit_first_step is not None and not task.plant and not w.is_troop(c.actor) and c.is_root: self._seat_tally("seatfill_audit_state")
             ch = c.challenge
             if ch and not ch["resolved"]:
                 if not task.appeal_wanted:
                     task.appeal_wanted = True
                     self.c["plant_challenges" if task.plant else "challenges"] += 1
                 done = [w.review(r) for r in ch["reviews"] if w.review(r).status == "done"]
-                if len(ch["reviews"]) + len(ch.get("state_verdicts", ())) < 2:     # 2.8.0: the state's verdict on a plant holds a seat
+                _held = len(ch["reviews"]) + len(ch.get("state_verdicts", ()))
+                _tally_seat = not task.plant and not w.is_troop(c.actor) and c.is_root       # addendum 33's 6.10: the panel seats' first steps and fills on a member's real root
+                if task.panel_seen is None: task.panel_seen = {}
+                for _i in range(_held):
+                    if _i in task.panel_seen and task.panel_seen[_i].get("fill") is None:
+                        task.panel_seen[_i]["fill"] = "state"                                    # filled by the pass's troop since the driver's last look
+                        if _tally_seat: self._seat_tally("seatfill_panel_state")
+                if _held < 2:     # 2.8.0: the state's verdict on a plant holds a seat
                     el = self.eligible_reviewers(cid, panel=True)
+                    if not c.challenge.get("escalated") and _held not in task.panel_seen:
+                        task.panel_seen[_held] = {"t": w.t}
+                        if _tally_seat: self._seat_tally(f"seatpool_panel_{min(len(el), 5)}")
                     if c.challenge.get("escalated"):
                         pass                                 # A1: the deciding verdict holds this challenge — no member seat, no ruling
-                    elif el:
-                        rid = w.assign_appeal(cid, self.pick_seat(c, el, "panel"))
-                        self.c["seated_appeal_member"] += 1
-                        self.review_owner[rid] = w.review(rid).reviewer
-                        if task.t_panel_assign is None:
-                            task.t_panel_assign = w.t
+                    elif el or self.a.draw_min > 0:
+                        _ch_ = self.pick_seat(c, el, "panel", troops=(self.a.draw_min > 0))
+                        if _ch_ == TROOP_DRAW:
+                            try:
+                                _tid = w.draw_troop_seat(cid, "appeal")                          # addendum 33 (ii): a troop drawn sits the panel seat at once (a plant's: the state's verdict)
+                                self.c["seated_appeal_state_drawn_plant" if _tid == "state" else "seated_appeal_troop_drawn"] += 1; self.drawn_troops.add(_tid)
+                                task.panel_seen[_held]["fill"] = "troop_drawn"
+                                if _tally_seat: self._seat_tally("seatfill_panel_troop_drawn")
+                                if task.t_panel_assign is None:
+                                    task.t_panel_assign = w.t
+                            except (RuleError, LedgerError):
+                                self.c["draw_troop_refused"] += 1; self.c["appeals_unassignable_ticks"] += 1
+                        else:
+                            rid = w.assign_appeal(cid, _ch_)
+                            self.c["seated_appeal_member"] += 1
+                            self.review_owner[rid] = w.review(rid).reviewer
+                            task.panel_seen[_held]["fill"] = "member_step1" if w.t == task.panel_seen[_held]["t"] else "member_later"
+                            if _tally_seat: self._seat_tally(f"seatfill_panel_{task.panel_seen[_held]['fill']}")
+                            if task.t_panel_assign is None:
+                                task.t_panel_assign = w.t
                     else:
                         self.c["appeals_unassignable_ticks"] += 1
                         # the shortfall's cause (the reviewer's read 2, November 10): a free on-duty member kept off the panel tier by its record,
@@ -3332,6 +3396,20 @@ class Stamping:
                 if not task.plant and not w.is_troop(c.actor) and c.is_root:
                     # A1 §6: the leak's second denominator and the false penalties by seat — a member's delivery, its truth the task's
                     _ir0 = next((x for x in revs_c if x.role == "initial" and not getattr(x, "resumed", False)), None); _ch0 = c.challenge or {}
+                    _tru0 = "good" if task.fulfilled else "bad"
+                    if task.audit_first_step is not None and task.audit_wanted:
+                        task.audit_wanted = False; self._seat_tally("seatfill_audit_state")      # addendum 33's 6.10: the pass's troop took the seat and the case closed before the driver's next look
+                    for _ps in (task.panel_seen or {}).values():
+                        if _ps.get("fill") is None: _ps["fill"] = "state"; self._seat_tally("seatfill_panel_state")
+                    if _ch0.get("challenger") is not None and _ch0.get("kind") in ("appeal", "dispute"):
+                        # addendum 33's 6.6 and point 9: a filed challenge's panel at the closure — the troops among its two seats (the drawn apart), and how it ended
+                        # (confirmed by the panel; escalated by the panel's own split; gone on by a second filing; open at the run's end is not seen here)
+                        _prs = [w.review(x) for x in _ch0.get("reviews", []) if w.review(x).role == "appeal"]
+                        _nt = sum(1 for _r in _prs if w.is_troop(_r.reviewer)); _nd = sum(1 for _r in _prs if _r.reviewer in self.drawn_troops)
+                        _end = "second" if _ch0.get("second") else ("escalated" if _ch0.get("escalated") else ("confirmed" if _ch0.get("resolved") else "open"))
+                        _sbk = self.seats_by_kind; _kd = _ch0["kind"]
+                        for _kk, _dv in ((f"dpanel_{_kd}_{_tru0}_t{_nt}_{_end}", 1), (f"dpanelseat_{_kd}_troop", _nt), (f"dpanelseat_{_kd}_member", len(_prs) - _nt), (f"dpanelseat_{_kd}_troopdrawn", _nd)):
+                            _sbk[_kk] = _sbk.get(_kk, 0) + _dv
                     if _ir0 is not None and _ir0.verdict == F:
                         # addendum 31's AK4.3 and AL4.1 (November 18, 2026): every first approval of a member's real delivery — who looked at it again (a member's audit, the
                         # state's, a dispute panel with no audit, nobody) and whether it ended overturned, per run (`ra_json`) and on the first reviewer's slot (`ra_*`), the truth beside
@@ -3339,6 +3417,8 @@ class Stamping:
                         _look = ("state" if w.is_troop(_aud0[0].reviewer) else "member") if _aud0 else ("panel" if _ch0.get("kind") == "dispute" else "never")
                         _tr0 = "good" if task.fulfilled else "bad"; _ov0 = _ir0.status == "overturned"
                         for _k0 in (f"{_look}_{_tr0}_n", f"{_look}_n") + ((f"{_look}_{_tr0}_over", f"{_look}_over") if _ov0 else ()): self.ra_tally[_k0] = self.ra_tally.get(_k0, 0) + 1
+                        if _look == "state" and _aud0[0].reviewer in self.drawn_troops:   # addendum 33 (ii): the state's look by the draw, read apart from the summoned
+                            for _k0 in (f"statedrawn_{_tr0}_n", "statedrawn_n") + ((f"statedrawn_{_tr0}_over", "statedrawn_over") if _ov0 else ()): self.ra_tally[_k0] = self.ra_tally.get(_k0, 0) + 1
                         if _ch0.get("second"): _k0 = f"second_{_tr0}_{'over' if _ov0 else 'conf'}"; self.ra_tally[_k0] = self.ra_tally.get(_k0, 0) + 1
                         if _ir0.reviewer in self.learner_chain_set:
                             _d0 = self.slot_reviews.setdefault(_ir0.reviewer, {})
@@ -3506,6 +3586,10 @@ class Stamping:
               "disputes_refused_after_sample": tr["disputes_refused_after_sample"],
               "real_miss_marks": tr.get("real_miss_marks", 0), "second_filings": tr.get("second_filings", 0), "second_filings_won": tr.get("second_filings_won", 0),   # addendum 31
               "second_filings_lost": tr.get("second_filings_lost", 0), "second_windows_lapsed": tr.get("second_windows_lapsed", 0),
+              "deciding_state_audit_fresh": tr.get("deciding_state_audit_fresh", 0),   # addendum 33 (i): the deciding verdicts opened afresh after the state's audit differed
+              "troop_drawn_audit": tr.get("troop_drawn_seats", {}).get("audit", 0), "troop_drawn_appeal": tr.get("troop_drawn_seats", {}).get("appeal", 0),   # addendum 33 (ii)
+              "troop_drawn_plant_audit": tr.get("troop_drawn_plant_seats", {}).get("audit", 0), "troop_drawn_plant_appeal": tr.get("troop_drawn_plant_seats", {}).get("appeal", 0),
+              "troop_draw_refused": tr.get("troop_draw_refused", 0),
               "leak_paid": round(self.c["false_approvals"] / max(1, self.c["vested"]), 6),
               "leak_bad": round(self.c["false_approvals"] / max(1, self.c["bad_deliveries"]), 6)}
         row.update(a1)
@@ -3650,7 +3734,8 @@ class Stamping:
                     "slot_cost": (round(self.c_d_of[self.tell_slot], 3) if self.tell_slot else ""),
                     "slot_suspensions": (len(self.susp_log.get(self.tell_slot, [])) if self.tell_slot else ""),
                     "learner_decisions": self.learner_decisions, "learner_false_approvals": self.c["learner_false_approvals"],
-                    "seats_by_kind_json": json.dumps(self.seats_by_kind, sort_keys=True),   # addendum 15's P3.4
+                    "seats_by_kind_json": json.dumps(self.seats_by_kind, sort_keys=True),   # addendum 15's P3.4; addendum 33: the filed challenges' panels by holder and end (`dpanel_*`)
+                    "seat_json": json.dumps(self.seat_tally, sort_keys=True),   # addendum 33's 6.10: the pool at a seat's first seating step and how the seat was filled
                     "bad_met_first_json": json.dumps(self.bad_met_first, sort_keys=True),   # addendum 24's AD4.1
                     "ra_json": json.dumps(self.ra_tally, sort_keys=True),   # addendum 31's AK4.3 / AL4.1
                     "pair_meet_json": json.dumps(self.pair_meet, sort_keys=True), "pair_fail_json": json.dumps(self.pair_fail, sort_keys=True),   # addendum 28's AH4.2 and AH5: how often one pair meets; two slots failing the same planted case
@@ -3912,6 +3997,14 @@ def build_parser():
                     help="Params.second_filing (addendum 31, AK10; off in every run of record; no rule): a challenger whose appeal or dispute a member panel confirmed may go on to the deciding verdict within --t-second ticks, "
                          "the court fee put down again (kept by Ω if it loses, returned if it wins); the confirmation final at the window's close with no filing. The driver's truthful party goes on where the truth is on its side "
                          "(a requester under --dispute-policy truthful/half/always where the work truly failed; an actor under --appeal-policy truthful/always where its work was truly fulfilled). Needs --arm 1")
+    ap.add_argument("--troop-no-vote", choices=["off", "on"], default="off",
+                    help="Params.troop_audit_no_vote (brief A1, addendum 33 (i), November 18, 2026 — Baruchi's ruling of November 17; off in every run of record; no rule): where the state's troop sat the "
+                         "audit that differed, the deciding verdict is given afresh by two troop seats, as after a member's audit differed; the audit is no vote of the court. Needs --arm 1")
+    ap.add_argument("--eps-deciding", type=float, default=None, help="addendum 33 (i): the deciding seats' error rate, declared apart from the troops' ε_T (None: equal to --eps-t, the reads' setting)")
+    ap.add_argument("--draw-min", type=int, default=0,
+                    help="Params.troop_draw with the harness's draw (addendum 33 (ii) — Baruchi's position of November 18; 0 in every run of record; no rule): under --seat-draw seats, at an audit or "
+                         "panel seat's turn the candidates are the free panel-eligible members with the state's troops added up to this minimum; one candidate is drawn over all; a troop drawn sits "
+                         "at once on the troop seat's road (its cost, its bond, its fee; a plant's seat the orchestrator's own verdict). 0: off")
     ap.add_argument("--t-second", type=int, default=2, help="Params.T_second, the second filing's window after the panel's confirmation (an open number of the rulebook; T_resp's length)")
     ap.add_argument("--p-start", type=float, default=1.0, help="a newcomer's audit odds (1.2.0 §2.4: 1.0; 1.1.0: 0.5)")
     ap.add_argument("--p-cap", type=float, default=1.0, help="the audit odds' cap on doubling (1.2.0 §2.4: 1.0; 1.1.0: 0.5)")
